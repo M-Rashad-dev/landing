@@ -51,3 +51,15 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **Delete** checks pages through `ProductUsageFinder` and unlinks offers/codes in the same transaction; both hooks are filled in when those tables arrive (phases 4 and 5).
 - **Public product** (`PublicProductResource`) hides sku/timestamps and inactive values; an option left with no active value is hidden entirely so it can never block an order.
 - **Local smoke scripts** send JSON bodies from UTF-8 files: native Windows curl mangles non-ASCII command-line arguments. Register is rate limited (5/hour/IP), so locally run `php artisan cache:clear` before re-running the smoke scripts many times.
+
+## Phase 4
+- **Price engine lives in `app/Pricing/`** (`PriceCalculator`, `PriceMath`, `Quote`) instead of `app/Services/`: `PriceMath` is the pure arithmetic (unit-tested with tables), `PriceCalculator` loads offers/codes inside the tenant and applies 7.1 in order.
+- **Percentages are stored as decimals ("25.00") and handled as percent×100 integers** (2500) so `round(x × value / 100)` stays integer with half-up rounding. Offer percentages are whole numbers 1–95; code percentages 1–100.
+- **An offer that yields no discount is not "applied"** (e.g. bundle below its quantity, unprofitable bundle, fixed 0). Ties → highest priority → oldest id. Never two offers.
+- **Quote vs order**: `quote()` returns `code_error` instead of throwing; the order flow (phase 9) turns `code_error` into a 422 on `code` and calls `quote(..., lockCode: true)` inside its transaction so the code row is locked (`lockForUpdate`) while limits are re-checked.
+- **Unknown option ids** in a quote are rejected (422 on `options.{id}`), so the front can never send options of another product.
+- **Dates from the dashboard**: naive `YYYY-MM-DDTHH:mm` strings are interpreted as Cairo wall time; strings with `Z`/offset are respected. The front converts datetime-local values (Cairo) to UTC ISO before sending, so both paths work. Egypt DST is handled by the IANA zone (`Africa/Cairo`).
+- **Deleted codes are renamed `CODE--DEL{id}`** (the DB unique index on `(tenant_id, code)` includes soft-deleted rows), so the same code can be created again.
+- **`discount_code_redemptions.order_id`** is unique now; its FK to `orders` is added with the orders table in phase 9.
+- **Offers/codes are edited in dialogs** on their list pages (forms are short); both pages embed the price simulator.
+- **MySQL identifier limit**: the long composite index on redemptions has an explicit short name.

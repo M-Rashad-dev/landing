@@ -62,6 +62,66 @@ export type Product = {
 
 export type PageRef = { id: number; title: string };
 
+export type PromotionStatus = "inactive" | "scheduled" | "active" | "expired";
+export type OfferType = "percentage" | "fixed" | "bundle";
+export type DiscountType = "percentage" | "fixed";
+
+export type Offer = {
+  id: number;
+  name: string;
+  type: OfferType;
+  value: number | null;
+  bundle_quantity: number | null;
+  bundle_price: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  status: PromotionStatus;
+  badge_text: string | null;
+  priority: number;
+  products?: Array<{ id: number; name: string; price: number }>;
+  product_ids?: number[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type DiscountCode = {
+  id: number;
+  code: string;
+  type: DiscountType;
+  value: number;
+  max_discount: number | null;
+  min_order_total: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  usage_limit: number | null;
+  usage_limit_per_phone: number | null;
+  used_count: number;
+  remaining: number | null;
+  stackable_with_offers: boolean;
+  is_active: boolean;
+  status: PromotionStatus;
+  products?: Array<{ id: number; name: string }>;
+  product_ids?: number[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type Redemption = { id: number; order_id: number; order_number?: number | null; phone: string; amount: number; released_at: string | null; created_at: string | null };
+
+export type Quote = {
+  currency: "EGP";
+  unit_price: number;
+  quantity: number;
+  base_subtotal: number;
+  offer: { id: number; name: string; type: OfferType; discount: number } | null;
+  subtotal_after_offer: number;
+  code: { code: string; discount: number } | null;
+  code_error: string | null;
+  total: number;
+  at?: string;
+};
+
 export type ColorKey = "primary" | "primary_foreground" | "secondary" | "accent" | "background" | "foreground" | "muted" | "border";
 export type IdentityColors = Record<ColorKey, string>;
 export type ButtonRadius = "none" | "sm" | "md" | "lg" | "full";

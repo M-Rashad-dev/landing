@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\DiscountCode;
 use App\Models\Identity;
 use App\Models\Media;
+use App\Models\Offer;
 use App\Models\Product;
 use App\Models\User;
 
@@ -41,6 +43,27 @@ dataset('tenant resources', [
             ['DELETE', '/api/v1/dashboard/products/{id}', []],
             ['POST', '/api/v1/dashboard/products/{id}/toggle', []],
             ['POST', '/api/v1/dashboard/products/{id}/duplicate', []],
+        ],
+    ],
+    'offers' => [
+        fn (User $owner) => asTenant($owner, fn () => Offer::factory()->create())->id,
+        '/api/v1/dashboard/offers',
+        [
+            ['GET', '/api/v1/dashboard/offers/{id}', []],
+            ['PUT', '/api/v1/dashboard/offers/{id}', ['name' => 'x', 'type' => 'percentage', 'value' => 10, 'product_ids' => [1]]],
+            ['DELETE', '/api/v1/dashboard/offers/{id}', []],
+            ['POST', '/api/v1/dashboard/offers/{id}/toggle', []],
+        ],
+    ],
+    'discount codes' => [
+        fn (User $owner) => asTenant($owner, fn () => DiscountCode::factory()->create())->id,
+        '/api/v1/dashboard/discount-codes',
+        [
+            ['GET', '/api/v1/dashboard/discount-codes/{id}', []],
+            ['PUT', '/api/v1/dashboard/discount-codes/{id}', ['code' => 'XYZ', 'type' => 'fixed', 'value' => '5']],
+            ['DELETE', '/api/v1/dashboard/discount-codes/{id}', []],
+            ['POST', '/api/v1/dashboard/discount-codes/{id}/toggle', []],
+            ['GET', '/api/v1/dashboard/discount-codes/{id}/redemptions', []],
         ],
     ],
 ]);

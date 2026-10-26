@@ -5,8 +5,8 @@
 | 1 | Foundation, register & login | ✅ Done |
 | 2 | Identities & media library | ✅ Done |
 | 3 | Products & options | ✅ Done |
-| 4 | Offers, discount codes, price engine | ⏳ Next |
-| 5 | Page engine & Builder | ⬜ |
+| 4 | Offers, discount codes, price engine | ✅ Done |
+| 5 | Page engine & Builder | ⏳ Next |
 | 6 | Theme «malak» | ⬜ |
 | 7 | Theme «celia» | ⬜ |
 | 8 | Public rendering, SEO, tracking | ⬜ |
@@ -47,9 +47,20 @@
 
 **Front**: products list (table on desktop / cards on mobile, search, status filter, inline Switch, actions: edit/duplicate/delete, 409 dialog with page links, pagination, empty state), product form page (basics with Markdown write/preview, pricing with live discount %, sortable images with "رئيسية" badge, options builder: sortable options and values with keyboard support, add/duplicate/remove values, swatch colors, price deltas, live customer preview), unsaved-changes guard, nested 422 errors on the right inputs, `Markdown` renderer (no raw HTML, safe links), `safeHref` allow-list, `SortableList`.
 
-**Pending hooks (filled later)**: `ProductUsageFinder::pages/unlinkPromotions` (phases 4–5), `IdentityUsageFinder::pages` (phase 5), media usage for pages (phase 5).
+**Pending hooks (filled later)**: `ProductUsageFinder::pages` (phase 5), `IdentityUsageFinder::pages` (phase 5), media usage for pages (phase 5). (`unlinkPromotions` done in phase 4.)
 
 **Checks**
 - `composer test` → 188 passed · `composer lint` → passed
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 98 passed · `pnpm build` ✓
 - `scripts/smoke-products.sh` (t-shirt with S/M/L/XL + swatch color + 4 images → reorder images, delete two values, rename, reorder values, change delta → verified after reload; duplicate inactive; pages 200) → OK. Auth and media smokes re-run → OK.
+
+## Phase 4 — Offers, discount codes & price engine ✅
+
+**Back**: offers / offer_products / discount_codes / discount_code_products / discount_code_redemptions, enums (OfferType, DiscountType, PromotionStatus), `Offer::scopeActiveAt` (inclusive bounds), `PriceCalculator` + `PriceMath` + `Quote` exactly per 7.1 (options validation, best single offer with tie-breaks, code checks a→g in order with Arabic messages, caps, minimum after offer, per-phone limit ignoring released uses, half-up integer rounding, total ≥ 0), offer and code CRUD with 7.2 rules (percentage ranges, fixed below cheapest product, profitable bundles, end > start, uppercase unique code per tenant, type locked after first use), computed status + SQL status filter, toggles, redemptions log, `POST /dashboard/pricing/preview` with simulated Cairo time, limits (200 offers / 500 codes), product delete unlinks promotions, revalidation on changes, both resources in the isolation suite.
+
+**Front**: Cairo date helpers (DST-aware) with tests, offers page (table/cards, status filter, toggle, delete, dialog form switching fields by type, product multi-select with search, datetime-local "بتوقيت القاهرة" with "بدون نهاية", badge, priority, effective unit price hint for bundles), discount codes page (copy button, random code generator, usage used/limit, redemptions dialog, full form incl. cap/minimum/limits/stackable/products), `PricePreview` simulator on both pages (product, options, quantity, code, simulated time, phone → step-by-step quote).
+
+**Checks**
+- `composer test` → 281 passed (PriceMath table + PriceCalculator suite = 53 cases) · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 103 passed · `pnpm build` ✓
+- `scripts/smoke-pricing.sh` ("2 for 350" from tomorrow: not applied now, applied tomorrow; EID25 25% capped at 100; offer + code = 262.5; invalid code → code_error) → OK
