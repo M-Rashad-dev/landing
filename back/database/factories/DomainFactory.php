@@ -9,6 +9,7 @@ use App\Enums\DomainType;
 use App\Enums\SslStatus;
 use App\Models\Domain;
 use App\Models\Tenant;
+use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /** @extends Factory<Domain> */
@@ -22,7 +23,8 @@ class DomainFactory extends Factory
         $host = fake()->unique()->lexify('store-????').'.'.config('landing.platform_domain');
 
         return [
-            'tenant_id' => Tenant::factory(),
+            // Inside Tenancy::runAs() rows belong to the current tenant.
+            'tenant_id' => fn () => Tenancy::id() ?? Tenant::factory()->create()->id,
             'host' => $host,
             'type' => DomainType::Subdomain,
             'status' => DomainStatus::Active,

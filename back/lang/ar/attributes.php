@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 // Arabic names for request fields, used by every FormRequest (ApiRequest::attributes()).
 return [
+    // auth / account
     'name' => 'الاسم',
     'email' => 'البريد الإلكتروني',
     'phone' => 'رقم الموبايل',
@@ -12,4 +13,47 @@ return [
     'password_confirmation' => 'تأكيد كلمة المرور',
     'current_password' => 'كلمة المرور الحالية',
     'login' => 'البريد الإلكتروني أو الموبايل',
+
+    // identities
+    'brand_name' => 'اسم البراند',
+    'logo_media_id' => 'اللوجو',
+    'favicon_media_id' => 'الأيقونة',
+    'og_image_media_id' => 'صورة المشاركة',
+    'colors' => 'الألوان',
+    'colors.primary' => 'اللون الأساسي',
+    'colors.primary_foreground' => 'لون نص الزر',
+    'colors.secondary' => 'اللون الثانوي',
+    'colors.accent' => 'لون التمييز',
+    'colors.background' => 'لون الخلفية',
+    'colors.foreground' => 'لون النص',
+    'colors.muted' => 'اللون الخافت',
+    'colors.border' => 'لون الحدود',
+    'font_heading' => 'خط العناوين',
+    'font_body' => 'خط النص',
+    'button_radius' => 'شكل الأزرار',
+    'seo_title' => 'عنوان SEO',
+    'seo_title_suffix' => 'لاحقة العنوان',
+    'seo_description' => 'وصف SEO',
+    'contact.phone' => 'رقم الهاتف',
+    'contact.whatsapp' => 'رقم واتساب',
+    'contact.email' => 'البريد الإلكتروني',
+    'contact.address' => 'العنوان',
+    'socials.facebook' => 'فيسبوك',
+    'socials.instagram' => 'إنستجرام',
+    'socials.tiktok' => 'تيك توك',
+    'socials.youtube' => 'يوتيوب',
+    'socials.x' => 'إكس (تويتر)',
+    'socials.snapchat' => 'سناب شات',
+    'tracking.meta_pixel_id' => 'معرّف Meta Pixel',
+    'tracking.tiktok_pixel_id' => 'معرّف TikTok Pixel',
+    'tracking.ga4_id' => 'معرّف Google Analytics 4',
+    'tracking.gtm_id' => 'معرّف Google Tag Manager',
+    'tracking.snapchat_pixel_id' => 'معرّف Snapchat Pixel',
+    'tracking.google_site_verification' => 'كود تحقق جوجل',
+    'tracking.facebook_domain_verification' => 'كود تحقق فيسبوك',
+    'tracking.conversion_event' => 'حدث التحويل',
+
+    // media
+    'alt' => 'النص البديل',
+    'files' => 'الصور',
 ];

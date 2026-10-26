@@ -11,6 +11,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -33,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'internal.key' => EnsureInternalKey::class,
             'super.admin' => EnsureSuperAdmin::class,
         ]);
+
+        // The tenant must be known before route-model binding runs (bound ids are tenant-scoped).
+        $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenantFromUser::class);
 
         // API-only app: unauthenticated requests get a JSON 401, never a redirect.
         $middleware->redirectGuestsTo(fn () => null);

@@ -28,6 +28,8 @@ export function proxy(request: NextRequest) {
 
   // Machine endpoints (secret-protected / health) answer on any host, including front:3000.
   if (pathname === "/api/revalidate" || pathname === "/api/health") return NextResponse.next();
+  // Uploaded images (Caddy serves them in production; the dev fallback route proxies Laravel).
+  if (pathname.startsWith("/media/")) return NextResponse.next();
 
   if (kind === "app") return handleAppHost(request, pathname);
 

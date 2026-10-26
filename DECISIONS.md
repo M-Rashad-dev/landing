@@ -28,3 +28,16 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **`users` table is not tenant-scoped** (login must find the user before a tenant is known); uniqueness of email/phone is global, so plain `unique:users` is correct there.
 - **`$fillable` arrays** are used explicitly on every model (instead of Laravel 13's `#[Fillable]` attribute) to match the plan's wording and make audits grep-able.
 - **jsdom pinned to 26** for Vitest: jsdom 30 needs Node 22 and the dev box has Node 20.19 (Docker uses Node 22).
+
+## Phase 2
+- **Uploads go one file per request from the dashboard** (each file gets its own progress bar and error); the API still accepts up to 10 files per request and is atomic per request (any failure → nothing kept, error on `files.{index}`).
+- **Variants are always WebP** (thumb 320 / medium 800 / large 1600, never upscaled); `media.path` = large, `mime` = `image/webp`, `size_bytes` = size of the large file. Favicons add `icon32.png` / `icon180.png` (center-cropped squares).
+- **`GET /dashboard/media?ids=1,2,3`** resolves specific items (max 100). Pickers and the Builder store ids only and resolve them through this.
+- **Local media serving**: Laravel registers `GET /media/{path}` only outside production (strict path regex), and Next has a `/media/*` route handler that proxies it. In production Caddy serves `/media/*` from the volume before Next sees the request.
+- **Identity fonts on public pages**: `scripts/copy-fonts.mjs` (runs before dev/build) copies the Arabic + Latin woff2 files from `@fontsource` into `public/fonts/` (git-ignored); public pages will emit `@font-face` rules only for the fonts their identity uses (`getFontCss`). The dashboard imports all six for live previews.
+- **`colors.primary_foreground` is optional**; when empty the readable color (black/white with the higher WCAG contrast on `primary`) is used, both in the API resource and the front.
+- **Identity text fields are stripped of HTML** on input; contact phones are stored as E.164; social links must be `https` on the network's own domain (sub-domains allowed, e.g. `m.facebook.com`).
+- **The "identity used by pages" check** (409 on delete) lives in `IdentityUsageFinder`; it returns no pages until the pages table exists (phase 5 fills it in).
+- **Revalidation job** is dispatched `afterCommit`, retries 3 times with backoff 5/20/60 s and logs a warning on each failure; with `FRONT_INTERNAL_URL` empty it logs and skips. Locally the queue runs on the database driver (`tools/start-dev.sh` starts a worker).
+- **Tenant middleware runs before route-model binding** (`prependToPriorityList(SubstituteBindings, ResolveTenantFromUser)`), otherwise every bound id would 404 because the scope is fail-closed.
+- **Factories** use the current tenant when called inside `Tenancy::runAs()` (tests).

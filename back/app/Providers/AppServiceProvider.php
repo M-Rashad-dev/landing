@@ -34,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
             'login:'.$request->ip().'|'.mb_strtolower(trim((string) $request->input('login'))),
         ));
 
+        RateLimiter::for('media-upload', fn (Request $request) => Limit::perMinute(30)->by(
+            'media-upload:'.($request->user()?->tenant_id ?? $request->ip()),
+        ));
+
         RateLimiter::for('dashboard', fn (Request $request) => Limit::perMinute(300)->by(
             'dashboard:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));

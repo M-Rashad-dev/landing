@@ -3,8 +3,8 @@
 | # | Phase | Status |
 |---|-------|--------|
 | 1 | Foundation, register & login | ✅ Done |
-| 2 | Identities & media library | ⏳ Next |
-| 3 | Products & options | ⬜ |
+| 2 | Identities & media library | ✅ Done |
+| 3 | Products & options | ⏳ Next |
 | 4 | Offers, discount codes, price engine | ⬜ |
 | 5 | Page engine & Builder | ⬜ |
 | 6 | Theme «malak» | ⬜ |
@@ -29,3 +29,14 @@
 - DB rows verified: tenant + owner (+20 E.164 phone) + active primary subdomain with `active_host`.
 
 **How to run locally**: see README.md.
+
+## Phase 2 — Identities & media library ✅
+
+**Back**: `media` + `identities` tables, `MediaProcessor` (finfo type check, 5MB / 6000px / min 16px, re-encode without EXIF, orientation fix, 3 WebP variants, favicon icons, random paths, cleanup on failure), media endpoints (list + search + `ids`, multi-upload with 2000/tenant limit and 30/min limiter, alt, delete with 409 + usages), identity endpoints with strict validation (hex colors, font/radius lists, E.164 contact phones, https social links per network, tracking id regexes, conversion event), single default identity rules, default identity on registration, `FrontendRevalidator` + `RevalidateTenantHosts` job, dev-only local media route, tenant isolation suite (`tests/Feature/Isolation`).
+
+**Front**: media library page (drag & drop, per-file progress/errors, search, load more, alt editing, delete with usages dialog), `MediaPicker` (library/upload tabs, single/multiple + max), `MediaField`, `MediaListField` (dnd-kit sortable with keyboard sensor + move buttons), identities list (cards with logo, palette, default badge, actions) and form (collapsible sections: brand, colors with WCAG AA warning, fonts with Arabic sample + radius, SEO with counters + Google preview, contact & socials, tracking with hints/examples/live regex + Lead/Purchase), live `IdentityPreview`, fonts registry + `getFontCss`, color and tracking helpers, dashboard loading/error states.
+
+**Checks**
+- `composer test` → 151 passed · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 70 passed · `pnpm build` ✓
+- `scripts/smoke-media.sh` (register → upload 5 real JPEGs via BFF multipart → served at /media → alt (HTML stripped) → identity with logo → delete used image = 409 with usages → make second identity default (exactly one default) → delete unused image → dashboard pages 200) → OK

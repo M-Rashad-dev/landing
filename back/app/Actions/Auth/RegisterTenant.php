@@ -10,6 +10,7 @@ use App\Enums\SslStatus;
 use App\Enums\TenantStatus;
 use App\Enums\UserRole;
 use App\Models\Domain;
+use App\Models\Identity;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SubdomainGenerator;
@@ -59,7 +60,7 @@ final class RegisterTenant
                     'ssl_status' => SslStatus::Pending,
                 ]);
 
-                $this->afterTenantCreated();
+                $this->createDefaultIdentity($data['store_name']);
 
                 return $domain;
             });
@@ -75,6 +76,21 @@ final class RegisterTenant
         ];
     }
 
-    /** Runs inside the new tenant's context. Default identity is added in phase 2. */
-    private function afterTenantCreated(): void {}
+    /** Runs inside the new tenant's context. */
+    private function createDefaultIdentity(string $storeName): void
+    {
+        $identity = new Identity([
+            'name' => mb_substr($storeName, 0, 60),
+            'brand_name' => mb_substr($storeName, 0, 60),
+            'colors' => config('landing.default_colors'),
+            'font_heading' => 'cairo',
+            'font_body' => 'cairo',
+            'button_radius' => 'md',
+            'contact' => [],
+            'socials' => [],
+            'tracking' => ['conversion_event' => 'Lead'],
+        ]);
+        $identity->is_default = true;
+        $identity->save();
+    }
 }

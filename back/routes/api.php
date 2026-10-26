@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
+use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +29,14 @@ Route::prefix('dashboard')
         Route::patch('profile', [AccountController::class, 'updateProfile']);
         Route::put('profile/password', [AccountController::class, 'updatePassword']);
         Route::patch('store', [AccountController::class, 'updateStore']);
+
+        Route::get('media', [MediaController::class, 'index']);
+        Route::post('media', [MediaController::class, 'store'])->middleware('throttle:media-upload');
+        Route::patch('media/{media}', [MediaController::class, 'update']);
+        Route::delete('media/{media}', [MediaController::class, 'destroy']);
+
+        Route::apiResource('identities', IdentityController::class);
+        Route::post('identities/{identity}/make-default', [IdentityController::class, 'makeDefault']);
     });
 
 Route::prefix('public')

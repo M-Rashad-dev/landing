@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/dashboard/coming-soon";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { ar } from "@/messages/ar";
+import { MediaLibrary } from "./media-library";
 
-export const metadata: Metadata = { title: ar.nav.media };
+export const metadata: Metadata = { title: ar.media.title };
 
-export default function Page() {
-  return <ComingSoon title={ar.nav.media} />;
+export default function MediaPage() {
+  return (
+    <>
+      <PageHeader title={ar.media.title} description={ar.media.description} />
+      <MediaLibrary />
+    </>
+  );
 }

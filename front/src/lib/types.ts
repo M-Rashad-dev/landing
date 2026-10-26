@@ -21,3 +21,47 @@ export type Session = {
   tenant: Tenant | null;
   primary_host: string | null;
 };
+
+export type MediaUrls = { thumb: string; medium: string; large: string; icon32?: string; icon180?: string };
+
+export type MediaItem = {
+  id: number;
+  name: string;
+  alt: string | null;
+  width: number;
+  height: number;
+  urls: MediaUrls;
+  size: number;
+  created_at: string | null;
+};
+
+export type MediaUsage = { type: string; id: number; name: string; label: string };
+
+export type ColorKey = "primary" | "primary_foreground" | "secondary" | "accent" | "background" | "foreground" | "muted" | "border";
+export type IdentityColors = Record<ColorKey, string>;
+export type ButtonRadius = "none" | "sm" | "md" | "lg" | "full";
+
+export type Identity = {
+  id: number;
+  name: string;
+  is_default: boolean;
+  brand_name: string;
+  logo_media_id: number | null;
+  favicon_media_id: number | null;
+  og_image_media_id: number | null;
+  logo: MediaItem | null;
+  favicon: MediaItem | null;
+  og_image: MediaItem | null;
+  colors: IdentityColors;
+  font_heading: string;
+  font_body: string;
+  button_radius: ButtonRadius;
+  seo_title: string | null;
+  seo_title_suffix: string | null;
+  seo_description: string | null;
+  contact: { phone: string | null; whatsapp: string | null; email: string | null; address: string | null };
+  socials: Record<"facebook" | "instagram" | "tiktok" | "youtube" | "x" | "snapchat", string | null>;
+  tracking: import("@/lib/tracking/ids").Tracking;
+  created_at: string | null;
+  updated_at: string | null;
+};
