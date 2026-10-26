@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
+use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +38,10 @@ Route::prefix('dashboard')
 
         Route::apiResource('identities', IdentityController::class);
         Route::post('identities/{identity}/make-default', [IdentityController::class, 'makeDefault']);
+
+        Route::apiResource('products', ProductController::class);
+        Route::post('products/{product}/toggle', [ProductController::class, 'toggle']);
+        Route::post('products/{product}/duplicate', [ProductController::class, 'duplicate']);
     });
 
 Route::prefix('public')

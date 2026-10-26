@@ -37,6 +37,31 @@ export type MediaItem = {
 
 export type MediaUsage = { type: string; id: number; name: string; label: string };
 
+export type OptionDisplayType = "buttons" | "dropdown" | "swatch";
+
+export type ProductOptionValue = { id: number; label: string; color_hex: string | null; price_delta: number; is_active: boolean };
+export type ProductOption = { id: number; name: string; display_type: OptionDisplayType; is_required: boolean; values: ProductOptionValue[] };
+
+export type Product = {
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  compare_at_price: number | null;
+  discount_percent: number | null;
+  sku: string | null;
+  is_active: boolean;
+  main_image?: MediaItem | null;
+  media?: MediaItem[];
+  media_ids?: number[];
+  options_count?: number;
+  options?: ProductOption[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PageRef = { id: number; title: string };
+
 export type ColorKey = "primary" | "primary_foreground" | "secondary" | "accent" | "background" | "foreground" | "muted" | "border";
 export type IdentityColors = Record<ColorKey, string>;
 export type ButtonRadius = "none" | "sm" | "md" | "lg" | "full";

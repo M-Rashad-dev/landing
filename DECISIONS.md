@@ -41,3 +41,13 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **Revalidation job** is dispatched `afterCommit`, retries 3 times with backoff 5/20/60 s and logs a warning on each failure; with `FRONT_INTERNAL_URL` empty it logs and skips. Locally the queue runs on the database driver (`tools/start-dev.sh` starts a worker).
 - **Tenant middleware runs before route-model binding** (`prependToPriorityList(SubstituteBindings, ResolveTenantFromUser)`), otherwise every bound id would 404 because the scope is fail-closed.
 - **Factories** use the current tenant when called inside `Tenancy::runAs()` (tests).
+
+## Phase 3
+- **Money in code = integer cents** via `App\Support\Money` (string parsing, half-up rounding, never floats); the API returns amounts as JSON numbers with two decimals of precision, inputs are validated as `numeric|decimal:0,2`.
+- **Product images** live in `product_media` rows managed by `SaveProduct` (delete + insert in order, `tenant_id` on every row); position 0 is the main image.
+- **Nested sync errors** (an option/value id that does not belong to the product/option) are reported as 422 on the exact path (`options.0.id`, `options.0.values.2.id`).
+- **Swatch colors** are required for swatch options and dropped (stored null) for other display types.
+- **Duplicate** copies options, values and image links; the name gets « (نسخة)» (trimmed to 150 chars) and the copy is inactive.
+- **Delete** checks pages through `ProductUsageFinder` and unlinks offers/codes in the same transaction; both hooks are filled in when those tables arrive (phases 4 and 5).
+- **Public product** (`PublicProductResource`) hides sku/timestamps and inactive values; an option left with no active value is hidden entirely so it can never block an order.
+- **Local smoke scripts** send JSON bodies from UTF-8 files: native Windows curl mangles non-ASCII command-line arguments. Register is rate limited (5/hour/IP), so locally run `php artisan cache:clear` before re-running the smoke scripts many times.

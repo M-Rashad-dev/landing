@@ -44,7 +44,8 @@ payload() {
  "font_heading":"tajawal","font_body":"cairo","button_radius":"full","contact":{},"socials":{},"tracking":{"conversion_event":"Lead"}}
 JSON
 }
-second=$(curl -s -b "$JAR" -H "Origin: $APP" -H 'Content-Type: application/json' -d "$(payload 'هوية زرقاء' '#1D4ED8')" "$APP/api/bff/dashboard/identities" | json data.id)
+printf '%s' "$(payload 'هوية زرقاء' '#1D4ED8')" > "$WORK/identity.json"
+second=$(curl -s -b "$JAR" -H "Origin: $APP" -H 'Content-Type: application/json' --data-binary "@$(winpath "$WORK/identity.json")" "$APP/api/bff/dashboard/identities" | json data.id)
 [ -n "$second" ] || fail "create identity"
 
 code=$(curl -s -o "$WORK/del.json" -w '%{http_code}' -b "$JAR" -X DELETE -H "Origin: $APP" "$APP/api/bff/dashboard/media/${ids[0]}")

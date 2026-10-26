@@ -4,8 +4,8 @@
 |---|-------|--------|
 | 1 | Foundation, register & login | ✅ Done |
 | 2 | Identities & media library | ✅ Done |
-| 3 | Products & options | ⏳ Next |
-| 4 | Offers, discount codes, price engine | ⬜ |
+| 3 | Products & options | ✅ Done |
+| 4 | Offers, discount codes, price engine | ⏳ Next |
 | 5 | Page engine & Builder | ⬜ |
 | 6 | Theme «malak» | ⬜ |
 | 7 | Theme «celia» | ⬜ |
@@ -40,3 +40,16 @@
 - `composer test` → 151 passed · `composer lint` → passed
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 70 passed · `pnpm build` ✓
 - `scripts/smoke-media.sh` (register → upload 5 real JPEGs via BFF multipart → served at /media → alt (HTML stripped) → identity with logo → delete used image = 409 with usages → make second identity default (exactly one default) → delete unused image → dashboard pages 200) → OK
+
+## Phase 3 — Products & options ✅
+
+**Back**: products / product_media / product_options / product_option_values, `Money` helper (cents), `ProductRequest` (prices, compare-at > price, ≤5 options, unique option names and value labels, swatch colors, ownership of nested ids, ≤10 tenant media), `SaveProduct` nested sync in one transaction, list (search name/SKU, active filter, main image, options count), show, create, update, toggle, duplicate (inactive copy with options and images), soft delete (409 hook for pages), `ProductResource` + `PublicProductResource`, product usage in media delete check, products in the isolation suite.
+
+**Front**: products list (table on desktop / cards on mobile, search, status filter, inline Switch, actions: edit/duplicate/delete, 409 dialog with page links, pagination, empty state), product form page (basics with Markdown write/preview, pricing with live discount %, sortable images with "رئيسية" badge, options builder: sortable options and values with keyboard support, add/duplicate/remove values, swatch colors, price deltas, live customer preview), unsaved-changes guard, nested 422 errors on the right inputs, `Markdown` renderer (no raw HTML, safe links), `safeHref` allow-list, `SortableList`.
+
+**Pending hooks (filled later)**: `ProductUsageFinder::pages/unlinkPromotions` (phases 4–5), `IdentityUsageFinder::pages` (phase 5), media usage for pages (phase 5).
+
+**Checks**
+- `composer test` → 188 passed · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 98 passed · `pnpm build` ✓
+- `scripts/smoke-products.sh` (t-shirt with S/M/L/XL + swatch color + 4 images → reorder images, delete two values, rename, reorder values, change delta → verified after reload; duplicate inactive; pages 200) → OK. Auth and media smokes re-run → OK.

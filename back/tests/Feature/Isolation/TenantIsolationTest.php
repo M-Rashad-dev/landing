@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Identity;
 use App\Models\Media;
+use App\Models\Product;
 use App\Models\User;
 
 /*
@@ -29,6 +30,17 @@ dataset('tenant resources', [
             ['PUT', '/api/v1/dashboard/identities/{id}', ['name' => 'x']],
             ['DELETE', '/api/v1/dashboard/identities/{id}', []],
             ['POST', '/api/v1/dashboard/identities/{id}/make-default', []],
+        ],
+    ],
+    'products' => [
+        fn (User $owner) => asTenant($owner, fn () => Product::factory()->create())->id,
+        '/api/v1/dashboard/products',
+        [
+            ['GET', '/api/v1/dashboard/products/{id}', []],
+            ['PUT', '/api/v1/dashboard/products/{id}', ['name' => 'x', 'price' => '10']],
+            ['DELETE', '/api/v1/dashboard/products/{id}', []],
+            ['POST', '/api/v1/dashboard/products/{id}/toggle', []],
+            ['POST', '/api/v1/dashboard/products/{id}/duplicate', []],
         ],
     ],
 ]);

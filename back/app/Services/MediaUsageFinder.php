@@ -6,6 +6,8 @@ namespace App\Services;
 
 use App\Models\Identity;
 use App\Models\Media;
+use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Where a media item is referenced (all queries run inside the media's tenant).
@@ -18,7 +20,18 @@ final class MediaUsageFinder
     {
         return array_merge(
             $this->identities($media),
+            $this->products($media),
         );
+    }
+
+    /** @return list<array{type: string, id: int, name: string}> */
+    private function products(Media $media): array
+    {
+        return Product::query()
+            ->whereIn('id', DB::table('product_media')->where('media_id', $media->id)->select('product_id'))
+            ->get(['id', 'name'])
+            ->map(fn (Product $product) => ['type' => 'product', 'id' => $product->id, 'name' => $product->name])
+            ->all();
     }
 
     /** @return list<array{type: string, id: int, name: string}> */

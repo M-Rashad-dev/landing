@@ -56,4 +56,20 @@ return [
     // media
     'alt' => 'النص البديل',
     'files' => 'الصور',
+
+    // products
+    'description' => 'الوصف',
+    'price' => 'السعر',
+    'compare_at_price' => 'السعر قبل الخصم',
+    'sku' => 'كود المنتج (SKU)',
+    'is_active' => 'الحالة',
+    'media_ids' => 'الصور',
+    'media_ids.*' => 'الصورة',
+    'options' => 'الخيارات',
+    'options.*.name' => 'اسم الخيار',
+    'options.*.display_type' => 'طريقة العرض',
+    'options.*.values' => 'قيم الخيار',
+    'options.*.values.*.label' => 'القيمة',
+    'options.*.values.*.color_hex' => 'اللون',
+    'options.*.values.*.price_delta' => 'فرق السعر',
 ];
