@@ -59,6 +59,7 @@ Route::prefix('dashboard')
         Route::get('themes', [PageController::class, 'themes']);
         Route::apiResource('pages', PageController::class);
         Route::put('pages/{page}/content', [PageController::class, 'saveContent']);
+        Route::get('pages/{page}/preview', [PageController::class, 'preview']);
         Route::post('pages/{page}/publish', [PageController::class, 'publish']);
         Route::post('pages/{page}/unpublish', [PageController::class, 'unpublish']);
         Route::post('pages/{page}/duplicate', [PageController::class, 'duplicate']);

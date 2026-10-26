@@ -17,6 +17,7 @@ use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
 use App\Models\Theme;
+use App\Services\PublicPageData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -85,6 +86,22 @@ final class PageController extends Controller
         }
 
         return $this->ok(PageDetailResource::make($page->load(self::RELATIONS)));
+    }
+
+    /** Data for the Builder preview iframe: draft content + the same public shapes the live page uses. */
+    public function preview(LandingPage $page, PublicPageData $data): JsonResponse
+    {
+        $page->load(['identity', 'product']);
+
+        return $this->ok([
+            'page' => ['id' => $page->id, 'slug' => $page->slug, 'title' => $page->title],
+            'theme_key' => $page->theme_key,
+            'content' => $page->draft_content,
+            'identity' => $page->identity ? $data->identity($page->identity) : null,
+            'product' => $data->product($page->product),
+            'offers' => $data->offers($page->product, now()),
+            'media' => (object) $data->media($page->draft_content),
+        ]);
     }
 
     public function saveContent(SavePageContentRequest $request, LandingPage $page, SavePageContent $action): JsonResponse

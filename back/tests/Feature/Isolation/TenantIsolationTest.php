@@ -74,6 +74,7 @@ dataset('tenant resources', [
             ['GET', '/api/v1/dashboard/pages/{id}', []],
             ['PUT', '/api/v1/dashboard/pages/{id}', ['title' => 'x', 'slug' => 'xx', 'identity_id' => 1]],
             ['PUT', '/api/v1/dashboard/pages/{id}/content', ['version' => 1, 'content' => ['version' => 1, 'sections' => []]]],
+            ['GET', '/api/v1/dashboard/pages/{id}/preview', []],
             ['POST', '/api/v1/dashboard/pages/{id}/publish', []],
             ['POST', '/api/v1/dashboard/pages/{id}/unpublish', []],
             ['POST', '/api/v1/dashboard/pages/{id}/duplicate', []],

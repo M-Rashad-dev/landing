@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
+use App\Models\Offer;
 use App\Models\Product;
 use App\Models\Theme;
 use Database\Factories\LandingPageFactory;
@@ -251,6 +252,26 @@ it('blocks deleting products and identities used by pages', function () {
 
     $this->deleteJson("/api/v1/dashboard/products/{$this->product->id}")->assertStatus(409)->assertJsonPath('pages.0.id', $page['id']);
     $this->deleteJson("/api/v1/dashboard/identities/{$other->id}")->assertStatus(409)->assertJsonPath('pages.0.id', $page['id']);
+});
+
+it('returns preview data with public shapes and active + upcoming offers only', function () {
+    $page = createPage();
+    asTenant($this->user, function () {
+        $attach = fn ($offer) => $offer->products()->attach($this->product->id, ['tenant_id' => $this->user->tenant_id]);
+        $attach(Offer::factory()->create(['name' => 'active']));
+        $attach(Offer::factory()->create(['name' => 'soon', 'starts_at' => now()->addDay()]));
+        $attach(Offer::factory()->create(['name' => 'old', 'ends_at' => now()->subDay()]));
+        $attach(Offer::factory()->create(['name' => 'off', 'is_active' => false]));
+        Offer::factory()->create(['name' => 'other product']);
+    });
+
+    $data = $this->getJson("/api/v1/dashboard/pages/{$page['id']}/preview")->assertOk()->json('data');
+
+    expect(collect($data['offers'])->pluck('status', 'name')->all())->toBe(['active' => 'active', 'soon' => 'scheduled'])
+        ->and($data['product'])->not->toHaveKey('sku')
+        ->and($data['identity'])->toHaveKeys(['brand_name', 'colors', 'contact', 'socials'])
+        ->and($data['identity'])->not->toHaveKey('tracking')
+        ->and($data['content']['sections'])->toHaveCount(4);
 });
 
 it('enforces the pages limit', function () {

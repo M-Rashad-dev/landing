@@ -6,8 +6,8 @@
 | 2 | Identities & media library | ✅ Done |
 | 3 | Products & options | ✅ Done |
 | 4 | Offers, discount codes, price engine | ✅ Done |
-| 5 | Page engine & Builder | ⏳ Next |
-| 6 | Theme «malak» | ⬜ |
+| 5 | Page engine & Builder | ✅ Done |
+| 6 | Theme «malak» | ⏳ Next |
 | 7 | Theme «celia» | ⬜ |
 | 8 | Public rendering, SEO, tracking | ⬜ |
 | 9 | Orders & management | ⬜ |
@@ -47,7 +47,7 @@
 
 **Front**: products list (table on desktop / cards on mobile, search, status filter, inline Switch, actions: edit/duplicate/delete, 409 dialog with page links, pagination, empty state), product form page (basics with Markdown write/preview, pricing with live discount %, sortable images with "رئيسية" badge, options builder: sortable options and values with keyboard support, add/duplicate/remove values, swatch colors, price deltas, live customer preview), unsaved-changes guard, nested 422 errors on the right inputs, `Markdown` renderer (no raw HTML, safe links), `safeHref` allow-list, `SortableList`.
 
-**Pending hooks (filled later)**: `ProductUsageFinder::pages` (phase 5), `IdentityUsageFinder::pages` (phase 5), media usage for pages (phase 5). (`unlinkPromotions` done in phase 4.)
+**Pending hooks**: all filled (promotions unlink in phase 4; pages usage for products, identities and media in phase 5).
 
 **Checks**
 - `composer test` → 188 passed · `composer lint` → passed
@@ -64,3 +64,15 @@
 - `composer test` → 281 passed (PriceMath table + PriceCalculator suite = 53 cases) · `composer lint` → passed
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 103 passed · `pnpm build` ✓
 - `scripts/smoke-pricing.sh` ("2 for 350" from tomorrow: not applied now, applied tomorrow; EID25 25% capped at 100; offer + code = 262.5; invalid code → code_error) → OK
+
+## Phase 5 — Page engine & Builder ✅
+
+**Back**: landing_pages + landing_page_media, `PageStatus`, `PageContentSanitizer` (types, uuid ids, variants, visibility, per-type limits, 30 sections / 256KB / depth 5 / 50 items, HTML stripping and length caps, `*_media_id(s)` tenant ownership, `*_url` via `SafeUrl`, `*_color` hex, key whitelist) reporting `content.sections.{i}.props.{path}`, `SafeUrl` + `PageSlug` rules, `CreatePage`, `SavePageContent` (optimistic locking → 409 with current version), `PublishPage` (all blockers at once), unpublish / duplicate (`-copy`, `-copy-2`) / set-home (single, published only) / delete (slug freed), `GET /dashboard/themes`, page settings update with SEO and tracking overrides, `GET /dashboard/pages/{id}/preview` via `PublicPageData`, usage checks for products / identities / media, pages in the isolation suite, themes seeded for every test.
+
+**Front**: themes types + registry (`getTheme`, `getComponent`, `resolveVariant` with safe fallbacks), 10 schemas with Arabic defaults, `_fallback` placeholders (both themes register them until phases 6–7 with their real variant lists), field system (`FieldRenderer` for text, textarea, number, range, toggle, select, color, image, images, link, icon, repeater, group, order_fields, custom_fields; `showIf`), link picker (section anchors/#order, https, phone, WhatsApp), icon set (40), `useOrderForm` contract types, zustand Builder store (pinned header/footer, singletons, 30 max, duplicate, hide, props, variant, theme switch with variant fallback, undo/redo, save state), `SiteRenderer` + `IdentityStyle`, preview route with postMessage protocol (select from preview, scroll from list, hidden sections dimmed), full-screen Builder (sortable sections with keyboard, library dialog with thumbnails, schema forms, variant picker, page settings panel, device switch 390/768/1280 with scaling, autosave + Ctrl+S + beforeunload, conflict dialog reload/overwrite, publish with blockers dialog and "fix" actions, published link dialog, theme switch confirmation, mobile tabs), pages list (cards with link copy, home star, status, unpublished changes badge, actions), creation wizard (theme cards → name/slug auto Arabic-friendly + identity preview + product or quick product), page settings (SEO with Google preview, OG image, noindex, tracking override).
+
+**Checks**
+- `composer test` → 348 passed · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 140 passed (store reducers, anchors, schema naming rules, registry parity) · `pnpm build` ✓
+- `scripts/smoke-pages.sh` (create page → builder 200 → preview SSR shows the draft and needs the cookie → publish blocked with no_product + order_form_missing → save v1→v2 with theme switch → stale save 409 version_conflict → javascript: link 422 at its exact path → link product → publish) → OK
+- Not verified in a real browser yet (drag & drop, live postMessage updates); covered by the Playwright scenarios planned in phase 11.

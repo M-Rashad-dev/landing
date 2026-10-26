@@ -63,3 +63,17 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **`discount_code_redemptions.order_id`** is unique now; its FK to `orders` is added with the orders table in phase 9.
 - **Offers/codes are edited in dialogs** on their list pages (forms are short); both pages embed the price simulator.
 - **MySQL identifier limit**: the long composite index on redemptions has an explicit short name.
+
+## Phase 5
+- **The live page keeps the theme it was published with.** `landing_pages.theme_key` is the draft (Builder) theme; on publish it is copied into `published_content.theme_key`, and the public renderer uses that. Switching themes in the Builder therefore never changes the live site until the next publish (the plan listed theme changes as a revalidation trigger; publishing already triggers it). Identity and product stay live-linked as the plan says.
+- **Unpublishing clears `published_content` and the home flag** (an unpublished page cannot be the home page; `/` then 404s until another published page is set as home).
+- **Uppercase slugs are lowercased** instead of rejected; soft-deleted pages get `{slug}--deleted-{id}` (the sanitizer and slug rule refuse `--deleted-` in user slugs).
+- **One order form per page, visible or not** (sanitizer max per type = 1); a hidden order form counts as "missing" for publishing.
+- **Depth limit (5) applies to section `props`**, and list-in-list values are rejected; strings are tag-stripped and capped (200 for `title`, `*_title`, `eyebrow`; 5000 otherwise); keys must match `^[a-z][a-z0-9_]{0,59}$`.
+- **`landing_page_media` tracks draft + published + SEO image**, so an image still shown on the live page can't be deleted after it was removed from the draft.
+- **Builder preview data** comes from `GET /dashboard/pages/{id}/preview`, built by `PublicPageData` — the same presenter the public API will use in phase 8 (identity/product/offers/media shapes are identical). `media` resolves every `*_media_id(s)` in the content; the Builder resolves newly picked images client-side and sends them with each `builder:update`.
+- **Theme components are universal (no hooks/fetching)**: the public page renders them as Server Components, the preview iframe renders the same files as client components so edits show instantly via postMessage. Interactive parts live in small `"use client"` files.
+- **Schemas carry two extra field types** beyond the plan's list: `order_fields` (the 7 built-in customer fields with enabled/required/label/placeholder, name & phone locked) and `custom_fields` (key generated once from the label: latin slug or `field_xxxx`). Repeater items use a plain `icon` key for icons.
+- **Stored props are merged over schema defaults at render time**, so adding a field later never breaks older pages.
+- **The Builder route lives in its own route group** `(builder)` (full screen, same session, no sidebar).
+- **Builder shortcuts**: Ctrl/Cmd+S save, Ctrl+Z undo, Ctrl+Shift+Z / Ctrl+Y redo (undo/redo ignored while typing in inputs). Autosave 1.5 s after the last edit; edits made while a save is in flight stay "unsaved" and are saved next.
