@@ -1,0 +1,92 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Pages;
+
+use App\Enums\PageStatus;
+use App\Exceptions\ApiException;
+use App\Jobs\RevalidateTenantHosts;
+use App\Models\LandingPage;
+use App\Models\Theme;
+use App\Services\PageContentSanitizer;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+/** Collects every blocker at once; when clean, copies the draft to published_content. */
+final class PublishPage
+{
+    public function __construct(
+        private readonly PageContentSanitizer $sanitizer,
+        private readonly SyncPageMedia $syncMedia,
+    ) {}
+
+    public function handle(LandingPage $page): LandingPage
+    {
+        $page->loadMissing(['product', 'identity']);
+        $blockers = [];
+        $clean = null;
+
+        if ($page->product_id === null) {
+            $blockers[] = $this->blocker('no_product');
+        } elseif ($page->product === null || $page->product->trashed() || ! $page->product->is_active) {
+            $blockers[] = $this->blocker('product_inactive');
+        }
+
+        if ($page->identity === null || $page->identity->trashed()) {
+            $blockers[] = $this->blocker('identity_missing');
+        }
+
+        try {
+            $clean = $this->sanitizer->sanitize($page->draft_content)['content'];
+        } catch (ValidationException $e) {
+            $first = collect($e->errors())->flatten()->first();
+            $blockers[] = $this->blocker('content_invalid', ['error' => (string) $first]);
+        }
+
+        $sections = $clean['sections'] ?? $page->draft_content['sections'] ?? [];
+        $visible = array_values(array_filter($sections, fn ($s) => is_array($s) && ($s['visible'] ?? true) === true));
+        $forms = count(array_filter($visible, fn ($s) => ($s['type'] ?? null) === 'order_form'));
+
+        if ($forms === 0) {
+            $blockers[] = $this->blocker('order_form_missing');
+        } elseif ($forms > 1) {
+            $blockers[] = $this->blocker('order_form_multiple');
+        }
+
+        if (! Theme::query()->where('key', $page->theme_key)->where('is_active', true)->exists()) {
+            $blockers[] = $this->blocker('theme_inactive');
+        }
+
+        if ($visible === []) {
+            $blockers[] = $this->blocker('no_visible_sections');
+        }
+
+        if ($blockers !== []) {
+            throw new ApiException(422, 'publish_blocked', __('pages.publish_blocked'), null, ['blockers' => $blockers]);
+        }
+
+        DB::transaction(function () use ($page, $clean): void {
+            $page->forceFill([
+                'published_content' => array_merge($clean, ['theme_key' => $page->theme_key]),
+                'status' => PageStatus::Published,
+                'published_at' => now(),
+            ])->save();
+
+            $this->syncMedia->handle($page);
+        });
+
+        RevalidateTenantHosts::dispatch($page->tenant_id)->afterCommit();
+
+        return $page;
+    }
+
+    /**
+     * @param  array<string, string>  $replace
+     * @return array{code: string, message: string}
+     */
+    private function blocker(string $code, array $replace = []): array
+    {
+        return ['code' => $code, 'message' => __('pages.blockers.'.$code, $replace)];
+    }
+}

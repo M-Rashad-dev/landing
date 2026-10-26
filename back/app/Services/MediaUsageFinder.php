@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Identity;
+use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,22 @@ final class MediaUsageFinder
         return array_merge(
             $this->identities($media),
             $this->products($media),
+            $this->pages($media),
         );
+    }
+
+    /** Pages whose content or SEO image uses the media (landing_page_media is kept in sync on every save). */
+    private function pages(Media $media): array
+    {
+        $pages = LandingPage::query()
+            ->whereIn('id', DB::table('landing_page_media')->where('media_id', $media->id)->select('landing_page_id'))
+            ->get(['id', 'title', 'seo_override']);
+
+        return $pages->map(fn (LandingPage $page) => [
+            'type' => ($page->seo_override['og_media_id'] ?? null) === $media->id ? 'page_og' : 'page',
+            'id' => $page->id,
+            'name' => $page->title,
+        ])->all();
     }
 
     /** @return list<array{type: string, id: int, name: string}> */

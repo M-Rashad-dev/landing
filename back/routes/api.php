@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
+use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,14 @@ Route::prefix('dashboard')
         Route::get('discount-codes/{discount_code}/redemptions', [DiscountCodeController::class, 'redemptions']);
 
         Route::post('pricing/preview', [PricingController::class, 'preview']);
+
+        Route::get('themes', [PageController::class, 'themes']);
+        Route::apiResource('pages', PageController::class);
+        Route::put('pages/{page}/content', [PageController::class, 'saveContent']);
+        Route::post('pages/{page}/publish', [PageController::class, 'publish']);
+        Route::post('pages/{page}/unpublish', [PageController::class, 'unpublish']);
+        Route::post('pages/{page}/duplicate', [PageController::class, 'duplicate']);
+        Route::post('pages/{page}/set-home', [PageController::class, 'setHome']);
     });
 
 Route::prefix('public')

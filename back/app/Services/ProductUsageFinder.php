@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\LandingPage;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,11 @@ final class ProductUsageFinder
     /** Pages (not deleted) linked to the product. @return list<array{id: int, title: string}> */
     public function pages(Product $product): array
     {
-        return [];
+        return LandingPage::query()
+            ->where('product_id', $product->id)
+            ->get(['id', 'title'])
+            ->map(fn (LandingPage $page) => ['id' => $page->id, 'title' => $page->title])
+            ->all();
     }
 
     /** Remove the product from offers and discount codes. */

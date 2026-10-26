@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\DiscountCode;
 use App\Models\Identity;
+use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
@@ -64,6 +65,20 @@ dataset('tenant resources', [
             ['DELETE', '/api/v1/dashboard/discount-codes/{id}', []],
             ['POST', '/api/v1/dashboard/discount-codes/{id}/toggle', []],
             ['GET', '/api/v1/dashboard/discount-codes/{id}/redemptions', []],
+        ],
+    ],
+    'pages' => [
+        fn (User $owner) => asTenant($owner, fn () => LandingPage::factory()->create())->id,
+        '/api/v1/dashboard/pages',
+        [
+            ['GET', '/api/v1/dashboard/pages/{id}', []],
+            ['PUT', '/api/v1/dashboard/pages/{id}', ['title' => 'x', 'slug' => 'xx', 'identity_id' => 1]],
+            ['PUT', '/api/v1/dashboard/pages/{id}/content', ['version' => 1, 'content' => ['version' => 1, 'sections' => []]]],
+            ['POST', '/api/v1/dashboard/pages/{id}/publish', []],
+            ['POST', '/api/v1/dashboard/pages/{id}/unpublish', []],
+            ['POST', '/api/v1/dashboard/pages/{id}/duplicate', []],
+            ['POST', '/api/v1/dashboard/pages/{id}/set-home', []],
+            ['DELETE', '/api/v1/dashboard/pages/{id}', []],
         ],
     ],
 ]);
