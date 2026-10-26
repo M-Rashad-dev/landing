@@ -1,0 +1,17 @@
+# Local tooling (portable PHP, secrets generated for local dev, logs)
+/tools/php/
+/tools/.internal_key
+/tools/.revalidate_secret
+/tools/*.log
+
+# Root env (deploy)
+/.env
+
+# OS / editors
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+
+# Plan source document
+*.docx
