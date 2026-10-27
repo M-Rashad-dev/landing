@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Offer;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 
@@ -80,6 +82,22 @@ dataset('tenant resources', [
             ['POST', '/api/v1/dashboard/pages/{id}/duplicate', []],
             ['POST', '/api/v1/dashboard/pages/{id}/set-home', []],
             ['DELETE', '/api/v1/dashboard/pages/{id}', []],
+        ],
+    ],
+    'orders' => [
+        fn (User $owner) => asTenant($owner, fn () => Order::factory()->create())->id,
+        '/api/v1/dashboard/orders',
+        [
+            ['GET', '/api/v1/dashboard/orders/{id}', []],
+            ['PATCH', '/api/v1/dashboard/orders/{id}', ['internal_note' => 'x']],
+            ['POST', '/api/v1/dashboard/orders/{id}/status', ['status' => 'confirmed']],
+        ],
+    ],
+    'blocked customers' => [
+        fn (User $owner) => asTenant($owner, fn () => BlockedCustomer::query()->create(['type' => 'phone', 'value' => '+201012345678']))->id,
+        '/api/v1/dashboard/blocked-customers',
+        [
+            ['DELETE', '/api/v1/dashboard/blocked-customers/{id}', []],
         ],
     ],
 ]);

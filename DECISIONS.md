@@ -105,3 +105,15 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **ViewContent** is sent once from `TrackingScripts` after every configured loader has defined its global (max 5 s); PageView comes from each loader itself. GTM receives `dataLayer` events only when GTM is configured (gtag already feeds GA4).
 - **Visitor texts are split into `messages/site.ts`** (re-exported as `ar.site`) and order form runtime constants into `order-form/constants.ts`, so client islands on public pages don't pull the whole dashboard dictionary.
 - **JS budget**: 166 KB gzip measured; the framework alone is ~131 KB, so the plan's ~120 KB target can't be met without dropping React/Next. Further optional saving: replacing `tailwind-merge` in theme code (8.6 KB).
+
+## Phase 9
+- **Rate limits count successful orders** (5 / 10 min per IP, 3 per phone, keys include the tenant), so a visitor fixing validation errors is not locked out; a looser limiter (20 attempts / min per IP) guards the endpoint itself.
+- **Bots and blocked customers get the same generic 422 `rejected`** (no hint about which check failed).
+- **Idempotency**: the form sends a UUID per submit; the created order is cached for 30 min under a cache lock, so a retried request returns the same order instead of a second one.
+- **Client IP**: the Next route handler takes the first `X-Forwarded-For` entry (Caddy sets it in production) and forwards it with the internal key; Laravel accepts only a valid IP there.
+- **Default form fields**: a published `order_form` without a `fields` prop uses the schema defaults (the renderer merges props over defaults shallowly). `OrderForm::DEFAULT_FIELDS` mirrors them and a front test compares both lists.
+- **Reopening a fake / cancelled order does not consume the code again** (the code may have reached its limit meanwhile); the order keeps its locked price.
+- **The public form validates with `validateAll`** (no zod in the visitor bundle); `buildSchema` (zod) uses the same rules and is tested to agree.
+- **CSV export**: values starting with `= + - @` or tab / CR get a leading `'` (formula injection); the stream runs inside `Tenancy::runAs` because it is sent after the middleware has finished.
+- **Order numbers** come from a per-tenant counter row (`insertOrIgnore` then `lockForUpdate`), never `max()+1`.
+

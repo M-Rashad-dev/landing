@@ -69,6 +69,7 @@ bash scripts/smoke-products.sh
 bash scripts/smoke-pricing.sh
 bash scripts/smoke-pages.sh
 bash scripts/smoke-public.sh    # publishes a page and visits http://{sub}.localhost:3000
+bash scripts/smoke-orders.sh    # orders through the public site, statuses, block, code race, CSV
 bash scripts/measure-public-js.sh http://{sub}.localhost:3000/   # gzipped JS of a public page
 ```
 

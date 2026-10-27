@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
+use App\Models\Order;
 use App\Models\Product;
 
 beforeEach(function () {
@@ -73,7 +74,7 @@ it('frees the code value when a code is deleted', function () {
 
 it('locks the type after the first use', function () {
     $code = asTenant($this->user, fn () => DiscountCode::factory()->create(['code' => 'USED']));
-    asTenant($this->user, fn () => DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => 10, 'phone' => '+201012345678', 'amount' => '5.00']));
+    asTenant($this->user, fn () => DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => Order::factory()->create()->id, 'phone' => '+201012345678', 'amount' => '5.00']));
 
     $this->putJson("/api/v1/dashboard/discount-codes/{$code->id}", codePayload(['code' => 'USED', 'type' => 'fixed', 'value' => '50']))
         ->assertStatus(422)->assertJsonValidationErrors('type');
@@ -83,7 +84,7 @@ it('locks the type after the first use', function () {
 
 it('lists redemptions and filters codes', function () {
     $code = asTenant($this->user, fn () => DiscountCode::factory()->create(['code' => 'SUMMER']));
-    asTenant($this->user, fn () => DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => 11, 'phone' => '+201012345678', 'amount' => '25.50']));
+    asTenant($this->user, fn () => DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => Order::factory()->create()->id, 'phone' => '+201012345678', 'amount' => '25.50']));
 
     $this->getJson("/api/v1/dashboard/discount-codes/{$code->id}/redemptions")
         ->assertOk()

@@ -10,8 +10,8 @@
 | 6 | Theme «malak» | ✅ Done |
 | 7 | Theme «celia» | ✅ Done |
 | 8 | Public rendering, SEO, tracking | ✅ Done |
-| 9 | Orders & management | ⏳ Next |
-| 10 | Custom domains & SSL | ⬜ |
+| 9 | Orders & management | ✅ Done |
+| 10 | Custom domains & SSL | ⏳ Next |
 | 11 | Super admin & final hardening | ⬜ |
 
 ---
@@ -107,3 +107,14 @@
 - `scripts/smoke-public.sh` (register → publish a Celia page with SEO + Meta pixel overrides → draft 404 → `http://{sub}.localhost:3000/` and `/smoke-offer` show title, description, canonical, Open Graph, JSON-LD and the pixel → draft edit not leaked → republish visible within seconds through the queue → unknown slug / nested path / unknown host (Arabic) → 404, `/dashboard` and `/sites/...` on a tenant host → 404, sitemap.xml, robots.txt, revalidate with a wrong secret → 401) → OK; `smoke-pages.sh` still OK.
 - JS on a public page (modern browsers, gzip, `scripts/measure-public-js.sh`): **166 KB** — React DOM ≈ 71 KB + Next router/runtime ≈ 60 KB (fixed cost of React 19 + Next 16) + theme islands ≈ 35 KB (order form + offers + tracking 18.5 KB, tailwind-merge 8.6 KB, small shared parts). The ~120 KB goal is below the framework's own baseline; it was 177 KB before visitor texts were moved out of the dashboard dictionary.
 - Not measured: Lighthouse mobile score (no Lighthouse in this environment). Mobile screenshot of the published page: correct theme, identity fonts, no horizontal overflow. The order form's `/api/public/*` calls 404 until phase 9.
+
+## Phase 9 — Orders & management ✅
+
+**Back**: tables `orders`, `order_items` (options snapshot), `order_status_logs`, `order_counters` (per-tenant numbers from 1001, row lock), `blocked_customers`; FK `discount_code_redemptions.order_id → orders`. Public API (internal key, host-scoped): `GET /public/form-token` (HMAC token tied to the page, valid 3 s – 2 h), `POST /public/quote` (PriceCalculator, page product only), `POST /public/orders` (honeypot + token age → generic `rejected`, blocked phone / IP → same answer, 5 orders / 10 min per IP and 3 per phone, dynamic validation from the published `order_form` settings incl. custom answers, server-side price with the code locked in the same transaction, possible-duplicate flag, idempotency key cached 30 min). Dashboard: list with filters (status, search, page, product, Cairo date range, duplicates, sort) + counts per status, `stats?since=` for the badge, details with customer history, edit customer fields while open, status changes following 7.4 (fake / cancelled release the code use; fake can block phone and/or IP), bulk status, CSV export (UTF-8 BOM, formula-injection guard, max 10,000 rows), blocked customers CRUD, `overview` (today / week / month, delivered revenue, 14-day chart in Cairo days, latest orders, top pages).
+
+**Front**: `/api/public/{form-token,quote,orders}` route handlers (visitor IP from the first `X-Forwarded-For`, 32 KB body limit) wired to the order form; orders page (status tabs with counts, filters in the URL, bulk actions, export, mobile cards), order details (timeline, transition dialog with block options, edit customer, internal note, WhatsApp link, print), blocked customers page, dashboard home overview with a CSS chart, new-order badge + tab title + chime (polling every 30 s, paused in hidden tabs, sound toggle).
+
+**Checks**
+- `composer test` → 404 passed (23 public order tests: token / honeypot / blocked / rate limits / dynamic validation / default fields / custom answers / invalid code / limited code / duplicates / idempotency / client IP; 14 management tests: filters, transitions, release of code use, block on fake, bulk, export, stats, overview; orders + blocked customers in the tenant isolation suite) · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 254 passed (order form fields from settings, zod schema = `validateAll`, default fields equal the back end's, UTM capture, double submit sends one order, preview never sends) · `pnpm build` ✓
+- `scripts/smoke-orders.sh` (through Next on `http://{sub}.localhost:3000`: quote 2 × XL with SAVE10 = 630 → too-fast token rejected → order #1001 total 630 → dashboard totals, options snapshot, UTM and client IP → confirmed → delivered → returned (final) → fake + block phone → next order from that phone rejected and SAVE10 use released → 5 concurrent orders on a 2-use code → exactly 2 succeed, unique numbers → stats → CSV with BOM and Arabic header) → OK; `smoke-public.sh` and `smoke-pages.sh` still OK.

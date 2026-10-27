@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderController;
+use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +69,20 @@ Route::prefix('dashboard')
         Route::post('pages/{page}/unpublish', [PageController::class, 'unpublish']);
         Route::post('pages/{page}/duplicate', [PageController::class, 'duplicate']);
         Route::post('pages/{page}/set-home', [PageController::class, 'setHome']);
+
+        Route::get('overview', OverviewController::class);
+
+        Route::get('orders', [OrderController::class, 'index']);
+        Route::get('orders/stats', [OrderController::class, 'stats']);
+        Route::get('orders/export', [OrderController::class, 'export'])->middleware('throttle:orders-export');
+        Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus']);
+        Route::get('orders/{order}', [OrderController::class, 'show']);
+        Route::patch('orders/{order}', [OrderController::class, 'update']);
+        Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
+
+        Route::get('blocked-customers', [BlockedCustomerController::class, 'index']);
+        Route::post('blocked-customers', [BlockedCustomerController::class, 'store']);
+        Route::delete('blocked-customers/{blocked_customer}', [BlockedCustomerController::class, 'destroy']);
     });
 
 Route::prefix('public')
@@ -75,7 +93,9 @@ Route::prefix('public')
             Route::get('pages', [SiteController::class, 'page']);
             Route::get('sitemap', [SiteController::class, 'sitemap']);
         });
-        // Phase 9: form-token, quote, orders.
+        Route::get('form-token', [PublicOrderController::class, 'formToken'])->middleware('throttle:public-read');
+        Route::post('quote', [PublicOrderController::class, 'quote'])->middleware('throttle:public-quote');
+        Route::post('orders', [PublicOrderController::class, 'store'])->middleware('throttle:public-order-attempts');
     });
 
 Route::prefix('admin')

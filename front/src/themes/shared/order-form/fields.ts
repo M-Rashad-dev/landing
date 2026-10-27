@@ -86,16 +86,19 @@ export function validateField(field: OrderFormField, raw: string | boolean | und
   }
 }
 
-/** zod schema for the whole form (used by tests and submit). */
+/**
+ * zod schema for the whole form, generated from the settings (same rules as validateField).
+ * Rules run on the object so missing keys are checked too (a per-key refine would skip them).
+ */
 export function buildSchema(fields: OrderFormField[]) {
   const shape: Record<string, z.ZodType> = {};
-  for (const field of fields) {
-    shape[field.name] = z.any().superRefine((value, ctx) => {
-      const message = validateField(field, value as string | boolean | undefined);
-      if (message) ctx.addIssue({ code: "custom", message });
-    });
-  }
-  return z.object(shape);
+  for (const field of fields) shape[field.name] = z.any().optional();
+  return z.object(shape).superRefine((values, ctx) => {
+    for (const field of fields) {
+      const message = validateField(field, values[field.name] as string | boolean | undefined);
+      if (message) ctx.addIssue({ code: "custom", message, path: [field.name] });
+    }
+  });
 }
 
 export function validateAll(fields: OrderFormField[], values: Record<string, string | boolean>): Record<string, string> {

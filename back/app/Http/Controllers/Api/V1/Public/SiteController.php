@@ -97,13 +97,7 @@ final class SiteController extends Controller
 
     private function activeDomainOrFail(Request $request): Domain
     {
-        $domain = $this->domainOrFail($request);
-
-        if ($domain->tenant === null || ! $domain->tenant->isActive()) {
-            throw new ApiException(404, 'site_not_found', __('landing.not_found'));
-        }
-
-        return $domain;
+        return $this->site->activeDomainOrFail((string) $request->query('host', ''));
     }
 
     private function noStore(JsonResponse $response): JsonResponse

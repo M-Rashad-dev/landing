@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\DomainStatus;
 use App\Enums\PageStatus;
+use App\Exceptions\ApiException;
 use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
@@ -37,6 +38,24 @@ final class PublicSite
             ->where('active_host', $host)
             ->where('status', DomainStatus::Active)
             ->first());
+    }
+
+    /** Active domain of an active tenant, or a 404 (suspended tenants serve nothing). */
+    public function activeDomainOrFail(string $host): Domain
+    {
+        $domain = $this->domain($host);
+
+        if ($domain === null || $domain->tenant === null || ! $domain->tenant->isActive()) {
+            throw new ApiException(404, 'site_not_found', __('landing.not_found'));
+        }
+
+        return $domain;
+    }
+
+    /** Published page by slug in the current tenant, or a 404. */
+    public function pageOrFail(string $slug): LandingPage
+    {
+        return $this->page(mb_strtolower(trim($slug))) ?? throw new ApiException(404, 'page_not_found', __('landing.not_found'));
     }
 
     public function primaryHost(int $tenantId): ?string

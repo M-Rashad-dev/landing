@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Offer;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
@@ -196,7 +197,7 @@ it('returns the first failing code rule with an arabic message', function (strin
         'used up' => $code(['usage_limit' => 2, 'used_count' => 2]),
         'phone limit' => DiscountCodeRedemption::create([
             'discount_code_id' => $code(['usage_limit_per_phone' => 1])->id,
-            'order_id' => 1, 'phone' => '+201012345678', 'amount' => '10.00',
+            'order_id' => Order::factory()->create()->id, 'phone' => '+201012345678', 'amount' => '10.00',
         ]),
         'minimum total' => $code(['min_order_total' => '400.00']),
         'not stackable' => [$code(['stackable_with_offers' => false]), offerFor($this->product, ['type' => 'percentage', 'value' => '10.00'])],
@@ -218,7 +219,7 @@ it('returns the first failing code rule with an arabic message', function (strin
 
 it('does not count released redemptions toward the per-phone limit', function () {
     $code = DiscountCode::factory()->create(['code' => 'TEST', 'usage_limit_per_phone' => 1]);
-    DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => 1, 'phone' => '+201012345678', 'amount' => '10.00', 'released_at' => now()]);
+    DiscountCodeRedemption::create(['discount_code_id' => $code->id, 'order_id' => Order::factory()->create()->id, 'phone' => '+201012345678', 'amount' => '10.00', 'released_at' => now()]);
 
     expect(quote(code: 'TEST', phone: '+201012345678')['code_error'])->toBeNull();
 });
