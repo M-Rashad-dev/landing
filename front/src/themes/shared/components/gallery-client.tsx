@@ -69,7 +69,7 @@ export function GalleryClient({
         {thumbs}
       </div>
     ) : layout === "masonry" ? (
-      <div className="columns-2 gap-3 md:columns-3">
+      <div data-reveal-stagger className="columns-2 gap-3 md:columns-3">
         {images.map((image, i) => (
           <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("mb-3 block w-full break-inside-avoid overflow-hidden", frameClassName)} aria-label={lightbox ? siteMessages.openImage : undefined}>
             <ResponsiveImage image={image} sizes="(min-width: 768px) 33vw, 50vw" className="w-full" />
@@ -77,7 +77,7 @@ export function GalleryClient({
         ))}
       </div>
     ) : (
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+      <div data-reveal-stagger className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         {images.map((image, i) => (
           <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("block overflow-hidden", frameClassName)} aria-label={lightbox ? siteMessages.openImage : undefined}>
             <ResponsiveImage image={image} sizes="(min-width: 768px) 33vw, 50vw" className="aspect-square w-full object-cover transition-transform duration-500 hover:scale-105" />

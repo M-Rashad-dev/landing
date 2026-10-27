@@ -15,7 +15,7 @@ export function CeliaFaq({ props, variant, sectionId }: SectionProps<FaqProps>) 
         {props.subtitle ? <p className="t-muted mt-2">{props.subtitle}</p> : null}
         <div className="mt-10 border-t-[3px] t-line">
           {items.map((item, i) => (
-            <details key={i} name={group} open={props.first_open && i === 0} className="group border-b-[3px] t-line">
+            <details key={i} name={group} open={props.first_open && i === 0} className="t-acc group border-b-[3px] t-line">
               <summary className="flex cursor-pointer list-none items-center gap-4 py-5">
                 {numbered ? (
                   <span className="t-heading w-14 shrink-0 text-4xl font-black tabular-nums t-primary-text" dir="ltr">
@@ -23,7 +23,7 @@ export function CeliaFaq({ props, variant, sectionId }: SectionProps<FaqProps>) 
                   </span>
                 ) : null}
                 <span className="flex-1 text-lg font-extrabold">{item.question}</span>
-                <Plus className="size-7 shrink-0 transition-transform duration-200 group-open:rotate-45" strokeWidth={3} aria-hidden />
+                <Plus className="size-7 shrink-0 transition-transform duration-300 group-open:rotate-45 group-data-[closing]:rotate-0" strokeWidth={3} aria-hidden />
               </summary>
               {item.answer ? <p className={numbered ? "whitespace-pre-line pb-6 ps-[4.5rem] leading-relaxed opacity-80" : "whitespace-pre-line pb-6 leading-relaxed opacity-80"}>{item.answer}</p> : null}
             </details>

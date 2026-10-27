@@ -7,6 +7,7 @@ import type { PreviewData } from "@/lib/pages/api";
 import { DEFAULT_COLORS } from "@/lib/identity/style";
 import { cn } from "@/lib/utils";
 import { IdentityStyle } from "@/themes/shared/identity-style";
+import { SiteEnhancer } from "@/themes/shared/components/site-enhancer";
 import { SiteRenderer } from "@/themes/site-renderer";
 import type { PageContent, PageContext, PublicIdentity, PublicImage } from "@/themes/types";
 import { ar } from "@/messages/ar";
@@ -80,7 +81,7 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
   );
 
   return (
-    <IdentityStyle identity={ctx.identity} className="min-h-dvh">
+    <IdentityStyle identity={ctx.identity} themeKey={themeKey} className="t-site min-h-dvh">
       {!initial.product ? (
         <div className="flex items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-center text-sm text-amber-900" style={{ fontFamily: "Cairo, sans-serif" }}>
           <Info className="size-4" aria-hidden />
@@ -97,9 +98,10 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
             role="button"
             tabIndex={-1}
             onClickCapture={(event) => {
-              // In the editor a click selects the section instead of following links.
+              // In the editor a click selects the section. Links and submit buttons do nothing there,
+              // but FAQs, sliders, option buttons and the like keep working so they can be tried out.
               if (!embedded) return;
-              event.preventDefault();
+              if ((event.target as Element).closest("a[href], button[type=submit], input[type=submit]")) event.preventDefault();
               setSelectedId(section.id);
               post({ type: "preview:select", id: section.id });
             }}
@@ -120,6 +122,7 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
           </div>
         )}
       />
+      <SiteEnhancer />
     </IdentityStyle>
   );
 }

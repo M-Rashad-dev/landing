@@ -53,7 +53,7 @@ export function CeliaOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
       <div className="mx-auto max-w-6xl">
         {props.title ? <h2 className="t-heading text-3xl font-black uppercase tracking-tight md:text-5xl">{props.title}</h2> : null}
         {props.subtitle ? <p className="t-muted mb-10 mt-2">{props.subtitle}</p> : <div className="mb-10" />}
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {displays.map((d) => {
             const top = best?.offer.id === d.offer.id && displays.length > 1;
             return (

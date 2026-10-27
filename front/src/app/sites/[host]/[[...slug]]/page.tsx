@@ -8,6 +8,7 @@ import { validTracking } from "@/lib/tracking/ids";
 import { TrackingScripts } from "@/lib/tracking/tracking-scripts";
 import { IdentityFonts } from "@/themes/shared/identity-fonts";
 import { IdentityStyle } from "@/themes/shared/identity-style";
+import { SiteEnhancer } from "@/themes/shared/components/site-enhancer";
 import { SiteRenderer } from "@/themes/site-renderer";
 import type { PageContext } from "@/themes/types";
 import { SuspendedStore } from "../suspended";
@@ -75,8 +76,9 @@ export default async function PublicSitePage({ params }: { params: Params }) {
   return (
     <>
       <IdentityFonts heading={data.identity.font_heading} body={data.identity.font_body} />
-      <IdentityStyle identity={data.identity} themeKey={data.theme_key} className="min-h-dvh">
+      <IdentityStyle identity={data.identity} themeKey={data.theme_key} className="t-site min-h-dvh">
         <SiteRenderer themeKey={data.theme_key} sections={data.content.sections} ctx={ctx} />
+        <SiteEnhancer />
       </IdentityStyle>
       {jsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} /> : null}
       <TrackingScripts tracking={tracking} product={data.product ? { id: data.product.id, name: data.product.name, price: data.product.price } : null} />

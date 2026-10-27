@@ -35,7 +35,7 @@ function Details({ props, ctx, product, center, onTint }: { props: ProductShowca
         <Markdown className="t-muted max-w-prose text-start leading-loose [&_a]:underline [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-3 [&_strong]:text-[var(--c-fg)] [&_ul]:list-disc [&_ul]:ps-5">{description}</Markdown>
       ) : null}
       {highlights.length ? (
-        <ul className="grid w-full gap-3 sm:grid-cols-2">
+        <ul data-reveal-stagger className="grid w-full gap-3 sm:grid-cols-2">
           {highlights.map((item, i) => (
             <li key={i} className={cn("flex items-center gap-3 rounded-2xl p-3 text-start text-sm font-medium", onTint ? "t-bg shadow-sm" : "t-tint")}>
               <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full", onTint ? "t-tint" : "t-bg")}>

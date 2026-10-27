@@ -60,7 +60,7 @@ export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
     <section className="t-tint px-4 py-16 md:py-24">
       <div className="mx-auto max-w-5xl">
         {heading}
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {displays.map((d) => (
             <li key={d.offer.id} className="t-bg relative flex flex-col items-center gap-3 rounded-3xl p-6 text-center shadow-[0_8px_30px_rgba(0,0,0,.06)]">
               {d.offer.badge_text ? <span className="t-accent absolute -top-3 rounded-full px-3 py-1 text-xs font-bold">{d.offer.badge_text}</span> : null}

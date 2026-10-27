@@ -31,8 +31,17 @@ export function SiteRenderer({
         const Component = def.component;
         // Stored props merged over defaults, so older content keeps working when fields are added.
         const props = { ...SCHEMAS[section.type].defaults, ...section.props };
+        const isHeader = section.type === "header";
         const node = (
-          <div id={anchorFor(section)} data-section-id={section.id} data-section-type={section.type} className="scroll-mt-20">
+          // The header's wrapper takes no box (display: contents) so a sticky header sticks to the page,
+          // not to its own wrapper; every other section fades in on scroll (SiteEnhancer).
+          <div
+            id={anchorFor(section)}
+            data-section-id={section.id}
+            data-section-type={section.type}
+            data-reveal={isHeader ? undefined : ""}
+            className={isHeader ? "contents" : "scroll-mt-20"}
+          >
             <Component sectionId={section.id} props={props} variant={resolveVariant(themeKey, section.type, section.variant)} ctx={ctx} />
           </div>
         );

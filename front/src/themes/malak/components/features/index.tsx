@@ -55,7 +55,7 @@ export function MalakFeatures({ props, variant, ctx }: SectionProps<FeaturesProp
     <section className="px-4 py-16 md:py-24">
       <div className="mx-auto max-w-6xl">
         <Heading props={props} />
-        <ul className={cn("grid gap-5", COLS[props.columns] ?? COLS["3"])}>
+        <ul data-reveal-stagger className={cn("grid gap-5", COLS[props.columns] ?? COLS["3"])}>
           {items.map((item, i) => {
             const image = mediaOf(ctx, item.image_media_id);
             return (

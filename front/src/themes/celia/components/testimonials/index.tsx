@@ -30,7 +30,7 @@ export function CeliaTestimonials({ props, variant, ctx }: SectionProps<Testimon
       <section className="t-bg border-t-[3px] t-line px-4 py-12 md:py-16">
         <div className="mx-auto max-w-6xl">
           {heading}
-          <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <ul data-reveal-stagger className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {items.map((item, i) => {
               const proof = mediaOf(ctx, item.proof_media_id);
               return (
@@ -61,7 +61,7 @@ export function CeliaTestimonials({ props, variant, ctx }: SectionProps<Testimon
     <section className="t-bg border-t-[3px] t-line px-4 py-12 md:py-16">
       <div className="mx-auto max-w-6xl">
         {heading}
-        <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">
+        <div data-reveal-stagger className="columns-1 gap-5 sm:columns-2 lg:columns-3">
           {items.map((item, i) => {
             const proof = mediaOf(ctx, item.proof_media_id);
             const big = i % 3 === 0;

@@ -24,7 +24,7 @@ export function CeliaFeatures({ props, variant, ctx }: SectionProps<FeaturesProp
       <section className="t-inverse px-4 py-12 md:py-16">
         <div className="mx-auto max-w-4xl">
           {heading}
-          <ul className="border-t-[3px]" style={{ borderColor: "var(--c-bg)" }}>
+          <ul data-reveal-stagger className="border-t-[3px]" style={{ borderColor: "var(--c-bg)" }}>
             {items.map((item, i) => {
               const image = mediaOf(ctx, item.image_media_id);
               return (
@@ -53,7 +53,7 @@ export function CeliaFeatures({ props, variant, ctx }: SectionProps<FeaturesProp
     <section className="t-bg border-t-[3px] t-line px-4 py-12 md:py-16">
       <div className="mx-auto max-w-6xl">
         {heading}
-        <ul className={cn("grid gap-5", COLS[props.columns] ?? COLS["3"])}>
+        <ul data-reveal-stagger className={cn("grid gap-5", COLS[props.columns] ?? COLS["3"])}>
           {items.map((item, i) => {
             const image = mediaOf(ctx, item.image_media_id);
             return (

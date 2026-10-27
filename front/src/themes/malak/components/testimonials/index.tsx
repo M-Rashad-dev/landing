@@ -38,7 +38,7 @@ export function MalakTestimonials({ props, variant, ctx }: SectionProps<Testimon
       <div className="mx-auto max-w-6xl">
         {props.title ? <h2 className="t-heading mb-10 text-center text-2xl font-bold md:text-3xl">{props.title}</h2> : null}
         {variant === "grid" ? (
-          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item, i) => (
               <li key={i}>
                 <Card item={item} ctx={ctx} showRating={props.show_rating} />
@@ -46,7 +46,7 @@ export function MalakTestimonials({ props, variant, ctx }: SectionProps<Testimon
             ))}
           </ul>
         ) : (
-          <Slider slideClassName="sm:w-1/2 lg:w-1/3 px-1 py-2">
+          <Slider slideClassName="sm:basis-1/2 lg:basis-1/3 py-2">
             {items.map((item, i) => (
               <Card key={i} item={item} ctx={ctx} showRating={props.show_rating} />
             ))}

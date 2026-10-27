@@ -149,6 +149,39 @@
 html:has(.t-site) {
   scroll-behavior: smooth;
 }
+
+/*
+ * Scroll reveal (SiteEnhancer adds .lp-motion on <html> only when JS runs and motion is allowed,
+ * so content is never hidden without JavaScript). Sections rise and fade in once; children of
+ * [data-reveal-stagger] follow one after another (--reveal-i is set by the script).
+ */
+.lp-motion [data-reveal] {
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-motion [data-reveal]:not(.is-revealed) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.lp-motion [data-reveal-stagger] > * {
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--reveal-i, 0) * 90ms + 120ms);
+}
+.lp-motion [data-reveal]:not(.is-revealed) [data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(18px) scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-motion [data-reveal],
+  .lp-motion [data-reveal-stagger] > * {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 @keyframes t-marquee {
   from {
     transform: translateX(0);
