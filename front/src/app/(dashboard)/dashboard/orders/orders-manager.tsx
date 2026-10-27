@@ -12,6 +12,7 @@ import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
@@ -212,14 +213,14 @@ export function OrdersManager({ initialStatus = "", initialPageId = "" }: { init
         <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
           <Select aria-label={t.allPages} value={filters.page_id} onChange={(e) => update({ page_id: e.target.value })} options={[{ value: "", label: t.allPages }, ...pages.map((p) => ({ value: String(p.id), label: p.title }))]} />
           <Select aria-label={t.allProducts} value={filters.product_id} onChange={(e) => update({ product_id: e.target.value })} options={[{ value: "", label: t.allProducts }, ...products.map((p) => ({ value: String(p.id), label: p.name }))]} />
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t.from}
-            <Input type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => update({ from: e.target.value })} />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <DatePicker value={filters.from} max={filters.to || undefined} onChange={(from) => update({ from })} aria-label={t.from} />
+          </div>
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t.to}
-            <Input type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => update({ to: e.target.value })} />
-          </label>
+            <DatePicker value={filters.to} min={filters.from || undefined} onChange={(to) => update({ to })} aria-label={t.to} />
+          </div>
           <div className="flex flex-col justify-end gap-2">
             <label className="flex h-10 items-center gap-2 text-sm">
               <Checkbox checked={filters.duplicate} onCheckedChange={(v) => update({ duplicate: v === true })} />

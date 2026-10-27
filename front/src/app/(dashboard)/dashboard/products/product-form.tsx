@@ -182,7 +182,7 @@ function OptionEditor({
           <Input id={`option-${index}-name`} placeholder={t.options.namePlaceholder} maxLength={40} aria-invalid={!!optionErrors?.name} {...register(`options.${index}.name`)} />
         </FormField>
         <FormField label={t.options.displayType} htmlFor={`option-${index}-type`} className="w-36">
-          <Select id={`option-${index}-type`} options={(["buttons", "dropdown", "swatch"] as const).map((type) => ({ value: type, label: t.options.types[type] }))} {...register(`options.${index}.display_type`)} />
+          <Controller control={control} name={`options.${index}.display_type`} render={({ field }) => <Select id={`option-${index}-type`} value={field.value} onChange={(e) => field.onChange(e.target.value)} onBlur={field.onBlur} options={(["buttons", "dropdown", "swatch"] as const).map((type) => ({ value: type, label: t.options.types[type] }))} />} />
         </FormField>
         <Controller
           control={control}

@@ -122,10 +122,10 @@ export function PageSettingsForm({ page }: { page: PageDetail }) {
             <Input id="ps-slug" dir="auto" maxLength={60} {...register("slug")} />
           </FormField>
           <FormField label={ar.pages.wizard.identity} htmlFor="ps-identity" error={errors.identity_id?.message} required>
-            <Select id="ps-identity" options={(identities.data?.data ?? []).map((i) => ({ value: String(i.id), label: i.name }))} {...register("identity_id")} />
+            <Controller control={control} name="identity_id" render={({ field }) => <Select id="ps-identity" value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value)} onBlur={field.onBlur} options={(identities.data?.data ?? []).map((i) => ({ value: String(i.id), label: i.name }))} />} />
           </FormField>
           <FormField label={ar.pages.wizard.product} htmlFor="ps-product" error={errors.product_id?.message}>
-            <Select id="ps-product" placeholder={ar.pages.noProduct} options={(products.data?.data ?? []).map((p) => ({ value: String(p.id), label: p.name }))} {...register("product_id")} />
+            <Controller control={control} name="product_id" render={({ field }) => <Select id="ps-product" value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value)} onBlur={field.onBlur} placeholder={ar.pages.noProduct} options={(products.data?.data ?? []).map((p) => ({ value: String(p.id), label: p.name }))} />} />
           </FormField>
         </div>
       </FormSection>

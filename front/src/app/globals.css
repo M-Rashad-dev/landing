@@ -1,29 +1,71 @@
 @import "tailwindcss";
 
-/* Dashboard design tokens (neutral + one primary). Public themes use their own --c-* variables. */
+@import "tw-animate-css";
+
+/*
+ * «لازورد» — the platform design system (dashboard, builder, admin, marketing).
+ * Inspired by ancient Egyptian lapis lazuli, gold and faience turquoise on warm papyrus.
+ * Change the brand here only: every component reads these tokens.
+ * Public tenant sites use their own identity variables (--c-*), never these.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* Surfaces: warm papyrus instead of pure white / cold grey. */
+  --background: #f6f4ef;
+  --foreground: #16182b;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #cbd5e1;
-  --ring: #6d28d9;
-  --primary: #6d28d9;
+  --card-foreground: #16182b;
+  --muted: #efece4;
+  --muted-foreground: #6a6759;
+  --border: #e5e0d4;
+  --input: #d6cfbf;
+
+  /* Lapis (primary). */
+  --primary: #2a44b8;
+  --primary-hover: #213797;
   --primary-foreground: #ffffff;
-  --secondary: #f5f3ff;
-  --secondary-foreground: #4c1d95;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --success: #16a34a;
+  --secondary: #eceffb;
+  --secondary-foreground: #1f2f84;
+  --ring: #2a44b8;
+
+  /* Gold (highlights, key actions, "new"). */
+  --gold: #e3a21a;
+  --gold-soft: #fbf1d9;
+  --gold-foreground: #3d2a00;
+
+  --accent: #f1eee6;
+  --accent-foreground: #16182b;
+
+  /* States: turquoise faience for success. */
+  --success: #0f9483;
   --success-foreground: #ffffff;
-  --warning: #d97706;
+  --warning: #d0670d;
   --warning-foreground: #ffffff;
-  --radius: 0.75rem;
+  --destructive: #d03a3a;
+  --destructive-foreground: #ffffff;
+  --info: #2a7fc4;
+
+  /* Ink sidebar. */
+  --sidebar: #12152a;
+  --sidebar-foreground: #c9cbe0;
+  --sidebar-muted: #7d80a3;
+  --sidebar-active: #ffffff;
+  --sidebar-hover: rgb(255 255 255 / 0.06);
+  --sidebar-border: rgb(255 255 255 / 0.08);
+
+  --radius: 0.875rem;
+
+  /* Warm, layered shadows. */
+  --shadow-xs: 0 1px 2px rgb(22 24 43 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(22 24 43 / 0.04), 0 2px 8px rgb(22 24 43 / 0.05);
+  --shadow-md: 0 2px 4px rgb(22 24 43 / 0.04), 0 8px 24px rgb(22 24 43 / 0.08);
+  --shadow-lg: 0 4px 8px rgb(22 24 43 / 0.05), 0 20px 48px rgb(22 24 43 / 0.14);
+
+  /* Motion. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
 }
 
 @theme inline {
@@ -37,9 +79,13 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-foreground: var(--gold-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -48,8 +94,23 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
   --radius-lg: var(--radius);
-  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --ease-out: var(--ease-out);
+  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Readex Pro", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -68,11 +129,55 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Platform headings use the display face; tenant sites (.t-site) keep their identity fonts. */
+  h1:not(.t-site *),
+  h2:not(.t-site *),
+  h3:not(.t-site *) {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--gold) 35%, transparent);
   }
 
   :focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+  }
+}
+
+/* ---------- Platform utilities ---------- */
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 0%, color-mix(in srgb, var(--muted) 45%, #fff) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  animation: lp-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes lp-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+/* Page content fades in on navigation (dashboard / admin main area). */
+.page-enter {
+  animation: lp-page-in 0.32s var(--ease-out) both;
+}
+@keyframes lp-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .page-enter {
+    animation: none;
   }
 }
 

@@ -252,7 +252,7 @@ export function IdentityForm({ identity, storeName }: { identity?: Identity; sto
           <div className="grid gap-4 sm:grid-cols-2">
             {(["font_heading", "font_body"] as const).map((key) => (
               <FormField key={key} label={key === "font_heading" ? t.fields.headingFont : t.fields.bodyFont} htmlFor={key} error={errors[key]?.message}>
-                <Select id={key} options={FONT_KEYS.map((font) => ({ value: font, label: FONTS[font].label }))} {...register(key)} />
+                <Controller control={control} name={key} render={({ field }) => <Select id={key} value={field.value} onChange={(e) => field.onChange(e.target.value)} onBlur={field.onBlur} options={FONT_KEYS.map((font) => ({ value: font, label: FONTS[font].label }))} />} />
                 <p className="rounded-lg bg-muted px-3 py-2 text-sm" style={{ fontFamily: fontStack(watched[key]) }}>
                   {t.fontSample}
                 </p>

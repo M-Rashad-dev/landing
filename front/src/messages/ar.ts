@@ -46,6 +46,9 @@ export const ar = {
     currency: "ج.م",
     menu: "القائمة",
     unsavedChanges: "لديك تغييرات غير محفوظة. هل تريد المغادرة؟",
+    pickDate: "اختر التاريخ",
+    clear: "مسح",
+    time: "الوقت",
   },
   errors: {
     generic: "حدث خطأ غير متوقع. حاول مرة أخرى.",
@@ -111,6 +114,9 @@ export const ar = {
     openMenu: "فتح القائمة",
     account: "حسابي",
     visitSite: "زيارة موقعي",
+    blocked: "المحظورين",
+    groups: { sales: "المبيعات", pages: "الصفحات", catalog: "المنتجات والعروض", store: "المتجر" },
+    tagline: "صفحات هبوط تبيع",
   },
   dashboard: {
     welcomeTitle: (name: string) => `أهلًا ${name} 👋`,
