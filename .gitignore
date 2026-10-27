@@ -15,3 +15,5 @@ Thumbs.db
 
 # Plan source document
 *.docx
+/tools/shots/
+/tools/overflow.mjs

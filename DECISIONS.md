@@ -77,3 +77,14 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **Stored props are merged over schema defaults at render time**, so adding a field later never breaks older pages.
 - **The Builder route lives in its own route group** `(builder)` (full screen, same session, no sidebar).
 - **Builder shortcuts**: Ctrl/Cmd+S save, Ctrl+Z undo, Ctrl+Shift+Z / Ctrl+Y redo (undo/redo ignored while typing in inputs). Autosave 1.5 s after the last edit; edits made while a save is in flight stay "unsaved" and are saved next.
+
+## Phase 6
+- **Theme helper classes** (`.t-primary`, `.t-tint`, `.t-muted`, `.t-heading`, `.t-btn`, `.t-input`, …) live in `globals.css` and only read the identity variables, so theme markup stays short and never hardcodes brand colors. Buttons always use the identity radius (`--btn-radius`) in both themes; each theme's personality comes from cards, spacing, borders and shadows.
+- **Variants are separate components inside each type's `index.tsx`** (one folder per type) instead of one file per variant; thumbnails for a theme live in one `thumbnails.tsx`.
+- **Shared building blocks** in `themes/shared/components` (SafeLink, Price, ResponsiveImage, Countdown, Slider, Lightbox, GalleryClient, OptionSelector, QuantityStepper, RatingStars, MobileMenu, ContactList/SocialLinks, ProofImage, PreviewEmpty) and `themes/shared/order-form` (fields + validation + parts). Both themes compose them with their own classes.
+- **lucide 1.x has no brand icons**, so social glyphs are small inline SVGs (`social-icons.tsx`).
+- **FAQ uses native `<details>`**; when only one answer may be open, items share `name="faq-{sectionId}"` (exclusive accordion, no JavaScript).
+- **Empty sections render nothing on live pages** and a faint dashed placeholder in the Builder preview, so they stay selectable.
+- **`useOrderForm` is implemented in full now** (fields, validation mirroring 7.3, live quote with a local estimate, form token, idempotency key, UTM, success + one-time conversion event); it calls the `/api/public/*` routes that phase 9 adds. In preview mode it never sends anything.
+- **`track()` and UTM capture** (`lib/tracking`) are written now because the order form uses them; pixel script injection comes with phase 8.
+- **Visual review** was done with Playwright screenshots of `/dev/themes` (390 / 768 / 1280, three very different identities incl. a dark one); an automated check confirms no horizontal overflow. `/dev/themes` accepts `?theme=&identity=` and returns 404 in production.

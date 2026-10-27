@@ -44,3 +44,7 @@ next-env.d.ts
 
 # copied from @fontsource by scripts/copy-fonts.mjs
 /public/fonts/
+
+# Playwright
+/test-results/
+/playwright-report/

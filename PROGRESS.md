@@ -7,8 +7,8 @@
 | 3 | Products & options | ✅ Done |
 | 4 | Offers, discount codes, price engine | ✅ Done |
 | 5 | Page engine & Builder | ✅ Done |
-| 6 | Theme «malak» | ⏳ Next |
-| 7 | Theme «celia» | ⬜ |
+| 6 | Theme «malak» | ✅ Done |
+| 7 | Theme «celia» | ⏳ Next |
 | 8 | Public rendering, SEO, tracking | ⬜ |
 | 9 | Orders & management | ⬜ |
 | 10 | Custom domains & SSL | ⬜ |
@@ -76,3 +76,12 @@
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 140 passed (store reducers, anchors, schema naming rules, registry parity) · `pnpm build` ✓
 - `scripts/smoke-pages.sh` (create page → builder 200 → preview SSR shows the draft and needs the cookie → publish blocked with no_product + order_form_missing → save v1→v2 with theme switch → stale save 409 version_conflict → javascript: link 422 at its exact path → link product → publish) → OK
 - Not verified in a real browser yet (drag & drop, live postMessage updates); covered by the Playwright scenarios planned in phase 11.
+
+## Phase 6 — Theme «malak» ✅
+
+**Front**: the 10 Malak components with every variant from the plan (header centered-logo/logo-start with announcement bar, sticky blur and mobile drawer; hero split/full-cover/centered-card with art-directed mobile image, price + best offer badge, badges, overlay, heights; gallery slider (scroll-snap, thumbnails, autoplay) / grid with lightbox; product showcase card/side-by-side with Markdown description and highlights; features icon-cards/alternating; offers cards/ribbon-banner with live countdown, savings, expiry refresh and "bundle → order form quantity + scroll"; testimonials cards-slider/grid with ratings, avatars and zoomable proofs; FAQ accordion-soft/two-columns; order form card/split-summary on the shared `useOrderForm`; footer simple-center/columns with contact + socials), wireframe thumbnails, shared helpers (see DECISIONS), display-only offer math and local quote estimate, `/dev/themes` review tool with demo fixtures, Playwright installed for screenshots.
+
+**Checks**
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 228 passed (every component × variant of both registered themes renders with full and with completely empty props and no product, no React errors; SafeLink rejects `javascript:`; user HTML is shown as text; unknown variants fall back to the default)
+- Visual review via screenshots at 390 / 1280 (+ overflow scan at 390 / 768 / 1280) with violet, dark and green identities → no horizontal scroll; fixed along the way: FAQ group collision across sections, split-summary form width on mobile, highlight contrast on tinted background, old-price contrast on photo heroes.
+- Back end unchanged (348 tests from phase 5).

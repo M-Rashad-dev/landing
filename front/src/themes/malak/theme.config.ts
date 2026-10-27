@@ -1,23 +1,39 @@
-import { FALLBACK_COMPONENTS } from "@/themes/_fallback";
-import type { ThemeDef } from "@/themes/types";
+import type { ComponentType, ThemeComponentDef, ThemeDef } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { MalakFaq } from "./components/faq";
+import { MalakFeatures } from "./components/features";
+import { MalakFooter } from "./components/footer";
+import { MalakGallery } from "./components/gallery";
+import { MalakHeader } from "./components/header";
+import { MalakHero } from "./components/hero";
+import { MalakOffers } from "./components/offers";
+import { MalakOrderForm } from "./components/order-form";
+import { MalakProductShowcase } from "./components/product-showcase";
+import { MalakTestimonials } from "./components/testimonials";
+import { MalakThumbs } from "./thumbnails";
 
-/** «ملاك» — soft and calm. Components are implemented in phase 6; placeholders until then. */
+const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
+
+function def(type: ComponentType, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
+  return { component, variants: v(variants), defaultVariant: variants[0], Thumbnail: MalakThumbs[type] };
+}
+
+/** «ملاك» — soft and calm: big rounded corners, light shadows, airy spacing, tinted backgrounds. */
 export const malakTheme: ThemeDef = {
   key: "malak",
   name: ar.themes.malak.name,
   description: ar.themes.malak.description,
   components: {
-    header: { ...FALLBACK_COMPONENTS.header, variants: [{ key: "centered-logo", label: ar.themes.variants["centered-logo"] }, { key: "logo-start", label: ar.themes.variants["logo-start"] }], defaultVariant: "centered-logo" },
-    hero: { ...FALLBACK_COMPONENTS.hero, variants: [{ key: "split", label: ar.themes.variants.split }, { key: "full-cover", label: ar.themes.variants["full-cover"] }, { key: "centered-card", label: ar.themes.variants["centered-card"] }], defaultVariant: "split" },
-    gallery: { ...FALLBACK_COMPONENTS.gallery, variants: [{ key: "slider", label: ar.themes.variants.slider }, { key: "grid", label: ar.themes.variants.grid }], defaultVariant: "slider" },
-    product_showcase: { ...FALLBACK_COMPONENTS.product_showcase, variants: [{ key: "card", label: ar.themes.variants.card }, { key: "side-by-side", label: ar.themes.variants["side-by-side"] }], defaultVariant: "card" },
-    features: { ...FALLBACK_COMPONENTS.features, variants: [{ key: "icon-cards", label: ar.themes.variants["icon-cards"] }, { key: "alternating", label: ar.themes.variants.alternating }], defaultVariant: "icon-cards" },
-    offers: { ...FALLBACK_COMPONENTS.offers, variants: [{ key: "cards", label: ar.themes.variants.cards }, { key: "ribbon-banner", label: ar.themes.variants["ribbon-banner"] }], defaultVariant: "cards" },
-    testimonials: { ...FALLBACK_COMPONENTS.testimonials, variants: [{ key: "cards-slider", label: ar.themes.variants["cards-slider"] }, { key: "grid", label: ar.themes.variants.grid }], defaultVariant: "cards-slider" },
-    faq: { ...FALLBACK_COMPONENTS.faq, variants: [{ key: "accordion-soft", label: ar.themes.variants["accordion-soft"] }, { key: "two-columns", label: ar.themes.variants["two-columns"] }], defaultVariant: "accordion-soft" },
-    order_form: { ...FALLBACK_COMPONENTS.order_form, variants: [{ key: "card", label: ar.themes.variants.card }, { key: "split-summary", label: ar.themes.variants["split-summary"] }], defaultVariant: "card" },
-    footer: { ...FALLBACK_COMPONENTS.footer, variants: [{ key: "simple-center", label: ar.themes.variants["simple-center"] }, { key: "columns", label: ar.themes.variants.columns }], defaultVariant: "simple-center" },
+    header: def("header", MalakHeader, ["centered-logo", "logo-start"]),
+    hero: def("hero", MalakHero, ["split", "full-cover", "centered-card"]),
+    gallery: def("gallery", MalakGallery, ["slider", "grid"]),
+    product_showcase: def("product_showcase", MalakProductShowcase, ["card", "side-by-side"]),
+    features: def("features", MalakFeatures, ["icon-cards", "alternating"]),
+    offers: def("offers", MalakOffers, ["cards", "ribbon-banner"]),
+    testimonials: def("testimonials", MalakTestimonials, ["cards-slider", "grid"]),
+    faq: def("faq", MalakFaq, ["accordion-soft", "two-columns"]),
+    order_form: def("order_form", MalakOrderForm, ["card", "split-summary"]),
+    footer: def("footer", MalakFooter, ["simple-center", "columns"]),
   },
   starterSections: [
     { type: "header", variant: "centered-logo" },

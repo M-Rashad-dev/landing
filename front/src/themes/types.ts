@@ -88,6 +88,8 @@ export interface PageContext {
   page: { id: number; slug: string; title: string };
   /** All media referenced by the content, resolved by id (images live outside props). */
   media: Record<number, PublicImage>;
+  /** Event fired after a successful order (identity/page tracking setting). */
+  conversionEvent?: "Lead" | "Purchase";
 }
 
 export interface SectionProps<P = Record<string, unknown>> {

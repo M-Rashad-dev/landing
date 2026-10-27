@@ -76,6 +76,106 @@
   }
 }
 
+/* ---------- Theme helpers (public pages). Colors/fonts/radius come from the identity variables. ---------- */
+.t-primary {
+  background: var(--c-primary);
+  color: var(--c-primary-fg);
+}
+.t-primary-text {
+  color: var(--c-primary);
+}
+.t-accent {
+  background: var(--c-accent);
+  color: #111;
+}
+.t-tint {
+  background: color-mix(in srgb, var(--c-primary) 8%, var(--c-bg));
+}
+.t-tint-strong {
+  background: color-mix(in srgb, var(--c-primary) 16%, var(--c-bg));
+}
+.t-secondary {
+  background: var(--c-secondary);
+}
+.t-bg {
+  background: var(--c-bg);
+  color: var(--c-fg);
+}
+.t-inverse {
+  background: var(--c-fg);
+  color: var(--c-bg);
+}
+.t-muted {
+  color: var(--c-muted);
+}
+.t-border {
+  border-color: var(--c-border);
+}
+.t-border-fg {
+  border-color: var(--c-fg);
+}
+.t-heading {
+  font-family: var(--font-heading);
+}
+.t-btn {
+  border-radius: var(--btn-radius);
+}
+.t-input {
+  background: var(--c-bg);
+  color: var(--c-fg);
+  border: 1px solid var(--c-border);
+  font-size: 16px; /* no zoom on iOS */
+}
+.t-input:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+}
+.t-ring {
+  --tw-ring-color: var(--c-primary);
+}
+.t-scroll-snap {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.t-scroll-snap::-webkit-scrollbar {
+  display: none;
+}
+.t-scroll-snap > * {
+  scroll-snap-align: center;
+}
+html:has(.t-site) {
+  scroll-behavior: smooth;
+}
+@keyframes t-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+.t-marquee {
+  display: flex;
+  width: max-content;
+  animation: t-marquee 22s linear infinite;
+}
+@keyframes t-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.t-fade-up {
+  animation: t-fade-up 0.6s ease-out both;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
