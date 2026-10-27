@@ -94,3 +94,14 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **"الأكثر طلبًا"** in Celia's bundle tiles marks the offer with the biggest saving (display only).
 - **Sticky summary on mobile** becomes an inline summary + a fixed bottom bar (total + "اطلب الآن") shown only while the form is off screen (IntersectionObserver), so it never covers the form itself.
 - **Parity is enforced by a test** (`themes/parity.test.tsx`) instead of a manual checklist: a new theme fails CI until it implements every type, variant default and thumbnail, and a full page must keep all its texts and images when switching theme.
+
+## Phase 8
+- **Public routes live in `app/sites/[host]`** (not `_sites`: Next treats underscore folders as private). They are reachable only through the proxy rewrite; `/sites/...` requested on any host ends up as a 404.
+- **ISR via an empty `generateStaticParams`** + `revalidate = 60`: each host/slug renders on first visit and is cached; the Laravel data fetches carry the `host:{host}` tag, and `/api/revalidate` expires them immediately (`revalidateTag(tag, { expire: 0 })`).
+- **No request headers in the page** (that would make it dynamic). The redirect to the primary host is built from `PUBLIC_SCHEME` / `PUBLIC_PORT` (production: https, no port). It uses Next's `permanentRedirect` (HTTP 308, treated like 301 by browsers and search engines) and drops the query string, since the cached page cannot read it; ads should point at the primary host.
+- **The live page uses the theme stored in the published snapshot** (`published_content.theme_key`), while identity, product and offers are live data (revalidated on change).
+- **SEO title**: page override → identity SEO title → product name → page title, then the identity suffix (once). Description: override → identity → product description as plain text (160 chars). OG image: override → identity → first product image. Canonical always points at the primary host.
+- **Tracking ids are validated three times**: on save (back), again when merged for the public API, and by `validTracking` before any snippet is built; ids are inserted with `JSON.stringify`.
+- **ViewContent** is sent once from `TrackingScripts` after every configured loader has defined its global (max 5 s); PageView comes from each loader itself. GTM receives `dataLayer` events only when GTM is configured (gtag already feeds GA4).
+- **Visitor texts are split into `messages/site.ts`** (re-exported as `ar.site`) and order form runtime constants into `order-form/constants.ts`, so client islands on public pages don't pull the whole dashboard dictionary.
+- **JS budget**: 166 KB gzip measured; the framework alone is ~131 KB, so the plan's ~120 KB target can't be met without dropping React/Next. Further optional saving: replacing `tailwind-merge` in theme code (8.6 KB).

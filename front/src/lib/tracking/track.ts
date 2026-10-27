@@ -20,6 +20,8 @@ type TrackingWindow = Window & {
   gtag?: AnyFn;
   snaptr?: AnyFn;
   dataLayer?: unknown[];
+  /** Set by the GTM snippet: only then are events pushed to dataLayer (gtag already feeds GA4). */
+  __lpGtm?: boolean;
 };
 
 const META: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "Lead", Purchase: "Purchase" };
@@ -62,7 +64,7 @@ export function track(event: TrackEvent, payload: TrackPayload = {}, win: Tracki
     items: payload.content_ids?.map((id) => ({ item_id: String(id), item_name: payload.content_name, quantity: payload.num_items ?? 1 })),
   };
   if (typeof win.gtag === "function") safe(() => win.gtag!("event", GA4[event], ga));
-  if (Array.isArray(win.dataLayer)) safe(() => win.dataLayer!.push({ event: GA4[event], ecommerce: ga }));
+  if (win.__lpGtm && Array.isArray(win.dataLayer)) safe(() => win.dataLayer!.push({ event: GA4[event], ecommerce: ga }));
   if (typeof win.snaptr === "function") {
     safe(() =>
       win.snaptr!("track", SNAP[event], {

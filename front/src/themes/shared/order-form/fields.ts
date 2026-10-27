@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { isValidPhone } from "@/lib/format/phone";
 import { GOVERNORATES } from "@/lib/governorates";
-import { BUILT_IN_FIELDS, LOCKED_FIELDS, type BuiltInField, type OrderFormProps } from "@/themes/shared/schemas/order-form";
+import { BUILT_IN_FIELDS, LOCKED_FIELDS, type BuiltInField } from "@/themes/shared/order-form/constants";
+import type { OrderFormProps } from "@/themes/shared/schemas/order-form";
 import type { OrderFormField } from "@/themes/shared/hooks/order-form-types";
-import { ar } from "@/messages/ar";
+import { orderFieldLabels, siteMessages } from "@/messages/site";
 
-const t = ar.site;
+const t = siteMessages;
 
 /** Length limits shared with the back end (7.3). */
 export const LIMITS = { name: [2, 80], address: [0, 300], notes: [0, 500], city: [0, 100], text: [0, 200], textarea: [0, 1000] } as const;
@@ -29,7 +30,7 @@ export function buildFields(props: Pick<OrderFormProps, "fields" | "custom_field
     if (!locked && !config?.enabled) continue;
     fields.push({
       name: `customer.${key}`,
-      label: config?.label || ar.sections.order_form.builtIn[key],
+      label: config?.label || orderFieldLabels[key],
       placeholder: config?.placeholder ?? "",
       required: locked || Boolean(config?.required),
       choices: key === "governorate" ? [...GOVERNORATES] : [],

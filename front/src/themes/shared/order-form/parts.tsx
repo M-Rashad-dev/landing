@@ -10,7 +10,7 @@ import { QuantityStepper } from "@/themes/shared/components/quantity-stepper";
 import type { OrderFormField, OrderFormState } from "@/themes/shared/hooks/order-form-types";
 import type { PublicProduct } from "@/themes/types";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 export type FormClasses = {
   label?: string;
@@ -48,7 +48,7 @@ export function OrderFieldInput({ field, state, classes = {} }: { field: OrderFo
     case "select":
       control = (
         <select {...common} value={typeof value === "string" ? value : ""} onChange={(e) => state.setValue(field.name, e.target.value)} autoComplete={field.autoComplete} className={cn(inputClass, "h-12")}>
-          <option value="">{field.placeholder || ar.site.choose}</option>
+          <option value="">{field.placeholder || siteMessages.choose}</option>
           {field.choices.map((choice) => (
             <option key={choice} value={choice}>
               {choice}
@@ -134,7 +134,7 @@ export function OrderOptions({ product, state, classes = {} }: { product: Public
 export function QuantityField({ state, classes = {} }: { state: OrderFormState; classes?: FormClasses }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className={cn("text-sm font-semibold", classes.label)}>{ar.site.quantity}</span>
+      <span className={cn("text-sm font-semibold", classes.label)}>{siteMessages.quantity}</span>
       <QuantityStepper value={state.quantity} onChange={state.setQuantity} className={classes.stepper} buttonClassName={classes.stepperButton} disabled={state.disabled} />
     </div>
   );
@@ -146,7 +146,7 @@ export function CodeField({ state, classes = {} }: { state: OrderFormState; clas
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="of-code" className={cn("text-sm font-semibold", classes.label)}>
-        {ar.site.code}
+        {siteMessages.code}
       </label>
       <div className="flex gap-2">
         <input
@@ -161,13 +161,13 @@ export function CodeField({ state, classes = {} }: { state: OrderFormState; clas
               state.applyCode();
             }
           }}
-          placeholder={ar.site.codePlaceholder}
+          placeholder={siteMessages.codePlaceholder}
           className={cn("t-input h-12 min-w-0 flex-1 rounded-lg px-3 uppercase", classes.input)}
           aria-invalid={Boolean(error)}
           disabled={state.disabled}
         />
         <button type="button" onClick={state.applyCode} disabled={state.disabled || !state.code.trim()} className={cn("t-primary t-btn h-12 shrink-0 px-5 text-sm font-bold disabled:opacity-50", classes.codeButton)}>
-          {ar.site.apply}
+          {siteMessages.apply}
         </button>
       </div>
       {error ? (
@@ -193,14 +193,14 @@ export function OrderSummary({ quote, loading, estimated, className, totalClassN
   );
   return (
     <div className={cn("flex flex-col", className)} aria-live="polite" aria-busy={loading}>
-      {row(`${ar.site.subtotal} (${quote.quantity} × ${formatPrice(quote.unit_price)})`, formatPrice(quote.base_subtotal))}
-      {quote.offer ? row(`${ar.site.offerDiscount}: ${quote.offer.name}`, `− ${formatPrice(quote.offer.discount)}`, "text-emerald-600") : null}
-      {quote.code ? row(`${ar.site.codeDiscount} (${quote.code.code})`, `− ${formatPrice(quote.code.discount)}`, "text-emerald-600") : null}
+      {row(`${siteMessages.subtotal} (${quote.quantity} × ${formatPrice(quote.unit_price)})`, formatPrice(quote.base_subtotal))}
+      {quote.offer ? row(`${siteMessages.offerDiscount}: ${quote.offer.name}`, `− ${formatPrice(quote.offer.discount)}`, "text-emerald-600") : null}
+      {quote.code ? row(`${siteMessages.codeDiscount} (${quote.code.code})`, `− ${formatPrice(quote.code.discount)}`, "text-emerald-600") : null}
       <div className={cn("mt-1 flex items-center justify-between gap-3 border-t pt-3 t-border", totalClassName)}>
-        <span className="font-bold">{ar.site.total}</span>
+        <span className="font-bold">{siteMessages.total}</span>
         <span className={cn("text-xl font-extrabold tabular-nums", loading && "opacity-60")}>{formatPrice(quote.total)}</span>
       </div>
-      <p className="t-muted mt-1 text-xs">{estimated ? ar.site.estimate : ar.site.cod}</p>
+      <p className="t-muted mt-1 text-xs">{estimated ? siteMessages.estimate : siteMessages.cod}</p>
     </div>
   );
 }
@@ -226,10 +226,10 @@ export function SuccessPanel({ title, message, orderNumber, quote, className }: 
       <CheckCircle2 className="size-14 text-emerald-500" aria-hidden />
       <h3 className="t-heading text-2xl font-extrabold">{title}</h3>
       {message ? <p className="t-muted max-w-md leading-relaxed">{message}</p> : null}
-      {orderNumber ? <p className="rounded-full bg-black/5 px-4 py-1.5 font-bold tabular-nums">{ar.site.orderNumber(orderNumber)}</p> : null}
+      {orderNumber ? <p className="rounded-full bg-black/5 px-4 py-1.5 font-bold tabular-nums">{siteMessages.orderNumber(orderNumber)}</p> : null}
       {quote ? (
         <p className="text-sm">
-          {ar.site.total}: <strong className="tabular-nums">{formatPrice(quote.total)}</strong> — {ar.site.cod}
+          {siteMessages.total}: <strong className="tabular-nums">{formatPrice(quote.total)}</strong> — {siteMessages.cod}
         </p>
       ) : null}
     </div>

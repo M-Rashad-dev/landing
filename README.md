@@ -62,8 +62,25 @@ Local hosts (no hosts-file edits needed, `*.localhost` resolves to 127.0.0.1):
 ### Smoke tests
 
 ```bash
-bash scripts/smoke-auth.sh      # with both apps running
+# with both apps + the queue worker running (bash tools/start-dev.sh)
+bash scripts/smoke-auth.sh
+bash scripts/smoke-media.sh
+bash scripts/smoke-products.sh
+bash scripts/smoke-pricing.sh
+bash scripts/smoke-pages.sh
+bash scripts/smoke-public.sh    # publishes a page and visits http://{sub}.localhost:3000
+bash scripts/measure-public-js.sh http://{sub}.localhost:3000/   # gzipped JS of a public page
 ```
+
+Locally both apps need `PUBLIC_SCHEME=http` and `PUBLIC_PORT=3000` (canonical URLs, sitemap, redirects to the primary host);
+production leaves the defaults (https, no port).
+
+## Public sites
+
+`proxy.ts` rewrites every tenant host to `app/sites/[host]/[[...slug]]` (ISR, 60 s, data tagged `host:{host}`).
+Laravel's `FrontendRevalidator` calls `POST /api/revalidate` after publish/unpublish, page deletes, identity / product /
+offer / code edits and page settings changes, so updates show within seconds. Each host also serves `/sitemap.xml` and
+`/robots.txt`. Tracking pixels (Meta, TikTok, GA4, GTM, Snapchat) are injected only for ids matching the strict formats.
 
 ## Themes
 

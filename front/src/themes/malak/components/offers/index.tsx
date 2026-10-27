@@ -8,7 +8,7 @@ import { chooseOfferQuantity } from "@/themes/shared/hooks/offer-store";
 import { useLiveOffers } from "@/themes/shared/hooks/use-live-offers";
 import type { OffersProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) {
   const { displays, best, expire } = useLiveOffers(ctx);
@@ -39,16 +39,16 @@ export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
           <div className="absolute -start-10 -top-10 size-40 rounded-full bg-white/10" aria-hidden />
           <div className="absolute -bottom-12 -end-8 size-48 rounded-full bg-white/10" aria-hidden />
           <div className="relative flex flex-col items-center gap-4">
-            <span className="rounded-full bg-white/20 px-4 py-1 text-xs font-bold">{offer.badge_text || ar.site.savePercent(best.savingsPercent)}</span>
+            <span className="rounded-full bg-white/20 px-4 py-1 text-xs font-bold">{offer.badge_text || siteMessages.savePercent(best.savingsPercent)}</span>
             <h2 className="t-heading text-2xl font-bold md:text-4xl">{props.title || offer.name}</h2>
             <p className="text-lg opacity-90">
-              {offer.type === "bundle" ? ar.site.buyQuantity(best.quantity, formatPrice(best.total)) : offer.name} {props.show_savings && best.savings > 0 ? `— ${ar.site.save(formatPrice(best.savings))}` : ""}
+              {offer.type === "bundle" ? siteMessages.buyQuantity(best.quantity, formatPrice(best.total)) : offer.name} {props.show_savings && best.savings > 0 ? `— ${siteMessages.save(formatPrice(best.savings))}` : ""}
             </p>
             {props.show_countdown && offer.ends_at ? (
               <Countdown endsAt={offer.ends_at} onExpire={() => expire(offer.id)} boxClassName="rounded-2xl bg-white/15" labelClassName="opacity-80" />
             ) : null}
             <button type="button" onClick={() => chooseOfferQuantity(best.quantity)} className="t-btn mt-2 min-h-12 bg-white px-8 font-bold text-gray-900 shadow">
-              {props.cta_label || ar.site.orderNow}
+              {props.cta_label || siteMessages.orderNow}
             </button>
           </div>
         </div>
@@ -70,13 +70,13 @@ export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
               <h3 className="t-heading text-lg font-bold">{d.offer.name}</h3>
               <p className="text-3xl font-extrabold tabular-nums t-primary-text">{formatPrice(d.total)}</p>
               <p className="t-muted text-sm">
-                {d.offer.type === "bundle" ? ar.site.pieces(d.quantity) : ar.site.perPiece(formatPrice(d.unit))}
-                {d.quantity > 1 ? ` · ${ar.site.perPiece(formatPrice(d.unit))}` : ""}
+                {d.offer.type === "bundle" ? siteMessages.pieces(d.quantity) : siteMessages.perPiece(formatPrice(d.unit))}
+                {d.quantity > 1 ? ` · ${siteMessages.perPiece(formatPrice(d.unit))}` : ""}
               </p>
-              {props.show_savings && d.savings > 0 ? <p className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{ar.site.save(formatPrice(d.savings))}</p> : null}
+              {props.show_savings && d.savings > 0 ? <p className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{siteMessages.save(formatPrice(d.savings))}</p> : null}
               {props.show_countdown && d.offer.ends_at ? <Countdown endsAt={d.offer.ends_at} onExpire={() => expire(d.offer.id)} boxClassName="t-tint rounded-xl" labelClassName="t-muted" numberClassName="text-lg" /> : null}
               <button type="button" onClick={() => chooseOfferQuantity(d.quantity)} className="t-primary t-btn mt-auto min-h-11 w-full px-6 font-bold">
-                {props.cta_label || ar.site.orderNow}
+                {props.cta_label || siteMessages.orderNow}
               </button>
             </li>
           ))}

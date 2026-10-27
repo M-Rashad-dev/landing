@@ -18,6 +18,10 @@ return [
     'revalidate_secret' => (string) env('REVALIDATE_SECRET', ''),
     'front_internal_url' => rtrim((string) env('FRONT_INTERNAL_URL', ''), '/'),
 
+    // Public page URLs (canonical, sitemap). Local development: http + 3000.
+    'public_scheme' => (string) env('PUBLIC_SCHEME', 'https'),
+    'public_port' => env('PUBLIC_PORT') ?: null,
+
     'token_ttl_days' => 30,
 
     // Storage is UTC; dates sent by the dashboard are Cairo local time.

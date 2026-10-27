@@ -3,7 +3,7 @@
 import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 /**
  * Light drawer/overlay menu for public headers (no dialog library).
@@ -28,11 +28,11 @@ export function MobileMenu({ children, className, panelClassName, buttonClassNam
 
   return (
     <div className={className}>
-      <button ref={toggle} type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-label={ar.site.menu} className={cn("flex size-10 items-center justify-center", buttonClassName)}>
+      <button ref={toggle} type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-label={siteMessages.menu} className={cn("flex size-10 items-center justify-center", buttonClassName)}>
         <Menu className="size-6" aria-hidden />
       </button>
       {open ? (
-        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={ar.site.menu}>
+        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={siteMessages.menu}>
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div
             ref={panel}
@@ -41,7 +41,7 @@ export function MobileMenu({ children, className, panelClassName, buttonClassNam
               if ((event.target as HTMLElement).closest("a")) setOpen(false);
             }}
           >
-            <button type="button" onClick={() => setOpen(false)} aria-label={ar.site.closeMenu} className="mb-6 flex size-10 items-center justify-center self-end">
+            <button type="button" onClick={() => setOpen(false)} aria-label={siteMessages.closeMenu} className="mb-6 flex size-10 items-center justify-center self-end">
               <X className="size-6" aria-hidden />
             </button>
             {children}

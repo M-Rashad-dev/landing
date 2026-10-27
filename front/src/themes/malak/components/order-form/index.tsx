@@ -6,7 +6,7 @@ import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, Qua
 import type { OrderFormProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 const CLASSES: FormClasses = {
   input: "rounded-2xl",
@@ -60,7 +60,7 @@ export function MalakOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     <>
       <FormNotice state={state} />
       <button type="submit" disabled={state.disabled || state.status === "submitting"} className="t-primary t-btn min-h-14 w-full text-lg font-bold shadow-[0_8px_24px_rgba(0,0,0,.12)] transition-transform hover:-translate-y-0.5 disabled:opacity-60">
-        {state.status === "submitting" ? ar.site.sending : props.submit_label || ar.site.orderNow}
+        {state.status === "submitting" ? siteMessages.sending : props.submit_label || siteMessages.orderNow}
       </button>
       {props.privacy_note ? <p className="t-muted text-center text-xs">{props.privacy_note}</p> : null}
       <TrustBadges badges={props.trust_badges ?? []} />
@@ -85,7 +85,7 @@ export function MalakOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
               <div className="flex flex-col gap-3 lg:hidden">{submit}</div>
             </div>
             <aside className="t-bg hidden h-fit flex-col gap-5 rounded-3xl p-6 shadow-[0_8px_30px_rgba(0,0,0,.06)] lg:sticky lg:top-24 lg:flex">
-              <h3 className="font-bold">{ar.site.summary}</h3>
+              <h3 className="font-bold">{siteMessages.summary}</h3>
               {product ? (
                 <div className="flex items-center gap-3">
                   {image ? <ResponsiveImage image={image} sizes="80px" className="size-20 rounded-2xl object-cover" /> : null}

@@ -9,7 +9,7 @@ import type { Quote } from "@/lib/types";
 import { buildFields, validateAll, validateField } from "@/themes/shared/order-form/fields";
 import type { OrderFormProps } from "@/themes/shared/schemas/order-form";
 import type { PageContext } from "@/themes/types";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 import { useOfferStore } from "./offer-store";
 import type { OrderFormState, OrderFormStatus } from "./order-form-types";
 
@@ -52,7 +52,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   const touched = useRef(false);
   const submitting = useRef(false);
 
-  const disabledReason = !product || !product.available ? ar.site.unavailable : null;
+  const disabledReason = !product || !product.available ? siteMessages.unavailable : null;
   const live = !ctx.isPreview && !disabledReason;
 
   const setQuantity = useCallback((next: number) => setQuantityState(Math.max(1, Math.min(20, Math.round(next) || 1))), []);
@@ -166,7 +166,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
 
     const nextErrors = validateAll(fields, values);
     for (const option of product?.options ?? []) {
-      if (option.is_required && !options[option.id]) nextErrors[`options.${option.id}`] = ar.site.chooseOption(option.name);
+      if (option.is_required && !options[option.id]) nextErrors[`options.${option.id}`] = siteMessages.chooseOption(option.name);
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -175,7 +175,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
       return;
     }
     if (ctx.isPreview) {
-      setFormError(ar.site.previewMode);
+      setFormError(siteMessages.previewMode);
       return;
     }
     if (disabledReason || !product) return;
@@ -229,13 +229,13 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         const mapped: Record<string, string> = {};
         for (const [key, messages] of Object.entries(json.errors)) mapped[key] = messages[0] ?? "";
         setErrors(mapped);
-        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("answers.") || k.startsWith("options.") || k === "code")) setFormError(json.message ?? ar.site.rejected);
+        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("answers.") || k.startsWith("options.") || k === "code")) setFormError(json.message ?? siteMessages.rejected);
       } else {
-        setFormError(json.code === "rejected" || httpStatus === 429 ? ar.site.rejected : (json.message ?? ar.site.rejected));
+        setFormError(json.code === "rejected" || httpStatus === 429 ? siteMessages.rejected : (json.message ?? siteMessages.rejected));
       }
     } catch {
       setStatus("error");
-      setFormError(ar.site.networkError);
+      setFormError(siteMessages.networkError);
     } finally {
       submitting.current = false;
     }

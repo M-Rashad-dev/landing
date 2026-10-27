@@ -17,7 +17,7 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 ## Commands
 - back: `composer test` (Pest), `composer lint` (Pint --test)
 - front: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- smoke: `bash scripts/smoke-auth.sh` (needs both apps running)
+- smoke: `bash scripts/smoke-*.sh` (needs both apps + queue running: `bash tools/start-dev.sh`; run `php artisan cache:clear` first to reset the register rate limit)
 
 ## Next 16 notes
 - `src/proxy.ts` is the old middleware. Public sites render from `app/sites/[host]` (not `_sites`: underscore folders are private in Next).

@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { PublicImage } from "@/themes/types";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 /** Full-screen image viewer: Esc closes, arrow keys navigate (RTL aware). */
 export function Lightbox({ images, index, onIndex, onClose }: { images: PublicImage[]; index: number | null; onIndex: (index: number) => void; onClose: () => void }) {
@@ -33,16 +33,16 @@ export function Lightbox({ images, index, onIndex, onClose }: { images: PublicIm
   const image = images[index];
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={ar.site.openImage} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" onClick={onClose}>
-      <button ref={closeRef} type="button" onClick={onClose} aria-label={ar.site.close} className="absolute end-4 top-4 rounded-full bg-white/15 p-2 text-white hover:bg-white/25">
+    <div role="dialog" aria-modal="true" aria-label={siteMessages.openImage} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" onClick={onClose}>
+      <button ref={closeRef} type="button" onClick={onClose} aria-label={siteMessages.close} className="absolute end-4 top-4 rounded-full bg-white/15 p-2 text-white hover:bg-white/25">
         <X className="size-6" />
       </button>
       {images.length > 1 ? (
         <>
-          <button type="button" onClick={(e) => (e.stopPropagation(), onIndex((index - 1 + images.length) % images.length))} aria-label={ar.site.previous} className="absolute start-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/25">
+          <button type="button" onClick={(e) => (e.stopPropagation(), onIndex((index - 1 + images.length) % images.length))} aria-label={siteMessages.previous} className="absolute start-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/25">
             <ChevronRight className="size-6" />
           </button>
-          <button type="button" onClick={(e) => (e.stopPropagation(), onIndex((index + 1) % images.length))} aria-label={ar.site.next} className="absolute end-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/25">
+          <button type="button" onClick={(e) => (e.stopPropagation(), onIndex((index + 1) % images.length))} aria-label={siteMessages.next} className="absolute end-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/25">
             <ChevronLeft className="size-6" />
           </button>
         </>

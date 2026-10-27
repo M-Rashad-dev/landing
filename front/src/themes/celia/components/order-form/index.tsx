@@ -8,7 +8,7 @@ import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, Qua
 import type { OrderFormProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 const CLASSES: FormClasses = {
   input: "rounded-none border-2 border-[var(--c-fg)]",
@@ -84,7 +84,7 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     <>
       <FormNotice state={state} />
       <button type="submit" disabled={state.disabled || state.status === "submitting"} className="t-inverse t-btn t-press min-h-16 w-full border-2 t-line text-xl font-black uppercase shadow-[4px_4px_0_var(--c-primary)] disabled:opacity-60">
-        {state.status === "submitting" ? ar.site.sending : props.submit_label || ar.site.orderNow}
+        {state.status === "submitting" ? siteMessages.sending : props.submit_label || siteMessages.orderNow}
       </button>
       {props.privacy_note ? <p className="t-muted text-center text-xs">{props.privacy_note}</p> : null}
       <TrustBadges badges={props.trust_badges ?? []} itemClassName="border-2 t-line px-2 py-1" />
@@ -108,7 +108,7 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
               <div className="flex flex-col gap-3 lg:hidden">{submit}</div>
             </div>
             <aside className="t-hard hidden h-fit flex-col gap-5 p-6 lg:sticky lg:top-24 lg:flex">
-              <h3 className="text-lg font-black uppercase">{ar.site.summary}</h3>
+              <h3 className="text-lg font-black uppercase">{siteMessages.summary}</h3>
               {product ? (
                 <div className="flex items-center gap-3 border-b-2 t-line pb-4">
                   {image ? <ResponsiveImage image={image} sizes="80px" className="size-20 border-2 t-line object-cover" /> : null}
@@ -120,7 +120,7 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
             </aside>
           </form>
         </div>
-        <MobileBar target={formRef} total={state.quote?.total ?? null} label={props.submit_label || ar.site.orderNow} />
+        <MobileBar target={formRef} total={state.quote?.total ?? null} label={props.submit_label || siteMessages.orderNow} />
       </section>
     );
   }

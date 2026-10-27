@@ -1,0 +1,189 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Enums\DomainStatus;
+use App\Enums\PageStatus;
+use App\Models\Domain;
+use App\Models\Identity;
+use App\Models\LandingPage;
+use App\Models\Media;
+use App\Support\PlainText;
+use App\Support\TrackingIds;
+use App\Tenancy\Tenancy;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * Host → tenant → published page, for the visitor-facing API.
+ * Only active domains match (pending/failed custom domains never serve pages).
+ */
+final class PublicSite
+{
+    public function __construct(private readonly PublicPageData $data) {}
+
+    public function domain(string $host): ?Domain
+    {
+        $host = mb_strtolower(trim($host));
+
+        if ($host === '' || mb_strlen($host) > 253) {
+            return null;
+        }
+
+        // Audited bypass: the tenant is unknown until the host is resolved.
+        return Tenancy::withoutTenant(fn () => Domain::query()
+            ->with('tenant')
+            ->where('active_host', $host)
+            ->where('status', DomainStatus::Active)
+            ->first());
+    }
+
+    public function primaryHost(int $tenantId): ?string
+    {
+        // Audited bypass: explicitly filtered to this tenant's id.
+        return Tenancy::withoutTenant(fn () => Domain::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', DomainStatus::Active)
+            ->where('is_primary', true)
+            ->value('host'));
+    }
+
+    /** Published pages of the current tenant. @return Builder<LandingPage> */
+    public function publishedPages(): Builder
+    {
+        return LandingPage::query()->where('status', PageStatus::Published)->whereNotNull('published_content');
+    }
+
+    public function homeSlug(): ?string
+    {
+        return $this->publishedPages()->where('is_home', true)->value('slug');
+    }
+
+    /** Empty slug → the home page. Never returns drafts. */
+    public function page(string $slug): ?LandingPage
+    {
+        $query = $this->publishedPages()->with(['identity.logo', 'identity.favicon', 'identity.ogImage', 'product']);
+
+        return $slug === '' ? $query->where('is_home', true)->first() : $query->where('slug', $slug)->first();
+    }
+
+    /** @return array<string, mixed> */
+    public function payload(LandingPage $page, string $primaryHost): array
+    {
+        $content = $page->published_content ?? ['version' => 1, 'sections' => []];
+        $themeKey = (string) ($content['theme_key'] ?? $page->theme_key);
+        unset($content['theme_key']);
+
+        $identity = $page->identity !== null && ! $page->identity->trashed() ? $page->identity : null;
+        $product = $this->data->product($page->product);
+
+        return [
+            'page' => [
+                'id' => $page->id,
+                'slug' => $page->slug,
+                'title' => $page->title,
+                'is_home' => $page->is_home,
+                'theme_key' => $themeKey,
+                'published_at' => $page->published_at?->toIso8601ZuluString(),
+            ],
+            'theme_key' => $themeKey,
+            'content' => $content,
+            'identity' => $identity === null ? null : $this->data->identity($identity),
+            'product' => $product,
+            'offers' => $this->data->offers($page->product, now()),
+            'media' => (object) $this->data->media($content),
+            'seo' => $this->seo($page, $identity, $primaryHost),
+            'tracking' => $this->tracking($page, $identity),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function seo(LandingPage $page, ?Identity $identity, string $primaryHost): array
+    {
+        $override = is_array($page->seo_override) ? $page->seo_override : [];
+        $product = $page->product !== null && ! $page->product->trashed() ? $page->product : null;
+
+        $title = $this->firstText($override['title'] ?? null, $identity?->seo_title, $product?->name, $page->title);
+        $suffix = trim((string) $identity?->seo_title_suffix);
+        if ($suffix !== '' && ! str_ends_with($title, $suffix)) {
+            $title .= ' '.$suffix;
+        }
+
+        $description = $this->firstText(
+            $override['description'] ?? null,
+            $identity?->seo_description,
+            PlainText::fromMarkdown($product?->description),
+        );
+
+        $og = null;
+        if (isset($override['og_media_id']) && is_int($override['og_media_id'])) {
+            $og = Media::query()->find($override['og_media_id']);
+        }
+        $og ??= $identity?->ogImage;
+        $og ??= $product?->media()->first();
+
+        return [
+            'title' => $title,
+            'description' => $description,
+            'og_image' => $og === null ? null : [
+                'url' => $og->urls()['large'] ?? $og->urls()['medium'] ?? null,
+                'width' => $og->width,
+                'height' => $og->height,
+                'alt' => $og->alt,
+            ],
+            'canonical' => self::url($primaryHost, $page->is_home ? '' : $page->slug),
+            'noindex' => ($override['noindex'] ?? false) === true,
+            'site_name' => $identity?->brand_name,
+        ];
+    }
+
+    /**
+     * Page override on top of the identity: a non-empty override value wins.
+     *
+     * @return array<string, string|null>
+     */
+    public function tracking(LandingPage $page, ?Identity $identity): array
+    {
+        $base = $identity?->resolvedTracking() ?? array_fill_keys(Identity::TRACKING_KEYS, null);
+        $override = is_array($page->tracking_override) ? $page->tracking_override : [];
+
+        foreach (Identity::TRACKING_KEYS as $key) {
+            $value = $override[$key] ?? null;
+            if (is_string($value) && $value !== '') {
+                $base[$key] = $value;
+            }
+        }
+
+        // Defence in depth: only ids in the strict formats reach the page.
+        foreach (TrackingIds::PATTERNS as $key => $pattern) {
+            if ($base[$key] !== null && preg_match($pattern, $base[$key]) !== 1) {
+                $base[$key] = null;
+            }
+        }
+        $base['conversion_event'] = in_array($base['conversion_event'], TrackingIds::CONVERSION_EVENTS, true) ? $base['conversion_event'] : 'Lead';
+
+        return $base;
+    }
+
+    /** Public URL of a page on a host (scheme/port configurable for local development). */
+    public static function url(string $host, string $slug = ''): string
+    {
+        $scheme = (string) config('landing.public_scheme', 'https');
+        $port = config('landing.public_port');
+        $authority = $host.($port !== null && $port !== '' ? ':'.$port : '');
+
+        return $scheme.'://'.$authority.'/'.($slug === '' ? '' : rawurlencode($slug));
+    }
+
+    private function firstText(?string ...$values): string
+    {
+        foreach ($values as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return '';
+    }
+}

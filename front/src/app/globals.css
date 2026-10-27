@@ -120,15 +120,18 @@
 .t-btn {
   border-radius: var(--btn-radius);
 }
-.t-input {
-  background: var(--c-bg);
-  color: var(--c-fg);
-  border: 1px solid var(--c-border);
-  font-size: 16px; /* no zoom on iOS */
-}
-.t-input:focus-visible {
-  outline: 2px solid var(--c-primary);
-  outline-offset: 1px;
+/* Layered so a theme's border/radius utilities (e.g. Celia's border-2) override the base input look. */
+@layer components {
+  .t-input {
+    background: var(--c-bg);
+    color: var(--c-fg);
+    border: 1px solid var(--c-border);
+    font-size: 16px; /* no zoom on iOS */
+  }
+  .t-input:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 1px;
+  }
 }
 .t-ring {
   --tw-ring-color: var(--c-primary);

@@ -41,5 +41,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('dashboard', fn (Request $request) => Limit::perMinute(300)->by(
             'dashboard:'.($request->user()?->getAuthIdentifier() ?? $request->ip()),
         ));
+
+        // Server-to-server reads from Next (cached there for 60 s), keyed by the visited host.
+        RateLimiter::for('public-read', fn (Request $request) => Limit::perMinute(600)->by(
+            'public-read:'.mb_strtolower((string) $request->query('host', '')),
+        ));
     }
 }

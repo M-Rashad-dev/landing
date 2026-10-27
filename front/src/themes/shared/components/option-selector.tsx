@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import type { PublicOption } from "@/themes/types";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 export type OptionSelectorClasses = {
   root?: string;
@@ -46,7 +46,7 @@ export function OptionSelector({
       {option.display_type === "dropdown" ? (
         <select id={id} value={value ?? ""} onChange={(event) => onChange(Number(event.target.value))} className={cn("t-input h-12 w-full rounded-lg px-3", classes.select)} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined}>
           <option value="" disabled>
-            {ar.site.chooseOption(option.name)}
+            {siteMessages.chooseOption(option.name)}
           </option>
           {option.values.map((v) => (
             <option key={v.id} value={v.id}>

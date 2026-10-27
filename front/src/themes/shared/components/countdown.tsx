@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 function parts(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -56,10 +56,10 @@ export function Countdown({
 
   const p = parts(remaining);
   const units: Array<[number, string]> = [
-    [p.days, ar.site.countdown.days],
-    [p.hours, ar.site.countdown.hours],
-    [p.minutes, ar.site.countdown.minutes],
-    [p.seconds, ar.site.countdown.seconds],
+    [p.days, siteMessages.countdown.days],
+    [p.hours, siteMessages.countdown.hours],
+    [p.minutes, siteMessages.countdown.minutes],
+    [p.seconds, siteMessages.countdown.seconds],
   ];
 
   return (

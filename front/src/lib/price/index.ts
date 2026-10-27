@@ -1,4 +1,4 @@
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 const wholeFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const decimalFormatter = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -13,7 +13,7 @@ export function formatPrice(value: number | string | null | undefined, { withCur
   const n = toNumber(value);
   const cents = Math.round(n * 100);
   const text = cents % 100 === 0 ? wholeFormatter.format(cents / 100) : decimalFormatter.format(cents / 100);
-  return withCurrency ? `${text} ${ar.common.currency}` : text;
+  return withCurrency ? `${text} ${siteMessages.currency}` : text;
 }
 
 /** Whole-percent discount between the old and the current price, or null when there is none. */

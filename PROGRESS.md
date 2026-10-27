@@ -9,8 +9,8 @@
 | 5 | Page engine & Builder | ✅ Done |
 | 6 | Theme «malak» | ✅ Done |
 | 7 | Theme «celia» | ✅ Done |
-| 8 | Public rendering, SEO, tracking | ⏳ Next |
-| 9 | Orders & management | ⬜ |
+| 8 | Public rendering, SEO, tracking | ✅ Done |
+| 9 | Orders & management | ⏳ Next |
 | 10 | Custom domains & SSL | ⬜ |
 | 11 | Super admin & final hardening | ⬜ |
 
@@ -94,3 +94,16 @@
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 231 passed (new parity suite: every type in both themes with ≥ 2 variants, valid default, thumbnail and starter order; a fully filled page rendered in malak then celia keeps every text and every image) · `pnpm build` ✓
 - `/dev/themes` → 404 on the production server.
 - Visual review via screenshots at 390 / 1280 + overflow scan at 390 / 768 / 1280 with violet, dark and green identities → no horizontal scroll.
+
+## Phase 8 — Public rendering, SEO & tracking ✅
+
+**Back**: `GET /public/resolve-host` (active domains only via `active_host`, status active/suspended, primary host, is_primary, home slug), `GET /public/pages` (published snapshot only, theme from the snapshot, live identity / product / offers / media, merged SEO: page override → identity → product with title suffix, canonical on the primary host, noindex; merged tracking: page override over identity, malformed ids dropped), `GET /public/sitemap` (indexable published pages, home on `/`), all `Cache-Control: no-store`, internal key required, `public-read` rate limit per host, `PublicSite` service + `PlainText::fromMarkdown`, `PUBLIC_SCHEME` / `PUBLIC_PORT` config. Revalidation was already wired in earlier phases for every trigger in the plan (domain changes come with phase 10).
+
+**Front**: tenant host rewrite → `app/sites/[host]/[[...slug]]` (ISR with an empty `generateStaticParams`, data fetched with `revalidate: 60` + tag `host:{host}`), unknown host / unknown slug / nested path → Arabic 404, suspended tenant → «هذا المتجر متوقف مؤقتًا», non-primary host → permanent redirect to the primary host, `generateMetadata` (title, description, canonical, robots, Open Graph ar_EG, Twitter card, favicons 32/180, verification tags) + `generateViewport` (theme color), Product JSON-LD (price after the best active offer, availability, priceValidUntil; `<` escaped), identity fonts only (`@font-face` from bundled files + preload of the body font), `sitemap.xml` and `robots.txt` per host, `TrackingScripts` (official loaders, afterInteractive, valid ids only, ViewContent once all loaders are ready, UTM capture), GTM events only when GTM is loaded, `/api/revalidate` (timing-safe secret, 1–50 tags, immediate expiry). Security headers were already set in `next.config.ts`; the marketing page already existed (phase 1). Visitor texts moved to `messages/site.ts` so public pages no longer ship the dashboard dictionary; `.t-input` moved to a CSS layer so theme utilities (Celia's 2px borders, error borders) apply.
+
+**Checks**
+- `composer test` → 363 passed (15 new public API tests: internal key, unknown host, pending custom domain, secondary → primary, suspended tenant, drafts never served, published snapshot vs later draft edits, home page, no internal fields, inactive product, same slug in two tenants, SEO merge, canonical on primary, tracking merge + malformed ids, sitemap) · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 246 passed (SEO → metadata, Markdown stripping, JSON-LD price + escaping, host parsing / slug depth / primary redirect, track() event table for all tools, GTM-only dataLayer, broken tools ignored, only valid ids get a snippet, revalidate secret + tags) · `pnpm build` ✓
+- `scripts/smoke-public.sh` (register → publish a Celia page with SEO + Meta pixel overrides → draft 404 → `http://{sub}.localhost:3000/` and `/smoke-offer` show title, description, canonical, Open Graph, JSON-LD and the pixel → draft edit not leaked → republish visible within seconds through the queue → unknown slug / nested path / unknown host (Arabic) → 404, `/dashboard` and `/sites/...` on a tenant host → 404, sitemap.xml, robots.txt, revalidate with a wrong secret → 401) → OK; `smoke-pages.sh` still OK.
+- JS on a public page (modern browsers, gzip, `scripts/measure-public-js.sh`): **166 KB** — React DOM ≈ 71 KB + Next router/runtime ≈ 60 KB (fixed cost of React 19 + Next 16) + theme islands ≈ 35 KB (order form + offers + tracking 18.5 KB, tailwind-merge 8.6 KB, small shared parts). The ~120 KB goal is below the framework's own baseline; it was 177 KB before visitor texts were moved out of the dashboard dictionary.
+- Not measured: Lighthouse mobile score (no Lighthouse in this environment). Mobile screenshot of the published page: correct theme, identity fonts, no horizontal overflow. The order form's `/api/public/*` calls 404 until phase 9.

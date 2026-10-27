@@ -1,13 +1,12 @@
 import type { ComponentSchema } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { BUILT_IN_FIELDS, LOCKED_FIELDS, type BuiltInField } from "@/themes/shared/order-form/constants";
 
 const t = ar.sections.order_form;
 const c = ar.sections.common;
 
-export const BUILT_IN_FIELDS = ["name", "phone", "phone2", "governorate", "city", "address", "notes"] as const;
-export type BuiltInField = (typeof BUILT_IN_FIELDS)[number];
 /** name and phone are always enabled and required. */
-export const LOCKED_FIELDS: readonly BuiltInField[] = ["name", "phone"];
+export { BUILT_IN_FIELDS, LOCKED_FIELDS, type BuiltInField };
 
 export type BuiltInFieldConfig = { enabled: boolean; required: boolean; label: string; placeholder: string };
 

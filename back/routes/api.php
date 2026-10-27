@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Public\SiteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,7 +70,12 @@ Route::prefix('dashboard')
 Route::prefix('public')
     ->middleware(['internal.key'])
     ->group(function (): void {
-        // Phase 8+: resolve-host, pages, sitemap, form-token, quote, orders.
+        Route::middleware('throttle:public-read')->group(function (): void {
+            Route::get('resolve-host', [SiteController::class, 'resolveHost']);
+            Route::get('pages', [SiteController::class, 'page']);
+            Route::get('sitemap', [SiteController::class, 'sitemap']);
+        });
+        // Phase 9: form-token, quote, orders.
     });
 
 Route::prefix('admin')

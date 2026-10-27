@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PublicImage } from "@/themes/types";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 import { Lightbox } from "./lightbox";
 import { ResponsiveImage } from "./responsive-image";
 import { Slider } from "./slider";
@@ -44,7 +44,7 @@ export function GalleryClient({
             key={image.id}
             type="button"
             onClick={() => setTarget(i)}
-            aria-label={ar.site.slide(i + 1, images.length)}
+            aria-label={siteMessages.slide(i + 1, images.length)}
             aria-current={current === i}
             className={thumbClassName ? thumbClassName(current === i) : cn("size-16 shrink-0 overflow-hidden rounded-xl border-2 sm:size-20", current === i ? "border-[var(--c-primary)]" : "border-transparent opacity-70")}
           >
@@ -60,7 +60,7 @@ export function GalleryClient({
         <div className="min-w-0 flex-1">
           <Slider autoplay={autoplay} showDots={!showThumbnails} onIndexChange={setCurrent} index={target}>
             {images.map((image, i) => (
-              <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("block w-full overflow-hidden", frameClassName, !lightbox && "cursor-default")} aria-label={lightbox ? ar.site.openImage : undefined}>
+              <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("block w-full overflow-hidden", frameClassName, !lightbox && "cursor-default")} aria-label={lightbox ? siteMessages.openImage : undefined}>
                 <ResponsiveImage image={image} sizes="(min-width: 1024px) 60vw, 100vw" className="aspect-square w-full object-cover md:aspect-[4/3]" />
               </button>
             ))}
@@ -71,7 +71,7 @@ export function GalleryClient({
     ) : layout === "masonry" ? (
       <div className="columns-2 gap-3 md:columns-3">
         {images.map((image, i) => (
-          <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("mb-3 block w-full break-inside-avoid overflow-hidden", frameClassName)} aria-label={lightbox ? ar.site.openImage : undefined}>
+          <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("mb-3 block w-full break-inside-avoid overflow-hidden", frameClassName)} aria-label={lightbox ? siteMessages.openImage : undefined}>
             <ResponsiveImage image={image} sizes="(min-width: 768px) 33vw, 50vw" className="w-full" />
           </button>
         ))}
@@ -79,7 +79,7 @@ export function GalleryClient({
     ) : (
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         {images.map((image, i) => (
-          <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("block overflow-hidden", frameClassName)} aria-label={lightbox ? ar.site.openImage : undefined}>
+          <button key={image.id} type="button" onClick={() => zoom(i)} className={cn("block overflow-hidden", frameClassName)} aria-label={lightbox ? siteMessages.openImage : undefined}>
             <ResponsiveImage image={image} sizes="(min-width: 768px) 33vw, 50vw" className="aspect-square w-full object-cover transition-transform duration-500 hover:scale-105" />
           </button>
         ))}

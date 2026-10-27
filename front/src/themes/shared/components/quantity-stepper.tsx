@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ar } from "@/messages/ar";
+import { siteMessages } from "@/messages/site";
 
 export function QuantityStepper({
   value,
@@ -22,14 +22,14 @@ export function QuantityStepper({
   disabled?: boolean;
 }) {
   return (
-    <div className={cn("inline-flex items-center gap-1", className)} role="group" aria-label={ar.site.quantity}>
-      <button type="button" disabled={disabled || value <= min} onClick={() => onChange(Math.max(min, value - 1))} aria-label={ar.site.decrease} className={cn("flex size-10 items-center justify-center disabled:opacity-40", buttonClassName)}>
+    <div className={cn("inline-flex items-center gap-1", className)} role="group" aria-label={siteMessages.quantity}>
+      <button type="button" disabled={disabled || value <= min} onClick={() => onChange(Math.max(min, value - 1))} aria-label={siteMessages.decrease} className={cn("flex size-10 items-center justify-center disabled:opacity-40", buttonClassName)}>
         <Minus className="size-4" aria-hidden />
       </button>
       <output className="min-w-10 text-center text-lg font-bold tabular-nums" aria-live="polite">
         {value}
       </output>
-      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(Math.min(max, value + 1))} aria-label={ar.site.increase} className={cn("flex size-10 items-center justify-center disabled:opacity-40", buttonClassName)}>
+      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(Math.min(max, value + 1))} aria-label={siteMessages.increase} className={cn("flex size-10 items-center justify-center disabled:opacity-40", buttonClassName)}>
         <Plus className="size-4" aria-hidden />
       </button>
     </div>
