@@ -70,6 +70,14 @@ res=$(order 01011111111 '"SAVE10"' 41.0.0.1 "$TOKEN")
 number=$(body "$res" | json data.order_number)
 [ "$number" = "1001" ] || fail "first order number: $number"
 
+# Customer tracking on the store's site: number + phone (any format), generic 404 otherwise.
+printf '{"order_number":%s,"phone":"+20 101 111 1111"}' "$number" > "$WORK/track.json"
+track=$(curl -s -H 'Content-Type: application/json' --data-binary "@$(winpath "$WORK/track.json")" "$SITE/api/public/track")
+[ "$(echo "$track" | json data.stage)" = "received" ] || fail "track: $track"
+printf '{"order_number":%s,"phone":"01099999999"}' "$number" > "$WORK/track.json"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' --data-binary "@$(winpath "$WORK/track.json")" "$SITE/api/public/track")" = "404" ] || fail "track with a wrong phone"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$SITE/track")" = "200" ] || fail "/track page"
+
 # Dashboard shows the same numbers.
 list=$(body "$(post GET /dashboard/orders '')")
 oid=$(echo "$list" | json data.0.id)

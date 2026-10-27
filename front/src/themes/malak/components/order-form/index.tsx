@@ -36,7 +36,7 @@ export function MalakOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     return (
       <section className="px-4 py-16 md:py-24">
         <div className="t-bg mx-auto max-w-2xl rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,.08)]">
-          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} />
+          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} />
         </div>
       </section>
     );

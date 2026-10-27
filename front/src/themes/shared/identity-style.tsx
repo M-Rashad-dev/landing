@@ -17,7 +17,6 @@ export function IdentityStyle({ identity, children, className, themeKey }: { ide
         background: "var(--c-bg)",
         color: "var(--c-fg)",
         fontFamily: "var(--font-body)",
-        minHeight: "100%",
       }}
     >
       {children}

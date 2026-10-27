@@ -28,6 +28,21 @@ enum OrderStatus: string
         };
     }
 
+    /**
+     * What the customer sees on the tracking page: internal states like "fake" or
+     * "damaged" are never shown as such.
+     */
+    public function customerStage(): string
+    {
+        return match ($this) {
+            self::New => 'received',
+            self::Confirmed => 'confirmed',
+            self::Delivered => 'delivered',
+            self::Returned, self::Damaged => 'returned',
+            self::Fake, self::Cancelled => 'cancelled',
+        };
+    }
+
     /** @return list<self> */
     public function allowedTransitions(): array
     {

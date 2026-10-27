@@ -34,6 +34,9 @@ async function postJson(url: string, body: unknown): Promise<{ status: number; j
  * estimate meanwhile, anti-bot token, double-submit protection, success + conversion event.
  * In the Builder preview nothing is sent.
  */
+
+/** sessionStorage key shared with the /track page. */
+export const TRACK_PHONE_KEY = "lp_track_phone";
 export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderFormState {
   const product = ctx.product;
   const fields = useMemo(() => buildFields(props), [props]);
@@ -210,6 +213,12 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         const data = json.data as { order_number: number; total: number };
         setOrderNumber(data.order_number);
         setStatus("success");
+        // Lets /track open with the phone already filled in this tab.
+        try {
+          window.sessionStorage.setItem(TRACK_PHONE_KEY, String(customer.phone ?? ""));
+        } catch {
+          // Storage blocked: the customer types the phone.
+        }
         const flag = `lp_conv_${data.order_number}`;
         let alreadyTracked = false;
         try {

@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
+use App\Http\Controllers\Api\V1\Public\TrackController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -111,6 +112,8 @@ Route::prefix('public')
         Route::get('form-token', [PublicOrderController::class, 'formToken'])->middleware('throttle:public-form-token');
         Route::post('quote', [PublicOrderController::class, 'quote'])->middleware('throttle:public-quote');
         Route::post('orders', [PublicOrderController::class, 'store'])->middleware('throttle:public-order-attempts');
+        Route::get('brand', [TrackController::class, 'brand'])->middleware('throttle:public-read');
+        Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
     });
 
 Route::prefix('admin')

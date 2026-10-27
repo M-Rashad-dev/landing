@@ -44,7 +44,7 @@ return [
 
     'reserved_slugs' => [
         'api', '_next', 'admin', 'dashboard', 'login', 'register', 'preview', 'media',
-        'sitemap', 'robots', 'favicon', 'thank-you',
+        'sitemap', 'robots', 'favicon', 'thank-you', 'track',
     ],
 
     // Internal safety limits (no plans/billing UI).

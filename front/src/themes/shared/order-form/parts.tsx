@@ -220,13 +220,33 @@ export function TrustBadges({ badges, className, itemClassName }: { badges: { ic
   );
 }
 
-export function SuccessPanel({ title, message, orderNumber, quote, className }: { title: string; message: string; orderNumber: number | null; quote: Quote | null; className?: string }) {
+export function SuccessPanel({
+  title,
+  message,
+  orderNumber,
+  quote,
+  className,
+  preview = false,
+}: {
+  title: string;
+  message: string;
+  orderNumber: number | null;
+  quote: Quote | null;
+  className?: string;
+  /** Builder preview: no tracking link (there is no real order). */
+  preview?: boolean;
+}) {
   return (
     <div className={cn("flex flex-col items-center gap-3 py-8 text-center", className)} role="status" aria-live="polite">
       <CheckCircle2 className="size-14 text-emerald-500" aria-hidden />
       <h3 className="t-heading text-2xl font-extrabold">{title}</h3>
       {message ? <p className="t-muted max-w-md leading-relaxed">{message}</p> : null}
       {orderNumber ? <p className="rounded-full bg-black/5 px-4 py-1.5 font-bold tabular-nums">{siteMessages.orderNumber(orderNumber)}</p> : null}
+      {orderNumber && !preview ? (
+        <a href={`/track?order=${orderNumber}`} className="t-primary-text text-sm font-semibold underline-offset-4 hover:underline">
+          {siteMessages.track.link}
+        </a>
+      ) : null}
       {quote ? (
         <p className="text-sm">
           {siteMessages.total}: <strong className="tabular-nums">{formatPrice(quote.total)}</strong> — {siteMessages.cod}

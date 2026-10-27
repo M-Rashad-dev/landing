@@ -62,7 +62,7 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     return (
       <section className="t-bg border-t-[3px] t-line px-4 py-12 md:py-16">
         <div className="t-hard mx-auto max-w-2xl p-6">
-          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} />
+          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} />
         </div>
       </section>
     );

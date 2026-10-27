@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { serverEnv } from "@/lib/env";
+import type { PublicIdentity } from "@/themes/types";
 import type { PublicPagePayload, PublicSitemap, ResolvedHost } from "./types";
 
 /** Data cache: 60 s, purged early by /api/revalidate through the host tag. */
@@ -32,3 +33,6 @@ export const resolveHost = cache((host: string) => publicGet<ResolvedHost>("reso
 export const getPublicPage = cache((host: string, slug: string) => publicGet<PublicPagePayload>("pages", host, { slug }));
 
 export const getSitemap = cache((host: string) => publicGet<PublicSitemap>("sitemap", host));
+
+/** Store look for /track: default identity + home slug. */
+export const getStoreBrand = cache((host: string) => publicGet<{ identity: PublicIdentity | null; home_slug: string | null }>("brand", host));
