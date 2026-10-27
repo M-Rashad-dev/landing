@@ -19,7 +19,9 @@ final class UpdateStoreRequest extends ApiRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:2', 'max:100'],
+            'name' => ['sometimes', 'required', 'string', 'min:2', 'max:100'],
+            // WhatsApp confirmation message ({الاسم}, {رقم_الطلب}... are filled in the dashboard).
+            'whatsapp_template' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
 

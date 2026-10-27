@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Orders\ChangeOrderStatus;
+use App\Actions\Orders\RecordOrderContact;
 use App\Enums\BlockType;
+use App\Enums\ContactResult;
 use App\Enums\OrderStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
@@ -14,14 +16,18 @@ use App\Http\Requests\Dashboard\UpdateOrderRequest;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\OrderResource;
 use App\Models\BlockedCustomer;
+use App\Models\Identity;
 use App\Models\Order;
+use App\Models\Tenant;
 use App\Support\Money;
 use App\Support\OrderFilters;
 use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -70,12 +76,63 @@ final class OrderController extends Controller
 
     public function show(Order $order): JsonResponse
     {
-        $order->load([...self::LIST_RELATIONS, 'items', 'logs.user:id,name']);
+        // The page with its identity (the list loads only a few page columns).
+        $order->load(['product:id,name,deleted_at', 'page:id,title,slug,identity_id,deleted_at', 'page.identity.logo', 'items', 'logs.user:id,name', 'events.user:id,name']);
 
         return $this->ok(array_merge(
             OrderDetailResource::make($order)->resolve(request()),
-            ['customer_history' => $this->history($order)],
+            ['customer_history' => $this->history($order), 'brand' => $this->brand($order)],
         ));
+    }
+
+    /** Log a contact attempt on a new order (no answer / postponed / WhatsApp sent). */
+    public function contact(Request $request, Order $order, RecordOrderContact $action): JsonResponse
+    {
+        $data = $request->validate([
+            'result' => ['required', Rule::enum(ContactResult::class)],
+            'note' => ['nullable', 'string', 'max:500'],
+            // Cairo wall time from the dashboard, like the other dates.
+            'follow_up_at' => ['required_if:result,postponed', 'nullable', 'date_format:Y-m-d\TH:i'],
+        ]);
+
+        $followUp = null;
+        if (($data['follow_up_at'] ?? null) !== null) {
+            $followUp = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $data['follow_up_at'], (string) config('landing.display_timezone'))->utc();
+            if ($followUp->isPast() || $followUp->gt(now()->addDays(30))) {
+                throw ValidationException::withMessages(['follow_up_at' => [__('orders.follow_up_range')]]);
+            }
+        }
+
+        $note = isset($data['note']) ? trim(strip_tags($data['note'])) : '';
+        $action->handle($order, ContactResult::from($data['result']), $note === '' ? null : $note, $followUp === null ? null : Carbon::instance($followUp), $request->user()?->getAuthIdentifier());
+
+        return $this->show($order->fresh());
+    }
+
+    /**
+     * New orders to confirm, in calling order: due callbacks and never-called orders first
+     * (oldest first), then the ones scheduled later.
+     */
+    public function confirmationQueue(): JsonResponse
+    {
+        $now = now();
+        $base = fn () => Order::query()->where('status', OrderStatus::New);
+        $due = fn () => $base()->where(fn ($q) => $q->whereNull('follow_up_at')->orWhere('follow_up_at', '<=', $now));
+
+        $orders = $base()
+            ->with(self::LIST_RELATIONS)
+            ->orderByRaw('(follow_up_at is null or follow_up_at <= ?) desc', [$now])
+            ->orderByRaw('follow_up_at is not null')
+            ->orderBy('follow_up_at')
+            ->orderBy('contact_attempts')
+            ->orderBy('order_number')
+            ->limit(100)
+            ->get();
+
+        return $this->ok(OrderResource::collection($orders), [
+            'due' => $due()->count(),
+            'later' => $base()->where('follow_up_at', '>', $now)->count(),
+        ]);
     }
 
     public function update(UpdateOrderRequest $request, Order $order): JsonResponse
@@ -202,6 +259,27 @@ final class OrderController extends Controller
     public static function csvSafe(string $value): string
     {
         return $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) && ! is_numeric($value) ? "'".$value : $value;
+    }
+
+    /**
+     * Seller details printed on the invoice: the identity of the page the order came from,
+     * else the store's default identity.
+     *
+     * @return array{name: string, logo: string|null, phone: string|null, whatsapp: string|null, email: string|null, address: string|null}
+     */
+    private function brand(Order $order): array
+    {
+        $identity = $order->page?->identity ?? Identity::query()->with('logo')->where('is_default', true)->first();
+        $contact = $identity?->resolvedContact() ?? [];
+
+        return [
+            'name' => (string) ($identity?->brand_name ?: Tenant::query()->whereKey(Tenancy::id())->value('name') ?: ''),
+            'logo' => $identity?->logo?->urls()['medium'] ?? null,
+            'phone' => $contact['phone'] ?? null,
+            'whatsapp' => $contact['whatsapp'] ?? null,
+            'email' => $contact['email'] ?? null,
+            'address' => $contact['address'] ?? null,
+        ];
     }
 
     /** @return array<string, mixed> */

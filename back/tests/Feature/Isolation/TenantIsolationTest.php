@@ -93,6 +93,7 @@ dataset('tenant resources', [
             ['GET', '/api/v1/dashboard/orders/{id}', []],
             ['PATCH', '/api/v1/dashboard/orders/{id}', ['internal_note' => 'x']],
             ['POST', '/api/v1/dashboard/orders/{id}/status', ['status' => 'confirmed']],
+            ['POST', '/api/v1/dashboard/orders/{id}/contact', ['result' => 'whatsapp']],
         ],
     ],
     'blocked customers' => [

@@ -65,9 +65,14 @@ class Order extends Model
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
     ];
 
+    // contact_attempts / last_contacted_at / follow_up_at are written by RecordOrderContact only (forceFill).
+
     protected function casts(): array
     {
         return [
+            'contact_attempts' => 'integer',
+            'last_contacted_at' => 'datetime',
+            'follow_up_at' => 'datetime',
             'order_number' => 'integer',
             'status' => OrderStatus::class,
             'status_changed_at' => 'datetime',
@@ -93,6 +98,12 @@ class Order extends Model
     public function logs(): HasMany
     {
         return $this->hasMany(OrderStatusLog::class)->orderBy('id');
+    }
+
+    /** @return HasMany<OrderEvent, $this> */
+    public function events(): HasMany
+    {
+        return $this->hasMany(OrderEvent::class)->orderBy('id');
     }
 
     /** @return BelongsTo<LandingPage, $this> */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Ban, Copy, Download, Filter, Search, ShoppingBag, X } from "lucide-react";
+import { Ban, Copy, Download, Filter, Printer, Search, ShoppingBag, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -256,6 +256,12 @@ export function OrdersManager({ initialStatus = "", initialPageId = "" }: { init
           />
           <Button size="sm" onClick={applyBulk} disabled={!bulkStatus} loading={busy}>
             {ar.common.apply}
+          </Button>
+          <Button size="sm" variant="outline" asChild className="ms-auto">
+            <a href={`/dashboard/orders/print?ids=${[...selected].join(",")}`} target="_blank" rel="noreferrer">
+              <Printer />
+              {t.printInvoices(selected.size)}
+            </a>
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
             {ar.common.cancel}

@@ -18,6 +18,7 @@ final class TenantResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'status' => $this->status->value,
+            'whatsapp_template' => $this->settings['whatsapp_template'] ?? null,
             'created_at' => $this->created_at?->toIso8601ZuluString(),
         ];
     }

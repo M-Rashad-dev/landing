@@ -32,7 +32,8 @@ final class ChangeOrderStatus
                 throw new ApiException(422, 'transition_not_allowed', __('orders.transition_not_allowed', ['from' => $from->label(), 'to' => $to->label()]));
             }
 
-            $locked->forceFill(['status' => $to, 'status_changed_at' => now()])->save();
+            // A scheduled callback only matters while the order is new.
+            $locked->forceFill(['status' => $to, 'status_changed_at' => now(), 'follow_up_at' => $to === OrderStatus::New ? $locked->follow_up_at : null])->save();
             $locked->logs()->create([
                 'from_status' => $from,
                 'to_status' => $to,

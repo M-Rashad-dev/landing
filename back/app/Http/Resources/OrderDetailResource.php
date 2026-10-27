@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Order;
+use App\Models\OrderEvent;
 use App\Models\OrderItem;
 use App\Models\OrderStatusLog;
 use App\Support\Money;
@@ -51,6 +52,15 @@ final class OrderDetailResource extends OrderResource
                 'user' => $log->user === null ? null : ['id' => $log->user->id, 'name' => $log->user->name],
                 'created_at' => $log->created_at->toIso8601ZuluString(),
             ])->values()->all(),
+            'events' => $this->relationLoaded('events') ? $this->events->map(fn (OrderEvent $event) => [
+                'id' => $event->id,
+                'type' => $event->type->value,
+                'label' => $event->type->label(),
+                'note' => $event->note,
+                'follow_up_at' => $event->follow_up_at?->toIso8601ZuluString(),
+                'user' => $event->user === null ? null : ['id' => $event->user->id, 'name' => $event->user->name],
+                'created_at' => $event->created_at->toIso8601ZuluString(),
+            ])->values()->all() : [],
             'allowed_transitions' => array_map(fn ($s) => ['status' => $s->value, 'label' => $s->label()], $this->status->allowedTransitions()),
             'can_edit_customer' => $this->status->allowsCustomerEdits(),
             'ip_address' => $this->ip_address,

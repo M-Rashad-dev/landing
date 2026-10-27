@@ -78,11 +78,13 @@ Route::prefix('dashboard')
 
         Route::get('orders', [OrderController::class, 'index']);
         Route::get('orders/stats', [OrderController::class, 'stats']);
+        Route::get('orders/confirmation-queue', [OrderController::class, 'confirmationQueue']);
         Route::get('orders/export', [OrderController::class, 'export'])->middleware('throttle:orders-export');
         Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus']);
         Route::get('orders/{order}', [OrderController::class, 'show']);
         Route::patch('orders/{order}', [OrderController::class, 'update']);
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
+        Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
 
         Route::get('domains', [DomainController::class, 'index']);
         Route::put('domains/subdomain', [DomainController::class, 'updateSubdomain']);

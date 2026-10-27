@@ -13,6 +13,7 @@ export type Tenant = {
   id: number;
   name: string;
   status: "active" | "suspended";
+  whatsapp_template?: string | null;
   created_at: string | null;
 };
 

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
+use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Order;
 use App\Models\Product;
@@ -245,3 +246,79 @@ it('summarises the home dashboard', function () {
         ->and($data['top_pages'][0])->toMatchArray(['id' => $page->id, 'title' => 'الأكثر', 'orders' => 2])
         ->and($data['latest_orders'])->toHaveCount(3);
 });
+
+it('returns the seller brand for the invoice: the page identity, else the default identity', function () {
+    [$identity, $order] = asTenant($this->user, function () {
+        $identity = Identity::factory()->create(['brand_name' => 'براند الصفحة', 'contact' => ['phone' => '+201012345678', 'address' => 'القاهرة']]);
+        $page = LandingPage::factory()->create(['identity_id' => $identity->id]);
+
+        return [$identity, makeOrder(['landing_page_id' => $page->id])];
+    });
+
+    $this->getJson("/api/v1/dashboard/orders/{$order->id}")
+        ->assertOk()
+        ->assertJsonPath('data.brand.name', 'براند الصفحة')
+        ->assertJsonPath('data.brand.phone', '+201012345678')
+        ->assertJsonPath('data.brand.address', 'القاهرة');
+
+    $default = asTenant($this->user, fn () => Identity::factory()->default()->create(['brand_name' => 'الهوية الافتراضية']));
+    $orphan = makeOrder(['landing_page_id' => null]);
+    $this->getJson("/api/v1/dashboard/orders/{$orphan->id}")->assertJsonPath('data.brand.name', 'الهوية الافتراضية');
+    expect($identity->id)->not->toBe($default->id);
+});
+
+it('logs contact attempts, schedules callbacks and orders the confirmation queue', function () {
+    $this->travelTo(now()->setTime(12, 0));
+    $first = makeOrder(['status' => OrderStatus::New]);
+    $second = makeOrder(['status' => OrderStatus::New]);
+    $third = makeOrder(['status' => OrderStatus::New]);
+    $done = makeOrder(['status' => OrderStatus::Confirmed]);
+
+    // No answer: one more attempt, callback in 2 hours, logged with the user.
+    $this->postJson("/api/v1/dashboard/orders/{$first->id}/contact", ['result' => 'no_answer'])
+        ->assertOk()
+        ->assertJsonPath('data.contact_attempts', 1)
+        ->assertJsonPath('data.events.0.type', 'no_answer')
+        ->assertJsonPath('data.events.0.user.id', $this->user->id);
+    expect($first->fresh()->follow_up_at->equalTo(now()->addHours(2)))->toBeTrue();
+
+    // Postponed needs a future time (Cairo wall time) within 30 days.
+    $this->postJson("/api/v1/dashboard/orders/{$second->id}/contact", ['result' => 'postponed'])->assertStatus(422)->assertJsonValidationErrors(['follow_up_at']);
+    $this->postJson("/api/v1/dashboard/orders/{$second->id}/contact", ['result' => 'postponed', 'follow_up_at' => now('Africa/Cairo')->subHour()->format('Y-m-d\TH:i')])->assertStatus(422);
+    $this->postJson("/api/v1/dashboard/orders/{$second->id}/contact", ['result' => 'postponed', 'follow_up_at' => now('Africa/Cairo')->addDay()->format('Y-m-d\TH:i'), 'note' => 'يكلمنا بكرة'])
+        ->assertOk()
+        ->assertJsonPath('data.events.0.note', 'يكلمنا بكرة');
+    $this->postJson("/api/v1/dashboard/orders/{$third->id}/contact", ['result' => 'whatsapp'])->assertOk()->assertJsonPath('data.contact_attempts', 0);
+    $this->postJson("/api/v1/dashboard/orders/{$done->id}/contact", ['result' => 'no_answer'])->assertStatus(422)->assertJsonPath('code', 'contact_closed');
+    $this->postJson("/api/v1/dashboard/orders/{$third->id}/contact", ['result' => 'nope'])->assertStatus(422);
+
+    // Queue: due ones first (never called), then the scheduled callbacks by time.
+    $queue = $this->getJson('/api/v1/dashboard/orders/confirmation-queue')->assertOk();
+    expect($queue->json('data.*.id'))->toBe([$third->id, $first->id, $second->id])
+        ->and($queue->json('meta.due'))->toBe(1)
+        ->and($queue->json('meta.later'))->toBe(2);
+
+    // Two hours later the no-answer one is due again; confirming clears its callback.
+    $this->travel(2)->hours();
+    expect($this->getJson('/api/v1/dashboard/orders/confirmation-queue')->json('meta.due'))->toBe(2);
+    setStatus($first, 'confirmed')->assertOk();
+    expect($first->fresh()->follow_up_at)->toBeNull();
+});
+
+it('saves the WhatsApp confirmation template in the store settings', function () {
+    $this->patchJson('/api/v1/dashboard/store', ['whatsapp_template' => "أهلًا {الاسم}\nطلبك #{رقم_الطلب}"])
+        ->assertOk()
+        ->assertJsonPath('data.whatsapp_template', "أهلًا {الاسم}\nطلبك #{رقم_الطلب}")
+        ->assertJsonPath('data.name', $this->user->tenant->name);
+    $this->getJson('/api/v1/auth/me')->assertJsonPath('data.tenant.whatsapp_template', "أهلًا {الاسم}\nطلبك #{رقم_الطلب}");
+    $this->patchJson('/api/v1/dashboard/store', ['whatsapp_template' => ''])->assertJsonPath('data.whatsapp_template', null);
+    $this->patchJson('/api/v1/dashboard/store', ['whatsapp_template' => str_repeat('x', 1001)])->assertStatus(422);
+});
+
+it('needs a token for the confirmation endpoints', function (string $method, string $uri) {
+    app('auth')->forgetGuards();
+    $this->json($method, $uri)->assertUnauthorized();
+})->with([
+    ['GET', '/api/v1/dashboard/orders/confirmation-queue'],
+    ['POST', '/api/v1/dashboard/orders/1/contact'],
+]);

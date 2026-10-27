@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ar } from "@/messages/ar";
 import { PasswordForm, ProfileForm, StoreForm } from "./settings-forms";
+import { WhatsappTemplateForm } from "./whatsapp-template-form";
 
 export const metadata: Metadata = { title: ar.settings.title };
 
@@ -15,6 +16,9 @@ export default function SettingsPage() {
           <ProfileForm />
         </div>
         <PasswordForm />
+      </div>
+      <div className="mt-6">
+        <WhatsappTemplateForm />
       </div>
     </>
   );

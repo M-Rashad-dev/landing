@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Package,
   Palette,
+  PhoneCall,
   Settings,
   ShoppingBag,
   Tag,
@@ -35,7 +36,8 @@ export const DASHBOARD_NAV: NavGroup[] = [
   {
     label: ar.nav.groups.sales,
     items: [
-      { href: "/dashboard/orders", label: ar.nav.orders, icon: ShoppingBag, badgeKey: "orders", exclude: ["/dashboard/orders/blocked"] },
+      { href: "/dashboard/orders/confirm", label: ar.nav.confirm, icon: PhoneCall, badgeKey: "orders" },
+      { href: "/dashboard/orders", label: ar.nav.orders, icon: ShoppingBag, exclude: ["/dashboard/orders/blocked", "/dashboard/orders/confirm"] },
       { href: "/dashboard/orders/blocked", label: ar.nav.blocked, icon: Ban },
     ],
   },

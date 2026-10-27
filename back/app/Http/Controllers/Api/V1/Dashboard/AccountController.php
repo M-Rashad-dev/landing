@@ -56,7 +56,14 @@ final class AccountController extends Controller
         $tenant = $user->tenant;
         abort_if($tenant === null, 403);
 
-        $tenant->update(['name' => (string) $request->validated('name')]);
+        if ($request->has('name')) {
+            $tenant->name = (string) $request->validated('name');
+        }
+        if ($request->exists('whatsapp_template')) {
+            $template = trim(strip_tags((string) $request->validated('whatsapp_template')));
+            $tenant->settings = array_merge($tenant->settings ?? [], ['whatsapp_template' => $template === '' ? null : $template]);
+        }
+        $tenant->save();
 
         return $this->ok(TenantResource::make($tenant));
     }

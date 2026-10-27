@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Ban, Copy, MessageCircle, Pencil, Phone, Printer, ShieldAlert } from "lucide-react";
+import { ArrowRight, Ban, Copy, Pencil, Printer, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ErrorState } from "@/components/dashboard/error-state";
@@ -21,7 +21,8 @@ import { errorMessage, isApiError } from "@/lib/api/errors";
 import { formatCairo } from "@/lib/dates";
 import { formatPhoneLocal } from "@/lib/format/phone";
 import { GOVERNORATES } from "@/lib/governorates";
-import { changeOrderStatus, orderKeys, updateOrder, useOrder, whatsappUrl, type OrderDetail, type OrderStatus, type OrderUpdate } from "@/lib/orders/api";
+import { changeOrderStatus, orderKeys, updateOrder, useOrder, type OrderDetail, type OrderStatus, type OrderUpdate } from "@/lib/orders/api";
+import { ContactActions } from "@/components/orders/contact-actions";
 import { formatPrice } from "@/lib/price";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -66,9 +67,11 @@ export function OrderDetails({ id }: { id: number }) {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{formatCairo(order.created_at)}</p>
         </div>
-        <Button variant="outline" onClick={() => window.print()} className="no-print">
-          <Printer />
-          {t.print}
+        <Button variant="outline" asChild className="no-print">
+          <Link href={`/dashboard/orders/print?ids=${order.id}`}>
+            <Printer />
+            {t.print}
+          </Link>
         </Button>
       </div>
 
@@ -87,18 +90,6 @@ export function OrderDetails({ id }: { id: number }) {
               <span dir="ltr" className="font-semibold tabular-nums">
                 {formatPhoneLocal(order.customer_phone)}
               </span>
-              <Button size="sm" variant="outline" asChild className="no-print">
-                <a href={`tel:${order.customer_phone}`}>
-                  <Phone />
-                  {t.call}
-                </a>
-              </Button>
-              <Button size="sm" variant="outline" asChild className="no-print">
-                <a href={whatsappUrl(order.customer_phone)} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle />
-                  {t.whatsapp}
-                </a>
-              </Button>
             </div>
             <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               {order.customer_phone2 ? <Info label={t.phone2} value={<span dir="ltr">{formatPhoneLocal(order.customer_phone2)}</span>} /> : null}
@@ -149,22 +140,44 @@ export function OrderDetails({ id }: { id: number }) {
           <Card className="p-5">
             <h2 className="mb-4 font-bold">{t.timeline}</h2>
             <ol className="relative flex flex-col gap-4 border-s ps-5">
-              {order.logs.map((log) => (
-                <li key={log.id} className="relative">
-                  <span className="absolute -start-[1.6rem] top-1 size-3 rounded-full border-2 border-card bg-primary" aria-hidden />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <OrderStatusBadge status={log.to_status} />
-                    <span className="text-xs text-muted-foreground">{formatCairo(log.created_at)}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{log.from_status === null ? t.createdBy : log.user ? t.by(log.user.name) : t.system}</p>
-                  {log.note ? <p className="mt-1 rounded-lg bg-muted px-3 py-2 text-sm">{log.note}</p> : null}
-                </li>
-              ))}
+              {[...order.logs.map((log) => ({ kind: "status" as const, at: log.created_at, log })), ...order.events.map((event) => ({ kind: "event" as const, at: event.created_at, event }))]
+                .sort((a, b) => a.at.localeCompare(b.at))
+                .map((entry) =>
+                  entry.kind === "status" ? (
+                    <li key={`s${entry.log.id}`} className="relative">
+                      <span className="absolute -start-[1.6rem] top-1 size-3 rounded-full border-2 border-card bg-primary" aria-hidden />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <OrderStatusBadge status={entry.log.to_status} />
+                        <span className="text-xs text-muted-foreground">{formatCairo(entry.log.created_at)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{entry.log.from_status === null ? t.createdBy : entry.log.user ? t.by(entry.log.user.name) : t.system}</p>
+                      {entry.log.note ? <p className="mt-1 rounded-lg bg-muted px-3 py-2 text-sm">{entry.log.note}</p> : null}
+                    </li>
+                  ) : (
+                    <li key={`e${entry.event.id}`} className="relative">
+                      <span className={cn("absolute -start-[1.6rem] top-1 size-3 rounded-full border-2 border-card", entry.event.type === "whatsapp" ? "bg-success" : "bg-gold")} aria-hidden />
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-medium">{t.contact.events[entry.event.type]}</span>
+                        <span className="text-xs text-muted-foreground">{formatCairo(entry.event.created_at)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {entry.event.user ? t.by(entry.event.user.name) : t.system}
+                        {entry.event.follow_up_at ? ` · ${t.contact.nextCall(formatCairo(entry.event.follow_up_at))}` : ""}
+                      </p>
+                      {entry.event.note ? <p className="mt-1 rounded-lg bg-muted px-3 py-2 text-sm">{entry.event.note}</p> : null}
+                    </li>
+                  ),
+                )}
             </ol>
           </Card>
         </div>
 
         <div className="flex flex-col gap-6">
+          <Card className={cn("no-print p-5", order.status === "new" && "border-gold/50 bg-gold-soft/40")}>
+            <h2 className="mb-3 font-bold">{t.contact.title}</h2>
+            <ContactActions order={order} onChange={(updated) => store(updated)} />
+          </Card>
+
           <Card className="no-print p-5">
             <h2 className="mb-3 font-bold">{t.actions}</h2>
             {order.allowed_transitions.length === 0 ? (

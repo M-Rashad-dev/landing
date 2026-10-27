@@ -5,6 +5,7 @@ import { api, apiPage, apiRaw } from "@/lib/api/client";
 
 export const ORDER_STATUSES = ["new", "confirmed", "delivered", "returned", "damaged", "fake", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type ContactResult = "no_answer" | "postponed" | "whatsapp";
 
 export type OrderRow = {
   id: number;
@@ -22,6 +23,9 @@ export type OrderRow = {
   is_duplicate_suspect: boolean;
   created_at: string;
   status_changed_at: string | null;
+  contact_attempts: number;
+  last_contacted_at: string | null;
+  follow_up_at: string | null;
 };
 
 export type OrderDetail = OrderRow & {
@@ -37,11 +41,13 @@ export type OrderDetail = OrderRow & {
   code: { id: number | null; code: string; discount: number } | null;
   items: Array<{ id: number; product_id: number | null; product_name: string; unit_price: number; quantity: number; options: Array<{ option: string; value: string; price_delta: number }>; line_total: number }>;
   logs: Array<{ id: number; from_status: OrderStatus | null; to_status: OrderStatus; to_label: string; note: string | null; user: { id: number; name: string } | null; created_at: string }>;
+  events: Array<{ id: number; type: ContactResult; label: string; note: string | null; follow_up_at: string | null; user: { id: number; name: string } | null; created_at: string }>;
   allowed_transitions: Array<{ status: OrderStatus; label: string }>;
   can_edit_customer: boolean;
   ip_address: string | null;
   user_agent: string | null;
   utm: Record<string, string> | null;
+  brand: { name: string; logo: string | null; phone: string | null; whatsapp: string | null; email: string | null; address: string | null };
   customer_history: {
     total: number;
     counts: Record<OrderStatus, number>;
@@ -81,6 +87,7 @@ export const orderKeys = {
   detail: (id: number) => ["orders", id] as const,
   blocked: (p: object) => ["blocked-customers", p] as const,
   overview: ["overview"] as const,
+  queue: ["orders", "confirmation-queue"] as const,
 };
 
 /** Query string of the list filters (shared by the list, the counters and the export). */
@@ -116,6 +123,9 @@ export function useOrderCounts(filters: OrderFilters) {
     placeholderData: keepPreviousData,
   });
 }
+
+/** Order details for printing (bulk invoices). */
+export const fetchOrder = (id: number, signal?: AbortSignal) => api<OrderDetail>(`/dashboard/orders/${id}`, { signal });
 
 export function useOrder(id: number) {
   return useQuery({ queryKey: orderKeys.detail(id), queryFn: ({ signal }) => api<OrderDetail>(`/dashboard/orders/${id}`, { signal }) });
@@ -167,6 +177,22 @@ export async function downloadOrdersCsv(filters: OrderFilters): Promise<void> {
 }
 
 /** wa.me link for an E.164 number (+20…). */
-export function whatsappUrl(phone: string): string {
-  return `https://wa.me/${phone.replace(/[^\d]/g, "")}`;
+
+export type ConfirmationQueue = { orders: OrderRow[]; due: number; later: number };
+
+/** New orders in calling order (due first), refreshed every 30 s. */
+export function useConfirmationQueue() {
+  return useQuery({
+    queryKey: orderKeys.queue,
+    queryFn: async ({ signal }) => {
+      const page = await apiPage<OrderRow>("/dashboard/orders/confirmation-queue", { signal });
+      return { orders: page.data, due: Number(page.meta.due ?? 0), later: Number(page.meta.later ?? 0) } satisfies ConfirmationQueue;
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+/** Log a contact attempt; follow_up_at is Cairo wall time "YYYY-MM-DDTHH:mm". */
+export function recordContact(id: number, result: ContactResult, extra: { note?: string; follow_up_at?: string } = {}) {
+  return api<OrderDetail>(`/dashboard/orders/${id}/contact`, { method: "POST", body: { result, ...extra } });
 }

@@ -35,6 +35,9 @@ class OrderResource extends JsonResource
             'is_duplicate_suspect' => $this->is_duplicate_suspect,
             'created_at' => $this->created_at->toIso8601ZuluString(),
             'status_changed_at' => $this->status_changed_at?->toIso8601ZuluString(),
+            'contact_attempts' => $this->contact_attempts,
+            'last_contacted_at' => $this->last_contacted_at?->toIso8601ZuluString(),
+            'follow_up_at' => $this->follow_up_at?->toIso8601ZuluString(),
         ];
     }
 }
