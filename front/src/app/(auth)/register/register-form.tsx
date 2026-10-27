@@ -8,7 +8,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { ApiError, applyServerErrors, errorMessage, type ApiErrorBody } from "@/lib/api/errors";
@@ -63,12 +62,12 @@ export function RegisterForm() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">{ar.auth.registerTitle}</CardTitle>
-        <CardDescription>{ar.auth.registerSubtitle}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div>
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-semibold">{ar.auth.registerTitle}</h1>
+        <p className="mt-2 text-muted-foreground">{ar.auth.registerSubtitle}</p>
+      </div>
+      <div>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
           {formError ? (
             <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
@@ -105,7 +104,7 @@ export function RegisterForm() {
             </Link>
           </p>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

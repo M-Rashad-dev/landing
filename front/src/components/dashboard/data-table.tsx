@@ -36,7 +36,7 @@ export function DataTable<T>({
   className?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-xl border bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm", className)}>
       <Table>
         <TableHeader>
           <TableRow>

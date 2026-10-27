@@ -174,8 +174,19 @@
     transform: translateY(6px);
   }
 }
+/* Chart bars grow up from the baseline. */
+.bar-grow {
+  transform-origin: bottom;
+  animation: lp-bar-grow 0.7s var(--ease-out) both;
+}
+@keyframes lp-bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
+  .bar-grow,
   .page-enter {
     animation: none;
   }

@@ -122,30 +122,47 @@ export function HomeOverview() {
 
 function Stat({ icon: Icon, label, value, highlight = false }: { icon: typeof Clock; label: string; value: ReactNode; highlight?: boolean }) {
   return (
-    <Card className={cn("flex h-full flex-col gap-2 p-4", highlight && "border-primary/40 bg-primary/5")}>
-      <span className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Icon className="size-4" aria-hidden />
+    <Card className={cn("flex h-full flex-col gap-3 p-4 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md", highlight && "border-gold/50 bg-gold-soft")}>
+      <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <span className={cn("flex size-8 items-center justify-center rounded-lg", highlight ? "bg-gold text-gold-foreground" : "bg-secondary text-primary")}>
+          <Icon className="size-4" aria-hidden />
+        </span>
         {label}
       </span>
-      <span className={cn("text-2xl font-extrabold tabular-nums", highlight && "text-primary")}>{value}</span>
+      <span className={cn("font-display text-2xl font-semibold tabular-nums", highlight && "text-gold-foreground")}>{value}</span>
     </Card>
   );
 }
 
-/** 14 bars in plain CSS (no chart library). */
+/** 14 bars in plain CSS (no chart library). Today's bar is gold. */
 function OrdersChart({ chart }: { chart: Overview["chart"] }) {
   const max = Math.max(1, ...chart.map((d) => d.count));
   const dayLabel = (date: string) => new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+  const last = chart.length - 1;
 
   return (
-    <div className="flex h-48 items-end gap-1.5 sm:gap-2" role="img" aria-label={chart.map((d) => `${dayLabel(d.date)}: ${d.count}`).join("، ")}>
-      {chart.map((day, index) => (
-        <div key={day.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
-          <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{day.count > 0 ? formatNumber(day.count) : ""}</span>
-          <div className={cn("w-full rounded-t-md", day.count > 0 ? "bg-primary" : "bg-muted")} style={{ height: `${day.count > 0 ? Math.max(6, (day.count / max) * 100) : 3}%` }} title={`${dayLabel(day.date)}: ${day.count}`} />
-          <span className={cn("truncate text-[10px] text-muted-foreground", index % 2 === 1 && "max-sm:invisible")}>{dayLabel(day.date)}</span>
-        </div>
-      ))}
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-x-0 top-5 bottom-6 flex flex-col justify-between" aria-hidden>
+        {[0, 1, 2, 3].map((line) => (
+          <span key={line} className="border-t border-dashed border-border" />
+        ))}
+      </div>
+      <div className="relative flex h-52 items-end gap-1.5 sm:gap-2.5" role="img" aria-label={chart.map((d) => `${dayLabel(d.date)}: ${d.count}`).join("، ")}>
+        {chart.map((day, index) => (
+          <div key={day.date} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+            <span className="text-[11px] font-semibold tabular-nums text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100">{day.count > 0 ? formatNumber(day.count) : ""}</span>
+            <div
+              className={cn(
+                "bar-grow w-full max-w-10 rounded-t-lg transition-[filter] group-hover:brightness-110",
+                day.count === 0 ? "bg-muted" : index === last ? "bg-gradient-to-t from-gold to-gold/70" : "bg-gradient-to-t from-primary to-primary/60",
+              )}
+              style={{ height: `${day.count > 0 ? Math.max(6, (day.count / max) * 100) : 3}%`, animationDelay: `${index * 30}ms` }}
+              title={`${dayLabel(day.date)}: ${day.count}`}
+            />
+            <span className={cn("truncate text-[10px] text-muted-foreground", index % 2 === 1 && "max-sm:invisible", index === last && "font-semibold text-foreground")}>{dayLabel(day.date)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -79,7 +79,8 @@ test("3. build a page from a theme and publish it", async ({ page }) => {
   await page.getByRole("radio").first().click();
   await page.locator("#wiz-title").fill(pageInfo.title);
   await page.locator("#wiz-slug").fill(pageInfo.slug);
-  await page.locator("#wiz-product").selectOption({ label: product.name });
+  await page.locator("#wiz-product").click();
+  await page.getByRole("option", { name: product.name }).click();
   await page.getByRole("button", { name: "إنشاء وفتح المحرر" }).click();
 
   await page.waitForURL(/\/dashboard\/pages\/\d+\/builder/);
@@ -132,11 +133,12 @@ test("6. switch the page theme without losing content", async ({ page }) => {
   await page.goto("/dashboard/pages");
   await expect(page.getByText(pageInfo.title).first()).toBeVisible();
   await page.goto(builderUrl);
-  await expect(page.locator("#b-theme")).toHaveValue("malak");
+  await expect(page.locator("#b-theme")).toContainText("ملاك");
 
-  await page.locator("#b-theme").selectOption("celia");
+  await page.locator("#b-theme").click();
+  await page.getByRole("option", { name: "سيليا" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "تبديل" }).click();
-  await expect(page.locator("#b-theme")).toHaveValue("celia");
+  await expect(page.locator("#b-theme")).toContainText("سيليا");
   await expect(page.getByText("محفوظ").first()).toBeVisible();
 
   await page.getByRole("button", { name: "نشر", exact: true }).click();

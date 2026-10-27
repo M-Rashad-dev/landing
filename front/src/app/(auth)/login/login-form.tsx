@@ -8,7 +8,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ApiError, applyServerErrors, errorMessage, type ApiErrorBody } from "@/lib/api/errors";
 import { postAuth, safeNext } from "@/lib/auth/redirect";
@@ -50,12 +49,12 @@ export function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">{ar.auth.loginTitle}</CardTitle>
-        <CardDescription>{ar.auth.loginSubtitle}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div>
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-semibold">{ar.auth.loginTitle}</h1>
+        <p className="mt-2 text-muted-foreground">{ar.auth.loginSubtitle}</p>
+      </div>
+      <div>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
           {formError ? (
             <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
@@ -79,7 +78,7 @@ export function LoginForm() {
             </Link>
           </p>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
