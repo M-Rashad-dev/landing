@@ -88,3 +88,9 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **`useOrderForm` is implemented in full now** (fields, validation mirroring 7.3, live quote with a local estimate, form token, idempotency key, UTM, success + one-time conversion event); it calls the `/api/public/*` routes that phase 9 adds. In preview mode it never sends anything.
 - **`track()` and UTM capture** (`lib/tracking`) are written now because the order form uses them; pixel script injection comes with phase 8.
 - **Visual review** was done with Playwright screenshots of `/dev/themes` (390 / 768 / 1280, three very different identities incl. a dark one); an automated check confirms no horizontal overflow. `/dev/themes` accepts `?theme=&identity=` and returns 404 in production.
+
+## Phase 7
+- **Celia's personality lives in borders and shadows, not in props**: the same props as Malak, with hard 2–3px `--c-fg` borders and solid offset shadows (`.t-hard`), uppercase headings and dark inverted bands. Buttons still follow the identity radius.
+- **"الأكثر طلبًا"** in Celia's bundle tiles marks the offer with the biggest saving (display only).
+- **Sticky summary on mobile** becomes an inline summary + a fixed bottom bar (total + "اطلب الآن") shown only while the form is off screen (IntersectionObserver), so it never covers the form itself.
+- **Parity is enforced by a test** (`themes/parity.test.tsx`) instead of a manual checklist: a new theme fails CI until it implements every type, variant default and thumbnail, and a full page must keep all its texts and images when switching theme.

@@ -172,6 +172,33 @@ html:has(.t-site) {
 .t-fade-up {
   animation: t-fade-up 0.6s ease-out both;
 }
+/* Celia: hard borders and solid offset shadows. */
+.t-hard {
+  border: 2px solid var(--c-fg);
+  box-shadow: 4px 4px 0 var(--c-fg);
+}
+.t-hard-sm {
+  border: 2px solid var(--c-fg);
+  box-shadow: 3px 3px 0 var(--c-fg);
+}
+.t-line {
+  border-color: var(--c-fg);
+}
+.t-press {
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.t-press:hover {
+  transform: translate(-1px, -1px);
+}
+.t-press:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--c-fg);
+}
+.t-stripes {
+  background-image: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--c-fg) 7%, transparent) 0 2px, transparent 2px 12px);
+}
 details > summary::-webkit-details-marker {
   display: none;
 }

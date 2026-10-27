@@ -1,34 +1,15 @@
 import { CheckCircle2 } from "lucide-react";
 import { bestUnitOffer } from "@/lib/price/offers";
+import { HeroPicture } from "@/themes/shared/components/hero-picture";
 import { Price } from "@/themes/shared/components/price";
 import { SafeLink } from "@/themes/shared/components/safe-link";
 import type { HeroProps } from "@/themes/shared/schemas";
-import type { PageContext, PublicImage, SectionProps } from "@/themes/types";
+import type { PageContext, SectionProps } from "@/themes/types";
 import { mediaOf, nonEmpty } from "@/themes/shared/utils";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
 const HEIGHTS: Record<HeroProps["min_height"], string> = { sm: "min-h-[360px]", md: "min-h-[520px]", lg: "min-h-[680px]", screen: "min-h-[100svh]" };
-
-/** Desktop image + optional mobile image (art direction via <picture>). */
-function HeroPicture({ desktop, mobile, className, sizes }: { desktop: PublicImage; mobile: PublicImage | null; className?: string; sizes: string }) {
-  return (
-    <picture>
-      {mobile ? <source media="(max-width: 767px)" srcSet={`${mobile.urls.medium} 800w, ${mobile.urls.large} 1600w`} sizes="100vw" /> : null}
-      <img
-        src={desktop.urls.large}
-        srcSet={`${desktop.urls.medium} 800w, ${desktop.urls.large} 1600w`}
-        sizes={sizes}
-        width={desktop.width}
-        height={desktop.height}
-        alt={desktop.alt ?? ""}
-        fetchPriority="high"
-        loading="eager"
-        className={className}
-      />
-    </picture>
-  );
-}
 
 function HeroText({ props, ctx, center, inverted }: { props: HeroProps; ctx: PageContext; center: boolean; inverted?: boolean }) {
   const product = ctx.product;

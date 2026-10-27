@@ -8,8 +8,8 @@
 | 4 | Offers, discount codes, price engine | ✅ Done |
 | 5 | Page engine & Builder | ✅ Done |
 | 6 | Theme «malak» | ✅ Done |
-| 7 | Theme «celia» | ⏳ Next |
-| 8 | Public rendering, SEO, tracking | ⬜ |
+| 7 | Theme «celia» | ✅ Done |
+| 8 | Public rendering, SEO, tracking | ⏳ Next |
 | 9 | Orders & management | ⬜ |
 | 10 | Custom domains & SSL | ⬜ |
 | 11 | Super admin & final hardening | ⬜ |
@@ -85,3 +85,12 @@
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 228 passed (every component × variant of both registered themes renders with full and with completely empty props and no product, no React errors; SafeLink rejects `javascript:`; user HTML is shown as text; unknown variants fall back to the default)
 - Visual review via screenshots at 390 / 1280 (+ overflow scan at 390 / 768 / 1280) with violet, dark and green identities → no horizontal scroll; fixed along the way: FAQ group collision across sections, split-summary form width on mobile, highlight contrast on tinted background, old-price contrast on photo heroes.
 - Back end unchanged (348 tests from phase 5).
+
+## Phase 7 — Theme «celia» ✅
+
+**Front**: the 10 Celia components (bold & square: hard borders, solid offset shadows, huge type, dark bands) with every variant from the plan — header bar/minimal (marquee announcement, full-screen menu), hero big-type/split-reverse/full-cover (slanted price tag, badge strip), gallery thumbs-side/masonry with lightbox, product showcase split-image/stacked (dark price strip), features numbered-grid/icon-list, offers bundle-tiles ("الأكثر طلبًا" on the biggest saving)/countdown-strip, testimonials quote-wall/screenshots-grid, FAQ accordion-lines/numbered, order form bordered/sticky-summary (mobile bottom bar with total while the form is off screen), footer dark-columns/minimal-line; square wireframe thumbnails; `HeroPicture` moved to shared; new helper classes `.t-hard`, `.t-hard-sm`, `.t-line`, `.t-press`, `.t-stripes`. Both themes now use real components only (`_fallback` stays as a safety net for unknown types). README documents how to add a theme or a component type.
+
+**Checks**
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 231 passed (new parity suite: every type in both themes with ≥ 2 variants, valid default, thumbnail and starter order; a fully filled page rendered in malak then celia keeps every text and every image) · `pnpm build` ✓
+- `/dev/themes` → 404 on the production server.
+- Visual review via screenshots at 390 / 1280 + overflow scan at 390 / 768 / 1280 with violet, dark and green identities → no horizontal scroll.

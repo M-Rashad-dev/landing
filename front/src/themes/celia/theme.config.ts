@@ -1,23 +1,39 @@
-import { FALLBACK_COMPONENTS } from "@/themes/_fallback";
-import type { ThemeDef } from "@/themes/types";
+import type { ComponentType, ThemeComponentDef, ThemeDef } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { CeliaFaq } from "./components/faq";
+import { CeliaFeatures } from "./components/features";
+import { CeliaFooter } from "./components/footer";
+import { CeliaGallery } from "./components/gallery";
+import { CeliaHeader } from "./components/header";
+import { CeliaHero } from "./components/hero";
+import { CeliaOffers } from "./components/offers";
+import { CeliaOrderForm } from "./components/order-form";
+import { CeliaProductShowcase } from "./components/product-showcase";
+import { CeliaTestimonials } from "./components/testimonials";
+import { CeliaThumbs } from "./thumbnails";
 
-/** «سيليا» — bold and modern. Components are implemented in phase 7; placeholders until then. */
+const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
+
+function def(type: ComponentType, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
+  return { component, variants: v(variants), defaultVariant: variants[0], Thumbnail: CeliaThumbs[type] };
+}
+
+/** «سيليا» — bold and modern: hard borders, solid shadows, huge type, dark bands. */
 export const celiaTheme: ThemeDef = {
   key: "celia",
   name: ar.themes.celia.name,
   description: ar.themes.celia.description,
   components: {
-    header: { ...FALLBACK_COMPONENTS.header, variants: [{ key: "bar", label: ar.themes.variants.bar }, { key: "minimal", label: ar.themes.variants.minimal }], defaultVariant: "bar" },
-    hero: { ...FALLBACK_COMPONENTS.hero, variants: [{ key: "big-type", label: ar.themes.variants["big-type"] }, { key: "split-reverse", label: ar.themes.variants["split-reverse"] }, { key: "full-cover", label: ar.themes.variants["full-cover"] }], defaultVariant: "big-type" },
-    gallery: { ...FALLBACK_COMPONENTS.gallery, variants: [{ key: "thumbs-side", label: ar.themes.variants["thumbs-side"] }, { key: "masonry", label: ar.themes.variants.masonry }], defaultVariant: "thumbs-side" },
-    product_showcase: { ...FALLBACK_COMPONENTS.product_showcase, variants: [{ key: "split-image", label: ar.themes.variants["split-image"] }, { key: "stacked", label: ar.themes.variants.stacked }], defaultVariant: "split-image" },
-    features: { ...FALLBACK_COMPONENTS.features, variants: [{ key: "numbered-grid", label: ar.themes.variants["numbered-grid"] }, { key: "icon-list", label: ar.themes.variants["icon-list"] }], defaultVariant: "numbered-grid" },
-    offers: { ...FALLBACK_COMPONENTS.offers, variants: [{ key: "bundle-tiles", label: ar.themes.variants["bundle-tiles"] }, { key: "countdown-strip", label: ar.themes.variants["countdown-strip"] }], defaultVariant: "bundle-tiles" },
-    testimonials: { ...FALLBACK_COMPONENTS.testimonials, variants: [{ key: "quote-wall", label: ar.themes.variants["quote-wall"] }, { key: "screenshots-grid", label: ar.themes.variants["screenshots-grid"] }], defaultVariant: "quote-wall" },
-    faq: { ...FALLBACK_COMPONENTS.faq, variants: [{ key: "accordion-lines", label: ar.themes.variants["accordion-lines"] }, { key: "numbered", label: ar.themes.variants.numbered }], defaultVariant: "accordion-lines" },
-    order_form: { ...FALLBACK_COMPONENTS.order_form, variants: [{ key: "bordered", label: ar.themes.variants.bordered }, { key: "sticky-summary", label: ar.themes.variants["sticky-summary"] }], defaultVariant: "bordered" },
-    footer: { ...FALLBACK_COMPONENTS.footer, variants: [{ key: "dark-columns", label: ar.themes.variants["dark-columns"] }, { key: "minimal-line", label: ar.themes.variants["minimal-line"] }], defaultVariant: "dark-columns" },
+    header: def("header", CeliaHeader, ["bar", "minimal"]),
+    hero: def("hero", CeliaHero, ["big-type", "split-reverse", "full-cover"]),
+    gallery: def("gallery", CeliaGallery, ["thumbs-side", "masonry"]),
+    product_showcase: def("product_showcase", CeliaProductShowcase, ["split-image", "stacked"]),
+    features: def("features", CeliaFeatures, ["numbered-grid", "icon-list"]),
+    offers: def("offers", CeliaOffers, ["bundle-tiles", "countdown-strip"]),
+    testimonials: def("testimonials", CeliaTestimonials, ["quote-wall", "screenshots-grid"]),
+    faq: def("faq", CeliaFaq, ["accordion-lines", "numbered"]),
+    order_form: def("order_form", CeliaOrderForm, ["bordered", "sticky-summary"]),
+    footer: def("footer", CeliaFooter, ["dark-columns", "minimal-line"]),
   },
   starterSections: [
     { type: "header", variant: "bar" },

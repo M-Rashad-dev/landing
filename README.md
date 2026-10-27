@@ -64,3 +64,36 @@ Local hosts (no hosts-file edits needed, `*.localhost` resolves to 127.0.0.1):
 ```bash
 bash scripts/smoke-auth.sh      # with both apps running
 ```
+
+## Themes
+
+Two themes ship today: **ملاك (`malak`)** soft & rounded, **سيليا (`celia`)** bold & square. Both implement the same 10
+component types with the same props, so a page can switch theme without losing content.
+
+```
+front/src/themes/
+  types.ts                 contracts (Section, PageContext, ThemeDef, FieldDef…)
+  registry.ts              THEMES map + getTheme / getComponent / resolveVariant
+  shared/schemas/<type>.ts fields + Arabic defaults per component (drive the Builder forms)
+  shared/components/       building blocks (SafeLink, Price, Slider, Lightbox, Countdown…)
+  shared/order-form/       order form fields/validation/parts; shared/hooks/use-order-form.ts
+  malak/ celia/            theme.config.ts + components/<type>/index.tsx + thumbnails.tsx
+  _fallback/               safety net for unknown types (never shown for the 10 known ones)
+```
+
+Rules: components only render (`props` + `ctx`, no fetching), colors/fonts/radius come from the identity CSS variables
+(`--c-*`, `--font-heading`, `--font-body`, `--btn-radius` via the `.t-*` helpers in `globals.css`), RTL logical classes only,
+interactive parts in small `"use client"` files. Review everything at `http://app.localhost:3000/dev/themes?theme=celia&identity=dark`
+(development only).
+
+### Add a theme
+1. Create `front/src/themes/<key>/` with `theme.config.ts`, a component for each of the 10 types (≥ 2 variants each) and thumbnails.
+2. Register it in `front/src/themes/registry.ts`.
+3. Add a row to `back/database/seeders/ThemeSeeder.php` (runs on every deploy).
+4. `pnpm test` — the parity test fails until every type/variant/thumbnail exists.
+
+### Add a component type
+1. Add a schema in `front/src/themes/shared/schemas/<type>.ts` (+ export it in `index.ts`) and the type to `COMPONENT_TYPES` in `types.ts`.
+2. Add the type to `component_types` (and limits) in `back/config/landing.php`.
+3. Implement it in **every** theme and add its thumbnail. Key naming rules matter: `*_media_id(s)`, `*_url`, `*_color`
+   are validated by the back end (`PageContentSanitizer`).
