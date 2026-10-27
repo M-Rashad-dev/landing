@@ -17,6 +17,7 @@ use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
 use App\Models\Theme;
+use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ final class PageController extends Controller
     }
 
     /** Data for the Builder preview iframe: draft content + the same public shapes the live page uses. */
-    public function preview(LandingPage $page, PublicPageData $data): JsonResponse
+    public function preview(LandingPage $page, PublicPageData $data, Shipping $shipping): JsonResponse
     {
         $page->load(['identity', 'product']);
 
@@ -101,6 +102,7 @@ final class PageController extends Controller
             'product' => $data->product($page->product),
             'offers' => $data->offers($page->product, now()),
             'media' => (object) $data->media($page->draft_content),
+            'shipping' => $shipping->publicConfig(),
         ]);
     }
 

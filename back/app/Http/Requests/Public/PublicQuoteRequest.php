@@ -19,6 +19,7 @@ final class PublicQuoteRequest extends FormRequest
             'options.*' => ['nullable', 'integer'],
             'code' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'governorate' => ['nullable', 'string', 'max:60'],
             'ip' => ['nullable', 'ip'],
         ];
     }

@@ -49,11 +49,14 @@ export function OrderFieldInput({ field, state, classes = {} }: { field: OrderFo
       control = (
         <select {...common} value={typeof value === "string" ? value : ""} onChange={(e) => state.setValue(field.name, e.target.value)} autoComplete={field.autoComplete} className={cn(inputClass, "h-12")}>
           <option value="">{field.placeholder || siteMessages.choose}</option>
-          {field.choices.map((choice) => (
-            <option key={choice} value={choice}>
-              {choice}
-            </option>
-          ))}
+          {field.choices.map((choice) => {
+            const closed = field.kind === "governorate" && state.unavailableGovernorates.includes(choice);
+            return (
+              <option key={choice} value={choice} disabled={closed}>
+                {closed ? `${choice} — ${siteMessages.shippingUnavailable}` : choice}
+              </option>
+            );
+          })}
         </select>
       );
       break;
@@ -196,6 +199,9 @@ export function OrderSummary({ quote, loading, estimated, className, totalClassN
       {row(`${siteMessages.subtotal} (${quote.quantity} × ${formatPrice(quote.unit_price)})`, formatPrice(quote.base_subtotal))}
       {quote.offer ? row(`${siteMessages.offerDiscount}: ${quote.offer.name}`, `− ${formatPrice(quote.offer.discount)}`, "text-emerald-600") : null}
       {quote.code ? row(`${siteMessages.codeDiscount} (${quote.code.code})`, `− ${formatPrice(quote.code.discount)}`, "text-emerald-600") : null}
+      {quote.shipping !== undefined
+        ? row(siteMessages.shipping, quote.shipping === null ? siteMessages.shippingPick : quote.shipping === 0 ? siteMessages.shippingFree : formatPrice(quote.shipping), quote.shipping === 0 ? "text-emerald-600" : undefined)
+        : null}
       <div className={cn("mt-1 flex items-center justify-between gap-3 border-t pt-3 t-border", totalClassName)}>
         <span className="font-bold">{siteMessages.total}</span>
         <span className={cn("text-xl font-extrabold tabular-nums", loading && "opacity-60")}>{formatPrice(quote.total)}</span>

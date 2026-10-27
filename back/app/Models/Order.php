@@ -61,7 +61,7 @@ class Order extends Model
         'order_number', 'landing_page_id', 'product_id', 'status', 'status_changed_at',
         'customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
         'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
-        'discount_code_id', 'discount_code', 'code_discount', 'total', 'currency',
+        'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'total', 'currency',
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
     ];
 
@@ -81,6 +81,7 @@ class Order extends Model
             'unit_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'offer_discount' => 'decimal:2',
+            'shipping_fee' => 'decimal:2',
             'code_discount' => 'decimal:2',
             'total' => 'decimal:2',
             'is_duplicate_suspect' => 'boolean',

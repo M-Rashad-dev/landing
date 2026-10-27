@@ -98,7 +98,11 @@ export interface PageContext {
   media: Record<number, PublicImage>;
   /** Event fired after a successful order (identity/page tracking setting). */
   conversionEvent?: "Lead" | "Purchase";
+  /** Store delivery fees (the server quote stays the authority). */
+  shipping?: PublicShipping;
 }
+
+export type PublicShipping = { enabled: false } | { enabled: true; fees: Record<string, number>; unavailable: string[]; free_over: number | null };
 
 export interface SectionProps<P = Record<string, unknown>> {
   sectionId: string;

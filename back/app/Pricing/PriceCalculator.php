@@ -25,6 +25,8 @@ final class PriceCalculator
 
     public const MAX_QUANTITY = 20;
 
+    public function __construct(private readonly Shipping $shipping = new Shipping) {}
+
     /**
      * @param  array<int|string, int|string|null>  $selectedOptions  option_id => value_id
      *
@@ -38,6 +40,7 @@ final class PriceCalculator
         ?string $code = null,
         ?string $phone = null,
         bool $lockCode = false,
+        ?string $governorate = null,
     ): Quote {
         if ($quantity < self::MIN_QUANTITY || $quantity > self::MAX_QUANTITY) {
             throw ValidationException::withMessages([
@@ -72,6 +75,9 @@ final class PriceCalculator
             }
         }
 
+        $itemsTotal = max(0, $afterOffer - $codeDiscount);
+        $shipping = $this->shipping->quote($governorate, $itemsTotal);
+
         return new Quote(
             unitPrice: $unitPrice,
             quantity: $quantity,
@@ -82,8 +88,11 @@ final class PriceCalculator
             code: $discountCode,
             codeDiscount: $codeDiscount,
             codeError: $codeError,
-            total: max(0, $afterOffer - $codeDiscount),
+            total: $itemsTotal + ($shipping['fee'] ?? 0),
             selectedValues: $selected,
+            shipping: $shipping['fee'],
+            shippingFree: $shipping['free'],
+            shippingAvailable: $shipping['available'],
         );
     }
 

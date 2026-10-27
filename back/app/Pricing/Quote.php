@@ -30,7 +30,17 @@ final readonly class Quote
         public ?string $codeError,
         public int $total,
         public array $selectedValues,
+        /** Delivery fee in cents; null = shipping off or governorate not chosen yet. Included in $total. */
+        public ?int $shipping = null,
+        public bool $shippingFree = false,
+        public bool $shippingAvailable = true,
     ) {}
+
+    /** Products after offer and code, before delivery. */
+    public function itemsTotal(): int
+    {
+        return $this->total - ($this->shipping ?? 0);
+    }
 
     /** @return array<string, mixed> */
     public function toArray(): array
@@ -52,6 +62,10 @@ final readonly class Quote
                 'discount' => Money::toFloat($this->codeDiscount),
             ],
             'code_error' => $this->codeError,
+            'items_total' => Money::toFloat($this->itemsTotal()),
+            'shipping' => $this->shipping === null ? null : Money::toFloat($this->shipping),
+            'shipping_free' => $this->shippingFree,
+            'shipping_available' => $this->shippingAvailable,
             'total' => Money::toFloat($this->total),
         ];
     }

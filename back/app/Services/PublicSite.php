@@ -12,6 +12,7 @@ use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Tenant;
+use App\Pricing\Shipping;
 use App\Support\PlainText;
 use App\Support\TrackingIds;
 use App\Tenancy\Tenancy;
@@ -24,7 +25,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class PublicSite
 {
-    public function __construct(private readonly PublicPageData $data) {}
+    public function __construct(private readonly PublicPageData $data, private readonly Shipping $shipping) {}
 
     /** Host lookups are cached briefly; Domain / Tenant model events clear them on every change. */
     public const CACHE_SECONDS = 60;
@@ -163,6 +164,7 @@ final class PublicSite
             'media' => (object) $this->data->media($content),
             'seo' => $this->seo($page, $identity, $primaryHost),
             'tracking' => $this->tracking($page, $identity),
+            'shipping' => $this->shipping->publicConfig(),
         ];
     }
 

@@ -45,4 +45,7 @@ export type OrderFormState = {
   touch: () => void;
   disabled: boolean;
   disabledReason: string | null;
+  /** Governorates the store does not deliver to (shown disabled). */
+  unavailableGovernorates: string[];
+  shippingEnabled: boolean;
 };

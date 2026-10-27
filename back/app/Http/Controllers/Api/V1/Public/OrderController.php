@@ -48,7 +48,7 @@ final class OrderController extends Controller
             }
 
             // The product always comes from the page, never from the visitor.
-            return $calculator->quote($product, (int) $data['quantity'], (array) ($data['options'] ?? []), now(), $data['code'] ?? null, $phones->normalize($data['phone'] ?? null));
+            return $calculator->quote($product, (int) $data['quantity'], (array) ($data['options'] ?? []), now(), $data['code'] ?? null, $phones->normalize($data['phone'] ?? null), governorate: $data['governorate'] ?? null);
         });
 
         return $this->ok($quote->toArray());

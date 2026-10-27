@@ -73,6 +73,7 @@ export default async function PublicSitePage({ params }: { params: Params }) {
     page: { id: data.page.id, slug: data.page.slug, title: data.page.title },
     media: data.media ?? {},
     conversionEvent: tracking.conversion_event,
+    shipping: data.shipping,
   };
   const jsonLd = productJsonLd(data);
 

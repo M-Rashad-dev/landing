@@ -31,6 +31,7 @@ export type PublicPagePayload = {
   media: PageContext["media"];
   seo: PublicSeo;
   tracking: Tracking;
+  shipping?: PageContext["shipping"];
 };
 
 /** GET /public/sitemap */

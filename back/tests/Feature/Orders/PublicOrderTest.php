@@ -11,6 +11,8 @@ use App\Models\LandingPage;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ShippingRate;
+use App\Models\ShippingSetting;
 use App\Models\Tenant;
 use App\Services\FormToken;
 use Database\Factories\LandingPageFactory;
@@ -331,4 +333,40 @@ it('returns the same order for a repeated idempotency key', function () {
 
 it('accepts only a valid client IP', function () {
     placeOrder(['ip' => 'not-an-ip'])->assertStatus(422)->assertJsonValidationErrors(['ip']);
+});
+
+it('adds the delivery fee for the governorate, free above the threshold, and refuses closed governorates', function () {
+    asTenant($this->tenant, function () {
+        ShippingSetting::query()->create(['enabled' => true, 'default_fee' => '50.00', 'free_over' => '1000.00']);
+        ShippingRate::query()->create(['governorate' => 'أسوان', 'fee' => '90.00', 'is_available' => true]);
+        ShippingRate::query()->create(['governorate' => 'شمال سيناء', 'fee' => null, 'is_available' => false]);
+    });
+    $quote = fn (array $extra) => $this->postJson('/api/v1/public/quote', array_merge(['host' => SHOP, 'slug' => 'offer', 'quantity' => 1, 'options' => optionValue('M')], $extra), internalHeaders());
+
+    // Not chosen yet → no fee in the total; default; custom; free over 1000; closed.
+    $quote([])->assertOk()->assertJsonPath('data.shipping', null)->assertJsonPath('data.total', 300);
+    $quote(['governorate' => 'القاهرة'])->assertJsonPath('data.shipping', 50)->assertJsonPath('data.items_total', 300)->assertJsonPath('data.total', 350);
+    $quote(['governorate' => 'أسوان'])->assertJsonPath('data.shipping', 90)->assertJsonPath('data.total', 390);
+    $quote(['governorate' => 'أسوان', 'quantity' => 4])->assertJsonPath('data.shipping', 0)->assertJsonPath('data.shipping_free', true)->assertJsonPath('data.total', 1200);
+    $quote(['governorate' => 'شمال سيناء'])->assertJsonPath('data.shipping_available', false);
+
+    // The order stores the fee inside the total.
+    placeOrder(['quantity' => 1, 'options' => optionValue('M'), 'customer' => ['governorate' => 'أسوان']])->assertCreated()->assertJsonPath('data.total', 390);
+    $order = asTenant($this->tenant, fn () => Order::query()->latest('id')->first());
+    expect((string) $order->shipping_fee)->toBe('90.00')->and((string) $order->total)->toBe('390.00');
+
+    placeOrder(['customer' => ['phone' => '01022223333', 'governorate' => 'شمال سيناء'], 'ip' => '41.9.9.1'])->assertStatus(422)->assertJsonValidationErrors(['customer.governorate']);
+
+    // The public page tells the form the fees.
+    $this->getJson('/api/v1/public/pages?host='.SHOP.'&slug=offer', internalHeaders())
+        ->assertJsonPath('data.shipping.enabled', true)
+        ->assertJsonPath('data.shipping.fees.أسوان', 90)
+        ->assertJsonPath('data.shipping.unavailable', ['شمال سيناء'])
+        ->assertJsonPath('data.shipping.free_over', 1000);
+});
+
+it('charges nothing for delivery while shipping is off', function () {
+    placeOrder()->assertCreated();
+    expect((string) asTenant($this->tenant, fn () => Order::query()->latest('id')->value('shipping_fee')))->toBe('0.00');
+    $this->getJson('/api/v1/public/pages?host='.SHOP.'&slug=offer', internalHeaders())->assertJsonPath('data.shipping', ['enabled' => false]);
 });

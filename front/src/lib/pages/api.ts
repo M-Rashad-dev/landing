@@ -42,6 +42,7 @@ export type PreviewData = {
   product: PageContext["product"];
   offers: PageContext["offers"];
   media: PageContext["media"];
+  shipping?: PageContext["shipping"];
 };
 
 export type Blocker = { code: string; message: string };

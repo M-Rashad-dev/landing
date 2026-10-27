@@ -34,6 +34,7 @@ final class OrderDetailResource extends OrderResource
             'subtotal' => $money($this->subtotal),
             'offer' => $this->offer_name === null ? null : ['id' => $this->offer_id, 'name' => $this->offer_name, 'discount' => $money($this->offer_discount)],
             'code' => $this->discount_code === null ? null : ['id' => $this->discount_code_id, 'code' => $this->discount_code, 'discount' => $money($this->code_discount)],
+            'shipping_fee' => $money((string) $this->shipping_fee),
             'items' => $this->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,

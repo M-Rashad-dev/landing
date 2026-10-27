@@ -92,11 +92,12 @@ final class CreateOrder
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
 
         // 6. Quote again (an invalid code fails the order on the "code" field).
-        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false);
+        $governorate = $customer['governorate'] ?? null;
+        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate);
 
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId) {
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate) {
             // 7. Lock the code row and re-check its limits.
-            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true);
+            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate);
 
             // 8. Sequential number per tenant.
             $number = $this->nextNumber($tenantId);
@@ -134,6 +135,7 @@ final class CreateOrder
                 'discount_code_id' => $quote->code?->id,
                 'discount_code' => $quote->code?->code,
                 'code_discount' => Money::toDecimal($quote->codeDiscount),
+                'shipping_fee' => Money::toDecimal($quote->shipping ?? 0),
                 'total' => Money::toDecimal($quote->total),
                 'currency' => 'EGP',
                 'is_duplicate_suspect' => $duplicate,
@@ -185,9 +187,13 @@ final class CreateOrder
      *
      * @throws ValidationException
      */
-    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock): Quote
+    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate): Quote
     {
-        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock);
+        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate);
+
+        if (! $quote->shippingAvailable) {
+            throw ValidationException::withMessages(['customer.governorate' => [__('orders.shipping_unavailable')]]);
+        }
 
         if ($code !== null && $quote->codeError !== null) {
             throw ValidationException::withMessages(['code' => [$quote->codeError]]);

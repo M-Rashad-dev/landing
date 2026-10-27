@@ -116,6 +116,7 @@ export function OrderDetails({ id }: { id: number }) {
               <Row label={t.subtotal} value={formatPrice(order.subtotal)} />
               {order.offer ? <Row label={t.offerDiscount(order.offer.name)} value={`− ${formatPrice(order.offer.discount)}`} className="text-success" /> : null}
               {order.code ? <Row label={t.codeDiscount(order.code.code)} value={`− ${formatPrice(order.code.discount)}`} className="text-success" /> : null}
+              {order.shipping_fee > 0 ? <Row label={t.invoice.shipping} value={formatPrice(order.shipping_fee)} /> : null}
               <div className="mt-1 flex items-center justify-between border-t pt-3 text-base font-extrabold">
                 <dt>{t.total}</dt>
                 <dd>{formatPrice(order.total)}</dd>

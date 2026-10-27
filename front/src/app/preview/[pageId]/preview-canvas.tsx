@@ -78,8 +78,9 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
       offers: initial.offers,
       page: initial.page,
       media,
+      shipping: initial.shipping,
     }),
-    [host, initial.identity, content.design, initial.product, initial.offers, initial.page, media],
+    [host, initial.identity, content.design, initial.product, initial.offers, initial.page, media, initial.shipping],
   );
 
   return (

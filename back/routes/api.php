@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
@@ -86,6 +87,9 @@ Route::prefix('dashboard')
         Route::patch('orders/{order}', [OrderController::class, 'update']);
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
+
+        Route::get('shipping', [ShippingController::class, 'show']);
+        Route::put('shipping', [ShippingController::class, 'update']);
 
         Route::get('domains', [DomainController::class, 'index']);
         Route::put('domains/subdomain', [DomainController::class, 'updateSubdomain']);

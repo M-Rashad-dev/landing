@@ -183,6 +183,7 @@ function Invoice({ order }: { order: OrderDetail }) {
           <Row label={t.subtotal} value={formatPrice(order.subtotal)} />
           {order.offer ? <Row label={t.offer(order.offer.name)} value={`− ${formatPrice(order.offer.discount)}`} /> : null}
           {order.code ? <Row label={t.code(order.code.code)} value={`− ${formatPrice(order.code.discount)}`} /> : null}
+          {order.shipping_fee > 0 ? <Row label={t.shipping} value={formatPrice(order.shipping_fee)} /> : null}
           <div className="mt-2 flex items-center justify-between rounded-lg bg-[#16182b] px-4 py-3 text-white print:[-webkit-print-color-adjust:exact] print:[print-color-adjust:exact]">
             <dt className="text-xs">{t.collect}</dt>
             <dd className="font-display text-xl font-semibold tabular-nums">{formatPrice(order.total)}</dd>

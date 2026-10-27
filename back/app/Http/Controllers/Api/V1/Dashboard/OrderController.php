@@ -220,7 +220,7 @@ final class OrderController extends Controller
         return response()->streamDownload(fn () => Tenancy::runAs($tenantId, function () use ($query): void {
             $out = fopen('php://output', 'wb');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'المحافظة', 'المدينة', 'العنوان', 'المنتج', 'الخيارات', 'الكمية', 'الإجمالي قبل الخصم', 'خصم العرض', 'خصم الكود', 'الإجمالي', 'الكود', 'الملاحظات', 'الصفحة'], escape: '');
+            fputcsv($out, ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'المحافظة', 'المدينة', 'العنوان', 'المنتج', 'الخيارات', 'الكمية', 'الإجمالي قبل الخصم', 'خصم العرض', 'خصم الكود', 'الشحن', 'الإجمالي', 'الكود', 'الملاحظات', 'الصفحة'], escape: '');
 
             $tz = (string) config('landing.display_timezone');
             $query->chunk(500, function ($orders) use ($out, $tz): void {
@@ -243,6 +243,7 @@ final class OrderController extends Controller
                         Money::toDecimal(Money::toCents($order->subtotal)),
                         Money::toDecimal(Money::toCents($order->offer_discount)),
                         Money::toDecimal(Money::toCents($order->code_discount)),
+                        Money::toDecimal(Money::toCents((string) $order->shipping_fee)),
                         Money::toDecimal(Money::toCents($order->total)),
                         (string) $order->discount_code,
                         (string) $order->notes,

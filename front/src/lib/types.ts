@@ -123,6 +123,12 @@ export type Quote = {
   subtotal_after_offer: number;
   code: { code: string; discount: number } | null;
   code_error: string | null;
+  /** Products after discounts (before delivery). */
+  items_total?: number;
+  /** Delivery fee; null = shipping off or no governorate chosen yet. Included in total. */
+  shipping?: number | null;
+  shipping_free?: boolean;
+  shipping_available?: boolean;
   total: number;
   at?: string;
 };

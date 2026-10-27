@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizePhone } from "@/lib/format/phone";
 import { estimateQuote } from "@/lib/price/estimate";
+import { withShipping } from "@/lib/price/shipping";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import type { Quote } from "@/lib/types";
@@ -85,6 +86,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
 
   const requiredChosen = (product?.options ?? []).every((o) => !o.is_required || options[o.id]);
   const phone = typeof values["customer.phone"] === "string" ? normalizePhone(values["customer.phone"] as string) : null;
+  const governorate = typeof values["customer.governorate"] === "string" ? (values["customer.governorate"] as string) : "";
 
   // Live server quote (debounced) whenever what affects the price changes.
   useEffect(() => {
@@ -96,7 +98,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         const response = await fetch("/api/public/quote", {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ slug: ctx.page.slug, quantity, options, code: appliedCode || null, phone }),
+          body: JSON.stringify({ slug: ctx.page.slug, quantity, options, code: appliedCode || null, phone, governorate: governorate || null }),
           signal: controller.signal,
         });
         const json = (await response.json().catch(() => ({}))) as ApiBody;
@@ -111,11 +113,12 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
       controller.abort();
       clearTimeout(timer);
     };
-  }, [live, requiredChosen, ctx.page.slug, quantity, options, appliedCode, phone]);
+  }, [live, requiredChosen, ctx.page.slug, quantity, options, appliedCode, phone, governorate]);
 
   const estimate = useMemo(() => (product ? estimateQuote(product, ctx.offers, quantity, options) : null), [product, ctx.offers, quantity, options]);
   const quoteMatches = serverQuote && serverQuote.quantity === quantity;
-  const quote = quoteMatches ? serverQuote : estimate;
+  // Delivery fee: the server quote has it; the local estimate gets it from the store's fee list.
+  const quote = withShipping(quoteMatches ? serverQuote : estimate, ctx.shipping, governorate);
 
   const touch = useCallback(() => {
     if (touched.current || ctx.isPreview) return;
@@ -271,5 +274,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     touch,
     disabled: Boolean(disabledReason),
     disabledReason,
+    unavailableGovernorates: ctx.shipping?.enabled ? ctx.shipping.unavailable : [],
+    shippingEnabled: Boolean(ctx.shipping?.enabled),
   };
 }

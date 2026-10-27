@@ -14,6 +14,7 @@ import {
   Settings,
   ShoppingBag,
   Tag,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { ar } from "@/messages/ar";
@@ -58,6 +59,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/identities", label: ar.nav.identities, icon: Fingerprint },
       { href: "/dashboard/media", label: ar.nav.media, icon: Images },
+      { href: "/dashboard/shipping", label: ar.nav.shipping, icon: Truck },
       { href: "/dashboard/domains", label: ar.nav.domains, icon: Globe },
     ],
   },
