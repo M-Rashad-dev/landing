@@ -192,7 +192,7 @@ it('exports CSV with BOM, Arabic headers and the filters', function () {
 
     expect(str_starts_with($csv, "\xEF\xBB\xBF"))->toBeTrue()
         ->and($response->headers->get('Content-Type'))->toContain('text/csv')
-        ->and(str_getcsv(substr($lines[0], 3), escape: ''))->toBe(['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'المحافظة', 'المدينة', 'العنوان', 'المنتج', 'الخيارات', 'الكمية', 'الإجمالي قبل الخصم', 'خصم العرض', 'خصم الكود', 'الإجمالي', 'الكود', 'الملاحظات', 'الصفحة'])
+        ->and(str_getcsv(substr($lines[0], 3), escape: ''))->toBe(['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'المحافظة', 'المدينة', 'العنوان', 'المنتج', 'الخيارات', 'الكمية', 'الإجمالي قبل الخصم', 'خصم العرض', 'خصم الكود', 'الشحن', 'الإجمالي', 'الكود', 'الملاحظات', 'الصفحة'])
         ->and($lines)->toHaveCount(2);
 
     $row = str_getcsv($lines[1], escape: '');
@@ -201,8 +201,9 @@ it('exports CSV with BOM, Arabic headers and the filters', function () {
         ->and($row[3])->toBe("'=HYPERLINK(\"x\")")
         ->and($row[8])->toBe('تيشيرت')
         ->and($row[9])->toBe('المقاس: XL')
-        ->and($row[14])->toBe('350.00')
-        ->and($row[17])->toBe('صفحة العرض');
+        ->and($row[14])->toBe('0.00')
+        ->and($row[15])->toBe('350.00')
+        ->and($row[18])->toBe('صفحة العرض');
 });
 
 it('refuses exports above the row limit', function () {
