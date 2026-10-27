@@ -1,0 +1,197 @@
+# Production stack (PLAN section 20). Start with ./deploy/deploy.sh, which builds, migrates and caches.
+# Only Caddy publishes ports (80, 443). Untested on this machine (no Docker) — see PROGRESS.md.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-back-env: &back-env
+  APP_NAME: "منصة اللاندنج"
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY}
+  APP_URL: https://${APP_HOST}
+  APP_LOCALE: ar
+  APP_FALLBACK_LOCALE: ar
+  LOG_CHANNEL: json
+  LOG_LEVEL: info
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${DB_DATABASE}
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: array
+  FILESYSTEM_DISK: public
+  BCRYPT_ROUNDS: "12"
+  PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+  APP_HOST: ${APP_HOST}
+  SERVER_IP: ${SERVER_IP}
+  CNAME_TARGET: cname.${PLATFORM_DOMAIN}
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+  REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+  FRONT_INTERNAL_URL: http://front:3000
+  PUBLIC_SCHEME: https
+  PUBLIC_PORT: ""
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - media:/srv/media:ro
+    depends_on:
+      front:
+        condition: service_healthy
+      back-web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  front:
+    build: ./front
+    image: landing-front
+    restart: unless-stopped
+    environment:
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+      APP_HOST: ${APP_HOST}
+      LARAVEL_INTERNAL_URL: http://back-web
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+      PUBLIC_SCHEME: https
+      PUBLIC_PORT: ""
+    depends_on:
+      back-web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *logging
+
+  back-web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./back/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      back-app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *logging
+
+  back-app:
+    build: ./back
+    image: landing-back
+    restart: unless-stopped
+    environment: *back-env
+    volumes:
+      - media:/var/www/html/storage/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  queue:
+    image: landing-back
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--max-time=3600", "--sleep=1"]
+    environment: *back-env
+    volumes:
+      - media:/var/www/html/storage/app/public
+    depends_on:
+      back-app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'queue:work' > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  scheduler:
+    image: landing-back
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    environment: *back-env
+    depends_on:
+      back-app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'schedule:work' > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+volumes:
+  mysql_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  media:

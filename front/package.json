@@ -12,7 +12,9 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "next build && playwright test",
+    "e2e:run": "playwright test"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

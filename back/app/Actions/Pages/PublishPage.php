@@ -54,7 +54,8 @@ final class PublishPage
             $blockers[] = $this->blocker('order_form_multiple');
         }
 
-        if (! Theme::query()->where('key', $page->theme_key)->where('is_active', true)->exists()) {
+        // A disabled theme only stops new pages from choosing it; pages already on it keep publishing.
+        if (! Theme::query()->where('key', $page->theme_key)->exists()) {
             $blockers[] = $this->blocker('theme_inactive');
         }
 

@@ -10,6 +10,7 @@ use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Jobs\WarmSsl;
 use App\Models\Domain;
+use App\Services\PublicSite;
 use Illuminate\Support\Facades\DB;
 
 /** make-primary, delete and SSL re-check (phase 10, step 10). One primary per tenant. */
@@ -49,6 +50,8 @@ final class ManageDomain
             }
         });
 
+        // The bulk update above fires no model event; drop the cached primary host explicitly.
+        PublicSite::forget([$host], $domain->tenant_id);
         RevalidateTenantHosts::dispatch($domain->tenant_id, [$host]);
     }
 

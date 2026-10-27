@@ -65,10 +65,12 @@ final class OrderFilters
         }
 
         match ((string) $request->query('sort', 'latest')) {
-            'oldest' => $query->orderBy('id'),
-            'total_desc' => $query->orderByDesc('total')->orderByDesc('id'),
-            'total_asc' => $query->orderBy('total')->orderByDesc('id'),
-            default => $query->orderByDesc('id'),
+            // order_number is the per-tenant sequence: (tenant_id, order_number…) indexes serve these
+            // sorts directly, where `id` let MariaDB walk other tenants' rows (see DECISIONS, phase 11).
+            'oldest' => $query->orderBy('order_number'),
+            'total_desc' => $query->orderByDesc('total')->orderByDesc('order_number'),
+            'total_asc' => $query->orderBy('total')->orderByDesc('order_number'),
+            default => $query->orderByDesc('order_number'),
         };
 
         return $query;

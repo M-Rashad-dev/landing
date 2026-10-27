@@ -11,10 +11,12 @@ use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
+use App\Models\Tenant;
 use App\Support\PlainText;
 use App\Support\TrackingIds;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Host → tenant → published page, for the visitor-facing API.
@@ -24,6 +26,9 @@ final class PublicSite
 {
     public function __construct(private readonly PublicPageData $data) {}
 
+    /** Host lookups are cached briefly; Domain / Tenant model events clear them on every change. */
+    public const CACHE_SECONDS = 60;
+
     public function domain(string $host): ?Domain
     {
         $host = mb_strtolower(trim($host));
@@ -32,12 +37,51 @@ final class PublicSite
             return null;
         }
 
-        // Audited bypass: the tenant is unknown until the host is resolved.
-        return Tenancy::withoutTenant(fn () => Domain::query()
-            ->with('tenant')
-            ->where('active_host', $host)
-            ->where('status', DomainStatus::Active)
-            ->first());
+        // Plain arrays in the cache (object unserialization is disabled); unknown hosts are cached too.
+        $row = Cache::remember(self::hostKey($host), self::CACHE_SECONDS, function () use ($host): array {
+            // Audited bypass: the tenant is unknown until the host is resolved.
+            $domain = Tenancy::withoutTenant(fn () => Domain::query()
+                ->with('tenant')
+                ->where('active_host', $host)
+                ->where('status', DomainStatus::Active)
+                ->first());
+
+            return $domain === null ? [] : ['domain' => $domain->getAttributes(), 'tenant' => $domain->tenant?->getAttributes()];
+        });
+
+        if ($row === []) {
+            return null;
+        }
+
+        $domain = (new Domain)->newFromBuilder($row['domain']);
+        $domain->setRelation('tenant', $row['tenant'] === null ? null : (new Tenant)->newFromBuilder($row['tenant']));
+
+        return $domain;
+    }
+
+    public static function hostKey(string $host): string
+    {
+        return 'site:host:'.mb_strtolower($host);
+    }
+
+    public static function primaryKey(int $tenantId): string
+    {
+        return 'site:primary:'.$tenantId;
+    }
+
+    /**
+     * Drops cached lookups for some hosts and for the tenant's primary host.
+     *
+     * @param  array<int, string|null>  $hosts
+     */
+    public static function forget(array $hosts, ?int $tenantId = null): void
+    {
+        foreach (array_unique(array_filter($hosts)) as $host) {
+            Cache::forget(self::hostKey((string) $host));
+        }
+        if ($tenantId !== null) {
+            Cache::forget(self::primaryKey($tenantId));
+        }
     }
 
     /** Active domain of an active tenant, or a 404 (suspended tenants serve nothing). */
@@ -60,12 +104,16 @@ final class PublicSite
 
     public function primaryHost(int $tenantId): ?string
     {
-        // Audited bypass: explicitly filtered to this tenant's id.
-        return Tenancy::withoutTenant(fn () => Domain::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', DomainStatus::Active)
-            ->where('is_primary', true)
-            ->value('host'));
+        $host = Cache::remember(self::primaryKey($tenantId), self::CACHE_SECONDS, fn (): string => (string) Tenancy::withoutTenant(
+            // Audited bypass: explicitly filtered to this tenant's id.
+            fn () => Domain::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', DomainStatus::Active)
+                ->where('is_primary', true)
+                ->value('host'),
+        ));
+
+        return $host === '' ? null : $host;
     }
 
     /** Published pages of the current tenant. @return Builder<LandingPage> */
@@ -84,7 +132,8 @@ final class PublicSite
     {
         $query = $this->publishedPages()->with(['identity.logo', 'identity.favicon', 'identity.ogImage', 'product']);
 
-        return $slug === '' ? $query->where('is_home', true)->first() : $query->where('slug', $slug)->first();
+        // home_key = 1 mirrors is_home and hits the unique (tenant_id, home_key) index.
+        return $slug === '' ? $query->where('home_key', 1)->first() : $query->where('slug', $slug)->first();
     }
 
     /** @return array<string, mixed> */

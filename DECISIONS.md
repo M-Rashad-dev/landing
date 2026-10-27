@@ -127,3 +127,18 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **Re-checking a failed domain** happens only on «تحقق الآن» (the scheduler skips failed ones); success activates it like a pending one.
 - **Page links use the session's public origin** (`PUBLIC_SCHEME` / `PUBLIC_PORT` read on the server in `getSession`) instead of guessing https vs http from the host, so custom domains link correctly in development too.
 - **Local custom-domain testing uses `*.localtest.me`** (public DNS → 127.0.0.1) instead of a mock resolver in the running app; the test suite swaps `DnsResolver` for fixed answers.
+
+## Phase 11
+- **Order lists sort by `order_number`, not `id`.** ANALYZE on 78k orders / 20 tenants: `where tenant_id = ? order by id desc limit 20` made MariaDB walk the primary key backwards through other tenants' rows (38k rows read for a tenant whose orders are old; search read the whole table). `order_number` is the per-tenant sequence (same order as `id` inside a tenant), so `(tenant_id, order_number)` serves the default list and the new `(tenant_id, status | landing_page_id | is_duplicate_suspect, order_number)` indexes serve the filters: every list reads 20 rows, search reads at most the tenant's own orders. The home page is looked up by `home_key = 1` (unique index) instead of `is_home`.
+- **Host lookups cached 60 s** (plan section 21) as plain attribute arrays (object unserialization is disabled in `config/cache.php`). Domain `saved` / `deleted` and Tenant `saved` events clear the affected hosts and the primary-host entry, so renames, new primaries and suspensions show at once; the one bulk update (primary falling back on delete) clears explicitly.
+- **A disabled theme keeps working for pages already on it** (save and republish allowed); it only disappears from new pages and theme switches, as the plan says. Before, republishing such a page was blocked.
+- **Super admin endpoints take numeric tenant ids** (not route-model binding), because tenant-scoped relations are loaded inside `Tenancy::withoutTenant()`; the class carries the audit comment.
+- **Password reset** returns a 12-character password (letters, numbers, symbols) once; it is never stored in the audit log, and every token of that owner is deleted.
+- **Form token limit** (30 / min / IP): Next now forwards the visitor IP on the GET as well; before, form tokens shared the per-host read limit.
+- **Logs**: production uses a `json` channel (stderr, Monolog JsonFormatter) with a `RedactSecrets` processor that blanks values of keys like password / token / secret / key / authorization / cookie / session.
+- **Demo data** is built through the real actions (register, product, offer, code, pages, publish, orders through `CreateOrder`, statuses through `ChangeOrderStatus`) so it obeys every rule; it refuses production and is idempotent.
+- **E2E runs on its own stack** (`landing_e2e`, Laravel :8011, Next :3100, sync queue): the database is created and migrated by the Laravel web-server command itself, so it is ready before Playwright's readiness probe.
+- **Docker**: one back image for back-app / queue / scheduler; an entrypoint runs `php artisan optimize` in each container at start (each has its own filesystem), so config / route / event caches always match the runtime env. nginx only forwards to `public/index.php`; nothing else can execute.
+- **APP_KEY** is generated with `openssl` (no need to build an image first); `deploy.sh` refuses placeholder passwords, `SERVER_IP=0.0.0.0` and short shared secrets.
+- **Lighthouse** could not be installed here; the metrics it scores (LCP, CLS, long tasks) were measured with the same Chromium under Lighthouse's mobile throttling instead (PROGRESS, final checklist).
+

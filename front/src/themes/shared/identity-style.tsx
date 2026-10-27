@@ -6,11 +6,12 @@ import type { PublicIdentity } from "@/themes/types";
  * Applies the identity as CSS variables (--c-*, --font-heading, --font-body, --btn-radius)
  * plus page background/text/font. Themes only read these variables.
  */
-export function IdentityStyle({ identity, children, className }: { identity: PublicIdentity; children: ReactNode; className?: string }) {
+export function IdentityStyle({ identity, children, className, themeKey }: { identity: PublicIdentity; children: ReactNode; className?: string; themeKey?: string }) {
   const vars = identityCssVars(identity) as CSSProperties;
   return (
     <div
       className={className}
+      data-theme={themeKey}
       style={{
         ...vars,
         background: "var(--c-bg)",

@@ -1,5 +1,8 @@
 import {
   BadgePercent,
+  Building2,
+  LayoutDashboard,
+  Palette,
   FileText,
   Fingerprint,
   Globe,
@@ -31,3 +34,9 @@ export const DASHBOARD_NAV: NavItem[] = [
 export function isActive(pathname: string, item: Pick<NavItem, "href" | "exact">): boolean {
   return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
+
+export const ADMIN_NAV: NavItem[] = [
+  { href: "/admin", label: ar.admin.nav.overview, icon: LayoutDashboard, exact: true },
+  { href: "/admin/tenants", label: ar.admin.nav.tenants, icon: Building2 },
+  { href: "/admin/themes", label: ar.admin.nav.themes, icon: Palette },
+];

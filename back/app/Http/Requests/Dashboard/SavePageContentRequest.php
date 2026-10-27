@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Dashboard;
 
 use App\Http\Requests\ApiRequest;
+use App\Models\LandingPage;
 use Illuminate\Validation\Rule;
 
 final class SavePageContentRequest extends ApiRequest
@@ -12,9 +13,16 @@ final class SavePageContentRequest extends ApiRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        /** @var LandingPage|null $page */
+        $page = $this->route('page');
+        $current = $page?->theme_key;
+
         return [
             'version' => ['required', 'integer', 'min:1'],
-            'theme_key' => ['nullable', 'string', Rule::exists('themes', 'key')->where('is_active', true)],
+            // Switching needs an active theme; a page already on a disabled theme keeps saving.
+            'theme_key' => $this->input('theme_key') !== null && $this->input('theme_key') === $current
+                ? ['string']
+                : ['nullable', 'string', Rule::exists('themes', 'key')->where('is_active', true)],
             'content' => ['required', 'array'],
         ];
     }

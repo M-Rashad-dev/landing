@@ -129,18 +129,29 @@ it('reports every publish blocker at once', function () {
     expect($codes)->toBe(['no_product', 'order_form_missing', 'no_visible_sections']);
 });
 
-it('blocks publishing with an inactive product, two forms or an inactive theme', function () {
+it('blocks publishing with an inactive product or two forms', function () {
     $page = createPage();
     $this->product->update(['is_active' => false]);
     $content = starter();
     $content['sections'][] = LandingPageFactory::section('order_form');
     DB::table('landing_pages')->where('id', $page['id'])->update(['draft_content' => json_encode($content)]);
-    Theme::query()->where('key', 'malak')->update(['is_active' => false]);
 
     $codes = collect($this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertStatus(422)->json('blockers'))->pluck('code')->all();
 
-    expect($codes)->toContain('product_inactive', 'theme_inactive')
+    expect($codes)->toContain('product_inactive')
         ->and(array_intersect($codes, ['order_form_multiple', 'content_invalid']))->not->toBe([]);
+});
+
+it('keeps pages on a disabled theme working but refuses it for new pages and switches', function () {
+    $page = createPage(['theme_key' => 'celia']);
+    Theme::query()->where('key', 'celia')->update(['is_active' => false]);
+
+    $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => 1, 'content' => starter(), 'theme_key' => 'celia'])->assertOk();
+    $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();
+
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'جديدة', 'slug' => 'new-one', 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors(['theme_key']);
+    $other = createPage(['slug' => 'other']);
+    $this->putJson("/api/v1/dashboard/pages/{$other['id']}/content", ['version' => 1, 'content' => starter(), 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors(['theme_key']);
 });
 
 it('does not count a hidden order form', function () {

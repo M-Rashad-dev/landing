@@ -30,9 +30,15 @@ php artisan key:generate
 openssl rand -hex 32            # → INTERNAL_API_KEY (same value in front/.env.local)
 openssl rand -hex 32            # → REVALIDATE_SECRET (same value in front/.env.local)
 php artisan migrate --seed
+php artisan platform:demo       # optional: demo store, pages, 24 orders + a super admin (not in production)
 php artisan serve --port=8010
 php artisan queue:work          # in another terminal (revalidation jobs)
+php artisan schedule:work       # optional: re-checks pending custom domains every 5 minutes
 ```
+
+`platform:demo` prints the logins: store owner `demo@example.com` and super admin `admin@example.com`
+(password `demo-pass-123`, development only). A real super admin is created with
+`php artisan platform:create-admin` (interactive, the password is never echoed).
 
 Tests run against the `landing_test` database (see `phpunit.xml`):
 
@@ -49,7 +55,12 @@ cp .env.example .env.local      # LARAVEL_INTERNAL_URL=http://127.0.0.1:8010 + t
 pnpm install
 pnpm dev                        # http://app.localhost:3000
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm e2e                        # builds, then Playwright on its own stack (Laravel :8011 + Next :3100, DB landing_e2e)
 ```
+
+`pnpm e2e` runs the six end-to-end scenarios (register/login/logout, product + identity, build and publish a page,
+order from the public page, the order in the dashboard + status change, theme switch). It recreates the
+`landing_e2e` database each run and never touches the dev data; stop the dev servers first (both use `.next`).
 
 Local hosts (no hosts-file edits needed, `*.localhost` resolves to 127.0.0.1):
 
@@ -71,6 +82,9 @@ bash scripts/smoke-pages.sh
 bash scripts/smoke-public.sh    # publishes a page and visits http://{sub}.localhost:3000
 bash scripts/smoke-orders.sh    # orders through the public site, statuses, block, code race, CSV
 bash scripts/smoke-domains.sh   # custom domain via real DNS (*.localtest.me), primary redirect, race, TLS ask
+bash scripts/smoke-admin.sh     # super admin: suspend → site + dashboard stop, activate, reset password (needs platform:demo)
+node scripts/load-test.mjs      # 50 concurrent visitors × 10 rounds + 10 orders/s for 10 s (no errors, unique numbers)
+node front/scripts/perf-check.mjs http://{sub}.localhost:3000/   # throttled phone metrics (LCP, CLS, long tasks)
 bash scripts/measure-public-js.sh http://{sub}.localhost:3000/   # gzipped JS of a public page
 ```
 
@@ -92,6 +106,20 @@ activates the domain and warms its certificate. Caddy issues certificates on dem
 `GET /internal/tls/ask?domain=` approves (platform hosts + active domains of active tenants). Locally, any
 `*.localtest.me` name resolves to 127.0.0.1, so it verifies against `SERVER_IP=127.0.0.1` and opens at
 `http://{name}.localtest.me:3000`. Production steps: [deploy/DEPLOY.md](deploy/DEPLOY.md).
+
+## Super admin
+
+`/admin` on the dashboard host (same login; super admins are redirected there): platform counts, tenants with
+search and status filter, tenant details with domains, suspend (with a reason) / activate, owner password reset
+(a 12-character temporary password shown once; every session of that owner ends), and themes on/off (a disabled
+theme only disappears from new pages). Every admin action is written to `admin_audit_logs`.
+
+## Production
+
+`docker-compose.yml` + `deploy/`: Caddy (automatic HTTPS, on-demand certificates for custom domains), Next
+(standalone), nginx + php-fpm, queue, scheduler, MySQL 8, Redis. Follow [deploy/DEPLOY.md](deploy/DEPLOY.md)
+(Arabic, step by step): fill `.env` from `.env.example`, run `./deploy/deploy.sh`, then `platform:create-admin`.
+Backups: `deploy/backup.sh` (daily cron) and `deploy/restore.sh`. Architecture notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Themes
 

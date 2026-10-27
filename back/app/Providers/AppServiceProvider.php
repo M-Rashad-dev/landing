@@ -48,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Visitor endpoints: Next forwards the visitor's IP in the body (trusted: internal key only).
         $visitor = fn (Request $request): string => (string) ($request->input('ip') ?: $request->ip());
+        RateLimiter::for('public-form-token', fn (Request $request) => Limit::perMinute(30)->by('public-form-token:'.$visitor($request)));
         RateLimiter::for('public-quote', fn (Request $request) => Limit::perMinute(60)->by('public-quote:'.$visitor($request)));
         // Loose guard on attempts; the real 5-per-10-min / 3-per-phone limits count orders (CreateOrder).
         RateLimiter::for('public-order-attempts', fn (Request $request) => Limit::perMinute(20)->by('public-order:'.$visitor($request)));

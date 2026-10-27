@@ -12,7 +12,7 @@
 | 8 | Public rendering, SEO, tracking | ✅ Done |
 | 9 | Orders & management | ✅ Done |
 | 10 | Custom domains & SSL | ✅ Done |
-| 11 | Super admin & final hardening | ⏳ Next |
+| 11 | Super admin & final hardening | ✅ Done |
 
 ---
 
@@ -133,3 +133,51 @@
 - `scripts/smoke-domains.sh`, **real DNS, no mocks** (`*.localtest.me` → 127.0.0.1 = local `SERVER_IP`): connect `d{stamp}.localtest.me` → active at once → redirects to the subdomain while not primary → make primary → page served on the custom domain with its canonical, old subdomain 308 → custom domain → TLS ask (custom / subdomain / platform 200, unknown 404) → two accounts add the same host concurrently → exactly one owns it → rename subdomain (old name 404) → delete the primary custom domain → subdomain primary again, custom host 404 → OK. `smoke-orders`, `smoke-public`, `smoke-pages` still OK. `domains:verify-pending` listed in `schedule:list` and run by hand. Locally `WarmSsl` marks a domain issued over plain http (reachability only).
 - Screenshots of `/dashboard/domains` and every wizard step at 1280 px and 390 px: no horizontal overflow.
 - Not tested: real certificates from Let's Encrypt through Caddy (needs the VPS; steps in `deploy/DEPLOY.md`).
+
+## Phase 11 — Super admin & final hardening ✅
+
+**Super admin**: `platform:create-admin` (interactive, password not echoed, refuses duplicates); `/api/v1/admin/*` (overview, tenants with search + status filter and page / order counts, tenant details with domains, suspend with a reason → tokens revoked + sites revalidated, activate, owner password reset → 12 characters shown once + sessions ended, themes on/off) behind `EnsureSuperAdmin`; every action in `admin_audit_logs` (who, what, target, IP). Front `/admin` (same login, redirect by role): overview cards, tenants table + mobile cards, tenant page (suspend dialog with reason, activate, reset dialog with copy + warning), themes with switches. A disabled theme no longer blocks pages already on it (save + republish); it only disappears for new pages and switches.
+
+**Hardening**: limits checked against section 21 (new: form token 30 / min per visitor IP); review of every `withoutTenant` (all commented, all tested), plain `exists:` / `unique:` (only on platform tables: users, themes), `$guarded` → explicit `$fillable` on Order, raw SQL (no user input), `dangerouslySetInnerHTML` (JSON-LD escaped, font CSS from a whitelist); EXPLAIN / ANALYZE on 78k orders → order lists sort by `order_number` with new `(tenant_id, status|landing_page_id|is_duplicate_suspect, order_number)` indexes, home page by `home_key`; host and primary-host lookups cached 60 s with model-event invalidation; Arabic `error.tsx` / `not-found.tsx` / `global-error.tsx` for the dashboard, admin, builder, public sites and the root; `json` log channel (stderr, Monolog JSON, secrets redacted); `DemoSeeder` + `platform:demo` (refuses production); no TODO / console.log / dd.
+
+**Tests**: full API flow test (register → identity → product with options → offer + code → page → publish → resolve → quote → order → statuses → export); Playwright E2E (`pnpm e2e`, isolated `landing_e2e` + ports 8011 / 3100); `scripts/load-test.mjs`; `scripts/smoke-admin.sh`.
+
+**Deploy** (written, **untested**: no Docker on this machine): `docker-compose.yml` (8 services, only Caddy publishes 80/443, health checks, json-file logs 10m × 3, `service_healthy` dependencies), `back/Dockerfile` (composer `--no-dev` → php 8.3-fpm-alpine with gd/intl/bcmath/pdo_mysql/opcache/pcntl/zip/redis, non-root, entrypoint caching config / routes / events in every container), `back/docker/{nginx.conf,php.ini,www.conf}`, `front/Dockerfile` (standalone, non-root, env read at runtime), root `.env.example`, `deploy/deploy.sh` / `backup.sh` / `restore.sh`, full Arabic `deploy/DEPLOY.md`, `docs/ARCHITECTURE.md`.
+
+**Checks**
+- `composer test` → **477 passed** (2009 assertions) · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → **269 passed** · `pnpm build` ✓
+- `pnpm e2e` → **6 / 6 passed** (36 s)
+- Smoke: auth, media, products, pricing, pages, public, orders, domains, admin → all OK
+- Load test: 50 concurrent visitors × 10 rounds = 500 page views, 0 errors (316 req/s, p95 436 ms); 100 orders at 10 / s → 100 × 201, numbers 1001–1100 unique (p95 85 ms)
+- `composer audit` → no advisories (3 abandoned packages, all from dev-only `laravel-lang/common`, not in the production image) · `pnpm audit` → no known vulnerabilities
+- Screenshots of `/admin`, tenants, tenant details and themes at 1280 px and 390 px: no horizontal overflow
+
+## Final checklist (PLAN section 22)
+
+**Features**
+- ✅ Register → random active subdomain + default identity (`smoke-auth`, `RegisterTest`, E2E 1).
+- ✅ Upload images, two identities, product with options, offer, discount code (`smoke-media`, `smoke-products`, `smoke-pricing`, E2E 2, full-flow test).
+- ✅ Page built in both themes, switching without losing content, published (`smoke-pages`, theme parity tests, E2E 3 + 6).
+- ✅ Published page on the subdomain with SEO, JSON-LD and only valid tracking codes (`smoke-public`, `PublicSiteTest`).
+- ✅ Order with options, quantity and code; same numbers in the dashboard (`smoke-orders`, full-flow test, E2E 4–5).
+- ✅ Every order status and transition, blocking, code release, export, in-dashboard notification (`OrderManagementTest`, `smoke-orders`; badge / chime covered by phase 9 tests).
+- ✅ Custom domain (real DNS through `*.localtest.me`, no mocks) and redirect to the primary (`smoke-domains`, `DomainTest`).
+- ✅ Super admin: create, suspend / activate, reset password, theme on/off (`AdminTest`, `smoke-admin`).
+
+**Quality and security**
+- ✅ Back, front and E2E tests green; lint, typecheck and build green.
+- ✅ Tenant isolation covers every dashboard resource (`TenantIsolationTest`, incl. orders, blocked customers, domains).
+- ✅ No plain `exists:` / `unique:` on tenant tables; every `withoutTenant` commented and tested.
+- ✅ No TODO, mock, console.log or dd() in code (grep).
+- ✅ `composer audit` / `pnpm audit`: no high (or any) vulnerabilities.
+- ✅ No secrets in the repository (`.env` files ignored; secrets generated locally under ignored `tools/`); root and app `.env.example` complete.
+- ⚠️ Lighthouse mobile ≥ 90 on both themes: **not measured** — installing the Lighthouse CLI was not allowed in this environment. Measured instead with the same Chromium under Lighthouse's mobile conditions (Pixel 7, slow 4G 150 ms / 1.6 Mbps, 4× CPU, median of 3, `front/scripts/perf-check.mjs`): Malak LCP 1.21 s, CLS 0.001, long-task time 162 ms; Celia LCP 1.26 s, CLS 0.000, long-task time 131 ms (targets: LCP < 2.5 s, CLS < 0.1, TBT < 200 ms). Run Lighthouse on the server after deploying to record the score.
+
+**Deploy**
+- ⚠️ `docker compose build` for every image: **not run** (no Docker on this machine).
+- ⚠️ `deploy.sh` from scratch on a clean machine: **not run**; scripts pass `bash -n`, compose file parses and only Caddy publishes ports.
+- ⚠️ `backup.sh` / `restore.sh`: **not run** (need the Docker stack).
+- ✅ `DEPLOY.md` covers every step (requirements, server, DNS, `.env`, deploy, admin, checks, custom domain, update / rollback, backup / restore / monitoring, troubleshooting, Let's Encrypt limits).
+
+First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt staging enabled, run `./deploy/deploy.sh`, then `./deploy/backup.sh` and a `restore.sh` on a copy, and record the results here.

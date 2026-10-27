@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\DomainStatus;
 use App\Enums\TenantStatus;
+use App\Services\PublicSite;
 use App\Tenancy\Tenancy;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +37,12 @@ class Tenant extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Cached host lookups carry the tenant status (suspended sites must stop at once).
+        static::saved(fn (Tenant $tenant) => PublicSite::forget($tenant->activeHosts(), $tenant->id));
+    }
+
     public function isActive(): bool
     {
         return $this->status === TenantStatus::Active;
@@ -56,6 +63,22 @@ class Tenant extends Model
     public function domains(): HasMany
     {
         return $this->hasMany(Domain::class);
+    }
+
+    /**
+     * Tenant-scoped like domains(); counted by the super admin inside Tenancy::withoutTenant().
+     *
+     * @return HasMany<LandingPage, $this>
+     */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(LandingPage::class);
+    }
+
+    /** @return HasMany<Order, $this> */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 
     /** @return HasOne<Domain, $this> */

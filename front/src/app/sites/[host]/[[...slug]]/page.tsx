@@ -75,7 +75,7 @@ export default async function PublicSitePage({ params }: { params: Params }) {
   return (
     <>
       <IdentityFonts heading={data.identity.font_heading} body={data.identity.font_body} />
-      <IdentityStyle identity={data.identity} className="min-h-dvh">
+      <IdentityStyle identity={data.identity} themeKey={data.theme_key} className="min-h-dvh">
         <SiteRenderer themeKey={data.theme_key} sections={data.content.sections} ctx={ctx} />
       </IdentityStyle>
       {jsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} /> : null}

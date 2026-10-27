@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
+use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
@@ -103,13 +106,20 @@ Route::prefix('public')
             Route::get('pages', [SiteController::class, 'page']);
             Route::get('sitemap', [SiteController::class, 'sitemap']);
         });
-        Route::get('form-token', [PublicOrderController::class, 'formToken'])->middleware('throttle:public-read');
+        Route::get('form-token', [PublicOrderController::class, 'formToken'])->middleware('throttle:public-form-token');
         Route::post('quote', [PublicOrderController::class, 'quote'])->middleware('throttle:public-quote');
         Route::post('orders', [PublicOrderController::class, 'store'])->middleware('throttle:public-order-attempts');
     });
 
 Route::prefix('admin')
-    ->middleware(['auth:sanctum', 'super.admin'])
+    ->middleware(['auth:sanctum', 'super.admin', 'throttle:dashboard'])
     ->group(function (): void {
-        // Phase 11: overview, tenants, themes.
+        Route::get('overview', AdminOverviewController::class);
+        Route::get('tenants', [AdminTenantController::class, 'index']);
+        Route::get('tenants/{tenant}', [AdminTenantController::class, 'show'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/activate', [AdminTenantController::class, 'activate'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/reset-password', [AdminTenantController::class, 'resetPassword'])->whereNumber('tenant');
+        Route::get('themes', [AdminThemeController::class, 'index']);
+        Route::patch('themes/{key}', [AdminThemeController::class, 'update']);
     });

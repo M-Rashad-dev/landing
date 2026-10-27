@@ -1,0 +1,157 @@
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * The six scenarios from PLAN phase 11, in order, on one fresh account:
+ * (1) register / logout / login, (2) product + identity, (3) build + publish a page,
+ * (4) order from the public page, (5) the order in the dashboard + status change, (6) switch theme.
+ */
+test.describe.configure({ mode: "serial" });
+
+const stamp = Date.now();
+const account = {
+  name: "تاجر التجربة",
+  email: `e2e${stamp}@example.com`,
+  phone: `010${String(stamp).slice(-8)}`,
+  store: "E2E Store",
+  password: "e2e-pass-1234",
+};
+const product = { name: "مج حراري E2E", price: "275" };
+const pageInfo = { title: "صفحة المج", slug: `mug-${stamp}` };
+let publicUrl = "";
+let builderUrl = "";
+
+async function login(page: Page) {
+  await page.goto("/login");
+  await page.locator("#login").fill(account.email);
+  await page.locator("#password").fill(account.password);
+  await page.getByRole("button", { name: "دخول" }).click();
+  await page.waitForURL("**/dashboard");
+}
+
+test("1. register, log out and log back in", async ({ page }) => {
+  await page.goto("/register");
+  await page.locator("#name").fill(account.name);
+  await page.locator("#email").fill(account.email);
+  await page.locator("#phone").fill(account.phone);
+  await page.locator("#store_name").fill(account.store);
+  await page.locator("#password").fill(account.password);
+  await page.locator("#password_confirmation").fill(account.password);
+  await page.getByRole("button", { name: "إنشاء الحساب" }).click();
+
+  await page.waitForURL("**/dashboard");
+  await expect(page.getByText(account.store).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "حسابي" }).click();
+  await page.getByRole("menuitem", { name: "تسجيل الخروج" }).click();
+  await page.waitForURL("**/login");
+
+  // The dashboard is closed after logout.
+  await page.goto("/dashboard");
+  await page.waitForURL("**/login**");
+
+  await login(page);
+  await expect(page.getByText(account.store).first()).toBeVisible();
+});
+
+test("2. create a product and an identity", async ({ page }) => {
+  await login(page);
+
+  await page.goto("/dashboard/products/new");
+  await page.locator("#product-name").fill(product.name);
+  await page.locator("#product-price").fill(product.price);
+  await page.locator("button[type=submit]").click();
+  await page.waitForURL("**/dashboard/products");
+  await expect(page.getByText(product.name).first()).toBeVisible();
+
+  await page.goto("/dashboard/identities/new");
+  await page.locator("#name").fill("هوية الصيف");
+  await page.locator("#brand_name").fill("براند الصيف");
+  await page.locator("button[type=submit]").click();
+  await page.waitForURL(/\/dashboard\/identities\/\d+$/);
+  await page.goto("/dashboard/identities");
+  await expect(page.getByText("هوية الصيف").first()).toBeVisible();
+});
+
+test("3. build a page from a theme and publish it", async ({ page }) => {
+  await login(page);
+
+  await page.goto("/dashboard/pages/new");
+  await page.getByRole("radio").first().click();
+  await page.locator("#wiz-title").fill(pageInfo.title);
+  await page.locator("#wiz-slug").fill(pageInfo.slug);
+  await page.locator("#wiz-product").selectOption({ label: product.name });
+  await page.getByRole("button", { name: "إنشاء وفتح المحرر" }).click();
+
+  await page.waitForURL(/\/dashboard\/pages\/\d+\/builder/);
+  builderUrl = page.url();
+  await page.getByRole("button", { name: "نشر", exact: true }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("تم نشر الصفحة")).toBeVisible();
+  publicUrl = (await dialog.getByText(new RegExp(`/${pageInfo.slug}$`)).first().textContent())?.trim() ?? "";
+  expect(publicUrl).toMatch(new RegExp(`^http://[a-z0-9-]+\\.localhost:\\d+/${pageInfo.slug}$`));
+});
+
+test("4. order from the published page", async ({ page }) => {
+  await page.goto(publicUrl);
+  await expect(page).toHaveTitle(/.+/);
+  await expect(page.getByText(product.name).first()).toBeVisible();
+
+  await page.getByLabel(/^الاسم/).fill("عميل التجربة");
+  await page.getByLabel(/^رقم الموبايل/).fill("01098765432");
+  await page.getByLabel(/^المحافظة/).selectOption("القاهرة");
+  await page.getByLabel(/^العنوان بالتفصيل/).fill("15 شارع التجربة، مدينة نصر");
+
+  // The anti-bot token needs the form to be open for at least 3 seconds.
+  await page.waitForTimeout(3500);
+  await page.getByRole("button", { name: /تأكيد الطلب/ }).click();
+
+  await expect(page.getByText("رقم طلبك: #1001")).toBeVisible();
+});
+
+test("5. the order shows in the dashboard and changes status", async ({ page }) => {
+  await login(page);
+
+  await page.goto("/dashboard/orders");
+  const row = page.getByText("عميل التجربة").first();
+  await expect(row).toBeVisible();
+  await row.click();
+  await page.waitForURL(/\/dashboard\/orders\/\d+$/);
+  await expect(page.getByText("#1001").first()).toBeVisible();
+  await expect(page.getByText(/275/).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "تحويل إلى «مؤكد»" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "تأكيد", exact: true }).click();
+  await expect(page.getByRole("button", { name: "تحويل إلى «تم التسليم»" })).toBeVisible();
+});
+
+test("6. switch the page theme without losing content", async ({ page }) => {
+  await login(page);
+
+  // The page is listed, and its builder opens with the page settings (theme picker).
+  await page.goto("/dashboard/pages");
+  await expect(page.getByText(pageInfo.title).first()).toBeVisible();
+  await page.goto(builderUrl);
+  await expect(page.locator("#b-theme")).toHaveValue("malak");
+
+  await page.locator("#b-theme").selectOption("celia");
+  await page.getByRole("dialog").getByRole("button", { name: "تبديل" }).click();
+  await expect(page.locator("#b-theme")).toHaveValue("celia");
+  await expect(page.getByText("محفوظ").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "نشر", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText("تم نشر الصفحة")).toBeVisible();
+
+  // Same product and order form on the public page, now rendered by Celia (revalidated on publish).
+  await expect
+    .poll(
+      async () => {
+        await page.goto(publicUrl);
+        return page.locator("[data-theme]").first().getAttribute("data-theme");
+      },
+      { timeout: 30_000 },
+    )
+    .toBe("celia");
+  await expect(page.getByText(product.name).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /تأكيد الطلب/ })).toBeVisible();
+});

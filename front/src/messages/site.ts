@@ -4,6 +4,8 @@
  */
 export const siteMessages = {
   currency: "ج.م",
+  errorTitle: "حصلت مشكلة مؤقتة",
+  errorText: "مقدرناش نعرض الصفحة دلوقتي. جرّب تاني بعد لحظات.",
   rating: (n: number) => `التقييم ${n} من 5`,
   menu: "القائمة",
   closeMenu: "إغلاق القائمة",

@@ -35,14 +35,14 @@ export function DashboardShell({
   return (
     <div className="flex min-h-dvh">
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e bg-card lg:flex">
-        <Brand />
+        <Brand href={nav[0]?.href ?? "/dashboard"} />
         <SidebarNav nav={nav} badges={badges} />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="start" className="p-0">
           <SheetTitle className="sr-only">{ar.common.menu}</SheetTitle>
-          <Brand />
+          <Brand href={nav[0]?.href ?? "/dashboard"} />
           <SidebarNav nav={nav} badges={badges} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
@@ -55,9 +55,9 @@ export function DashboardShell({
   );
 }
 
-function Brand() {
+function Brand({ href }: { href: string }) {
   return (
-    <Link href="/dashboard" className="flex h-16 items-center gap-2 border-b px-5 font-extrabold text-primary">
+    <Link href={href} className="flex h-16 items-center gap-2 border-b px-5 font-extrabold text-primary">
       <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Rocket className="size-4" aria-hidden />
       </span>
@@ -127,7 +127,7 @@ function Topbar({ onOpenMenu, extra }: { onOpenMenu: () => void; extra?: ReactNo
         <Menu />
       </Button>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-bold">{session.tenant?.name ?? ar.app.name}</p>
+        <p className="truncate font-bold">{session.tenant?.name ?? (session.user.role === "super_admin" ? ar.admin.title : ar.app.name)}</p>
       </div>
       {extra}
       {site ? (

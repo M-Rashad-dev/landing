@@ -17,6 +17,9 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 ## Commands
 - back: `composer test` (Pest), `composer lint` (Pint --test)
 - front: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- e2e: `cd front && pnpm e2e` (own stack: DB `landing_e2e`, Laravel :8011, Next :3100; stop the dev servers first, both use `.next`)
+- demo data: `php artisan platform:demo` (owner `demo@example.com`, super admin `admin@example.com`, password `demo-pass-123`; refuses production)
+- deploy files (`docker-compose.yml`, Dockerfiles, `deploy/*`) were never run here (no Docker): treat them as untested
 - custom domains locally: `*.localtest.me` resolves to 127.0.0.1 (= local `SERVER_IP`), so it verifies through real DNS; tests swap `DnsResolver` (see `fakeDns()` in `tests/Feature/Domains`)
 - smoke: `bash scripts/smoke-*.sh` (needs both apps + queue running: `bash tools/start-dev.sh`; run `php artisan cache:clear` first to reset the register rate limit)
 

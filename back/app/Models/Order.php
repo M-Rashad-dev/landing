@@ -56,7 +56,14 @@ class Order extends Model
     /** @use HasFactory<OrderFactory> */
     use BelongsToTenant, HasFactory;
 
-    protected $guarded = ['id', 'tenant_id'];
+    // tenant_id is set by BelongsToTenant, never mass-assigned.
+    protected $fillable = [
+        'order_number', 'landing_page_id', 'product_id', 'status', 'status_changed_at',
+        'customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
+        'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
+        'discount_code_id', 'discount_code', 'code_discount', 'total', 'currency',
+        'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
+    ];
 
     protected function casts(): array
     {

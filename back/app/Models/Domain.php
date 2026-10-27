@@ -8,6 +8,7 @@ use App\Enums\DomainStatus;
 use App\Enums\DomainType;
 use App\Enums\SslStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\PublicSite;
 use Database\Factories\DomainFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,17 @@ class Domain extends Model
             'ssl_checked_at' => 'datetime',
             'check_attempts' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Public host lookups are cached (PublicSite); any change to a domain clears its old and new host.
+        $forget = fn (Domain $domain) => PublicSite::forget(
+            [$domain->host, $domain->getOriginal('host'), $domain->active_host, $domain->getOriginal('active_host')],
+            $domain->tenant_id,
+        );
+        static::saved($forget);
+        static::deleted($forget);
     }
 
     public function setHostAttribute(string $value): void

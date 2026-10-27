@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DomainStatus;
+use App\Enums\TenantStatus;
 use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use Database\Factories\LandingPageFactory;
 use Database\Seeders\ThemeSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 
 beforeEach(function () {
@@ -208,4 +210,34 @@ it('lists indexable published pages in the sitemap', function () {
 
     expect($data['primary_host'])->toBe('rashad.localhost')
         ->and(array_column($data['pages'], 'url'))->toBe(['https://rashad.localhost/', 'https://rashad.localhost/second']);
+});
+
+it('caches host lookups and clears them on every domain or tenant change', function () {
+    $resolve = fn (string $host) => $this->getJson('/api/v1/public/resolve-host?host='.$host, internalHeaders());
+    $resolve('rashad.localhost')->assertOk()->assertJsonPath('data.status', 'active');
+
+    // Second lookup: no domain query.
+    DB::enableQueryLog();
+    $resolve('rashad.localhost')->assertOk();
+    expect(collect(DB::getQueryLog())->pluck('query')->filter(fn ($q) => str_contains($q, '`domains`'))->all())->toBe([]);
+    DB::disableQueryLog();
+
+    // Unknown hosts are cached too, and a new domain clears that at once.
+    $resolve('brand.example')->assertNotFound();
+    asTenant($this->tenant, fn () => Domain::factory()->custom('brand.example', DomainStatus::Active)->create());
+    $resolve('brand.example')->assertOk()->assertJsonPath('data.is_primary', false);
+
+    // Suspending the tenant shows at once.
+    $this->tenant->update(['status' => TenantStatus::Suspended]);
+    $resolve('rashad.localhost')->assertJsonPath('data.status', 'suspended');
+    $this->tenant->update(['status' => TenantStatus::Active]);
+
+    // Renaming releases the old host at once; a new primary is picked up at once.
+    asTenant($this->tenant, fn () => $this->domain->fresh()->forceFill(['host' => 'renamed.localhost', 'active_host' => 'renamed.localhost'])->save());
+    $resolve('rashad.localhost')->assertNotFound();
+    asTenant($this->tenant, function () {
+        Domain::query()->update(['is_primary' => false]);
+        Domain::query()->where('host', 'brand.example')->first()->forceFill(['is_primary' => true])->save();
+    });
+    $resolve('renamed.localhost')->assertJsonPath('data.primary_host', 'brand.example');
 });

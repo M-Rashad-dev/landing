@@ -218,7 +218,7 @@ final class OrderController extends Controller
             'bad_ratio' => $total === 0 ? 0 : (int) round($bad * 100 / $total),
             'phone_blocked' => BlockedCustomer::query()->where('type', BlockType::Phone)->where('value', $order->customer_phone)->exists(),
             'ip_blocked' => $order->ip_address !== null && BlockedCustomer::query()->where('type', BlockType::Ip)->where('value', $order->ip_address)->exists(),
-            'orders' => $others->orderByDesc('id')->limit(10)->get(['id', 'order_number', 'status', 'total', 'created_at'])->map(fn (Order $o) => [
+            'orders' => $others->orderByDesc('order_number')->limit(10)->get(['id', 'order_number', 'status', 'total', 'created_at'])->map(fn (Order $o) => [
                 'id' => $o->id,
                 'order_number' => $o->order_number,
                 'status' => $o->status->value,
