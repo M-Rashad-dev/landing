@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useStore } from "zustand";
-import { siteUrl, useSession } from "@/components/dashboard/session-context";
+import { useSession, useSiteUrl } from "@/components/dashboard/session-context";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -51,6 +51,7 @@ function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof creat
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
+  const toSite = useSiteUrl();
   const { save, conflict, reloadFromServer, overwrite } = useAutosave(store, page.id);
   const saveState = useStore(store, (s) => s.saveState);
   const canUndo = useStore(store, (s) => s.history.length > 0);
@@ -68,7 +69,7 @@ function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof creat
   const identities = useIdentities();
   const products = useProducts({ per_page: 100 });
 
-  const liveUrl = meta ? siteUrl(session.primary_host, page.is_home ? "/" : `/${meta.slug}`) : "";
+  const liveUrl = meta ? toSite(session.primary_host, page.is_home ? "/" : `/${meta.slug}`) : "";
 
   const select = useCallback(
     (id: string) => {

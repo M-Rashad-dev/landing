@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { Session } from "@/lib/types";
+import type { PublicOrigin, Session } from "@/lib/types";
 
 const SessionContext = createContext<Session | null>(null);
 
@@ -15,10 +15,14 @@ export function useSession(): Session {
   return session;
 }
 
-/** https://{primary_host} (http on *.localhost during development). */
-export function siteUrl(host: string | null | undefined, path = ""): string {
+/** Public URL of a site host, e.g. https://shop.com/offer (http://x.localhost:3000 locally). */
+export function siteUrl(host: string | null | undefined, path = "", origin: PublicOrigin = { scheme: "https", port: "" }): string {
   if (!host) return "";
-  const isLocal = host === "localhost" || host.endsWith(".localhost");
-  const origin = isLocal ? `http://${host}${typeof window !== "undefined" && window.location.port ? `:${window.location.port}` : ""}` : `https://${host}`;
-  return `${origin}${path}`;
+  return `${origin.scheme}://${host}${origin.port ? `:${origin.port}` : ""}${path}`;
+}
+
+/** siteUrl bound to the session's public scheme and port. */
+export function useSiteUrl(): (host: string | null | undefined, path?: string) => string {
+  const { public_origin } = useSession();
+  return (host, path = "") => siteUrl(host, path, public_origin);
 }

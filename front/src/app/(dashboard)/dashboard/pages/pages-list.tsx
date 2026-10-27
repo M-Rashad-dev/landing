@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Pagination } from "@/components/dashboard/data-table";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { ErrorState } from "@/components/dashboard/error-state";
-import { siteUrl, useSession } from "@/components/dashboard/session-context";
+import { useSession, useSiteUrl } from "@/components/dashboard/session-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,7 @@ export function PagesList() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
+  const toSite = useSiteUrl();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -39,7 +40,7 @@ export function PagesList() {
   const [deleting, setDeleting] = useState<PageSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const refresh = () => queryClient.invalidateQueries({ queryKey: pageKeys.all });
-  const urlOf = (p: PageSummary) => siteUrl(session.primary_host, p.is_home ? "/" : `/${p.slug}`);
+  const urlOf = (p: PageSummary) => toSite(session.primary_host, p.is_home ? "/" : `/${p.slug}`);
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {

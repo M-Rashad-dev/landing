@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { DASHBOARD_NAV, isActive, type NavItem } from "./nav-items";
-import { siteUrl, useSession } from "./session-context";
+import { useSession, useSiteUrl } from "./session-context";
 
 export function DashboardShell({
   children,
@@ -109,9 +109,10 @@ function SidebarNav({
 
 function Topbar({ onOpenMenu, extra }: { onOpenMenu: () => void; extra?: ReactNode }) {
   const session = useSession();
+  const toSite = useSiteUrl();
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
-  const site = siteUrl(session.primary_host);
+  const site = toSite(session.primary_host);
 
   async function logout() {
     setLeaving(true);

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\Dns\DnsResolver;
+use App\Services\Dns\NativeDnsResolver;
+use App\Tenancy\Tenancy;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
+        $this->app->bind(DnsResolver::class, NativeDnsResolver::class);
     }
 
     public function boot(): void
@@ -48,6 +52,11 @@ class AppServiceProvider extends ServiceProvider
         // Loose guard on attempts; the real 5-per-10-min / 3-per-phone limits count orders (CreateOrder).
         RateLimiter::for('public-order-attempts', fn (Request $request) => Limit::perMinute(20)->by('public-order:'.$visitor($request)));
         RateLimiter::for('orders-export', fn (Request $request) => Limit::perMinute(10)->by('orders-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // Manual DNS / SSL re-checks: 10 per minute per tenant.
+        RateLimiter::for('domain-checks', fn (Request $request) => Limit::perMinute(10)->by('domain-checks:'.(Tenancy::id() ?? $request->ip())));
+        // Caddy on-demand TLS ask (Docker network only).
+        RateLimiter::for('tls-ask', fn (Request $request) => Limit::perMinute(60)->by('tls-ask:'.$request->ip()));
 
         // Server-to-server reads from Next (cached there for 60 s), keyed by the visited host.
         RateLimiter::for('public-read', fn (Request $request) => Limit::perMinute(600)->by(

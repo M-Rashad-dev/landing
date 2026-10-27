@@ -13,6 +13,16 @@ return [
     'server_ip' => (string) env('SERVER_IP', '127.0.0.1'),
     'cname_target' => strtolower((string) env('CNAME_TARGET', 'cname.'.env('PLATFORM_DOMAIN', 'localhost'))),
 
+    // Two-part public suffixes, so "shop.com.eg" counts as a root domain (A record) and
+    // "www.shop.com.eg" as a subdomain (CNAME). No external public-suffix list at runtime.
+    'two_part_suffixes' => [
+        'com.eg', 'net.eg', 'org.eg', 'edu.eg', 'gov.eg', 'sci.eg', 'info.eg', 'name.eg', 'tv.eg',
+        'com.sa', 'net.sa', 'org.sa', 'edu.sa', 'med.sa', 'com.kw', 'net.kw', 'org.kw', 'com.qa', 'net.qa',
+        'com.bh', 'com.om', 'co.om', 'co.ae', 'net.ae', 'org.ae', 'com.jo', 'com.lb', 'com.ly', 'com.tn',
+        'com.dz', 'co.ma', 'net.ma', 'com.iq', 'com.sy', 'com.ps', 'com.sd', 'com.ye', 'com.tr',
+        'co.uk', 'org.uk', 'me.uk', 'com.au', 'net.au', 'co.in', 'co.za', 'com.br', 'co.nz', 'co.jp',
+    ],
+
     // Shared secrets (compared with hash_equals).
     'internal_api_key' => (string) env('INTERNAL_API_KEY', ''),
     'revalidate_secret' => (string) env('REVALIDATE_SECRET', ''),

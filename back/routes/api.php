@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
+use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
@@ -79,6 +80,15 @@ Route::prefix('dashboard')
         Route::get('orders/{order}', [OrderController::class, 'show']);
         Route::patch('orders/{order}', [OrderController::class, 'update']);
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
+
+        Route::get('domains', [DomainController::class, 'index']);
+        Route::put('domains/subdomain', [DomainController::class, 'updateSubdomain']);
+        Route::get('domains/subdomain/availability', [DomainController::class, 'subdomainAvailability']);
+        Route::post('domains/custom', [DomainController::class, 'storeCustom']);
+        Route::post('domains/{domain}/verify', [DomainController::class, 'verify'])->middleware('throttle:domain-checks');
+        Route::post('domains/{domain}/check-ssl', [DomainController::class, 'checkSsl'])->middleware('throttle:domain-checks');
+        Route::post('domains/{domain}/make-primary', [DomainController::class, 'makePrimary']);
+        Route::delete('domains/{domain}', [DomainController::class, 'destroy']);
 
         Route::get('blocked-customers', [BlockedCustomerController::class, 'index']);
         Route::post('blocked-customers', [BlockedCustomerController::class, 'store']);

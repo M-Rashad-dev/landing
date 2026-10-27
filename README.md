@@ -70,6 +70,7 @@ bash scripts/smoke-pricing.sh
 bash scripts/smoke-pages.sh
 bash scripts/smoke-public.sh    # publishes a page and visits http://{sub}.localhost:3000
 bash scripts/smoke-orders.sh    # orders through the public site, statuses, block, code race, CSV
+bash scripts/smoke-domains.sh   # custom domain via real DNS (*.localtest.me), primary redirect, race, TLS ask
 bash scripts/measure-public-js.sh http://{sub}.localhost:3000/   # gzipped JS of a public page
 ```
 
@@ -82,6 +83,15 @@ production leaves the defaults (https, no port).
 Laravel's `FrontendRevalidator` calls `POST /api/revalidate` after publish/unpublish, page deletes, identity / product /
 offer / code edits and page settings changes, so updates show within seconds. Each host also serves `/sitemap.xml` and
 `/robots.txt`. Tracking pixels (Meta, TikTok, GA4, GTM, Snapchat) are injected only for ids matching the strict formats.
+
+## Custom domains
+
+Customers add one DNS record (root domain: `A @ → SERVER_IP`; subdomain / www: `CNAME → cname.{PLATFORM_DOMAIN}`).
+Laravel checks it at once, then every 5 minutes for 72 hours (`php artisan schedule:work` runs `domains:verify-pending`),
+activates the domain and warms its certificate. Caddy issues certificates on demand only for hosts that
+`GET /internal/tls/ask?domain=` approves (platform hosts + active domains of active tenants). Locally, any
+`*.localtest.me` name resolves to 127.0.0.1, so it verifies against `SERVER_IP=127.0.0.1` and opens at
+`http://{name}.localtest.me:3000`. Production steps: [deploy/DEPLOY.md](deploy/DEPLOY.md).
 
 ## Themes
 

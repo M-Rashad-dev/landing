@@ -13,7 +13,7 @@ export function serverEnv() {
     revalidateSecret: process.env.REVALIDATE_SECRET ?? "",
     isProduction: process.env.NODE_ENV === "production",
     /** Public site URLs (redirects to the primary host). Production: https, no port. */
-    publicScheme: process.env.PUBLIC_SCHEME === "http" ? "http" : "https",
+    publicScheme: (process.env.PUBLIC_SCHEME === "http" ? "http" : "https") as "http" | "https",
     publicPort: process.env.PUBLIC_PORT ?? "",
   };
 }

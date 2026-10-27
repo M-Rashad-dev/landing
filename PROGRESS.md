@@ -11,8 +11,8 @@
 | 7 | Theme «celia» | ✅ Done |
 | 8 | Public rendering, SEO, tracking | ✅ Done |
 | 9 | Orders & management | ✅ Done |
-| 10 | Custom domains & SSL | ⏳ Next |
-| 11 | Super admin & final hardening | ⬜ |
+| 10 | Custom domains & SSL | ✅ Done |
+| 11 | Super admin & final hardening | ⏳ Next |
 
 ---
 
@@ -118,3 +118,18 @@
 - `composer test` → 404 passed (23 public order tests: token / honeypot / blocked / rate limits / dynamic validation / default fields / custom answers / invalid code / limited code / duplicates / idempotency / client IP; 14 management tests: filters, transitions, release of code use, block on fake, bulk, export, stats, overview; orders + blocked customers in the tenant isolation suite) · `composer lint` → passed
 - `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 254 passed (order form fields from settings, zod schema = `validateAll`, default fields equal the back end's, UTM capture, double submit sends one order, preview never sends) · `pnpm build` ✓
 - `scripts/smoke-orders.sh` (through Next on `http://{sub}.localhost:3000`: quote 2 × XL with SAVE10 = 630 → too-fast token rejected → order #1001 total 630 → dashboard totals, options snapshot, UTM and client IP → confirmed → delivered → returned (final) → fake + block phone → next order from that phone rejected and SAVE10 use released → 5 concurrent orders on a 2-use code → exactly 2 succeed, unique numbers → stats → CSV with BOM and Arabic header) → OK; `smoke-public.sh` and `smoke-pages.sh` still OK.
+
+## Phase 10 — Custom domains & SSL ✅
+
+**Back**: `DomainRules` (normalize: lowercase, no scheme / path / port / trailing dot, Arabic names → punycode via intl; reject IP, localhost, the platform domain and anything under it, missing dot, bad lengths / labels, a host active at another tenant, the same host twice; limit 10), DNS instructions per domain (root → `A @ → SERVER_IP`, sub/www → `CNAME → cname.{PLATFORM_DOMAIN}`, known two-part suffixes like `com.eg` handled, Cloudflare warning), `DnsResolver` interface + `NativeDnsResolver` (`dns_get_record`), `DomainVerifier` (CNAME match or any matching A record; Arabic errors «لم نجد السجل بعد» / «السجل يشير لعنوان آخر: …»; activation in a transaction with a row lock + unique `active_host`, then `WarmSsl` + `RevalidateTenantHosts`), `domains:verify-pending` every 5 min (pending < 72 h, 100 per run, as queued `VerifyDomain` jobs; older → failed), `WarmSsl` (GET `/api/health` with TLS verification, 6 tries 20 s apart → issued / unknown), `GET /internal/tls/ask` (platform hosts + active hosts of active tenants, read only, 60/min), dashboard endpoints: list with instructions, add custom (checked at once), verify (10/min per tenant), check-ssl, make-primary (active only, one primary), delete (custom only; primary falls back to the subdomain), rename subdomain (7.6 rules, old name released, old + new hosts revalidated), live label availability.
+
+**Front**: `/dashboard/domains`: free subdomain card (link, copy, open, make primary, rename dialog with a debounced availability check), custom domains card (status + SSL badges, last check / error / attempts, verify now, DNS help, SSL re-check, make primary, delete with confirmation), the redirect-to-primary note, and a 3-step wizard (host with live normalization → exact DNS record with copy buttons, provider tips for GoDaddy / Namecheap / Hostinger / Cloudflare / .eg and the Cloudflare warning → status with «تحقق الآن», polling every 15 s for up to 5 min, then the option to make it primary). Page links in the dashboard, page list and builder use the session's public scheme / port, and refresh after primary changes.
+
+**Deploy**: `deploy/Caddyfile` (on-demand TLS with the ask endpoint, HTTP → HTTPS, `/media/*` from the volume, everything else to Next) and the custom-domain section of `deploy/DEPLOY.md`. **Untested** (no Docker on this machine).
+
+**Checks**
+- `composer test` → 442 passed (domain tests: normalization incl. Arabic, each rejection rule, duplicates + limit, root vs sub instructions, verifier CNAME ok / A ok / A wrong / CNAME wrong / no record, activation + jobs, manual verify, two accounts racing for one host (one wins; the DB unique index refuses a second active row), verify rate limit, TLS ask for platform / active / pending / suspended tenant / unknown hosts, scheduler + expired → failed, WarmSsl issued / released / unknown, subdomain rename + availability, make-primary + resolve-host redirect + delete primary, 401s; domains added to the tenant isolation suite) · `composer lint` → passed
+- `pnpm lint` ✓ · `pnpm typecheck` ✓ · `pnpm test` → 267 passed (host normalization with the same cases as PHP, label rules, site URLs; wizard: exact DNS record + Cloudflare warning, polls every 15 s until active, stops after 5 min) · `pnpm build` ✓
+- `scripts/smoke-domains.sh`, **real DNS, no mocks** (`*.localtest.me` → 127.0.0.1 = local `SERVER_IP`): connect `d{stamp}.localtest.me` → active at once → redirects to the subdomain while not primary → make primary → page served on the custom domain with its canonical, old subdomain 308 → custom domain → TLS ask (custom / subdomain / platform 200, unknown 404) → two accounts add the same host concurrently → exactly one owns it → rename subdomain (old name 404) → delete the primary custom domain → subdomain primary again, custom host 404 → OK. `smoke-orders`, `smoke-public`, `smoke-pages` still OK. `domains:verify-pending` listed in `schedule:list` and run by hand. Locally `WarmSsl` marks a domain issued over plain http (reachability only).
+- Screenshots of `/dashboard/domains` and every wizard step at 1280 px and 390 px: no horizontal overflow.
+- Not tested: real certificates from Let's Encrypt through Caddy (needs the VPS; steps in `deploy/DEPLOY.md`).

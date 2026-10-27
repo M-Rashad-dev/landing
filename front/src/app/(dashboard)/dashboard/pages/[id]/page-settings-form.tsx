@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { siteUrl, useSession } from "@/components/dashboard/session-context";
+import { useSession, useSiteUrl } from "@/components/dashboard/session-context";
 import { FormField } from "@/components/forms/form-field";
 import { FormSection } from "@/components/forms/form-section";
 import { MediaField } from "@/components/shared/media-picker/media-field";
@@ -66,6 +66,7 @@ export function PageSettingsForm({ page }: { page: PageDetail }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
+  const toSite = useSiteUrl();
   const identities = useIdentities();
   const products = useProducts({ per_page: 100 });
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(page) });
@@ -102,7 +103,7 @@ export function PageSettingsForm({ page }: { page: PageDetail }) {
     }
   }
 
-  const liveUrl = siteUrl(session.primary_host, page.is_home ? "/" : `/${watched.slug ?? page.slug}`);
+  const liveUrl = toSite(session.primary_host, page.is_home ? "/" : `/${watched.slug ?? page.slug}`);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

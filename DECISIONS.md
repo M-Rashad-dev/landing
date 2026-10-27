@@ -117,3 +117,13 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **CSV export**: values starting with `= + - @` or tab / CR get a leading `'` (formula injection); the stream runs inside `Tenancy::runAs` because it is sent after the middleware has finished.
 - **Order numbers** come from a per-tenant counter row (`insertOrIgnore` then `lockForUpdate`), never `max()+1`.
 
+## Phase 10
+- **Pending hosts are not exclusive.** Two accounts may add the same host; the first to pass the DNS check gets it (row lock, then the unique `active_host` index as the last guard). The loser stays pending with «الدومين ده مربوط بحساب آخر». Only an *active* host at another tenant is refused up front.
+- **Root vs subdomain without a public-suffix library**: hosts under a configured list of two-part suffixes (`com.eg`, `co.uk`, …, `config/landing.php`) count as root domains. Unknown multi-part suffixes fall back to "last two labels".
+- **Arabic domains** are stored as punycode (intl `idn_to_ascii`, UTS #46 non-transitional); the dashboard shows the stored ASCII form, which is what DNS providers show.
+- **The free subdomain can be made primary again** from its card (not only by deleting the custom domain).
+- **Extra endpoints not in the plan's table**: `GET /domains/subdomain/availability` (live check in the rename dialog) and `POST /domains/{id}/check-ssl` (the «فحص SSL» button). Both are tenant-scoped; check-ssl shares the 10/min limit with verify.
+- **WarmSsl uses `PUBLIC_SCHEME` / `PUBLIC_PORT`**: production requests `https://{host}/api/health` (this is what triggers Caddy's certificate); locally it requests over plain http, so «SSL مفعّل» there only means reachable.
+- **Re-checking a failed domain** happens only on «تحقق الآن» (the scheduler skips failed ones); success activates it like a pending one.
+- **Page links use the session's public origin** (`PUBLIC_SCHEME` / `PUBLIC_PORT` read on the server in `getSession`) instead of guessing https vs http from the host, so custom domains link correctly in development too.
+- **Local custom-domain testing uses `*.localtest.me`** (public DNS → 127.0.0.1) instead of a mock resolver in the running app; the test suite swaps `DnsResolver` for fixed answers.

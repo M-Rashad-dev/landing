@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Domain;
+use App\Services\DomainRules;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,6 +28,7 @@ final class DomainResource extends JsonResource
             'ssl_status' => $this->ssl_status->value,
             'ssl_checked_at' => $this->ssl_checked_at?->toIso8601ZuluString(),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
+            'instructions' => DomainRules::instructions($this->resource),
         ];
     }
 }

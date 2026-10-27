@@ -1,0 +1,45 @@
+{
+	email {$ACME_EMAIL}
+	# For trials (avoids Let's Encrypt rate limits):
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+	# A certificate is requested on the first TLS handshake for a host, but only after
+	# Laravel says yes: platform hosts + active domains of active tenants (TlsAskController).
+	on_demand_tls {
+		ask http://back-web/internal/tls/ask
+	}
+}
+
+# Plain HTTP → HTTPS. ACME HTTP-01 challenges are answered by Caddy before this redirect,
+# and TLS-ALPN-01 runs on :443, so issuing certificates keeps working.
+http:// {
+	redir https://{host}{uri} permanent
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Uploaded images straight from the media volume (read only), never through PHP.
+	handle /media/* {
+		uri strip_prefix /media
+		root * /srv/media
+		file_server
+		header Cache-Control "public, max-age=2592000, immutable"
+	}
+
+	# Everything else: Next (dashboard, builder, public sites, BFF). Caddy keeps the original
+	# Host and adds X-Forwarded-For. Laravel (back-web) and /internal/* are never exposed.
+	handle {
+		reverse_proxy front:3000
+	}
+}

@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\DomainStatus;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
+use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
@@ -98,6 +100,16 @@ dataset('tenant resources', [
         '/api/v1/dashboard/blocked-customers',
         [
             ['DELETE', '/api/v1/dashboard/blocked-customers/{id}', []],
+        ],
+    ],
+    'domains' => [
+        fn (User $owner) => asTenant($owner, fn () => Domain::factory()->custom('shop.tenant-a.com', DomainStatus::Active)->create())->id,
+        '/api/v1/dashboard/domains',
+        [
+            ['POST', '/api/v1/dashboard/domains/{id}/verify', []],
+            ['POST', '/api/v1/dashboard/domains/{id}/check-ssl', []],
+            ['POST', '/api/v1/dashboard/domains/{id}/make-primary', []],
+            ['DELETE', '/api/v1/dashboard/domains/{id}', []],
         ],
     ],
 ]);

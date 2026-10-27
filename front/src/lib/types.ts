@@ -16,10 +16,14 @@ export type Tenant = {
   created_at: string | null;
 };
 
+/** How public sites are reached (production: https, no port; local: http + 3000). */
+export type PublicOrigin = { scheme: "http" | "https"; port: string };
+
 export type Session = {
   user: User;
   tenant: Tenant | null;
   primary_host: string | null;
+  public_origin: PublicOrigin;
 };
 
 export type MediaUrls = { thumb: string; medium: string; large: string; icon32?: string; icon180?: string };

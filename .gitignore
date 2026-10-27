@@ -17,3 +17,4 @@ Thumbs.db
 *.docx
 /tools/shots/
 /tools/overflow.mjs
+/tools/shot-*.mjs
