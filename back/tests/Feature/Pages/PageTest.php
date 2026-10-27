@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
@@ -300,4 +301,35 @@ it('filters the list by status and search', function () {
     $this->getJson('/api/v1/dashboard/pages?status=published')->assertJsonCount(1, 'data')->assertJsonPath('data.0.slug', 'alpha');
     $this->getJson('/api/v1/dashboard/pages?q=beta')->assertJsonCount(1, 'data');
     $this->getJson('/api/v1/dashboard/pages')->assertJsonMissingPath('data.0.draft_content');
+});
+
+it('keeps a page-only design in the content and publishes it', function () {
+    $page = createPage();
+    $design = [
+        'colors' => ['primary' => '#0f766e', 'secondary' => '#F0FDFA', 'accent' => '#F59E0B', 'background' => '#FFFFFF', 'foreground' => '#111827', 'muted' => '#6B7280', 'border' => '#E5E7EB'],
+        'font_heading' => 'readex_pro',
+        'font_body' => 'tajawal',
+        'button_radius' => 'full',
+    ];
+    $content = starter() + ['design' => $design];
+
+    $saved = $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => 1, 'content' => $content])->assertOk();
+    expect($saved->json('data.draft_content.design.colors.primary'))->toBe('#0F766E')
+        ->and($saved->json('data.draft_content.design.font_body'))->toBe('tajawal');
+
+    // Bad values are refused with paths under content.design.
+    $bad = $content;
+    $bad['design']['colors']['primary'] = 'red';
+    $bad['design']['font_body'] = 'comic_sans';
+    $bad['design']['extra'] = 1;
+    $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => $saved->json('data.version'), 'content' => $bad])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['content.design.colors.primary', 'content.design.font_body', 'content.design']);
+
+    // Publishing carries it to the public API.
+    $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();
+    $host = asTenant($this->user, fn () => Domain::query()->value('host'));
+    $this->getJson("/api/v1/public/pages?host={$host}&slug=".rawurlencode($page['slug']), internalHeaders())
+        ->assertOk()
+        ->assertJsonPath('data.content.design.button_radius', 'full');
 });

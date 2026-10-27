@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { getTheme, resolveVariant } from "@/themes/registry";
 import { defaultProps, SCHEMAS } from "@/themes/shared/schemas";
-import type { ComponentType, PageContent, Section } from "@/themes/types";
+import type { ComponentType, PageContent, PageDesign, Section } from "@/themes/types";
 
 export const MAX_SECTIONS = 30;
 const HISTORY_LIMIT = 50;
@@ -41,6 +41,8 @@ export type BuilderActions = {
   updateProps: (id: string, patch: Record<string, unknown>) => void;
   setVariant: (id: string, variant: string) => void;
   setTheme: (themeKey: string) => void;
+  /** Page-only identity look (null = use the page identity as is). Undoable like any edit. */
+  setDesign: (design: PageDesign | null) => void;
   select: (id: string | null) => void;
   undo: () => void;
   redo: () => void;
@@ -55,6 +57,11 @@ export type BuilderActions = {
 export type BuilderStore = StoreApi<BuilderState & BuilderActions>;
 
 const emptyContent = (): PageContent => ({ version: 1, sections: [] });
+
+/** Server content → store content (pinned sections fixed, page design kept). */
+function normalize(content: PageContent): PageContent {
+  return { version: 1, sections: enforcePinned(content.sections ?? []), ...(content.design ? { design: content.design } : {}) };
+}
 
 function newId(): string {
   return crypto.randomUUID();
@@ -130,7 +137,7 @@ export function createBuilderStore(): BuilderStore {
       init: ({ page, content, themeKey, version }) =>
         set({
           page,
-          content: { version: 1, sections: enforcePinned(content.sections ?? []) },
+          content: normalize(content),
           themeKey,
           version,
           selectedId: null,
@@ -208,6 +215,12 @@ export function createBuilderStore(): BuilderStore {
         );
       },
 
+      setDesign: (design) => {
+        const { design: _previous, ...content } = get().content;
+        void _previous;
+        commit(design ? { ...content, design } : content);
+      },
+
       select: (id) => set({ selectedId: id }),
 
       undo: () => {
@@ -256,7 +269,7 @@ export function createBuilderStore(): BuilderStore {
       markError: () => set({ saveState: "error" }),
 
       replaceFromServer: ({ content, themeKey, version }) =>
-        set({ content: { version: 1, sections: enforcePinned(content.sections ?? []) }, themeKey, version, dirty: false, saveState: "saved", history: [], future: [] }),
+        set({ content: normalize(content), themeKey, version, dirty: false, saveState: "saved", history: [], future: [] }),
     };
   });
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 return [
     'content_invalid' => 'محتوى الصفحة غير صالح.',
+    'design_invalid' => 'إعدادات هوية الصفحة غير صالحة.',
+    'design_color' => 'اللون لازم يكون بالشكل #RRGGBB.',
+    'design_font' => 'الخط غير متاح.',
     'content_too_large' => 'حجم محتوى الصفحة أكبر من المسموح.',
     'too_many_sections' => 'الحد الأقصى :max قسم في الصفحة.',
     'section_invalid' => 'القسم غير صالح.',

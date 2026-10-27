@@ -60,19 +60,33 @@ export function PreviewFrame({ pageId, device, reloadKey, onSelect }: { pageId: 
     return () => observer.disconnect();
   }, []);
 
-  const width = DEVICE_WIDTH[device];
+  const phone = device === "mobile";
+  // The phone frame's border is added on top, so the page still renders at the device width.
+  const width = DEVICE_WIDTH[device] + (phone ? 20 : 2);
   const scale = available > 0 ? Math.min(1, (available - 32) / width) : 1;
 
+  // Width, scale and corners animate together, so switching device morphs instead of jumping.
+  const morph = "width 480ms var(--ease-out), height 480ms var(--ease-out), transform 480ms var(--ease-out), border-radius 480ms var(--ease-out), border-width 480ms var(--ease-out)";
+
   return (
-    <div ref={container} className="flex h-full justify-center overflow-hidden bg-muted p-4">
-      <div style={{ width: width * scale, height: "100%" }}>
+    <div ref={container} className="flex h-full justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_0%,color-mix(in_srgb,var(--primary)_6%,var(--muted)),var(--muted))] p-4">
+      <div style={{ width: width * scale, height: "100%", transition: morph }}>
         <iframe
           key={reloadKey}
           ref={iframe}
           src={`/preview/${pageId}`}
           title="preview"
-          className="rounded-xl border bg-white shadow-sm"
-          style={{ width, height: `${100 / scale}%`, transform: `scale(${scale})`, transformOrigin: "top right" }}
+          className="border-[#12152a] bg-white shadow-lg"
+          style={{
+            width,
+            height: `${100 / scale}%`,
+            transform: `scale(${scale})`,
+            transformOrigin: "top right",
+            borderRadius: phone ? 36 : 14,
+            borderWidth: phone ? 10 : 1,
+            borderColor: phone ? "#12152a" : "var(--border)",
+            transition: morph,
+          }}
         />
       </div>
     </div>

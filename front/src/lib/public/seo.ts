@@ -52,7 +52,7 @@ export function buildMetadata(data: PublicPagePayload): Metadata {
 }
 
 export function themeColor(data: PublicPagePayload): string {
-  return resolveColors(data.identity?.colors).primary;
+  return resolveColors({ ...data.identity?.colors, ...data.content?.design?.colors }).primary;
 }
 
 /** Plain text from the Markdown subset used in descriptions. */

@@ -191,3 +191,30 @@ describe("anchors", () => {
     expect(anchorFor({ id: "1a2b3c4d-1111-4222-8333-444455556666", type: "order_form" })).toBe("order");
   });
 });
+
+describe("page design", () => {
+  const design = {
+    colors: { primary: "#0F766E", secondary: "#E6F4F1", accent: "#F59E0B", background: "#FFFFFF", foreground: "#0F1F1C", muted: "#5B6B67", border: "#D9E7E3" },
+    font_heading: "readex_pro",
+    font_body: "tajawal",
+    button_radius: "full" as const,
+  };
+
+  it("sets, undoes and clears a page-only design, and keeps it on reload", () => {
+    const { setDesign } = store.getState();
+    setDesign(design);
+    expect(store.getState().content.design).toEqual(design);
+    expect(store.getState().dirty).toBe(true);
+
+    store.getState().undo();
+    expect(store.getState().content.design).toBeUndefined();
+    store.getState().redo();
+    expect(store.getState().content.design?.font_body).toBe("tajawal");
+
+    setDesign(null);
+    expect("design" in store.getState().content).toBe(false);
+
+    store.getState().replaceFromServer({ content: { version: 1, sections: [], design }, themeKey: "malak", version: 3 });
+    expect(store.getState().content.design).toEqual(design);
+  });
+});

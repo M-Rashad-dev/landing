@@ -34,7 +34,7 @@ final class PageContentSanitizer
     private array $mediaPaths = [];
 
     /**
-     * @return array{content: array{version: int, sections: list<array<string, mixed>>}, media_ids: list<int>}
+     * @return array{content: array{version: int, sections: list<array<string, mixed>>, design?: array<string, mixed>}, media_ids: list<int>}
      *
      * @throws ValidationException
      */
@@ -121,6 +121,8 @@ final class PageContentSanitizer
             ];
         }
 
+        $design = array_key_exists('design', $content) && $content['design'] !== null ? $this->design($content['design'], "{$root}.design") : null;
+
         $this->checkMediaOwnership();
 
         if ($this->errors !== []) {
@@ -128,7 +130,7 @@ final class PageContentSanitizer
         }
 
         return [
-            'content' => ['version' => 1, 'sections' => $clean],
+            'content' => ['version' => 1, 'sections' => $clean] + ($design === null ? [] : ['design' => $design]),
             'media_ids' => array_map('intval', array_keys($this->mediaIds)),
         ];
     }
@@ -287,6 +289,61 @@ final class PageContentSanitizer
         }
 
         $this->mediaPaths = [];
+    }
+
+    /**
+     * Page-only identity look (builder: "هوية خاصة بالصفحة"): colors, fonts and button radius
+     * drawn over the page identity. Only known keys and values from the fixed lists pass.
+     *
+     * @return array{colors: array<string, string>, font_heading: string, font_body: string, button_radius: string}|null
+     */
+    private function design(mixed $design, string $path): ?array
+    {
+        if (! is_array($design) || array_is_list($design)) {
+            $this->fail($path, __('pages.design_invalid'));
+
+            return null;
+        }
+
+        $unknown = array_diff(array_keys($design), ['colors', 'font_heading', 'font_body', 'button_radius']);
+        if ($unknown !== []) {
+            $this->fail($path, __('pages.design_invalid'));
+        }
+
+        $colors = [];
+        $allowed = array_keys((array) config('landing.default_colors'));
+        $given = is_array($design['colors'] ?? null) ? $design['colors'] : [];
+        foreach ($allowed as $key) {
+            $value = $given[$key] ?? null;
+            if ($value === null && $key === 'primary_foreground') {
+                continue;
+            }
+            if (! is_string($value) || preg_match('/^#[0-9A-Fa-f]{6}$/', $value) !== 1) {
+                $this->fail("{$path}.colors.{$key}", __('pages.design_color'));
+
+                continue;
+            }
+            $colors[$key] = strtoupper($value);
+        }
+        if (array_diff(array_keys($given), $allowed) !== []) {
+            $this->fail("{$path}.colors", __('pages.design_invalid'));
+        }
+
+        foreach (['font_heading', 'font_body'] as $key) {
+            if (! in_array($design[$key] ?? null, (array) config('landing.fonts'), true)) {
+                $this->fail("{$path}.{$key}", __('pages.design_font'));
+            }
+        }
+        if (! in_array($design['button_radius'] ?? null, (array) config('landing.button_radii'), true)) {
+            $this->fail("{$path}.button_radius", __('pages.design_invalid'));
+        }
+
+        return [
+            'colors' => $colors,
+            'font_heading' => (string) ($design['font_heading'] ?? ''),
+            'font_body' => (string) ($design['font_body'] ?? ''),
+            'button_radius' => (string) ($design['button_radius'] ?? ''),
+        ];
     }
 
     private function fail(string $path, string $message): void

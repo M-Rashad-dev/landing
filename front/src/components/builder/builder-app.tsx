@@ -194,9 +194,15 @@ function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof creat
             <Redo2 />
           </Button>
         </div>
-        <div className="hidden items-center rounded-lg border p-0.5 md:flex" role="radiogroup" aria-label="device">
+        <div className="relative hidden items-center rounded-lg border bg-muted/50 p-0.5 md:flex" role="radiogroup" aria-label="device">
+          {/* Sliding highlight under the active device. */}
+          <span
+            className="absolute inset-y-0.5 w-8 rounded-md bg-card shadow-sm transition-[inset-inline-start] duration-300 ease-[var(--ease-out)]"
+            style={{ insetInlineStart: `calc(0.125rem + ${devices.findIndex((d) => d.key === device)} * 2rem)` }}
+            aria-hidden
+          />
           {devices.map((d) => (
-            <button key={d.key} type="button" role="radio" aria-checked={device === d.key} aria-label={d.label} title={d.label} onClick={() => setDevice(d.key)} className={cn("rounded-md p-1.5", device === d.key ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent")}>
+            <button key={d.key} type="button" role="radio" aria-checked={device === d.key} aria-label={d.label} title={d.label} onClick={() => setDevice(d.key)} className={cn("relative flex size-8 items-center justify-center rounded-md transition-colors", device === d.key ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
               <d.icon className="size-4" />
             </button>
           ))}

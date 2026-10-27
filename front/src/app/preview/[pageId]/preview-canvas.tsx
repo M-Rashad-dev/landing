@@ -4,6 +4,7 @@ import { EyeOff, Info } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { isBuilderMessage, type PreviewToBuilder } from "@/components/builder/protocol";
 import type { PreviewData } from "@/lib/pages/api";
+import { applyPageDesign } from "@/lib/identity/page-design";
 import { DEFAULT_COLORS } from "@/lib/identity/style";
 import { cn } from "@/lib/utils";
 import { IdentityStyle } from "@/themes/shared/identity-style";
@@ -71,13 +72,14 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
     () => ({
       host,
       isPreview: true,
-      identity: initial.identity ?? FALLBACK_IDENTITY,
+      // The page-only design (builder) shows live over the saved identity.
+      identity: applyPageDesign(initial.identity ?? FALLBACK_IDENTITY, content.design),
       product: initial.product,
       offers: initial.offers,
       page: initial.page,
       media,
     }),
-    [host, initial.identity, initial.product, initial.offers, initial.page, media],
+    [host, initial.identity, content.design, initial.product, initial.offers, initial.page, media],
   );
 
   return (

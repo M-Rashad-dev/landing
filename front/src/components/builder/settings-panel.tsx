@@ -11,6 +11,7 @@ import { SCHEMAS } from "@/themes/shared/schemas";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { useBuilder } from "./context";
+import { PageIdentity } from "./page-identity";
 
 const t = ar.builder;
 
@@ -47,9 +48,10 @@ export function SettingsPanel({
         <FormField label={t.theme} htmlFor="b-theme">
           <Select id="b-theme" value={themeKey} onChange={(event) => onThemeRequest(event.target.value)} options={themes.map((theme) => ({ value: theme.key, label: theme.name }))} />
         </FormField>
-        <FormField label={t.identity} htmlFor="b-identity">
-          <Select id="b-identity" disabled={metaSaving} value={String(page?.identity_id ?? "")} onChange={(event) => onMetaChange({ identity_id: Number(event.target.value) })} options={identities.map((i) => ({ value: String(i.id), label: i.name }))} />
-        </FormField>
+        <div className="flex flex-col gap-2 border-t pt-4">
+          <h3 className="text-sm font-semibold">{t.identity}</h3>
+          <PageIdentity identities={identities} metaSaving={metaSaving} onMetaChange={onMetaChange} />
+        </div>
         <FormField label={t.product} htmlFor="b-product">
           <Select
             id="b-product"

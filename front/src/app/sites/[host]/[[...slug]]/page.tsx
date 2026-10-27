@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { serverEnv } from "@/lib/env";
 import { getPublicPage, resolveHost } from "@/lib/public/api";
 import { parseSiteHost, pathForSlug, primaryRedirectUrl, slugFromSegments } from "@/lib/public/host";
+import { applyPageDesign } from "@/lib/identity/page-design";
 import { buildMetadata, jsonLdString, productJsonLd, themeColor } from "@/lib/public/seo";
 import { validTracking } from "@/lib/tracking/ids";
 import { TrackingScripts } from "@/lib/tracking/tracking-scripts";
@@ -59,12 +60,14 @@ export default async function PublicSitePage({ params }: { params: Params }) {
   const { host, data } = await load(params);
   if (!data) return <SuspendedStore />;
   if (!data.identity) notFound();
+  // A page-only design (builder) replaces the identity's colors, fonts and radius.
+  const identity = applyPageDesign(data.identity, data.content.design);
 
   const tracking = validTracking(data.tracking);
   const ctx: PageContext = {
     host,
     isPreview: false,
-    identity: data.identity,
+    identity,
     product: data.product,
     offers: data.offers,
     page: { id: data.page.id, slug: data.page.slug, title: data.page.title },
@@ -75,8 +78,8 @@ export default async function PublicSitePage({ params }: { params: Params }) {
 
   return (
     <>
-      <IdentityFonts heading={data.identity.font_heading} body={data.identity.font_body} />
-      <IdentityStyle identity={data.identity} themeKey={data.theme_key} className="t-site min-h-dvh">
+      <IdentityFonts heading={identity.font_heading} body={identity.font_body} />
+      <IdentityStyle identity={identity} themeKey={data.theme_key} className="t-site min-h-dvh">
         <SiteRenderer themeKey={data.theme_key} sections={data.content.sections} ctx={ctx} />
         <SiteEnhancer />
       </IdentityStyle>

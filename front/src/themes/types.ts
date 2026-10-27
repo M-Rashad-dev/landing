@@ -29,7 +29,15 @@ export type Section<P = Record<string, unknown>> = {
   props: P;
 };
 
-export type PageContent = { version: 1; sections: Section[] };
+/** Page-only identity look chosen in the builder ("هوية خاصة بالصفحة"), drawn over the page identity. */
+export type PageDesign = {
+  colors: Partial<PublicIdentity["colors"]>;
+  font_heading: string;
+  font_body: string;
+  button_radius: PublicIdentity["button_radius"];
+};
+
+export type PageContent = { version: 1; sections: Section[]; design?: PageDesign };
 
 /* ---------- Public data given to themes ---------- */
 
