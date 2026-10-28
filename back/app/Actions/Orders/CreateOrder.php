@@ -40,6 +40,7 @@ final class CreateOrder
         private readonly PriceCalculator $calculator,
         private readonly FormToken $tokens,
         private readonly OrderForm $form,
+        private readonly PostOrderUpsell $upsells,
     ) {}
 
     /**
@@ -178,8 +179,8 @@ final class CreateOrder
         }
         RateLimiter::hit($phoneKey, self::LIMIT_WINDOW_SECONDS);
 
-        // 12. Only what the visitor needs.
-        return ['order_number' => $order->order_number, 'total' => (float) $order->total];
+        // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
+        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];
     }
 
     /**

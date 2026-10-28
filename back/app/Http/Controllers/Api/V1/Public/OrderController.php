@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Actions\Orders\CreateOrder;
+use App\Actions\Orders\PostOrderUpsell;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\PublicOrderRequest;
 use App\Http\Requests\Public\PublicQuoteRequest;
+use App\Models\Order;
 use App\Pricing\PriceCalculator;
 use App\Services\FormToken;
 use App\Services\PhoneNormalizer;
@@ -77,6 +79,26 @@ final class OrderController extends Controller
 
                 return $this->created($result);
             });
+        });
+    }
+
+    /** One click on the success screen: add the post-order offer to the visitor's new order. */
+    public function acceptUpsell(Request $request, PostOrderUpsell $upsells): JsonResponse
+    {
+        $data = $request->validate([
+            'host' => ['required', 'string', 'max:253'],
+            'order_number' => ['required', 'integer', 'min:1'],
+            'upsell_id' => ['required', 'integer', 'min:1'],
+            'token' => ['required', 'string', 'size:64'],
+            'ip' => ['nullable', 'ip'],
+        ]);
+        $domain = $this->site->activeDomainOrFail($data['host']);
+
+        return Tenancy::runAs($domain->tenant_id, function () use ($data, $upsells) {
+            $order = Order::query()->where('order_number', (int) $data['order_number'])->first()
+                ?? throw new ApiException(422, 'upsell_closed', __('orders.upsell_closed'));
+
+            return $this->ok($upsells->accept($order, (int) $data['upsell_id'], $data['token']));
         });
     }
 }

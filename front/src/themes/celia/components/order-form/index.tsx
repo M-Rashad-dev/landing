@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/price";
 import { ResponsiveImage } from "@/themes/shared/components/responsive-image";
 import { useOrderForm } from "@/themes/shared/hooks/use-order-form";
-import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, type FormClasses } from "@/themes/shared/order-form/parts";
+import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, UpsellOfferCard, type FormClasses } from "@/themes/shared/order-form/parts";
 import type { OrderFormProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,8 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     return (
       <section className="t-bg border-t-[3px] t-line px-4 py-12 md:py-16">
         <div className="t-hard mx-auto max-w-2xl p-6">
-          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} />
+          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} total={state.finalTotal} />
+          <UpsellOfferCard state={state} />
         </div>
       </section>
     );

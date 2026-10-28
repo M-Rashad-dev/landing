@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\ShippingRate;
 use App\Models\ShippingSetting;
 use App\Models\Tenant;
+use App\Models\Upsell;
 use App\Services\FormToken;
 use Database\Factories\LandingPageFactory;
 use Database\Seeders\ThemeSeeder;
@@ -129,7 +130,7 @@ it('creates a full order with offer, code, snapshot, log and redemption', functi
     $response = placeOrder(['code' => 'save50'])->assertCreated();
 
     // 2 × (300 + 50) = 700; the bundle (600 + 2 × 50 deltas) saves nothing, the code takes 50.
-    expect($response->json('data'))->toBe(['order_number' => 1001, 'total' => 650]);
+    expect($response->json('data'))->toBe(['order_number' => 1001, 'total' => 650, 'upsell' => null]);
 
     $order = asTenant($this->tenant, fn () => Order::query()->with(['items', 'logs', 'redemption'])->firstOrFail());
     expect($order->status)->toBe(OrderStatus::New)
@@ -369,4 +370,42 @@ it('charges nothing for delivery while shipping is off', function () {
     placeOrder()->assertCreated();
     expect((string) asTenant($this->tenant, fn () => Order::query()->latest('id')->value('shipping_fee')))->toBe('0.00');
     $this->getJson('/api/v1/public/pages?host='.SHOP.'&slug=offer', internalHeaders())->assertJsonPath('data.shipping', ['enabled' => false]);
+});
+
+it('offers a post-order upsell and adds it to the order in one click, once, within 30 minutes', function () {
+    placeOrder()->assertCreated()->assertJsonPath('data.upsell', null);
+
+    [$strap, $sized] = asTenant($this->tenant, function () {
+        $strap = Product::factory()->create(['name' => 'حزام إضافي', 'price' => '150.00']);
+        $sized = Product::factory()->withOption('المقاس', ['S' => '0'])->create(['name' => 'منتج بمقاسات']);
+        // A product with a required choice is never offered (one click, no choosing).
+        Upsell::query()->create(['name' => 'مقاسات', 'trigger_product_id' => $this->product->id, 'offer_product_id' => $sized->id, 'price' => '50.00', 'headline' => 'x', 'priority' => 9]);
+        Upsell::query()->create(['name' => 'حزام', 'trigger_product_id' => $this->product->id, 'offer_product_id' => $strap->id, 'price' => '99.00', 'headline' => 'زوّد حزام بسعر خاص']);
+
+        return [$strap, $sized];
+    });
+
+    $created = placeOrder(['customer' => ['phone' => '01033334444'], 'ip' => '41.7.7.7'])->assertCreated();
+    $created->assertJsonPath('data.upsell.headline', 'زوّد حزام بسعر خاص')
+        ->assertJsonPath('data.upsell.price', 99)
+        ->assertJsonPath('data.upsell.regular_price', 150)
+        ->assertJsonPath('data.upsell.product.name', 'حزام إضافي');
+    $offer = $created->json('data.upsell');
+    $number = $created->json('data.order_number');
+    $accept = fn (array $extra = []) => $this->postJson('/api/v1/public/upsell', array_merge(['host' => SHOP, 'order_number' => $number, 'upsell_id' => $offer['id'], 'token' => $offer['token']], $extra), internalHeaders());
+
+    $accept(['token' => str_repeat('a', 64)])->assertStatus(422)->assertJsonPath('code', 'upsell_closed');
+    $accept()->assertOk()->assertJsonPath('data.total', $created->json('data.total') + 99);
+    $accept()->assertStatus(422);
+
+    $order = asTenant($this->tenant, fn () => Order::query()->with('items')->where('order_number', $number)->first());
+    expect($order->items)->toHaveCount(2)
+        ->and($order->items->last()->product_id)->toBe($strap->id)
+        ->and((string) $order->items->last()->line_total)->toBe('99.00');
+    expect($sized->id)->not->toBe($strap->id);
+
+    // Too late, or no longer new.
+    $late = placeOrder(['customer' => ['phone' => '01044445555'], 'ip' => '41.7.7.8'])->json('data');
+    $this->travel(31)->minutes();
+    $this->postJson('/api/v1/public/upsell', ['host' => SHOP, 'order_number' => $late['order_number'], 'upsell_id' => $late['upsell']['id'], 'token' => $late['upsell']['token']], internalHeaders())->assertStatus(422);
 });

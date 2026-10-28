@@ -233,6 +233,7 @@ export function SuccessPanel({
   quote,
   className,
   preview = false,
+  total,
 }: {
   title: string;
   message: string;
@@ -241,6 +242,8 @@ export function SuccessPanel({
   className?: string;
   /** Builder preview: no tracking link (there is no real order). */
   preview?: boolean;
+  /** Final total from the server (after an accepted post-order offer). */
+  total?: number | null;
 }) {
   return (
     <div className={cn("flex flex-col items-center gap-3 py-8 text-center", className)} role="status" aria-live="polite">
@@ -255,9 +258,50 @@ export function SuccessPanel({
       ) : null}
       {quote ? (
         <p className="text-sm">
-          {siteMessages.total}: <strong className="tabular-nums">{formatPrice(quote.total)}</strong> — {siteMessages.cod}
+          {siteMessages.total}: <strong className="tabular-nums">{formatPrice(total ?? quote.total)}</strong> — {siteMessages.cod}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** Post-order offer under the success message: one click adds it to the same order. */
+export function UpsellOfferCard({ state, className, buttonClassName }: { state: OrderFormState; className?: string; buttonClassName?: string }) {
+  const offer = state.upsell;
+  if (!offer || state.upsellState === "declined") return null;
+  const t = siteMessages.upsell;
+  const image = offer.product.image?.urls.medium ?? offer.product.image?.urls.thumb;
+
+  if (state.upsellState === "added") {
+    return (
+      <p className={cn("rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700", className)} role="status">
+        {t.added} — {t.newTotal(formatPrice(state.finalTotal ?? 0))}
+      </p>
+    );
+  }
+
+  return (
+    <div className={cn("t-tint flex flex-col gap-4 rounded-2xl p-4 text-start sm:flex-row sm:items-center", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- product image from the media volume */}
+      {image ? <img src={image} alt={offer.product.name} className="size-20 shrink-0 rounded-xl object-cover" /> : null}
+      <div className="min-w-0 flex-1">
+        <span className="t-accent inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold">{t.badge}</span>
+        <p className="t-heading mt-1.5 font-bold">{offer.headline}</p>
+        {offer.description ? <p className="t-muted text-sm">{offer.description}</p> : null}
+        <p className="mt-1 text-sm">
+          <strong className="tabular-nums">{formatPrice(offer.price)}</strong>
+          {offer.regular_price > offer.price ? <span className="t-muted ms-2 tabular-nums line-through">{formatPrice(offer.regular_price)}</span> : null}
+        </p>
+        {state.upsellState === "failed" ? <p className="mt-1 text-sm text-red-600">{t.failed}</p> : null}
+      </div>
+      <div className="flex shrink-0 flex-col gap-2">
+        <button type="button" onClick={() => void state.acceptUpsell()} disabled={state.upsellState === "adding"} className={cn("t-primary t-btn h-11 px-5 font-bold transition-transform active:scale-95 disabled:opacity-60", buttonClassName)}>
+          {state.upsellState === "adding" ? t.adding : t.add}
+        </button>
+        <button type="button" onClick={state.declineUpsell} className="t-muted text-xs underline-offset-4 hover:underline">
+          {t.decline}
+        </button>
+      </div>
     </div>
   );
 }

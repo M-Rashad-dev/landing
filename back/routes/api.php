@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
+use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
@@ -64,6 +65,12 @@ Route::prefix('dashboard')
         Route::apiResource('discount-codes', DiscountCodeController::class);
         Route::post('discount-codes/{discount_code}/toggle', [DiscountCodeController::class, 'toggle']);
         Route::get('discount-codes/{discount_code}/redemptions', [DiscountCodeController::class, 'redemptions']);
+
+        Route::get('upsells', [UpsellController::class, 'index']);
+        Route::post('upsells', [UpsellController::class, 'store']);
+        Route::put('upsells/{upsell}', [UpsellController::class, 'update']);
+        Route::post('upsells/{upsell}/toggle', [UpsellController::class, 'toggle']);
+        Route::delete('upsells/{upsell}', [UpsellController::class, 'destroy']);
 
         Route::post('pricing/preview', [PricingController::class, 'preview']);
 
@@ -118,6 +125,7 @@ Route::prefix('public')
         Route::post('orders', [PublicOrderController::class, 'store'])->middleware('throttle:public-order-attempts');
         Route::get('brand', [TrackController::class, 'brand'])->middleware('throttle:public-read');
         Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
+        Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
     });
 
 Route::prefix('admin')

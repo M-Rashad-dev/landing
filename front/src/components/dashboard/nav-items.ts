@@ -4,6 +4,7 @@ import {
   Building2,
   FileText,
   Fingerprint,
+  Gift,
   Globe,
   Home,
   Images,
@@ -52,6 +53,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/products", label: ar.nav.products, icon: Package },
       { href: "/dashboard/offers", label: ar.nav.offers, icon: BadgePercent },
       { href: "/dashboard/discount-codes", label: ar.nav.discountCodes, icon: Tag },
+      { href: "/dashboard/upsells", label: ar.nav.upsells, icon: Gift },
     ],
   },
   {

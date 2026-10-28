@@ -12,7 +12,7 @@ import type { OrderFormProps } from "@/themes/shared/schemas/order-form";
 import type { PageContext } from "@/themes/types";
 import { siteMessages } from "@/messages/site";
 import { useOfferStore } from "./offer-store";
-import type { OrderFormState, OrderFormStatus } from "./order-form-types";
+import type { OrderFormState, OrderFormStatus, UpsellOffer, UpsellState } from "./order-form-types";
 
 const QUOTE_DEBOUNCE = 300;
 
@@ -52,6 +52,9 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   const [status, setStatus] = useState<OrderFormStatus>("idle");
   const [formError, setFormError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  const [upsell, setUpsell] = useState<UpsellOffer | null>(null);
+  const [upsellState, setUpsellState] = useState<UpsellState>("idle");
+  const [finalTotal, setFinalTotal] = useState<number | null>(null);
   const token = useRef<string | null>(null);
   const touched = useRef(false);
   const submitting = useRef(false);
@@ -213,8 +216,10 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
       });
 
       if (httpStatus >= 200 && httpStatus < 300) {
-        const data = json.data as { order_number: number; total: number };
+        const data = json.data as { order_number: number; total: number; upsell?: UpsellOffer | null };
         setOrderNumber(data.order_number);
+        setUpsell(data.upsell ?? null);
+        setFinalTotal(data.total);
         setStatus("success");
         // Lets /track open with the phone already filled in this tab.
         try {
@@ -253,6 +258,23 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     }
   }, [appliedCode, code, ctx.conversionEvent, ctx.isPreview, ctx.page.slug, disabledReason, fields, options, product, quantity, status, values]);
 
+  // Post-order offer: one click adds it to the order just placed (server checks the signed token).
+  async function acceptUpsell() {
+    if (!upsell || !orderNumber || upsellState === "adding") return;
+    setUpsellState("adding");
+    try {
+      const { status: httpStatus, json } = await postJson("/api/public/upsell", { order_number: orderNumber, upsell_id: upsell.id, token: upsell.token });
+      if (httpStatus >= 200 && httpStatus < 300) {
+        setFinalTotal((json.data as { total: number }).total);
+        setUpsellState("added");
+      } else {
+        setUpsellState("failed");
+      }
+    } catch {
+      setUpsellState("failed");
+    }
+  }
+
   return {
     fields,
     values,
@@ -270,6 +292,11 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     status,
     formError,
     orderNumber,
+    upsell,
+    upsellState,
+    finalTotal,
+    acceptUpsell,
+    declineUpsell: () => setUpsellState("declined"),
     submit,
     touch,
     disabled: Boolean(disabledReason),

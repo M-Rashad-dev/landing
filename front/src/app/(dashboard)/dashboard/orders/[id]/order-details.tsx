@@ -45,8 +45,6 @@ export function OrderDetails({ id }: { id: number }) {
   if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
   if (isPending || !order) return <DetailsSkeleton />;
 
-  const item = order.items[0];
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -102,15 +100,20 @@ export function OrderDetails({ id }: { id: number }) {
 
           <Card className="p-5">
             <h2 className="mb-4 font-bold">{t.product}</h2>
-            {item ? (
-              <div className="flex flex-col gap-1">
-                <p className="font-semibold">{item.product_name}</p>
-                {item.options.length > 0 ? <p className="text-sm text-muted-foreground">{item.options.map((o) => `${o.option}: ${o.value}`).join("، ")}</p> : null}
-                <p className="text-sm">
-                  {t.quantity}: <span className="font-semibold tabular-nums">{item.quantity}</span> · {t.unitPrice}: <span className="font-semibold">{formatPrice(item.unit_price)}</span>
-                </p>
-              </div>
-            ) : null}
+            <ul className="flex flex-col divide-y">
+              {order.items.map((item) => (
+                <li key={item.id} className="flex flex-col gap-1 py-2 first:pt-0">
+                  <p className="flex flex-wrap items-center gap-2 font-semibold">
+                    {item.product_name}
+                    {item.is_upsell ? <Badge variant="gold">{t.upsellItem}</Badge> : null}
+                  </p>
+                  {item.options.length > 0 ? <p className="text-sm text-muted-foreground">{item.options.map((o) => `${o.option}: ${o.value}`).join("، ")}</p> : null}
+                  <p className="text-sm">
+                    {t.quantity}: <span className="font-semibold tabular-nums">{item.quantity}</span> · {t.unitPrice}: <span className="font-semibold">{formatPrice(item.unit_price)}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
             <h3 className="mb-2 mt-5 text-sm font-bold text-muted-foreground">{t.breakdown}</h3>
             <dl className="flex flex-col gap-2 text-sm">
               <Row label={t.subtotal} value={formatPrice(order.subtotal)} />

@@ -40,7 +40,7 @@ export type OrderDetail = OrderRow & {
   offer: { id: number | null; name: string; discount: number } | null;
   code: { id: number | null; code: string; discount: number } | null;
   shipping_fee: number;
-  items: Array<{ id: number; product_id: number | null; product_name: string; unit_price: number; quantity: number; options: Array<{ option: string; value: string; price_delta: number }>; line_total: number }>;
+  items: Array<{ id: number; product_id: number | null; product_name: string; is_upsell?: boolean; unit_price: number; quantity: number; options: Array<{ option: string; value: string; price_delta: number }>; line_total: number }>;
   logs: Array<{ id: number; from_status: OrderStatus | null; to_status: OrderStatus; to_label: string; note: string | null; user: { id: number; name: string } | null; created_at: string }>;
   events: Array<{ id: number; type: ContactResult; label: string; note: string | null; follow_up_at: string | null; user: { id: number; name: string } | null; created_at: string }>;
   allowed_transitions: Array<{ status: OrderStatus; label: string }>;

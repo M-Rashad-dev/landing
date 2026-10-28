@@ -20,6 +20,18 @@ export type OrderFormField = {
 
 export type OrderFormStatus = "idle" | "submitting" | "success" | "error";
 
+export type UpsellOffer = {
+  id: number;
+  token: string;
+  headline: string;
+  description: string | null;
+  product: { name: string; image: { urls: { thumb: string; medium: string } } | null };
+  price: number;
+  regular_price: number;
+};
+
+export type UpsellState = "idle" | "adding" | "added" | "declined" | "failed";
+
 export type OrderFormState = {
   fields: OrderFormField[];
   values: Record<string, string | boolean>;
@@ -40,6 +52,13 @@ export type OrderFormState = {
   /** Shown above the submit button (network error, generic rejection...). */
   formError: string | null;
   orderNumber: number | null;
+  /** Post-order offer shown on the success screen. */
+  upsell: UpsellOffer | null;
+  upsellState: UpsellState;
+  /** Order total after placing (and after an accepted offer). */
+  finalTotal: number | null;
+  acceptUpsell: () => Promise<void>;
+  declineUpsell: () => void;
   submit: () => Promise<void>;
   /** Fired once on first interaction (InitiateCheckout). */
   touch: () => void;

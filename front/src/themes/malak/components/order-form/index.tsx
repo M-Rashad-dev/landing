@@ -2,7 +2,7 @@
 
 import { ResponsiveImage } from "@/themes/shared/components/responsive-image";
 import { useOrderForm } from "@/themes/shared/hooks/use-order-form";
-import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, type FormClasses } from "@/themes/shared/order-form/parts";
+import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, UpsellOfferCard, type FormClasses } from "@/themes/shared/order-form/parts";
 import type { OrderFormProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,8 @@ export function MalakOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
     return (
       <section className="px-4 py-16 md:py-24">
         <div className="t-bg mx-auto max-w-2xl rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,.08)]">
-          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} />
+          <SuccessPanel title={props.success_title} message={props.success_message} orderNumber={state.orderNumber} quote={state.quote} preview={ctx.isPreview} total={state.finalTotal} />
+          <UpsellOfferCard state={state} />
         </div>
       </section>
     );

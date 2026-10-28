@@ -158,6 +158,39 @@ describe("useOrderForm submit", () => {
     expect(result.current.orderNumber).toBe(1042);
   });
 
+  it("shows the post-order offer and adds it with the signed token", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.startsWith("/api/public/form-token")) return Promise.resolve(new Response(JSON.stringify({ data: { token: "1.abc" } })));
+      if (url === "/api/public/quote") return Promise.resolve(new Response(JSON.stringify({ data: null })));
+      if (url === "/api/public/orders")
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { order_number: 1050, total: 350, upsell: { id: 7, token: "t".repeat(64), headline: "زوّد حزام", description: null, product: { name: "حزام", image: null }, price: 99, regular_price: 150 } } }), { status: 201 }),
+        );
+      if (url === "/api/public/upsell") return Promise.resolve(new Response(JSON.stringify({ data: { order_number: 1050, total: 449 } })));
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    const ctx = { ...demoContext(), isPreview: false };
+    ctx.product = ctx.product ? { ...ctx.product, options: [] } : null;
+    const { result } = renderHook(() => useOrderForm(props({ fields: { ...defaults.fields, address: { ...defaults.fields.address, required: false }, governorate: { ...defaults.fields.governorate, required: false } } }), ctx));
+    act(() => {
+      result.current.setValue("customer.name", "أحمد علي");
+      result.current.setValue("customer.phone", "01012345678");
+    });
+    await act(async () => {
+      await result.current.submit();
+    });
+    await waitFor(() => expect(result.current.upsell?.headline).toBe("زوّد حزام"));
+    expect(result.current.finalTotal).toBe(350);
+
+    await act(async () => {
+      await result.current.acceptUpsell();
+    });
+    const call = fetchMock.mock.calls.find(([url]) => url === "/api/public/upsell");
+    expect(JSON.parse(call?.[1].body as string)).toEqual({ order_number: 1050, upsell_id: 7, token: "t".repeat(64) });
+    expect(result.current.upsellState).toBe("added");
+    expect(result.current.finalTotal).toBe(449);
+  });
+
   it("never sends anything in preview mode", async () => {
     const ctx = { ...demoContext(), isPreview: true };
     const { result } = renderHook(() => useOrderForm(props(), ctx));
