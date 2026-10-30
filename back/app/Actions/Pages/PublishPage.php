@@ -19,6 +19,7 @@ final class PublishPage
     public function __construct(
         private readonly PageContentSanitizer $sanitizer,
         private readonly SyncPageMedia $syncMedia,
+        private readonly EnsureHomePage $home,
     ) {}
 
     public function handle(LandingPage $page): LandingPage
@@ -75,6 +76,7 @@ final class PublishPage
             ])->save();
 
             $this->syncMedia->handle($page);
+            $this->home->handle($page);
         });
 
         RevalidateTenantHosts::dispatch($page->tenant_id)->afterCommit();

@@ -203,6 +203,29 @@ it('keeps a single home page and requires it to be published', function () {
     expect($homes)->toBe([$b['id']]);
 });
 
+it('makes the first published page home when none is set, and passes it on', function () {
+    $a = createPage(['slug' => 'a-page']);
+    $b = createPage(['slug' => 'b-page']);
+    $c = createPage(['slug' => 'c-page']);
+    $home = fn () => asTenant($this->user, fn () => LandingPage::query()->where('home_key', 1)->pluck('id')->all());
+
+    $this->postJson("/api/v1/dashboard/pages/{$a['id']}/publish")->assertOk()->assertJsonPath('data.is_home', true);
+    $this->postJson("/api/v1/dashboard/pages/{$b['id']}/publish")->assertOk()->assertJsonPath('data.is_home', false);
+    expect($home())->toBe([$a['id']]);
+
+    // The chosen home is respected; losing it hands home to the earliest remaining published page.
+    $this->postJson("/api/v1/dashboard/pages/{$c['id']}/publish")->assertOk();
+    $this->postJson("/api/v1/dashboard/pages/{$c['id']}/set-home")->assertOk();
+    $this->postJson("/api/v1/dashboard/pages/{$c['id']}/unpublish")->assertOk();
+    expect($home())->toBe([$a['id']]);
+
+    $this->deleteJson("/api/v1/dashboard/pages/{$a['id']}")->assertNoContent();
+    expect($home())->toBe([$b['id']]);
+
+    $this->postJson("/api/v1/dashboard/pages/{$b['id']}/unpublish")->assertOk();
+    expect($home())->toBe([]);
+});
+
 it('duplicates a page as a draft with a free slug', function () {
     $page = createPage(['slug' => 'offer']);
     $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();

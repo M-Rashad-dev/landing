@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 /** Unpublish, duplicate, set-home and delete. */
 final class PageLifecycle
 {
-    public function __construct(private readonly SyncPageMedia $syncMedia) {}
+    public function __construct(
+        private readonly SyncPageMedia $syncMedia,
+        private readonly EnsureHomePage $home = new EnsureHomePage,
+    ) {}
 
     public function unpublish(LandingPage $page): LandingPage
     {
@@ -27,6 +30,7 @@ final class PageLifecycle
         ])->save();
 
         $this->syncMedia->handle($page);
+        $this->home->handle();
         RevalidateTenantHosts::dispatch($page->tenant_id)->afterCommit();
 
         return $page;
@@ -90,6 +94,7 @@ final class PageLifecycle
             ])->save();
             $page->delete();
             DB::table('landing_page_media')->where('landing_page_id', $page->id)->delete();
+            $this->home->handle();
         });
 
         if ($wasPublished) {
