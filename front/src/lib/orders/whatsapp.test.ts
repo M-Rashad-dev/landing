@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WHATSAPP_TEMPLATE, fillWhatsappTemplate, telLink, whatsappLink } from "./whatsapp";
+import { DEFAULT_WHATSAPP_TEMPLATE, fillWhatsappTemplate, leadRecoveryMessage, telLink, whatsappLink } from "./whatsapp";
 
 const order = {
   order_number: 1024,
@@ -26,5 +26,12 @@ describe("WhatsApp confirmation", () => {
     expect(whatsappLink("+201012345678", "أهلًا & مرحبًا")).toBe("https://wa.me/201012345678?text=%D8%A3%D9%87%D9%84%D9%8B%D8%A7%20%26%20%D9%85%D8%B1%D8%AD%D8%A8%D9%8B%D8%A7");
     expect(whatsappLink("+201012345678")).toBe("https://wa.me/201012345678");
     expect(telLink("+201012345678")).toBe("tel:01012345678");
+  });
+
+  it("writes the abandoned-form follow-up with the first name and product", () => {
+    const text = leadRecoveryMessage({ customer_name: "منى أحمد", product: { name: "ساعة" } }, "متجر رشاد");
+    expect(text).toContain("أهلًا منى 👋");
+    expect(text).toContain("معاك متجر رشاد، لاحظنا إنك كنت بتطلب ساعة");
+    expect(leadRecoveryMessage({ customer_name: null, product: null }, "متجر").split("\n").slice(0, 2)).toEqual(["أهلًا 👋", "معاك متجر، لاحظنا إنك كنت بتطلب من عندنا ومكملتش الطلب."]);
   });
 });

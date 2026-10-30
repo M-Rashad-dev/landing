@@ -50,3 +50,13 @@ export function whatsappLink(phone: string, text?: string): string {
 export function telLink(phone: string): string {
   return `tel:${formatPhoneLocal(phone)}`;
 }
+
+/** Follow-up for an order form left unfinished (abandoned lead). */
+export function leadRecoveryMessage(lead: { customer_name: string | null; product: { name: string } | null }, store: string): string {
+  const name = lead.customer_name?.trim().split(" ")[0];
+  return [
+    `أهلًا${name ? ` ${name}` : ""} 👋`,
+    `معاك ${store}، لاحظنا إنك كنت بتطلب ${lead.product?.name ?? "من عندنا"} ومكملتش الطلب.`,
+    "تحب نكمّلهولك ونشحنه؟ الدفع عند الاستلام ✅",
+  ].join("\n");
+}

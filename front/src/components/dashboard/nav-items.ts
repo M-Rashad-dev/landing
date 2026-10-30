@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   Tag,
   Truck,
+  UserRoundSearch,
   type LucideIcon,
 } from "lucide-react";
 import { ar } from "@/messages/ar";
@@ -40,6 +41,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/orders/confirm", label: ar.nav.confirm, icon: PhoneCall, badgeKey: "orders" },
       { href: "/dashboard/orders", label: ar.nav.orders, icon: ShoppingBag, exclude: ["/dashboard/orders/blocked", "/dashboard/orders/confirm"] },
+      { href: "/dashboard/leads", label: ar.nav.leads, icon: UserRoundSearch },
       { href: "/dashboard/orders/blocked", label: ar.nav.blocked, icon: Ban },
     ],
   },

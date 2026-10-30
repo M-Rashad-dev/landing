@@ -41,6 +41,7 @@ final class CreateOrder
         private readonly FormToken $tokens,
         private readonly OrderForm $form,
         private readonly PostOrderUpsell $upsells,
+        private readonly CaptureLead $leads,
     ) {}
 
     /**
@@ -178,6 +179,7 @@ final class CreateOrder
             RateLimiter::hit($ipKey, self::LIMIT_WINDOW_SECONDS);
         }
         RateLimiter::hit($phoneKey, self::LIMIT_WINDOW_SECONDS);
+        $this->leads->converted($order);
 
         // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
         return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
+use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
@@ -95,6 +96,10 @@ Route::prefix('dashboard')
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
 
+        Route::get('leads', [LeadController::class, 'index']);
+        Route::patch('leads/{lead}', [LeadController::class, 'update']);
+        Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
+
         Route::get('shipping', [ShippingController::class, 'show']);
         Route::put('shipping', [ShippingController::class, 'update']);
 
@@ -126,6 +131,7 @@ Route::prefix('public')
         Route::get('brand', [TrackController::class, 'brand'])->middleware('throttle:public-read');
         Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
         Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
+        Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
     });
 
 Route::prefix('admin')

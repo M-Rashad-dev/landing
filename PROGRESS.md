@@ -181,3 +181,14 @@
 - ✅ `DEPLOY.md` covers every step (requirements, server, DNS, `.env`, deploy, admin, checks, custom domain, update / rollback, backup / restore / monitoring, troubleshooting, Let's Encrypt limits).
 
 First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt staging enabled, run `./deploy/deploy.sh`, then `./deploy/backup.sh` and a `restore.sh` on a copy, and record the results here.
+
+## Roadmap v2 (see ROADMAP.md)
+| Step | Done | Commits |
+|---|---|---|
+| 0 Theme fixes | Celia FAQ animates, Embla testimonials slider, scroll reveal, sticky header | `fad47a6` |
+| 1 Design system «لازورد» | tokens in `globals.css`, Plex Arabic + Readex Pro, grouped sidebar, searchable Select (cmdk), date picker, motion | `6cf1d20`, `da0d8dd` |
+| 2 Builder | device switch morphs, page-only identity with live preview | `539b22c` |
+| 3 Orders | A4 invoice + A6 label (barcode, bulk print), WhatsApp template + call-center queue, customer `/track` page | `e4eded7`, `928e7da` |
+| 4 Selling | delivery fee per governorate, one-click post-order upsell, abandoned order forms («الطلبات المتروكة») | `ef05972`, `50c09a1`, `6b6465c`, this commit |
+
+Abandoned forms, verified in the browser: phone typed on the demo store → `/api/public/leads` 202 → row in «الطلبات المتروكة» with the WhatsApp follow-up message filled → «تم التواصل» moves it to its tab. Back 507 tests, front 283.

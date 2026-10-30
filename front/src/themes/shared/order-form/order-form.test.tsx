@@ -191,6 +191,34 @@ describe("useOrderForm submit", () => {
     expect(result.current.finalTotal).toBe(449);
   });
 
+  it("saves the typed phone once as an abandoned-form lead after a pause", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.startsWith("/api/public/form-token")) return Promise.resolve(new Response(JSON.stringify({ data: { token: "1.abc" } })));
+      if (url === "/api/public/quote") return Promise.resolve(new Response(JSON.stringify({ data: null }), { status: 200 }));
+      if (url === "/api/public/leads") return Promise.resolve(new Response(JSON.stringify({ data: { received: true } }), { status: 202 }));
+      return Promise.reject(new Error(`unexpected ${url}`));
+    });
+    const ctx = { ...demoContext(), isPreview: false };
+    ctx.product = ctx.product ? { ...ctx.product, options: [] } : null;
+    const { result, rerender } = renderHook(() => useOrderForm(props(), ctx));
+
+    act(() => {
+      result.current.setValue("customer.phone", "0101");
+    });
+    act(() => {
+      result.current.setValue("customer.name", "منى");
+      result.current.setValue("customer.phone", "01012345678");
+    });
+
+    const leadCalls = () => fetchMock.mock.calls.filter(([url]) => url === "/api/public/leads");
+    await waitFor(() => expect(leadCalls()).toHaveLength(1), { timeout: 3000 });
+    expect(JSON.parse(leadCalls()[0][1].body as string)).toEqual({ slug: ctx.page.slug, phone: "+201012345678", name: "منى", governorate: null, quantity: 1, form_token: "1.abc" });
+
+    rerender();
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+    expect(leadCalls()).toHaveLength(1);
+  });
+
   it("never sends anything in preview mode", async () => {
     const ctx = { ...demoContext(), isPreview: true };
     const { result } = renderHook(() => useOrderForm(props(), ctx));

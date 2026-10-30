@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Public;
 
+use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Orders\PostOrderUpsell;
 use App\Exceptions\ApiException;
@@ -80,6 +81,42 @@ final class OrderController extends Controller
                 return $this->created($result);
             });
         });
+    }
+
+    /**
+     * The visitor typed a valid phone but has not ordered yet: keep it so the merchant can follow up.
+     * Always answers 202 (bots learn nothing); bad tokens and phones are dropped silently.
+     */
+    public function lead(Request $request, CaptureLead $leads, FormToken $tokens, PhoneNormalizer $phones): JsonResponse
+    {
+        $data = $request->validate([
+            'host' => ['required', 'string', 'max:253'],
+            'slug' => ['present', 'nullable', 'string', 'max:100'],
+            'phone' => ['required', 'string', 'max:30'],
+            'name' => ['nullable', 'string', 'max:80'],
+            'governorate' => ['nullable', 'string', 'max:60'],
+            'quantity' => ['nullable', 'integer', 'between:1,20'],
+            'form_token' => ['required', 'string', 'max:100'],
+            'ip' => ['nullable', 'ip'],
+        ]);
+        $domain = $this->site->activeDomainOrFail($data['host']);
+
+        Tenancy::runAs($domain->tenant_id, function () use ($data, $leads, $tokens, $phones): void {
+            $page = $this->site->pageOrFail((string) ($data['slug'] ?? ''));
+            $phone = $phones->normalize($data['phone']);
+            if ($phone === null || $page->product_id === null || ! $tokens->isValid($data['form_token'], $page->id)) {
+                return;
+            }
+
+            $leads->capture($page, $phone, [
+                'name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null,
+                'governorate' => $data['governorate'] ?? null,
+                'quantity' => isset($data['quantity']) ? (int) $data['quantity'] : null,
+                'ip' => $data['ip'] ?? null,
+            ]);
+        });
+
+        return $this->ok(['received' => true], [], 202);
     }
 
     /** One click on the success screen: add the post-order offer to the visitor's new order. */

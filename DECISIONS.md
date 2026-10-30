@@ -142,3 +142,9 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **APP_KEY** is generated with `openssl` (no need to build an image first); `deploy.sh` refuses placeholder passwords, `SERVER_IP=0.0.0.0` and short shared secrets.
 - **Lighthouse** could not be installed here; the metrics it scores (LCP, CLS, long tasks) were measured with the same Chromium under Lighthouse's mobile throttling instead (PROGRESS, final checklist).
 
+
+## Roadmap v2
+- **Abandoned forms are captured 1.5 s after the visitor stops typing a valid phone** (with name, governorate, quantity), only on live pages, deduplicated per change. One open lead per phone + page; a phone that ordered from that page in the last 24 h is not captured; blocked phones / IPs are ignored. The endpoint always answers 202 and needs the page's form token, so bots learn nothing.
+- **A lead becomes «طلب بعدها» when the same phone orders on any page of the store** (open or contacted leads), linked to the order. A converted lead can't be moved back by the merchant.
+- **Leads are deleted after 30 days** (`leads:prune`, daily): they are data visitors never submitted. The command is an audited `withoutTenant` bypass.
+- **Calling or opening WhatsApp on a new lead marks it «تم التواصل»** quietly; the follow-up text is fixed (first name, store, product) rather than a second template setting, to keep settings small.

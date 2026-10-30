@@ -15,6 +15,8 @@ import { useOfferStore } from "./offer-store";
 import type { OrderFormState, OrderFormStatus, UpsellOffer, UpsellState } from "./order-form-types";
 
 const QUOTE_DEBOUNCE = 300;
+/** Wait for the visitor to stop typing before saving the abandoned-form lead. */
+const LEAD_DEBOUNCE = 1500;
 
 type ApiBody = { data?: unknown; message?: string; code?: string; errors?: Record<string, string[]> };
 
@@ -58,6 +60,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   const token = useRef<string | null>(null);
   const touched = useRef(false);
   const submitting = useRef(false);
+  const lastLead = useRef("");
 
   const disabledReason = !product || !product.available ? siteMessages.unavailable : null;
   const live = !ctx.isPreview && !disabledReason;
@@ -117,6 +120,26 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
       clearTimeout(timer);
     };
   }, [live, requiredChosen, ctx.page.slug, quantity, options, appliedCode, phone, governorate]);
+
+  // Abandoned form: once a valid phone is typed, the store can follow up even if the visitor leaves.
+  const leadName = typeof values["customer.name"] === "string" ? (values["customer.name"] as string).trim() : "";
+  useEffect(() => {
+    if (!live || !phone || status === "success" || status === "submitting") return;
+    const signature = [phone, leadName, governorate, quantity].join("|");
+    if (signature === lastLead.current) return;
+    const timer = setTimeout(() => {
+      if (!token.current) return;
+      lastLead.current = signature;
+      fetch("/api/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ slug: ctx.page.slug, phone, name: leadName || null, governorate: governorate || null, quantity, form_token: token.current }),
+        credentials: "same-origin",
+        keepalive: true,
+      }).catch(() => undefined);
+    }, LEAD_DEBOUNCE);
+    return () => clearTimeout(timer);
+  }, [live, phone, leadName, governorate, quantity, status, ctx.page.slug]);
 
   const estimate = useMemo(() => (product ? estimateQuote(product, ctx.offers, quantity, options) : null), [product, ctx.offers, quantity, options]);
   const quoteMatches = serverQuote && serverQuote.quantity === quantity;
