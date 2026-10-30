@@ -76,7 +76,9 @@ test("3. build a page from a theme and publish it", async ({ page }) => {
   await login(page);
 
   await page.goto("/dashboard/pages/new");
-  await page.getByRole("radio").first().click();
+  // Templates are the default start; this flow builds a blank Malak page.
+  await page.getByRole("tab", { name: "صفحة فاضية بثيم" }).click();
+  await page.getByRole("radio", { name: /ملاك/ }).click();
   await page.locator("#wiz-title").fill(pageInfo.title);
   await page.locator("#wiz-slug").fill(pageInfo.slug);
   await page.locator("#wiz-product").click();
