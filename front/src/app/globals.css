@@ -366,6 +366,116 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 
+/* ---------- «ليالي»: night page from the store colors, glass surfaces and soft glows. ---------- */
+.l-glass {
+  background: color-mix(in srgb, var(--c-fg) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-fg) 12%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--c-fg) 10%, transparent),
+    0 24px 60px -30px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.l-line {
+  border-color: color-mix(in srgb, var(--c-fg) 12%, transparent);
+}
+.l-grad-text {
+  background: linear-gradient(100deg, var(--c-fg) 20%, color-mix(in srgb, var(--c-primary) 65%, var(--c-fg)) 60%, var(--c-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.l-glow-btn {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c-fg) 14%, transparent) inset,
+    0 14px 40px -12px var(--c-primary);
+  transition:
+    transform 0.2s var(--ease-out, ease),
+    box-shadow 0.2s ease;
+}
+.l-glow-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c-fg) 20%, transparent) inset,
+    0 18px 50px -10px var(--c-primary);
+}
+.l-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--c-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.l-eyebrow::before,
+.l-eyebrow::after {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-accent));
+}
+.l-eyebrow::after {
+  transform: scaleX(-1);
+}
+/* Slow aurora behind hero sections; still under reduced motion. */
+.l-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Fades out at the bottom so the glow never ends on a hard edge. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+.l-aurora::before,
+.l-aurora::after {
+  content: "";
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.35;
+  animation: l-drift 18s ease-in-out infinite alternate;
+}
+.l-aurora::before {
+  background: var(--c-primary);
+  top: -30vmax;
+  inset-inline-start: -20vmax;
+}
+.l-aurora::after {
+  background: var(--c-accent);
+  bottom: -35vmax;
+  inset-inline-end: -25vmax;
+  opacity: 0.22;
+  animation-delay: -9s;
+}
+@keyframes l-drift {
+  to {
+    transform: translate3d(8vmax, 6vmax, 0) scale(1.1);
+  }
+}
+.l-ring {
+  position: relative;
+  isolation: isolate;
+}
+.l-ring::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c-primary) 55%, transparent), transparent);
+  filter: blur(30px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .l-aurora::before,
+  .l-aurora::after {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

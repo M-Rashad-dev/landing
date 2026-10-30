@@ -15,6 +15,7 @@ class ThemeSeeder extends Seeder
         $themes = [
             ['key' => 'malak', 'name' => 'ملاك', 'sort_order' => 1],
             ['key' => 'celia', 'name' => 'سيليا', 'sort_order' => 2],
+            ['key' => 'layali', 'name' => 'ليالي', 'sort_order' => 3],
         ];
 
         foreach ($themes as $theme) {

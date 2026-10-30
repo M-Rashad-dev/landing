@@ -1,4 +1,4 @@
-import { Dumbbell, Gamepad2, Shirt, Smartphone, Sofa, Sparkles, type LucideIcon } from "lucide-react";
+import { Dumbbell, Gamepad2, Gem, Shirt, Smartphone, Sofa, Sparkles, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ export const NICHE_ICONS: Record<TemplateNiche, LucideIcon> = {
   home: Sofa,
   kids: Gamepad2,
   health: Dumbbell,
+  luxury: Gem,
 };
 
 /**

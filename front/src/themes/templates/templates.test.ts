@@ -25,7 +25,7 @@ function contrast(a: string, b: string): number {
 describe("page templates", () => {
   it("cover every niche once with unique keys", () => {
     expect(new Set(TEMPLATES.map((t) => t.key)).size).toBe(TEMPLATES.length);
-    expect(TEMPLATES.map((t) => t.niche).sort()).toEqual(["beauty", "electronics", "fashion", "health", "home", "kids"]);
+    expect(TEMPLATES.map((t) => t.niche).sort()).toEqual(["beauty", "electronics", "fashion", "health", "home", "kids", "luxury"]);
   });
 
   it.each(TEMPLATES.map((t) => [t.key, t] as const))("%s uses valid variants, keys and limits", (_, template) => {

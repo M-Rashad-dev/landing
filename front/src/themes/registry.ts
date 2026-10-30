@@ -1,5 +1,6 @@
 import { FALLBACK_COMPONENTS } from "@/themes/_fallback";
 import { celiaTheme } from "@/themes/celia/theme.config";
+import { layaliTheme } from "@/themes/layali/theme.config";
 import { malakTheme } from "@/themes/malak/theme.config";
 import { isComponentType, type ComponentType, type ThemeComponentDef, type ThemeDef } from "@/themes/types";
 
@@ -7,6 +8,7 @@ import { isComponentType, type ComponentType, type ThemeComponentDef, type Theme
 export const THEMES: Record<string, ThemeDef> = {
   malak: malakTheme,
   celia: celiaTheme,
+  layali: layaliTheme,
 };
 
 export const DEFAULT_THEME = "malak";

@@ -60,6 +60,22 @@ export const LOOKS = {
     digit: "t-bg t-hard-sm",
     bar: "t-bg border-t-[3px] t-line",
   },
+  layali: {
+    section: "relative px-4 py-20 md:py-28",
+    container: "mx-auto max-w-5xl",
+    heading: "t-heading l-grad-text text-3xl font-bold leading-tight md:text-4xl",
+    headingAlign: "mx-auto mb-12 max-w-2xl text-center",
+    subtitle: "t-muted mt-4 leading-relaxed",
+    card: "l-glass rounded-[1.75rem]",
+    frame: "overflow-hidden rounded-[1.75rem] ring-1 ring-white/10 shadow-[0_30px_80px_-30px_var(--c-primary)]",
+    tint: "l-glass rounded-[2rem]",
+    button: "t-primary t-btn l-glow-btn inline-flex min-h-12 items-center justify-center gap-2 px-8 text-base font-bold",
+    chip: "rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-semibold text-white backdrop-blur",
+    tableHead: "border-b l-line text-[var(--c-accent)] font-bold",
+    rowLine: "border-b l-line last:border-b-0",
+    digit: "l-glass rounded-2xl",
+    bar: "l-glass rounded-t-3xl border-b-0",
+  },
 } satisfies Record<string, BlockLook>;
 
 export type LookKey = keyof typeof LOOKS;

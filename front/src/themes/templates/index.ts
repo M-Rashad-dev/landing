@@ -7,14 +7,14 @@ import type { ComponentType, PageContent, PageDesign } from "@/themes/types";
  * Props listed here are merged over each section's schema defaults; images come from the
  * merchant's product, so templates carry no media.
  */
-export type TemplateNiche = "fashion" | "beauty" | "electronics" | "home" | "kids" | "health";
+export type TemplateNiche = "fashion" | "beauty" | "electronics" | "home" | "kids" | "health" | "luxury";
 
 type TemplateSection = { type: ComponentType; variant: string; props?: Record<string, unknown> };
 
 export type PageTemplate = {
   key: string;
   niche: TemplateNiche;
-  themeKey: "malak" | "celia";
+  themeKey: "malak" | "celia" | "layali";
   design: PageDesign;
   sections: TemplateSection[];
 };
@@ -173,6 +173,32 @@ export const TEMPLATES: PageTemplate[] = [
       { type: "order_form", variant: "bordered", props: { title: "اطلب دلوقتي والدفع عند الاستلام" } },
       { type: "sticky_cta", variant: "full-bar", props: { cta_label: "ابدأ النهارده" } },
       { type: "footer", variant: "dark-columns" },
+    ],
+  },
+  {
+    key: "luxury-night",
+    niche: "luxury",
+    themeKey: "layali",
+    design: {
+      colors: { primary: "#C9A227", primary_foreground: "#14110B", secondary: "#FBF5E6", accent: "#E9C46A", background: "#FFFDF8", foreground: "#14110B", muted: "#6B6458", border: "#ECE4D3" },
+      font_heading: "readex_pro",
+      font_body: "ibm_plex_arabic",
+      button_radius: "full",
+    },
+    sections: [
+      { type: "header", variant: "glass-bar", props: { announcement_enabled: true, announcement_text: "تغليف هدايا فاخر مجانًا مع كل طلب ✨" } },
+      { type: "hero", variant: "glow-center", props: { eyebrow: "إصدار محدود", title: "حضور يفضل في الذاكرة", subtitle: "عطر بثبات يكمّل معاك اليوم كله، بتركيبة فرنسية وزجاجة تليق بالهدية.", cta_label: "اطلبه الآن", badges: badges(["ثبات 12 ساعة", "تغليف هدايا", "دفع عند الاستلام"]) } },
+      { type: "product_showcase", variant: "luxe-split", props: { highlights: highlights([["gem", "زيوت عطرية مستوردة"], ["clock", "ثبات حتى 12 ساعة"], ["gift", "علبة فاخرة جاهزة للإهداء"]]), cta_label: "اطلبه هدية" } },
+      { type: "video", variant: "video-split", props: { title: "شوف العلبة وهي بتتفتح", subtitle: "تفاصيل الزجاجة والتغليف قبل ما يوصلك.", cta_label: "اطلبه الآن" } },
+      { type: "features", variant: "glow-timeline", props: { title: "رحلة العطر", items: features([["sparkles", "المقدمة", "برغموت وفلفل وردي بيلفتوا الانتباه من أول رشة."], ["heart", "القلب", "عود وورد طائفي بيدّوا دفا وفخامة."], ["leaf", "القاعدة", "مسك وعنبر بيفضلوا معاك لآخر اليوم."]]) } },
+      { type: "comparison", variant: "versus-cards", props: { title: "الأصلي يفرق", us_label: "عطرنا", them_label: "التقليد", rows: [{ feature: "ثبات طول اليوم", us: true, them: false }, { feature: "زيوت مستوردة", us: true, them: false }, { feature: "علبة هدايا فاخرة", us: true, them: false }, { feature: "سعر مناسب", us: true, them: true }] } },
+      { type: "testimonials", variant: "quote-masonry", props: { title: "اللي جربوه", items: reviews([["هالة", "الشيخ زايد", "جوزي سألني عن اسمه من أول يوم، والريحة فضلت لحد بالليل.", 5], ["عمر", "مصر الجديدة", "اشتريته هدية والعلبة شكلها غالي جدًا.", 5], ["ريم", "المنصورة", "ثباته أحسن من عطور ماركات بضعف السعر.", 5]]) } },
+      { type: "offers", variant: "spotlight" },
+      { type: "countdown", variant: "boxes", props: { title: "الإصدار المحدود بيخلص", subtitle: "الكمية محدودة والعرض لفترة قصيرة", minutes: 240 } },
+      { type: "faq", variant: "split-glow", props: { items: faq([["الثبات قد إيه؟", "من 8 لـ 12 ساعة على الجلد حسب نوع البشرة والجو."], ["ينفع أهاديه؟", "أيوه، بيوصل في علبة فاخرة وتقدر تكتب اسم المُهدى إليه في الملاحظات."], ["لو مش عاجبني؟", "تقدر ترجعه خلال 14 يوم لو مفتوحش."]]) } },
+      { type: "order_form", variant: "split-luxe", props: { title: "اطلبه الآن والدفع عند الاستلام" } },
+      { type: "sticky_cta", variant: "pill", props: { cta_label: "اطلبه الآن" } },
+      { type: "footer", variant: "signature" },
     ],
   },
 ];

@@ -1,5 +1,36 @@
 /** Illustrated thumbnails for the theme picker (pure SVG, no external images). */
 export function ThemeArt({ themeKey }: { themeKey: string }) {
+  if (themeKey === "layali") {
+    return (
+      <svg viewBox="0 0 240 150" className="h-full w-full" aria-hidden>
+        <defs>
+          <radialGradient id="layali-a" cx="20%" cy="10%" r="70%">
+            <stop offset="0" stopColor="#7c3aed" stopOpacity="0.75" />
+            <stop offset="1" stopColor="#7c3aed" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="layali-b" cx="90%" cy="100%" r="60%">
+            <stop offset="0" stopColor="#f59e0b" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#f59e0b" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="layali-t" x1="0" x2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#f5c76b" />
+          </linearGradient>
+        </defs>
+        <rect width="240" height="150" fill="#090a12" />
+        <rect width="240" height="150" fill="url(#layali-a)" />
+        <rect width="240" height="150" fill="url(#layali-b)" />
+        <rect x="16" y="10" width="208" height="18" rx="9" fill="#fff" fillOpacity="0.08" stroke="#fff" strokeOpacity="0.18" />
+        <rect x="26" y="16" width="30" height="6" rx="3" fill="#fff" fillOpacity="0.85" />
+        <rect x="178" y="14" width="38" height="10" rx="5" fill="#7c3aed" />
+        <rect x="56" y="42" width="128" height="12" rx="6" fill="url(#layali-t)" />
+        <rect x="80" y="60" width="80" height="5" rx="2.5" fill="#fff" fillOpacity="0.45" />
+        <circle cx="120" cy="104" r="26" fill="#7c3aed" fillOpacity="0.35" />
+        <circle cx="120" cy="104" r="18" fill="#fff" fillOpacity="0.14" stroke="#fff" strokeOpacity="0.25" />
+        <rect x="92" y="136" width="56" height="8" rx="4" fill="#7c3aed" />
+      </svg>
+    );
+  }
   if (themeKey === "celia") {
     return (
       <svg viewBox="0 0 240 150" className="h-full w-full" aria-hidden>

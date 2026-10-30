@@ -199,6 +199,10 @@ First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt
 
 | 7 Connect | «Google Sheets و Webhooks» (sidebar → الربط): signed webhooks for order created / status changed / updated and abandoned forms, retries with a delivery log; Google Sheets through the merchant's own Apps Script web app (code to copy, rows upserted by order number) | this commit |
 
+| 5 Pages (part 3) | third theme «ليالي»: night luxury (dark page from the store colors, glass, gradient headlines, glows), all 16 section types × 2 variants, plus a luxury template (perfumes / gifts) | this commit |
+
+«ليالي», verified in the browser: wizard → «عطور وهدايا فاخرة» → builder → publish → public page renders dark (computed background rgb(12,11,10)) on mobile and desktop with no horizontal scroll; every theme × type × variant renders in tests. Front 448 tests, back 544.
+
 Integrations, verified in the browser: wrong Sheets link refused with an example of the right one; webhook saved through the dialog; «إرسال تجربة» made a real HTTPS request (DNS-pinned) to example.com, logged as 405 with the Arabic reason; no horizontal scroll at 390 px. Back 544 tests, front 379.
 
 A/B, verified in the browser: test created in the UI between the fashion and beauty template pages → 16 fresh visitors on page A's link split 8 / 8, URL unchanged, same page on reload → an order from B is stored with the test id → A/B card and analytics screens show the counts; no horizontal scroll at 390 px. Back 526 tests, front 376.
