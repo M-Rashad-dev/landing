@@ -10,6 +10,7 @@ import { CeliaOffers } from "./components/offers";
 import { CeliaOrderForm } from "./components/order-form";
 import { CeliaProductShowcase } from "./components/product-showcase";
 import { CeliaTestimonials } from "./components/testimonials";
+import { CeliaBeforeAfter, CeliaComparison, CeliaCountdown, CeliaSizeChart, CeliaStickyCta, CeliaVideo } from "./components/blocks";
 import { CeliaThumbs } from "./thumbnails";
 
 const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
@@ -34,6 +35,12 @@ export const celiaTheme: ThemeDef = {
     faq: def("faq", CeliaFaq, ["accordion-lines", "numbered"]),
     order_form: def("order_form", CeliaOrderForm, ["bordered", "sticky-summary"]),
     footer: def("footer", CeliaFooter, ["dark-columns", "minimal-line"]),
+    video: def("video", CeliaVideo, ["framed", "video-split"]),
+    before_after: def("before_after", CeliaBeforeAfter, ["drag-slider", "two-images"]),
+    size_chart: def("size_chart", CeliaSizeChart, ["table", "size-cards"]),
+    comparison: def("comparison", CeliaComparison, ["check-table", "versus-cards"]),
+    countdown: def("countdown", CeliaCountdown, ["banner", "boxes"]),
+    sticky_cta: def("sticky_cta", CeliaStickyCta, ["full-bar", "pill"]),
   },
   starterSections: [
     { type: "header", variant: "bar" },

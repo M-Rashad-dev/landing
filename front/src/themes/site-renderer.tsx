@@ -31,7 +31,8 @@ export function SiteRenderer({
         const Component = def.component;
         // Stored props merged over defaults, so older content keeps working when fields are added.
         const props = { ...SCHEMAS[section.type].defaults, ...section.props };
-        const isHeader = section.type === "header";
+        // Header (sticky) and the fixed order button take no box: a transformed wrapper would trap them.
+        const isHeader = section.type === "header" || section.type === "sticky_cta";
         const node = (
           // The header's wrapper takes no box (display: contents) so a sticky header sticks to the page,
           // not to its own wrapper; every other section fades in on scroll (SiteEnhancer).

@@ -25,7 +25,8 @@ describe("theme parity", () => {
         expect(def.variants.map((v) => v.key)).toContain(def.defaultVariant);
         expect(def.Thumbnail).toBeTypeOf("function");
       }
-      expect(theme.starterSections.map((s) => s.type)).toEqual([...COMPONENT_TYPES]);
+      // New pages start with the ten core sections; conversion sections (video, countdown, ...) are added from the library.
+      expect(theme.starterSections.map((s) => s.type)).toEqual(COMPONENT_TYPES.slice(0, 10));
     }
   });
 

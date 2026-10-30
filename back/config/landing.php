@@ -86,6 +86,7 @@ return [
     'component_types' => [
         'header', 'hero', 'gallery', 'product_showcase', 'features',
         'offers', 'testimonials', 'faq', 'order_form', 'footer',
+        'video', 'before_after', 'size_chart', 'comparison', 'countdown', 'sticky_cta',
     ],
 
     'components' => [
@@ -102,6 +103,12 @@ return [
             'offers' => 5,
             'testimonials' => 5,
             'faq' => 5,
+            'video' => 5,
+            'before_after' => 5,
+            'size_chart' => 3,
+            'comparison' => 3,
+            'countdown' => 3,
+            'sticky_cta' => 1,
         ],
     ],
 

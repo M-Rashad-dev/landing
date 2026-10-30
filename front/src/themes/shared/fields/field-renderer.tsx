@@ -2,6 +2,7 @@
 
 import { FormField } from "@/components/forms/form-field";
 import { ColorInput } from "@/components/forms/color-input";
+import { DateTimeField } from "@/components/forms/datetime-field";
 import { MediaField } from "@/components/shared/media-picker/media-field";
 import { MediaListField } from "@/components/shared/media-picker/media-list-field";
 import { Input } from "@/components/ui/input";
@@ -109,6 +110,8 @@ export function FieldRenderer({ field, value, onChange, ctx }: { field: FieldDef
         );
       case "select":
         return <Select id={id} value={typeof value === "string" ? value : String(value ?? "")} onChange={(event) => onChange(event.target.value)} options={field.options} />;
+      case "datetime":
+        return <DateTimeField id={id} value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v)} emptyLabel={field.label} />;
       case "color":
         return <ColorInput id={id} value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v ?? "")} allowEmpty />;
       case "image":

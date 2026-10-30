@@ -10,6 +10,7 @@ import { MalakOffers } from "./components/offers";
 import { MalakOrderForm } from "./components/order-form";
 import { MalakProductShowcase } from "./components/product-showcase";
 import { MalakTestimonials } from "./components/testimonials";
+import { MalakBeforeAfter, MalakComparison, MalakCountdown, MalakSizeChart, MalakStickyCta, MalakVideo } from "./components/blocks";
 import { MalakThumbs } from "./thumbnails";
 
 const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
@@ -34,6 +35,12 @@ export const malakTheme: ThemeDef = {
     faq: def("faq", MalakFaq, ["accordion-soft", "two-columns"]),
     order_form: def("order_form", MalakOrderForm, ["card", "split-summary"]),
     footer: def("footer", MalakFooter, ["simple-center", "columns"]),
+    video: def("video", MalakVideo, ["framed", "video-split"]),
+    before_after: def("before_after", MalakBeforeAfter, ["drag-slider", "two-images"]),
+    size_chart: def("size_chart", MalakSizeChart, ["table", "size-cards"]),
+    comparison: def("comparison", MalakComparison, ["check-table", "versus-cards"]),
+    countdown: def("countdown", MalakCountdown, ["boxes", "banner"]),
+    sticky_cta: def("sticky_cta", MalakStickyCta, ["full-bar", "pill"]),
   },
   starterSections: [
     { type: "header", variant: "centered-logo" },

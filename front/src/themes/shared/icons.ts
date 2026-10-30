@@ -40,6 +40,11 @@ import {
   Wallet,
   Zap,
   type LucideIcon,
+  Play,
+  Table,
+  Scale,
+  MousePointerClick,
+  Contrast,
 } from "lucide-react";
 
 /** The fixed icon set offered by the Builder "icon" field (~40 icons). Keys are stored in content. */
@@ -84,6 +89,11 @@ export const ICONS: Record<string, LucideIcon> = {
   ruler: Ruler,
   feather: Feather,
   battery: Battery,
+  play: Play,
+  table: Table,
+  scale: Scale,
+  pointer: MousePointerClick,
+  contrast: Contrast,
 };
 
 export const ICON_KEYS = Object.keys(ICONS);

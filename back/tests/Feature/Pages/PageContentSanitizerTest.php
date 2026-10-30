@@ -129,6 +129,22 @@ it('allows at most one header, footer and order form', function () {
         ->and(sanitizeErrors(content(LandingPageFactory::section('order_form'), LandingPageFactory::section('order_form'))))->toHaveKey('content.sections.1.type');
 });
 
+it('accepts the conversion sections and keeps one sticky order button', function () {
+    $result = $this->sanitizer->sanitize(content(
+        LandingPageFactory::section('video', ['title' => 'شوف', 'video_url' => 'https://youtu.be/aqz-KE-bpKQ', 'poster_media_id' => null]),
+        LandingPageFactory::section('before_after', ['before_label' => 'قبل', 'after_label' => 'بعد']),
+        LandingPageFactory::section('size_chart', ['size_label' => 'المقاس', 'rows' => [['size' => 'L', 'col1' => '100', 'col2' => '72', 'col3' => '']]]),
+        LandingPageFactory::section('comparison', ['rows' => [['feature' => 'ضمان', 'us' => true, 'them' => false]]]),
+        LandingPageFactory::section('countdown', ['mode' => 'fixed', 'ends_at' => '2026-12-31T23:59', 'minutes' => 120]),
+        LandingPageFactory::section('sticky_cta', ['cta_label' => 'اطلب الآن', 'show_price' => true]),
+    ));
+
+    expect(array_column($result['content']['sections'], 'type'))->toBe(['video', 'before_after', 'size_chart', 'comparison', 'countdown', 'sticky_cta'])
+        ->and($result['content']['sections'][3]['props']['rows'][0])->toBe(['feature' => 'ضمان', 'us' => true, 'them' => false])
+        ->and(sanitizeErrors(content(LandingPageFactory::section('video', ['video_url' => 'javascript:alert(1)']))))->toHaveKey('content.sections.0.props.video_url')
+        ->and(sanitizeErrors(content(LandingPageFactory::section('sticky_cta'), LandingPageFactory::section('sticky_cta'))))->toHaveKey('content.sections.1.type');
+});
+
 it('limits sections, size, depth and array length', function () {
     $many = array_map(fn () => LandingPageFactory::section('features'), range(1, 31));
     expect(sanitizeErrors(['version' => 1, 'sections' => $many]))->toHaveKey('content.sections');

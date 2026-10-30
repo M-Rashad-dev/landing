@@ -9,6 +9,12 @@ import { offersSchema } from "./offers";
 import { orderFormSchema } from "./order-form";
 import { productShowcaseSchema } from "./product-showcase";
 import { testimonialsSchema } from "./testimonials";
+import { beforeAfterSchema } from "./before-after";
+import { comparisonSchema } from "./comparison";
+import { countdownSchema } from "./countdown";
+import { sizeChartSchema } from "./size-chart";
+import { stickyCtaSchema } from "./sticky-cta";
+import { videoSchema } from "./video";
 
 export const SCHEMAS: Record<ComponentType, ComponentSchema> = {
   header: headerSchema,
@@ -21,6 +27,12 @@ export const SCHEMAS: Record<ComponentType, ComponentSchema> = {
   faq: faqSchema,
   order_form: orderFormSchema,
   footer: footerSchema,
+  video: videoSchema,
+  before_after: beforeAfterSchema,
+  size_chart: sizeChartSchema,
+  comparison: comparisonSchema,
+  countdown: countdownSchema,
+  sticky_cta: stickyCtaSchema,
 };
 
 export function getSchema(type: ComponentType): ComponentSchema {
@@ -42,3 +54,9 @@ export type { TestimonialsProps, TestimonialItem } from "./testimonials";
 export type { FaqProps } from "./faq";
 export type { OrderFormProps, CustomField, BuiltInField, BuiltInFieldConfig, CustomFieldType } from "./order-form";
 export type { FooterProps } from "./footer";
+export type { VideoProps } from "./video";
+export type { BeforeAfterProps } from "./before-after";
+export type { SizeChartProps, SizeRow } from "./size-chart";
+export type { ComparisonProps, ComparisonRow } from "./comparison";
+export type { CountdownProps } from "./countdown";
+export type { StickyCtaProps } from "./sticky-cta";

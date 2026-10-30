@@ -110,4 +110,6 @@ export const DEMO_PROP_OVERRIDES: Record<string, Record<string, unknown>> = {
     ],
   },
   features: { items: [{ icon: "truck", title: "شحن سريع", description: "خلال يومين.", image_media_id: 903 }, { icon: "wallet", title: "دفع عند الاستلام", description: "", image_media_id: null }, { icon: "refresh", title: "ك", description: "استرجاع خلال 14 يوم.", image_media_id: null }] },
+  video: { video_url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", poster_media_id: 901 },
+  before_after: { before_media_id: 902, after_media_id: 903 },
 };

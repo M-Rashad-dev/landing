@@ -11,6 +11,12 @@ export const COMPONENT_TYPES = [
   "faq",
   "order_form",
   "footer",
+  "video",
+  "before_after",
+  "size_chart",
+  "comparison",
+  "countdown",
+  "sticky_cta",
 ] as const;
 
 export type ComponentType = (typeof COMPONENT_TYPES)[number];
@@ -149,6 +155,8 @@ export type FieldDef =
   | (BaseField & { type: "number"; min: number; max: number; step?: number })
   | (BaseField & { type: "range"; min: number; max: number; step?: number; unit?: string })
   | (BaseField & { type: "toggle" })
+  /** Cairo wall time "YYYY-MM-DDTHH:mm". */
+  | (BaseField & { type: "datetime" })
   | (BaseField & { type: "select"; options: SelectOption[] })
   | (BaseField & { type: "color" })
   | (BaseField & { type: "image" })

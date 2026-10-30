@@ -111,4 +111,61 @@ export const MalakThumbs = {
       {bar(30, 58, 60, 2, 0.2)}
     </Frame>
   ),
+  video: () => (
+    <Frame>
+      <rect x="22" y="10" width="76" height="44" rx="10" fill="currentColor" fillOpacity="0.25" />
+      <circle cx="60" cy="32" r="9" fill="currentColor" fillOpacity="0.8" />
+      <path d="M57 27.5v9l8-4.5z" fill="#fff" />
+      {bar(44, 60, 32, 5, 0.5)}
+    </Frame>
+  ),
+  before_after: () => (
+    <Frame>
+      <rect x="18" y="10" width="42" height="52" rx="10" fill="currentColor" fillOpacity="0.15" />
+      <rect x="60" y="10" width="42" height="52" rx="10" fill="currentColor" fillOpacity="0.4" />
+      <rect x="59" y="10" width="2" height="52" fill="#fff" />
+      <circle cx="60" cy="36" r="6" fill="#fff" />
+    </Frame>
+  ),
+  size_chart: () => (
+    <Frame>
+      <rect x="16" y="12" width="88" height="10" rx="4" fill="currentColor" fillOpacity="0.35" />
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>
+          {bar(22, 28 + i * 9, 10, 4, 0.6)}
+          {bar(46, 28 + i * 9, 16, 4, 0.25)}
+          {bar(74, 28 + i * 9, 16, 4, 0.25)}
+        </g>
+      ))}
+    </Frame>
+  ),
+  comparison: () => (
+    <Frame>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>
+          {bar(14, 14 + i * 13, 44, 4, 0.3)}
+          <circle cx="80" cy={16 + i * 13} r="4" fill="currentColor" fillOpacity="0.8" />
+          <circle cx="100" cy={16 + i * 13} r="4" fill="currentColor" fillOpacity="0.2" />
+        </g>
+      ))}
+    </Frame>
+  ),
+  countdown: () => (
+    <Frame>
+      {bar(38, 12, 44, 6, 0.5)}
+      {[0, 1, 2, 3].map((i) => (
+        <rect key={i} x={20 + i * 21} y="26" width="17" height="18" rx="5" fill="currentColor" fillOpacity="0.3" />
+      ))}
+      <rect x="42" y="52" width="36" height="10" rx="5" fill="currentColor" fillOpacity="0.7" />
+    </Frame>
+  ),
+  sticky_cta: () => (
+    <Frame>
+      {bar(14, 12, 60, 5, 0.2)}
+      {bar(14, 22, 44, 5, 0.2)}
+      <rect x="1" y="50" width="118" height="21" fill="currentColor" fillOpacity="0.12" />
+      {bar(10, 57, 22, 6, 0.6)}
+      <rect x="40" y="54" width="70" height="12" rx="6" fill="currentColor" fillOpacity="0.8" />
+    </Frame>
+  ),
 };
