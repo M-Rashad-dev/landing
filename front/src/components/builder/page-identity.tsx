@@ -11,6 +11,7 @@ import { BUTTON_RADII, RADIUS_VALUES } from "@/lib/identity/style";
 import { FONT_KEYS, FONTS, fontStack } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { isNightTheme } from "@/themes/color-mode";
 import type { PageDesign } from "@/themes/types";
 import { useBuilder } from "./context";
 
@@ -88,6 +89,7 @@ function ModeCard({ active, icon: Icon, title, hint, onClick, disabled }: { acti
 }
 
 function DesignEditor({ design, onChange, onReset }: { design: PageDesign; onChange: (design: PageDesign) => void; onReset: () => void }) {
+  const night = useBuilder((s) => isNightTheme(s.themeKey));
   const patch = (next: Partial<PageDesign>) => onChange({ ...design, ...next });
 
   return (
@@ -117,6 +119,7 @@ function DesignEditor({ design, onChange, onReset }: { design: PageDesign; onCha
 
       <div className="flex flex-col gap-2.5">
         <p className="text-xs font-semibold text-muted-foreground">{ar.identities.sections.colors}</p>
+        {night ? <p className="rounded-lg bg-gold-soft px-3 py-2 text-xs leading-relaxed text-gold-foreground">{t.nightHint}</p> : null}
         {COLOR_KEYS.map((key) => (
           <div key={key} className="flex items-center justify-between gap-2">
             <label htmlFor={`pd-${key}`} className="shrink-0 text-sm">
