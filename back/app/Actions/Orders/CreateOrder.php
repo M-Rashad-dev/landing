@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Orders;
 
+use App\Actions\Analytics\RecordPageEvent;
 use App\Enums\OrderStatus;
 use App\Exceptions\ApiException;
 use App\Models\BlockedCustomer;
@@ -42,6 +43,7 @@ final class CreateOrder
         private readonly OrderForm $form,
         private readonly PostOrderUpsell $upsells,
         private readonly CaptureLead $leads,
+        private readonly RecordPageEvent $events,
     ) {}
 
     /**
@@ -117,6 +119,7 @@ final class CreateOrder
             $order = Order::query()->create([
                 'order_number' => $number,
                 'landing_page_id' => $page->id,
+                'ab_test_id' => $this->events->testId($page, isset($input['ab']) ? (int) $input['ab'] : null) ?: null,
                 'product_id' => $product->id,
                 'status' => OrderStatus::New,
                 'status_changed_at' => now(),

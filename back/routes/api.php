@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewControl
 use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Dashboard\AbTestController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
+use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
@@ -85,6 +88,12 @@ Route::prefix('dashboard')
         Route::post('pages/{page}/set-home', [PageController::class, 'setHome']);
 
         Route::get('overview', OverviewController::class);
+        Route::get('analytics', AnalyticsController::class);
+
+        Route::get('ab-tests', [AbTestController::class, 'index']);
+        Route::post('ab-tests', [AbTestController::class, 'store']);
+        Route::post('ab-tests/{ab_test}/finish', [AbTestController::class, 'finish']);
+        Route::delete('ab-tests/{ab_test}', [AbTestController::class, 'destroy']);
 
         Route::get('orders', [OrderController::class, 'index']);
         Route::get('orders/stats', [OrderController::class, 'stats']);
@@ -132,6 +141,8 @@ Route::prefix('public')
         Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
         Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
+        Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');
+        Route::get('ab-routes', [EventController::class, 'abRoutes'])->middleware('throttle:public-read');
     });
 
 Route::prefix('admin')

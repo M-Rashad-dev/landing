@@ -27,6 +27,7 @@ final class PublicOrderRequest extends FormRequest
             'form_token' => ['nullable', 'string', 'max:100'],
             'website' => ['nullable', 'string', 'max:200'],
             'utm' => ['nullable', 'array'],
+            'ab' => ['nullable', 'integer', 'min:1'],
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'idempotency_key' => ['nullable', 'uuid'],

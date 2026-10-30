@@ -2,7 +2,7 @@ import { badRequest, forwardPublic, relay, visitorBody, visitorHost, visitorIp }
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED = ["slug", "quantity", "options", "code", "customer", "answers", "form_token", "website", "utm", "idempotency_key"] as const;
+const ALLOWED = ["slug", "quantity", "options", "code", "customer", "answers", "form_token", "website", "utm", "ab", "idempotency_key"] as const;
 
 /** Visitor order: forwards the allowed fields + host, client IP and user agent (trusted by Laravel through the internal key). */
 export async function POST(request: Request) {

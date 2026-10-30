@@ -184,9 +184,20 @@
     transform: scaleY(0);
   }
 }
+/* Horizontal bars grow from the start edge (right in RTL). */
+.bar-grow-x {
+  transform-origin: right;
+  animation: lp-bar-grow-x 0.7s var(--ease-out) both;
+}
+@keyframes lp-bar-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
   .bar-grow,
+  .bar-grow-x,
   .page-enter {
     animation: none;
   }

@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AB_COOKIE_MAX_AGE, matchRoute, pickVariant, routesForHost, VARIANT_COOKIE } from "@/lib/ab/split";
 import { TOKEN_COOKIE } from "@/lib/auth/cookie";
+import { AB_TEST_COOKIE } from "@/lib/tracking/visit";
 import {
   APP_ALLOWED_PREFIXES,
   APP_ONLY_PREFIXES,
@@ -16,7 +18,7 @@ import {
  *   (folder is "sites" because Next treats "_folders" as private; it is only
  *   reachable through this rewrite, every other host 404s on /sites).
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const config = {
     platformDomain: (process.env.PLATFORM_DOMAIN ?? "localhost").toLowerCase(),
     appHost: (process.env.APP_HOST ?? "app.localhost").toLowerCase(),
@@ -54,7 +56,17 @@ export function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/sites/${encodeURIComponent(host)}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.rewrite(url);
+
+  // A/B test on this link: page A or B under the same URL, kept per visitor (cookie).
+  const route = request.method === "GET" ? matchRoute(await routesForHost(host), pathname) : null;
+  if (!route) return NextResponse.rewrite(url);
+  const variant = pickVariant(route, request.cookies.get(VARIANT_COOKIE(route.id))?.value);
+  if (variant === "b") url.pathname = `/sites/${encodeURIComponent(host)}/${encodeURIComponent(route.b)}`;
+  const response = NextResponse.rewrite(url);
+  const cookie = { path: "/", maxAge: AB_COOKIE_MAX_AGE, sameSite: "lax" as const };
+  response.cookies.set(VARIANT_COOKIE(route.id), variant, cookie);
+  response.cookies.set(AB_TEST_COOKIE, String(route.id), cookie);
+  return response;
 }
 
 function handleAppHost(request: NextRequest, pathname: string) {

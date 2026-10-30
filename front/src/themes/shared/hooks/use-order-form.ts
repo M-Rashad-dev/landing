@@ -6,6 +6,7 @@ import { estimateQuote } from "@/lib/price/estimate";
 import { withShipping } from "@/lib/price/shipping";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
+import { abTestId, sendPageEvent } from "@/lib/tracking/visit";
 import type { Quote } from "@/lib/types";
 import { buildFields, validateAll, validateField } from "@/themes/shared/order-form/fields";
 import type { OrderFormProps } from "@/themes/shared/schemas/order-form";
@@ -149,8 +150,9 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   const touch = useCallback(() => {
     if (touched.current || ctx.isPreview) return;
     touched.current = true;
+    sendPageEvent(ctx.page.slug, "form_start");
     if (product) track("InitiateCheckout", { content_ids: [product.id], content_name: product.name, value: product.price, num_items: 1 });
-  }, [ctx.isPreview, product]);
+  }, [ctx.isPreview, ctx.page.slug, product]);
 
   const setValue = useCallback(
     (name: string, value: string | boolean) => {
@@ -235,6 +237,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         form_token: token.current,
         website: "",
         utm: captureUtm(),
+        ab: abTestId(),
         idempotency_key: crypto.randomUUID(),
       });
 

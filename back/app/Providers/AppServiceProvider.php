@@ -56,6 +56,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-order-attempts', fn (Request $request) => Limit::perMinute(20)->by('public-order:'.$visitor($request)));
         // Abandoned-form captures: the form sends one per phone change, so this is generous but bounded.
         RateLimiter::for('public-leads', fn (Request $request) => Limit::perMinute(15)->by('public-leads:'.$visitor($request)));
+        // Page visit counters: a few per page view (view + form start), generous per visitor IP.
+        RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));
         RateLimiter::for('orders-export', fn (Request $request) => Limit::perMinute(10)->by('orders-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Manual DNS / SSL re-checks: 10 per minute per tenant.

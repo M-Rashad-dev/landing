@@ -195,6 +195,10 @@ First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt
 
 | 5 Pages (part 2) | template gallery «القوالب الجاهزة» (sidebar → الصفحات): six niche templates (fashion, beauty, electronics, home, kids, health) with copy, sections and a page look; the new-page wizard starts from a template or a blank theme | this commit |
 
+| 6 Measure | analytics per page (visits, form starts, orders, conversion, revenue, sources, devices, daily chart) and A/B tests between two whole pages of the same product on one link; also: first published page becomes home automatically | `1903ea3`, this commit |
+
+A/B, verified in the browser: test created in the UI between the fashion and beauty template pages → 16 fresh visitors on page A's link split 8 / 8, URL unchanged, same page on reload → an order from B is stored with the test id → A/B card and analytics screens show the counts; no horizontal scroll at 390 px. Back 526 tests, front 376.
+
 Templates, verified in the browser: gallery → «استخدم القالب» → wizard (template look on) → builder opens with the template sections and colors → publish → all six public pages render (200, template headline as h1). Front 372 tests.
 
 Conversion sections, verified in the browser on both themes (390 px): video loads the youtube-nocookie player only after the click, the before / after divider follows the range input, the sticky bar shows after the first screen and hides while the order form is visible, countdown ticks (evergreen). Back 508 tests, front 358.

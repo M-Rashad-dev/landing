@@ -1,9 +1,11 @@
 import {
   BadgePercent,
+  BarChart3,
   Ban,
   Building2,
   FileText,
   Fingerprint,
+  FlaskConical,
   Gift,
   Globe,
   Home,
@@ -51,6 +53,8 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/pages", label: ar.nav.pages, icon: FileText, exclude: ["/dashboard/pages/templates"] },
       { href: "/dashboard/pages/templates", label: ar.nav.templates, icon: LayoutTemplate },
+      { href: "/dashboard/ab-tests", label: ar.nav.abTests, icon: FlaskConical },
+      { href: "/dashboard/analytics", label: ar.nav.analytics, icon: BarChart3 },
     ],
   },
   {
