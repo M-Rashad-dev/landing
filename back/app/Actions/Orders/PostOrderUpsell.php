@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Orders;
 
 use App\Enums\OrderStatus;
+use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Upsell;
 use App\Services\PublicPageData;
+use App\Services\Webhooks\WebhookDispatcher;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +25,10 @@ final class PostOrderUpsell
 {
     public const WINDOW_SECONDS = 1800;
 
-    public function __construct(private readonly PublicPageData $data) {}
+    public function __construct(
+        private readonly PublicPageData $data,
+        private readonly WebhookDispatcher $webhooks,
+    ) {}
 
     /** The best active offer for this order, as shown on the success screen. @return array<string, mixed>|null */
     public function offerFor(Order $order): ?array
@@ -54,7 +59,7 @@ final class PostOrderUpsell
             throw new ApiException(422, 'upsell_closed', __('orders.upsell_closed'));
         }
 
-        return DB::transaction(function () use ($order, $upsellId): array {
+        $result = DB::transaction(function () use ($order, $upsellId): array {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $upsell = $this->candidate($locked);
@@ -78,6 +83,10 @@ final class PostOrderUpsell
 
             return ['order_number' => $locked->order_number, 'total' => Money::toFloat(Money::toCents((string) $locked->total))];
         });
+
+        $this->webhooks->order(WebhookEvent::OrderUpdated, $order->refresh());
+
+        return $result;
     }
 
     /** Active offer for the order's product (or any product), the offered product sellable without choices. */

@@ -9,6 +9,7 @@ use App\Actions\Orders\RecordOrderContact;
 use App\Enums\BlockType;
 use App\Enums\ContactResult;
 use App\Enums\OrderStatus;
+use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -19,6 +20,7 @@ use App\Models\BlockedCustomer;
 use App\Models\Identity;
 use App\Models\Order;
 use App\Models\Tenant;
+use App\Services\Webhooks\WebhookDispatcher;
 use App\Support\Money;
 use App\Support\OrderFilters;
 use App\Tenancy\Tenancy;
@@ -135,7 +137,7 @@ final class OrderController extends Controller
         ]);
     }
 
-    public function update(UpdateOrderRequest $request, Order $order): JsonResponse
+    public function update(UpdateOrderRequest $request, Order $order, WebhookDispatcher $webhooks): JsonResponse
     {
         $values = $request->values();
         $customerKeys = array_diff(array_keys($values), ['internal_note']);
@@ -145,6 +147,9 @@ final class OrderController extends Controller
         }
 
         $order->fill($values)->save();
+        if ($customerKeys !== []) {
+            $webhooks->order(WebhookEvent::OrderUpdated, $order);
+        }
 
         return $this->show($order);
     }

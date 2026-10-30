@@ -6,11 +6,13 @@ namespace App\Actions\Orders;
 
 use App\Enums\BlockType;
 use App\Enums\OrderStatus;
+use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
+use App\Services\Webhooks\WebhookDispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,10 +22,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class ChangeOrderStatus
 {
+    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+
     /** @param array{block_phone?: bool, block_ip?: bool} $options */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
     {
-        return DB::transaction(function () use ($order, $to, $note, $userId, $options) {
+        $from = $order->status;
+        $changed = DB::transaction(function () use ($order, $to, $note, $userId, $options) {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $from = $locked->status;
@@ -57,6 +62,10 @@ final class ChangeOrderStatus
 
             return $locked;
         });
+
+        $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
+
+        return $changed;
     }
 
     private function releaseCode(Order $order): void

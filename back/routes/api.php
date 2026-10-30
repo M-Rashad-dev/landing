@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
+use App\Http\Controllers\Api\V1\Dashboard\IntegrationController;
 use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
@@ -108,6 +109,15 @@ Route::prefix('dashboard')
         Route::get('leads', [LeadController::class, 'index']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
+
+        Route::get('integrations', [IntegrationController::class, 'index']);
+        Route::post('integrations', [IntegrationController::class, 'store']);
+        Route::put('integrations/{webhook}', [IntegrationController::class, 'update']);
+        Route::post('integrations/{webhook}/toggle', [IntegrationController::class, 'toggle']);
+        Route::post('integrations/{webhook}/rotate-secret', [IntegrationController::class, 'rotateSecret']);
+        Route::post('integrations/{webhook}/test', [IntegrationController::class, 'test'])->middleware('throttle:integration-tests');
+        Route::get('integrations/{webhook}/deliveries', [IntegrationController::class, 'deliveries']);
+        Route::delete('integrations/{webhook}', [IntegrationController::class, 'destroy']);
 
         Route::get('shipping', [ShippingController::class, 'show']);
         Route::put('shipping', [ShippingController::class, 'update']);

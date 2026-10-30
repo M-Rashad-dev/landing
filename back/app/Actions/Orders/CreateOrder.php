@@ -6,6 +6,7 @@ namespace App\Actions\Orders;
 
 use App\Actions\Analytics\RecordPageEvent;
 use App\Enums\OrderStatus;
+use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
@@ -16,6 +17,7 @@ use App\Models\Product;
 use App\Pricing\PriceCalculator;
 use App\Pricing\Quote;
 use App\Services\FormToken;
+use App\Services\Webhooks\WebhookDispatcher;
 use App\Support\Money;
 use App\Support\OrderForm;
 use App\Tenancy\Tenancy;
@@ -44,6 +46,7 @@ final class CreateOrder
         private readonly PostOrderUpsell $upsells,
         private readonly CaptureLead $leads,
         private readonly RecordPageEvent $events,
+        private readonly WebhookDispatcher $webhooks,
     ) {}
 
     /**
@@ -183,6 +186,7 @@ final class CreateOrder
         }
         RateLimiter::hit($phoneKey, self::LIMIT_WINDOW_SECONDS);
         $this->leads->converted($order);
+        $this->webhooks->order(WebhookEvent::OrderCreated, $order);
 
         // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
         return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];

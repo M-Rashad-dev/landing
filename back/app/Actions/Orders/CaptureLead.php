@@ -9,6 +9,7 @@ use App\Models\AbandonedLead;
 use App\Models\BlockedCustomer;
 use App\Models\LandingPage;
 use App\Models\Order;
+use App\Services\Webhooks\WebhookDispatcher;
 
 /**
  * Keeps one open lead per phone and page while the visitor fills the order form,
@@ -16,6 +17,8 @@ use App\Models\Order;
  */
 final class CaptureLead
 {
+    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+
     /** Leads older than this are deleted (privacy). */
     public const KEEP_DAYS = 30;
 
@@ -46,13 +49,14 @@ final class CaptureLead
             return;
         }
 
-        AbandonedLead::query()->create($values + [
+        $lead = AbandonedLead::query()->create($values + [
             'landing_page_id' => $page->id,
             'product_id' => $page->product_id,
             'customer_phone' => $phone,
             'status' => LeadStatus::Open,
             'last_seen_at' => now(),
         ]);
+        $this->webhooks->lead($lead);
     }
 
     /** The phone ordered: its open / contacted leads become converted. */

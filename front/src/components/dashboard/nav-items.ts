@@ -16,6 +16,7 @@ import {
   Palette,
   PhoneCall,
   Settings,
+  Sheet,
   ShoppingBag,
   Tag,
   Truck,
@@ -74,6 +75,10 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/shipping", label: ar.nav.shipping, icon: Truck },
       { href: "/dashboard/domains", label: ar.nav.domains, icon: Globe },
     ],
+  },
+  {
+    label: ar.nav.groups.connect,
+    items: [{ href: "/dashboard/integrations", label: ar.nav.integrations, icon: Sheet }],
   },
 ];
 

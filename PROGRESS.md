@@ -197,6 +197,10 @@ First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt
 
 | 6 Measure | analytics per page (visits, form starts, orders, conversion, revenue, sources, devices, daily chart) and A/B tests between two whole pages of the same product on one link; also: first published page becomes home automatically | `1903ea3`, this commit |
 
+| 7 Connect | «Google Sheets و Webhooks» (sidebar → الربط): signed webhooks for order created / status changed / updated and abandoned forms, retries with a delivery log; Google Sheets through the merchant's own Apps Script web app (code to copy, rows upserted by order number) | this commit |
+
+Integrations, verified in the browser: wrong Sheets link refused with an example of the right one; webhook saved through the dialog; «إرسال تجربة» made a real HTTPS request (DNS-pinned) to example.com, logged as 405 with the Arabic reason; no horizontal scroll at 390 px. Back 544 tests, front 379.
+
 A/B, verified in the browser: test created in the UI between the fashion and beauty template pages → 16 fresh visitors on page A's link split 8 / 8, URL unchanged, same page on reload → an order from B is stored with the test id → A/B card and analytics screens show the counts; no horizontal scroll at 390 px. Back 526 tests, front 376.
 
 Templates, verified in the browser: gallery → «استخدم القالب» → wizard (template look on) → builder opens with the template sections and colors → publish → all six public pages render (200, template headline as h1). Front 372 tests.
