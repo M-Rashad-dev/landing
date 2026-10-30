@@ -8,6 +8,7 @@ import {
   Globe,
   Home,
   Images,
+  LayoutTemplate,
   LayoutDashboard,
   Package,
   Palette,
@@ -47,7 +48,10 @@ export const DASHBOARD_NAV: NavGroup[] = [
   },
   {
     label: ar.nav.groups.pages,
-    items: [{ href: "/dashboard/pages", label: ar.nav.pages, icon: FileText }],
+    items: [
+      { href: "/dashboard/pages", label: ar.nav.pages, icon: FileText, exclude: ["/dashboard/pages/templates"] },
+      { href: "/dashboard/pages/templates", label: ar.nav.templates, icon: LayoutTemplate },
+    ],
   },
   {
     label: ar.nav.groups.catalog,

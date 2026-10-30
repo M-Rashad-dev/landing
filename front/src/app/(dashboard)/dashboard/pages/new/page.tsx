@@ -5,11 +5,12 @@ import { NewPageWizard } from "./wizard";
 
 export const metadata: Metadata = { title: ar.pages.wizard.title };
 
-export default function NewPagePage() {
+export default async function NewPagePage({ searchParams }: { searchParams: Promise<{ template?: string }> }) {
+  const { template } = await searchParams;
   return (
     <>
       <PageHeader title={ar.pages.wizard.title} />
-      <NewPageWizard />
+      <NewPageWizard initialTemplate={template ?? null} />
     </>
   );
 }

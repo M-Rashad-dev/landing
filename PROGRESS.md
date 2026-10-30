@@ -193,6 +193,10 @@ First thing to do on a real server: follow `deploy/DEPLOY.md` with Let's Encrypt
 
 | 5 Pages (part 1) | six conversion sections in both themes: video (click-to-play YouTube / Vimeo / mp4), before / after (drag slider or two images), size chart (table or cards), comparison (check table or versus cards), countdown (fixed Cairo time or per visitor), sticky mobile order button | this commit |
 
+| 5 Pages (part 2) | template gallery «القوالب الجاهزة» (sidebar → الصفحات): six niche templates (fashion, beauty, electronics, home, kids, health) with copy, sections and a page look; the new-page wizard starts from a template or a blank theme | this commit |
+
+Templates, verified in the browser: gallery → «استخدم القالب» → wizard (template look on) → builder opens with the template sections and colors → publish → all six public pages render (200, template headline as h1). Front 372 tests.
+
 Conversion sections, verified in the browser on both themes (390 px): video loads the youtube-nocookie player only after the click, the before / after divider follows the range input, the sticky bar shows after the first screen and hides while the order form is visible, countdown ticks (evergreen). Back 508 tests, front 358.
 
 Abandoned forms, verified in the browser: phone typed on the demo store → `/api/public/leads` 202 → row in «الطلبات المتروكة» with the WhatsApp follow-up message filled → «تم التواصل» moves it to its tab. Back 507 tests, front 283.

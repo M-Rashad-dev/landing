@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { starterContent } from "@/components/builder/store";
 import { ThemeArt } from "@/components/builder/theme-art";
+import { TemplateCard } from "@/components/pages/template-card";
 import { ErrorState } from "@/components/dashboard/error-state";
 import { FormField } from "@/components/forms/form-field";
 import { IdentityPreview } from "@/components/shared/identity-preview";
@@ -15,25 +16,31 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { useIdentities } from "@/lib/identity/api";
 import { createPage, pageKeys, slugify, useThemes } from "@/lib/pages/api";
 import { productKeys, saveProduct, useProducts } from "@/lib/products/api";
 import { getTheme } from "@/themes/registry";
+import { getTemplate, TEMPLATES, templateContent } from "@/themes/templates";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
 const t = ar.pages.wizard;
 
-export function NewPageWizard() {
+export function NewPageWizard({ initialTemplate = null }: { initialTemplate?: string | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const themes = useThemes();
   const identities = useIdentities();
   const products = useProducts({ per_page: 100 });
-  const [step, setStep] = useState<1 | 2>(1);
-  const [themeKey, setThemeKey] = useState<string | null>(null);
+  const preset = getTemplate(initialTemplate);
+  const [step, setStep] = useState<1 | 2>(preset ? 2 : 1);
+  const [mode, setMode] = useState<"template" | "blank">("template");
+  const [templateKey, setTemplateKey] = useState<string | null>(preset?.key ?? null);
+  const [useTemplateLook, setUseTemplateLook] = useState(true);
+  const [themeKey, setThemeKey] = useState<string | null>(preset?.themeKey ?? null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -43,6 +50,9 @@ export function NewPageWizard() {
   const [creating, setCreating] = useState(false);
   const [quickProduct, setQuickProduct] = useState(false);
 
+  const template = getTemplate(templateKey);
+  const enabledThemes = new Set((themes.data ?? []).map((theme) => theme.key));
+  const templates = TEMPLATES.filter((item) => enabledThemes.has(item.themeKey));
   const identityList = identities.data?.data ?? [];
   const selectedIdentity = identityList.find((i) => String(i.id) === identityId) ?? identityList.find((i) => i.is_default) ?? identityList[0];
 
@@ -57,7 +67,7 @@ export function NewPageWizard() {
         theme_key: themeKey,
         identity_id: selectedIdentity?.id ?? null,
         product_id: productId ? Number(productId) : null,
-        content: starterContent(themeKey),
+        content: template ? templateContent(template, { withDesign: useTemplateLook }) : starterContent(themeKey),
       });
       await queryClient.invalidateQueries({ queryKey: pageKeys.all });
       router.push(`/dashboard/pages/${page.id}/builder`);
@@ -72,7 +82,23 @@ export function NewPageWizard() {
   if (step === 1) {
     return (
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold">1. {t.step1}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">1. {t.startFrom}</h2>
+          <div className="inline-flex rounded-xl border bg-card p-1" role="tablist" aria-label={t.startFrom}>
+            {(["template", "blank"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={mode === key}
+                onClick={() => setMode(key)}
+                className={cn("rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors", mode === key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                {key === "template" ? t.fromTemplate : t.blank}
+              </button>
+            ))}
+          </div>
+        </div>
         {themes.isPending ? (
           <div className="grid gap-4 md:grid-cols-2">
             <Skeleton className="h-72 rounded-xl" />
@@ -82,6 +108,21 @@ export function NewPageWizard() {
           <ErrorState error={themes.error} onRetry={() => themes.refetch()} />
         ) : themes.data.length === 0 ? (
           <p className="text-muted-foreground">{t.noThemes}</p>
+        ) : mode === "template" && templates.length > 0 ? (
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" role="radiogroup" aria-label={t.fromTemplate}>
+            {templates.map((item) => (
+              <TemplateCard
+                key={item.key}
+                template={item}
+                selected={templateKey === item.key}
+                onSelect={() => {
+                  setTemplateKey(item.key);
+                  setThemeKey(item.themeKey);
+                  setStep(2);
+                }}
+              />
+            ))}
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2" role="radiogroup" aria-label={t.step1}>
             {themes.data.map((theme) => {
@@ -94,6 +135,7 @@ export function NewPageWizard() {
                   role="radio"
                   aria-checked={selected}
                   onClick={() => {
+                    setTemplateKey(null);
                     setThemeKey(theme.key);
                     setStep(2);
                   }}
@@ -124,9 +166,18 @@ export function NewPageWizard() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">2. {t.step2}</h2>
           <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
-            {t.step1}: {themeKey ? getTheme(themeKey).name : ""}
+            {template ? `${t.template}: ${ar.templates.niches[template.niche].name}` : `${t.step1}: ${themeKey ? getTheme(themeKey).name : ""}`} · {t.change}
           </Button>
         </div>
+        {template ? (
+          <label htmlFor="wiz-look" className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+            <span>
+              <span className="font-medium">{t.useTemplateLook}</span>
+              <span className="block text-xs text-muted-foreground">{t.useTemplateLookHint}</span>
+            </span>
+            <Switch id="wiz-look" checked={useTemplateLook} onCheckedChange={setUseTemplateLook} />
+          </label>
+        ) : null}
         <FormField label={t.name} htmlFor="wiz-title" error={errors.title} required>
           <Input
             id="wiz-title"

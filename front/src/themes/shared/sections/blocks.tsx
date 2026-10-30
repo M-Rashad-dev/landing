@@ -2,6 +2,7 @@ import { Check, X } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import { cn } from "@/lib/utils";
 import { siteMessages } from "@/messages/site";
+import { PreviewEmpty } from "@/themes/shared/components/preview-empty";
 import { SafeLink } from "@/themes/shared/components/safe-link";
 import { ResponsiveImage } from "@/themes/shared/components/responsive-image";
 import type { BeforeAfterProps, ComparisonProps, CountdownProps, SizeChartProps, SizeRow, StickyCtaProps, VideoProps } from "@/themes/shared/schemas";
@@ -39,7 +40,7 @@ function OrderButton({ label, look, className }: { label: string; look: LookKey;
 
 export function VideoBlock({ props, variant, ctx, look }: BlockProps<VideoProps>) {
   const source = parseVideoUrl(props.video_url);
-  if (!source) return null;
+  if (!source) return <PreviewEmpty ctx={ctx} label={siteMessages.blocks.emptyVideo} />;
   const l = LOOKS[look];
   const poster = mediaOf(ctx, props.poster_media_id);
   const player = <VideoPlayer source={source} poster={poster?.urls.large ?? null} title={props.title || siteMessages.blocks.playVideo} className={l.frame} />;
@@ -81,7 +82,7 @@ export function VideoBlock({ props, variant, ctx, look }: BlockProps<VideoProps>
 export function BeforeAfterBlock({ props, variant, ctx, look }: BlockProps<BeforeAfterProps>) {
   const before = mediaOf(ctx, props.before_media_id);
   const after = mediaOf(ctx, props.after_media_id);
-  if (!before || !after) return null;
+  if (!before || !after) return <PreviewEmpty ctx={ctx} label={siteMessages.blocks.emptyBeforeAfter} />;
   const l = LOOKS[look];
   const beforeLabel = props.before_label || siteMessages.blocks.before;
   const afterLabel = props.after_label || siteMessages.blocks.after;
@@ -126,9 +127,9 @@ export function BeforeAfterBlock({ props, variant, ctx, look }: BlockProps<Befor
 
 /* ---------- Size chart ---------- */
 
-export function SizeChartBlock({ props, variant, look }: BlockProps<SizeChartProps>) {
+export function SizeChartBlock({ props, variant, ctx, look }: BlockProps<SizeChartProps>) {
   const rows = (props.rows ?? []).filter((row: SizeRow) => row?.size?.trim());
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return <PreviewEmpty ctx={ctx} label={siteMessages.blocks.emptySizes} />;
   const l = LOOKS[look];
   const columns = (["col1", "col2", "col3"] as const).filter((key) => props[`${key}_label`]?.trim() || rows.some((row) => row[key]?.trim()));
   const labelOf = (key: (typeof columns)[number]) => props[`${key}_label`] ?? "";
@@ -219,9 +220,9 @@ function Mark({ on }: { on: boolean }) {
   );
 }
 
-export function ComparisonBlock({ props, variant, look }: BlockProps<ComparisonProps>) {
+export function ComparisonBlock({ props, variant, ctx, look }: BlockProps<ComparisonProps>) {
   const rows = (props.rows ?? []).filter((row) => row?.feature?.trim());
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return <PreviewEmpty ctx={ctx} label={siteMessages.blocks.emptyComparison} />;
   const l = LOOKS[look];
 
   if (variant === "versus-cards") {
@@ -294,10 +295,10 @@ export function ComparisonBlock({ props, variant, look }: BlockProps<ComparisonP
 
 /* ---------- Countdown ---------- */
 
-export function CountdownBlock({ props, variant, sectionId, look }: BlockProps<CountdownProps>) {
+export function CountdownBlock({ props, variant, sectionId, ctx, look }: BlockProps<CountdownProps>) {
   const l = LOOKS[look];
   const mode = props.mode === "fixed" ? "fixed" : "evergreen";
-  if (mode === "fixed" && !props.ends_at) return null;
+  if (mode === "fixed" && !props.ends_at) return <PreviewEmpty ctx={ctx} label={siteMessages.blocks.emptyCountdown} />;
   const expired = <p className="t-muted text-lg font-semibold">{props.expired_text || siteMessages.blocks.offerEnded}</p>;
   const timer = (
     <CountdownTimer sectionId={sectionId} mode={mode} endsAt={props.ends_at} minutes={props.minutes} expired={expired} boxClassName={cn("min-w-16 py-3 md:min-w-20", l.digit)} labelClassName="t-muted mt-1 text-xs" className="justify-center gap-2 md:gap-3" />
