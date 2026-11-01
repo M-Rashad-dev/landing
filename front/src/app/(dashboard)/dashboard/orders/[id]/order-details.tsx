@@ -106,6 +106,7 @@ export function OrderDetails({ id }: { id: number }) {
                   <p className="flex flex-wrap items-center gap-2 font-semibold">
                     {item.product_name}
                     {item.is_upsell ? <Badge variant="gold">{t.upsellItem}</Badge> : null}
+                    {item.is_gift ? <Badge variant="success">🎁 {t.giftItem}</Badge> : null}
                   </p>
                   {item.options.length > 0 ? <p className="text-sm text-muted-foreground">{item.options.map((o) => `${o.option}: ${o.value}`).join("، ")}</p> : null}
                   <p className="text-sm">

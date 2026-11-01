@@ -21,7 +21,7 @@ class OrderItem extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['order_id', 'product_id', 'upsell_id', 'product_name', 'unit_price', 'quantity', 'options', 'line_total'];
+    protected $fillable = ['order_id', 'product_id', 'upsell_id', 'is_gift', 'product_name', 'unit_price', 'quantity', 'options', 'line_total'];
 
     protected function casts(): array
     {
@@ -30,6 +30,7 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'options' => 'array',
             'line_total' => 'decimal:2',
+            'is_gift' => 'boolean',
         ];
     }
 }

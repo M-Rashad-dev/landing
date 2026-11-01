@@ -25,7 +25,7 @@ final class OfferRequest extends ApiRequest
                 $merge[$key] = $value === '' ? null : $value;
             }
         }
-        foreach (['starts_at', 'ends_at', 'value', 'bundle_quantity', 'bundle_price'] as $key) {
+        foreach (['starts_at', 'ends_at', 'value', 'bundle_quantity', 'bundle_price', 'min_quantity', 'free_quantity', 'gift_product_id'] as $key) {
             if ($this->input($key) === '') {
                 $merge[$key] = null;
             }
@@ -49,6 +49,14 @@ final class OfferRequest extends ApiRequest
             },
             'bundle_quantity' => $type === OfferType::Bundle->value ? ['required', 'integer', 'between:2,20'] : ['nullable'],
             'bundle_price' => $type === OfferType::Bundle->value ? ['required', ...$money, 'gt:0', 'max:9999999.99'] : ['nullable'],
+            // Buy-X-get-Y: X = min_quantity (units paid), Y = free_quantity; 20 units max per order.
+            'min_quantity' => match ($type) {
+                OfferType::BuyGet->value => ['required', 'integer', 'between:1,19'],
+                OfferType::Percentage->value, OfferType::Fixed->value, OfferType::Gift->value => ['nullable', 'integer', 'between:1,20'],
+                default => ['nullable'],
+            },
+            'free_quantity' => $type === OfferType::BuyGet->value ? ['required', 'integer', 'between:1,10'] : ['nullable'],
+            'gift_product_id' => $type === OfferType::Gift->value ? ['required', 'integer', TenantExists::table('products')->ignoreTrashed()] : ['nullable'],
             'starts_at' => ['nullable', new CairoDateTime],
             'ends_at' => ['nullable', new CairoDateTime],
             'is_active' => ['sometimes', 'boolean'],
@@ -82,6 +90,17 @@ final class OfferRequest extends ApiRequest
                 }
             }
 
+            if ($this->input('type') === OfferType::BuyGet->value && (int) $this->input('min_quantity') + (int) $this->input('free_quantity') > 20) {
+                $validator->errors()->add('free_quantity', __('promotions.buy_get_too_many'));
+            }
+
+            if ($this->input('type') === OfferType::Gift->value) {
+                $gift = Product::query()->with('options')->find((int) $this->input('gift_product_id'));
+                if ($gift !== null && $gift->options->contains(fn ($option) => $option->is_required)) {
+                    $validator->errors()->add('gift_product_id', __('promotions.gift_has_options'));
+                }
+            }
+
             if ($this->input('type') === OfferType::Bundle->value) {
                 $bundlePrice = Money::toCents((string) $this->input('bundle_price'));
                 $quantity = (int) $this->input('bundle_quantity');
@@ -107,7 +126,7 @@ final class OfferRequest extends ApiRequest
             'value' => match ($type) {
                 OfferType::Percentage => Money::toDecimal(((int) $this->validated('value')) * 100),
                 OfferType::Fixed => Money::toDecimal(Money::toCents((string) $this->validated('value'))),
-                OfferType::Bundle => null,
+                default => null,
             },
             'bundle_quantity' => $type === OfferType::Bundle ? (int) $this->validated('bundle_quantity') : null,
             'bundle_price' => $type === OfferType::Bundle ? Money::toDecimal(Money::toCents((string) $this->validated('bundle_price'))) : null,
@@ -116,6 +135,9 @@ final class OfferRequest extends ApiRequest
             'is_active' => (bool) $this->validated('is_active', true),
             'badge_text' => $this->validated('badge_text'),
             'priority' => (int) $this->validated('priority', 0),
+            'min_quantity' => $type->usesMinQuantity() ? max(1, (int) ($this->validated('min_quantity') ?? 1)) : 1,
+            'free_quantity' => $type === OfferType::BuyGet ? (int) $this->validated('free_quantity') : null,
+            'gift_product_id' => $type === OfferType::Gift ? (int) $this->validated('gift_product_id') : null,
         ];
     }
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/price";
 import { ResponsiveImage } from "@/themes/shared/components/responsive-image";
 import { useOrderForm } from "@/themes/shared/hooks/use-order-form";
-import { CodeField, FormNotice, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, UpsellOfferCard, type FormClasses } from "@/themes/shared/order-form/parts";
+import { CodeField, FormNotice, OfferPicker, OrderFieldInput, OrderOptions, OrderSummary, QuantityField, SuccessPanel, TrustBadges, UpsellOfferCard, type FormClasses } from "@/themes/shared/order-form/parts";
 import type { OrderFormProps } from "@/themes/shared/schemas";
 import type { SectionProps } from "@/themes/types";
 import { cn } from "@/lib/utils";
@@ -71,6 +71,7 @@ export function CeliaOrderForm({ props, variant, ctx }: SectionProps<OrderFormPr
 
   const body = (
     <>
+      <OfferPicker product={product} offers={ctx.offers} state={state} classes={CLASSES} />
       <div className="flex flex-col gap-4">
         {state.fields.map((field) => (
           <OrderFieldInput key={field.name} field={field} state={state} classes={CLASSES} />

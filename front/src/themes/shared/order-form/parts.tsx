@@ -1,14 +1,15 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Gift } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/lib/price";
+import { activeOffers, describeOffer } from "@/lib/price/offers";
 import type { Quote } from "@/lib/types";
 import { IconView } from "@/themes/shared/icon-view";
 import { OptionSelector, type OptionSelectorClasses } from "@/themes/shared/components/option-selector";
 import { QuantityStepper } from "@/themes/shared/components/quantity-stepper";
 import type { OrderFormField, OrderFormState } from "@/themes/shared/hooks/order-form-types";
-import type { PublicProduct } from "@/themes/types";
+import type { PublicOffer, PublicProduct } from "@/themes/types";
 import { cn } from "@/lib/utils";
 import { siteMessages } from "@/messages/site";
 
@@ -22,6 +23,8 @@ export type FormClasses = {
   codeButton?: string;
   summary?: string;
   summaryTotal?: string;
+  /** Offer picker card (selected or not). */
+  offerCard?: (selected: boolean) => string;
 };
 
 const domId = (name: string) => `of-${name.replace(/[^a-z0-9_]/gi, "-")}`;
@@ -186,6 +189,71 @@ export function CodeField({ state, classes = {} }: { state: OrderFormState; clas
   );
 }
 
+/**
+ * Offer picker at the top of the form (order_form.offer_picker): every active offer as a card, plus
+ * "one piece, no offer". Picking a card sets the quantity it needs; the server applies the offer.
+ */
+export function OfferPicker({ product, offers, state, classes = {} }: { product: PublicProduct | null; offers: PublicOffer[]; state: OrderFormState; classes?: FormClasses }) {
+  if (!state.offerPicker || !product) return null;
+  const cards = activeOffers(offers)
+    .map((offer) => describeOffer(offer, product))
+    .filter((d) => d !== null)
+    .sort((a, b) => b.offer.priority - a.offer.priority || a.quantity - b.quantity);
+  if (cards.length === 0) return null;
+  const card = (selected: boolean) =>
+    cn(
+      "relative flex w-full items-center gap-3 rounded-2xl border p-3.5 text-start transition-all",
+      selected ? "border-[var(--c-primary)] shadow-[0_0_0_1px_var(--c-primary)]" : "t-border hover:border-[var(--c-primary)]",
+      classes.offerCard?.(selected),
+    );
+  const dot = (selected: boolean) => (
+    <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full border-2", selected ? "border-[var(--c-primary)]" : "t-border")} aria-hidden>
+      {selected ? <span className="size-2.5 rounded-full bg-[var(--c-primary)]" /> : null}
+    </span>
+  );
+
+  return (
+    <fieldset className="flex flex-col gap-2.5">
+      <legend className="mb-2 font-bold">{siteMessages.offerPicker.title}</legend>
+      <div role="radiogroup" aria-label={siteMessages.offerPicker.title} className="flex flex-col gap-2.5">
+        {cards.map((d) => {
+          const selected = state.chosenOffer === d.offer.id;
+          const detail =
+            d.offer.type === "gift" && d.offer.gift
+              ? siteMessages.offerPicker.gift(d.offer.gift.name)
+              : d.offer.type === "buy_get"
+                ? `${siteMessages.pieces(d.quantity)} · ${siteMessages.offerPicker.free(d.offer.free_quantity ?? 1)}`
+                : siteMessages.pieces(d.quantity);
+          return (
+            <button key={d.offer.id} type="button" role="radio" aria-checked={selected} onClick={() => state.chooseOffer(d.offer.id)} className={card(selected)}>
+              {dot(selected)}
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2 font-semibold">
+                  {d.offer.name}
+                  {d.offer.badge_text ? <span className="t-accent rounded-full px-2 py-0.5 text-[11px] font-bold">{d.offer.badge_text}</span> : null}
+                </span>
+                <span className="t-muted mt-0.5 flex items-center gap-1 text-xs">
+                  {d.offer.type === "gift" ? <Gift className="size-3.5 t-primary-text" aria-hidden /> : null}
+                  {detail}
+                </span>
+              </span>
+              <span className="shrink-0 text-end">
+                <span className="block font-extrabold tabular-nums">{formatPrice(d.total)}</span>
+                {d.savings > 0 ? <span className="block text-xs font-semibold text-emerald-600">{siteMessages.save(formatPrice(d.savings))}</span> : null}
+              </span>
+            </button>
+          );
+        })}
+        <button type="button" role="radio" aria-checked={state.chosenOffer === 0} onClick={() => state.chooseOffer(0)} className={card(state.chosenOffer === 0)}>
+          {dot(state.chosenOffer === 0)}
+          <span className="flex-1 text-sm font-semibold">{siteMessages.offerPicker.none}</span>
+          <span className="shrink-0 font-bold tabular-nums">{formatPrice(product.price)}</span>
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
 export function OrderSummary({ quote, loading, estimated, className, totalClassName }: { quote: Quote | null; loading: boolean; estimated: boolean; className?: string; totalClassName?: string }) {
   if (!quote) return null;
   const row = (label: string, value: string, extra?: string) => (
@@ -197,7 +265,9 @@ export function OrderSummary({ quote, loading, estimated, className, totalClassN
   return (
     <div className={cn("flex flex-col", className)} aria-live="polite" aria-busy={loading}>
       {row(`${siteMessages.subtotal} (${quote.quantity} × ${formatPrice(quote.unit_price)})`, formatPrice(quote.base_subtotal))}
-      {quote.offer ? row(`${siteMessages.offerDiscount}: ${quote.offer.name}`, `− ${formatPrice(quote.offer.discount)}`, "text-emerald-600") : null}
+      {quote.offer && quote.offer.discount > 0 ? row(`${siteMessages.offerDiscount}: ${quote.offer.name}`, `− ${formatPrice(quote.offer.discount)}`, "text-emerald-600") : null}
+      {quote.gift ? row(`🎁 ${siteMessages.giftLine(quote.gift.name)}`, siteMessages.shippingFree, "text-emerald-600") : null}
+      {quote.offer_error ? <p className="py-1 text-xs font-semibold text-amber-600">{quote.offer_error}</p> : null}
       {quote.code ? row(`${siteMessages.codeDiscount} (${quote.code.code})`, `− ${formatPrice(quote.code.discount)}`, "text-emerald-600") : null}
       {quote.shipping !== undefined
         ? row(siteMessages.shipping, quote.shipping === null ? siteMessages.shippingPick : quote.shipping === 0 ? siteMessages.shippingFree : formatPrice(quote.shipping), quote.shipping === 0 ? "text-emerald-600" : undefined)

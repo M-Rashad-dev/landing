@@ -68,7 +68,7 @@ export type Product = {
 export type PageRef = { id: number; title: string };
 
 export type PromotionStatus = "inactive" | "scheduled" | "active" | "expired";
-export type OfferType = "percentage" | "fixed" | "bundle";
+export type OfferType = "percentage" | "fixed" | "bundle" | "buy_get" | "gift";
 export type DiscountType = "percentage" | "fixed";
 
 export type Offer = {
@@ -84,6 +84,12 @@ export type Offer = {
   status: PromotionStatus;
   badge_text: string | null;
   priority: number;
+  /** percentage / fixed / gift: smallest quantity; buy_get: units paid. */
+  min_quantity: number;
+  /** buy_get: free units per group. */
+  free_quantity: number | null;
+  gift_product_id: number | null;
+  gift_product?: { id: number; name: string; price: number } | null;
   products?: Array<{ id: number; name: string; price: number }>;
   product_ids?: number[];
   created_at: string | null;
@@ -120,6 +126,10 @@ export type Quote = {
   quantity: number;
   base_subtotal: number;
   offer: { id: number; name: string; type: OfferType; discount: number } | null;
+  /** Free product of a gift offer (value = its regular price). */
+  gift?: { product_id: number; name: string; value: number } | null;
+  /** Why the offer the customer chose does not apply to this quantity. */
+  offer_error?: string | null;
   subtotal_after_offer: number;
   code: { code: string; discount: number } | null;
   code_error: string | null;

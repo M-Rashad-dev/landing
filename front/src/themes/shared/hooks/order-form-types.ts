@@ -34,6 +34,11 @@ export type UpsellState = "idle" | "adding" | "added" | "declined" | "failed";
 
 export type OrderFormState = {
   fields: OrderFormField[];
+  /** The form shows offer cards (offer_picker on). */
+  offerPicker: boolean;
+  /** Selected offer card: the customer's pick, else the automatic offer; 0 = no offer; null = picker off. */
+  chosenOffer: number | null;
+  chooseOffer: (offerId: number) => void;
   values: Record<string, string | boolean>;
   setValue: (name: string, value: string | boolean) => void;
   errors: Record<string, string>;

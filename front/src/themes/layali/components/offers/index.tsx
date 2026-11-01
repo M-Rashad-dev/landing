@@ -40,7 +40,7 @@ export function LayaliOffers({ props, variant, ctx }: SectionProps<OffersProps>)
               {props.show_savings && best.savings > 0 ? ` — ${siteMessages.save(formatPrice(best.savings))}` : ""}
             </p>
             {props.show_countdown && offer.ends_at ? <Countdown endsAt={offer.ends_at} onExpire={() => expire(offer.id)} className="relative" boxClassName="l-glass rounded-2xl" labelClassName="t-muted" /> : null}
-            <button type="button" onClick={() => chooseOfferQuantity(best.quantity)} className="t-primary t-btn l-glow-btn relative mt-2 min-h-14 px-10 font-bold">
+            <button type="button" onClick={() => chooseOfferQuantity(best.quantity, best.offer.id)} className="t-primary t-btn l-glow-btn relative mt-2 min-h-14 px-10 font-bold">
               {props.cta_label || siteMessages.orderNow}
             </button>
           </div>
@@ -75,7 +75,7 @@ export function LayaliOffers({ props, variant, ctx }: SectionProps<OffersProps>)
                 </p>
                 {props.show_savings && d.savings > 0 ? <p className="rounded-full px-3 py-1 text-sm font-semibold text-[var(--c-accent)] ring-1 ring-[var(--c-accent)]/40">{siteMessages.save(formatPrice(d.savings))}</p> : null}
                 {props.show_countdown && d.offer.ends_at ? <Countdown endsAt={d.offer.ends_at} onExpire={() => expire(d.offer.id)} boxClassName="l-glass rounded-xl" labelClassName="t-muted" numberClassName="text-lg" /> : null}
-                <button type="button" onClick={() => chooseOfferQuantity(d.quantity)} className={cn("t-btn mt-auto min-h-12 w-full px-6 font-bold", top ? "t-primary l-glow-btn" : "l-glass")}>
+                <button type="button" onClick={() => chooseOfferQuantity(d.quantity, d.offer.id)} className={cn("t-btn mt-auto min-h-12 w-full px-6 font-bold", top ? "t-primary l-glow-btn" : "l-glass")}>
                   {props.cta_label || siteMessages.orderNow}
                 </button>
               </li>

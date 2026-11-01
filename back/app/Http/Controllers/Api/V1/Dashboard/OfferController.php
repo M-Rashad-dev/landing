@@ -22,7 +22,7 @@ final class OfferController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Offer::query()->with('products')->latest('id');
+        $query = Offer::query()->with(['products', 'giftProduct'])->latest('id');
         $this->filterStatus($query, $request->query('status'));
 
         return $this->paginated($query->paginate($this->perPage($request)), OfferResource::class);
@@ -32,19 +32,19 @@ final class OfferController extends Controller
     {
         $offer = $action->handle($request->offerData(), $request->productIds());
 
-        return $this->created(OfferResource::make($offer->load('products'))->resolve($request));
+        return $this->created(OfferResource::make($offer->load(['products', 'giftProduct']))->resolve($request));
     }
 
     public function show(Offer $offer): JsonResponse
     {
-        return $this->ok(OfferResource::make($offer->load('products')));
+        return $this->ok(OfferResource::make($offer->load(['products', 'giftProduct'])));
     }
 
     public function update(OfferRequest $request, Offer $offer, SaveOffer $action): JsonResponse
     {
         $offer = $action->handle($request->offerData(), $request->productIds(), $offer);
 
-        return $this->ok(OfferResource::make($offer->load('products')));
+        return $this->ok(OfferResource::make($offer->load(['products', 'giftProduct'])));
     }
 
     public function destroy(Offer $offer): Response
@@ -60,6 +60,6 @@ final class OfferController extends Controller
         $offer->update(['is_active' => ! $offer->is_active]);
         RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
 
-        return $this->ok(OfferResource::make($offer->load('products')));
+        return $this->ok(OfferResource::make($offer->load(['products', 'giftProduct'])));
     }
 }

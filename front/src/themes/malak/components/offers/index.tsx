@@ -47,7 +47,7 @@ export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
             {props.show_countdown && offer.ends_at ? (
               <Countdown endsAt={offer.ends_at} onExpire={() => expire(offer.id)} boxClassName="rounded-2xl bg-white/15" labelClassName="opacity-80" />
             ) : null}
-            <button type="button" onClick={() => chooseOfferQuantity(best.quantity)} className="t-btn mt-2 min-h-12 bg-white px-8 font-bold text-gray-900 shadow">
+            <button type="button" onClick={() => chooseOfferQuantity(best.quantity, best.offer.id)} className="t-btn mt-2 min-h-12 bg-white px-8 font-bold text-gray-900 shadow">
               {props.cta_label || siteMessages.orderNow}
             </button>
           </div>
@@ -75,7 +75,7 @@ export function MalakOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
               </p>
               {props.show_savings && d.savings > 0 ? <p className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{siteMessages.save(formatPrice(d.savings))}</p> : null}
               {props.show_countdown && d.offer.ends_at ? <Countdown endsAt={d.offer.ends_at} onExpire={() => expire(d.offer.id)} boxClassName="t-tint rounded-xl" labelClassName="t-muted" numberClassName="text-lg" /> : null}
-              <button type="button" onClick={() => chooseOfferQuantity(d.quantity)} className="t-primary t-btn mt-auto min-h-11 w-full px-6 font-bold">
+              <button type="button" onClick={() => chooseOfferQuantity(d.quantity, d.offer.id)} className="t-primary t-btn mt-auto min-h-11 w-full px-6 font-bold">
                 {props.cta_label || siteMessages.orderNow}
               </button>
             </li>

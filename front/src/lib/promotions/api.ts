@@ -43,6 +43,9 @@ export type OfferPayload = {
   value: string | number | null;
   bundle_quantity: number | null;
   bundle_price: string | null;
+  min_quantity: number | null;
+  free_quantity: number | null;
+  gift_product_id: number | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean;

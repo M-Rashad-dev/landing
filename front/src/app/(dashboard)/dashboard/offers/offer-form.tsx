@@ -9,11 +9,13 @@ import { ProductMultiSelect } from "@/components/shared/product-multi-select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { fromCairoInputValue, toCairoInputValue } from "@/lib/dates";
 import { formatPrice } from "@/lib/price";
+import { useProducts } from "@/lib/products/api";
 import { saveOffer, type OfferPayload } from "@/lib/promotions/api";
 import type { Offer } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -25,10 +27,13 @@ const moneyRe = /^\d{1,7}(\.\d{1,2})?$/;
 const schema = z
   .object({
     name: z.string().trim().min(1, ar.validation.required).max(100, ar.validation.max(100)),
-    type: z.enum(["percentage", "fixed", "bundle"]),
+    type: z.enum(["percentage", "fixed", "bundle", "buy_get", "gift"]),
     value: z.string().trim(),
     bundle_quantity: z.string().trim(),
     bundle_price: z.string().trim(),
+    min_quantity: z.string().trim(),
+    free_quantity: z.string().trim(),
+    gift_product_id: z.string(),
     starts_at: z.string(),
     ends_at: z.string(),
     is_active: z.boolean(),
@@ -47,6 +52,15 @@ const schema = z
       }
       if (!(moneyRe.test(v.bundle_price) && Number(v.bundle_price) > 0)) ctx.addIssue({ code: "custom", path: ["bundle_price"], message: ar.validation.number });
     }
+    const int = (s: string, min: number, max: number) => /^\d+$/.test(s) && Number(s) >= min && Number(s) <= max;
+    if ((v.type === "percentage" || v.type === "fixed" || v.type === "gift") && v.min_quantity !== "" && !int(v.min_quantity, 1, 20)) {
+      ctx.addIssue({ code: "custom", path: ["min_quantity"], message: "1 – 20" });
+    }
+    if (v.type === "buy_get") {
+      if (!int(v.min_quantity, 1, 19)) ctx.addIssue({ code: "custom", path: ["min_quantity"], message: "1 – 19" });
+      if (!int(v.free_quantity, 1, 10)) ctx.addIssue({ code: "custom", path: ["free_quantity"], message: "1 – 10" });
+    }
+    if (v.type === "gift" && !v.gift_product_id) ctx.addIssue({ code: "custom", path: ["gift_product_id"], message: ar.validation.required });
     if (v.starts_at && v.ends_at && v.ends_at <= v.starts_at) ctx.addIssue({ code: "custom", path: ["ends_at"], message: ar.offers.endsAfterStarts });
   });
 
@@ -59,6 +73,9 @@ function toValues(offer: Offer | null): Values {
     value: offer?.value !== null && offer?.value !== undefined ? String(offer.value) : "",
     bundle_quantity: offer?.bundle_quantity ? String(offer.bundle_quantity) : "2",
     bundle_price: offer?.bundle_price ? String(offer.bundle_price) : "",
+    min_quantity: String(offer?.min_quantity ?? 1),
+    free_quantity: offer?.free_quantity ? String(offer.free_quantity) : "1",
+    gift_product_id: offer?.gift_product_id ? String(offer.gift_product_id) : "",
     starts_at: toCairoInputValue(offer?.starts_at),
     ends_at: toCairoInputValue(offer?.ends_at),
     is_active: offer?.is_active ?? true,
@@ -72,9 +89,12 @@ function toPayload(v: Values): OfferPayload {
   return {
     name: v.name.trim(),
     type: v.type,
-    value: v.type === "bundle" ? null : v.value,
+    value: v.type === "percentage" || v.type === "fixed" ? v.value : null,
     bundle_quantity: v.type === "bundle" ? Number(v.bundle_quantity) : null,
     bundle_price: v.type === "bundle" ? v.bundle_price : null,
+    min_quantity: v.type === "bundle" ? null : Number(v.min_quantity || 1),
+    free_quantity: v.type === "buy_get" ? Number(v.free_quantity) : null,
+    gift_product_id: v.type === "gift" ? Number(v.gift_product_id) : null,
     starts_at: fromCairoInputValue(v.starts_at),
     ends_at: fromCairoInputValue(v.ends_at),
     is_active: v.is_active,
@@ -99,6 +119,7 @@ function OfferForm({ offer, onClose, onSaved }: { offer: Offer | null; onClose: 
   const type = useWatch({ control, name: "type" });
   const bundleQty = Number(useWatch({ control, name: "bundle_quantity" }) || 0);
   const bundlePrice = Number(useWatch({ control, name: "bundle_price" }) || 0);
+  const products = useProducts({ per_page: 100 });
 
   async function onSubmit(values: Values) {
     try {
@@ -127,16 +148,17 @@ function OfferForm({ offer, onClose, onSaved }: { offer: Offer | null; onClose: 
             name="type"
             render={({ field }) => (
               <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.fields.type}>
-                {(["bundle", "percentage", "fixed"] as const).map((option) => (
+                {(["bundle", "percentage", "fixed", "buy_get", "gift"] as const).map((option) => (
                   <button
                     key={option}
                     type="button"
                     role="radio"
                     aria-checked={field.value === option}
                     onClick={() => field.onChange(option)}
-                    className={cn("rounded-lg border p-3 text-sm font-semibold transition-colors", field.value === option ? "border-primary bg-secondary text-primary" : "hover:bg-accent")}
+                    className={cn("rounded-lg border p-3 text-start text-sm font-semibold transition-colors", field.value === option ? "border-primary bg-secondary text-primary" : "hover:bg-accent")}
                   >
                     {t.types[option]}
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{t.typeHints[option]}</span>
                   </button>
                 ))}
               </div>
@@ -154,10 +176,36 @@ function OfferForm({ offer, onClose, onSaved }: { offer: Offer | null; onClose: 
             </FormField>
             {bundleQty >= 2 && bundlePrice > 0 ? <p className="text-sm text-muted-foreground sm:col-span-2">{t.effectiveUnit(formatPrice(bundlePrice / bundleQty))}</p> : null}
           </div>
+        ) : type === "buy_get" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label={t.fields.buyQuantity} htmlFor="offer-buy" error={errors.min_quantity?.message} required>
+              <Input id="offer-buy" type="number" min={1} max={19} dir="ltr" aria-invalid={!!errors.min_quantity} {...register("min_quantity")} />
+            </FormField>
+            <FormField label={t.fields.freeQuantity} htmlFor="offer-free" error={errors.free_quantity?.message} required>
+              <Input id="offer-free" type="number" min={1} max={10} dir="ltr" aria-invalid={!!errors.free_quantity} {...register("free_quantity")} />
+            </FormField>
+          </div>
         ) : (
-          <FormField label={type === "percentage" ? t.fields.percent : t.fields.fixed} htmlFor="offer-value" error={errors.value?.message} required>
-            <Input id="offer-value" inputMode="decimal" dir="ltr" className="sm:max-w-48" aria-invalid={!!errors.value} {...register("value")} />
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {type === "gift" ? (
+              <FormField label={t.fields.giftProduct} htmlFor="offer-gift" error={errors.gift_product_id?.message} hint={t.fields.giftHint} required>
+                <Controller
+                  control={control}
+                  name="gift_product_id"
+                  render={({ field }) => (
+                    <Select id="offer-gift" value={field.value} placeholder={t.fields.chooseProduct} onChange={(e) => field.onChange(e.target.value)} options={(products.data?.data ?? []).map((p) => ({ value: String(p.id), label: p.name }))} />
+                  )}
+                />
+              </FormField>
+            ) : (
+              <FormField label={type === "percentage" ? t.fields.percent : t.fields.fixed} htmlFor="offer-value" error={errors.value?.message} required>
+                <Input id="offer-value" inputMode="decimal" dir="ltr" aria-invalid={!!errors.value} {...register("value")} />
+              </FormField>
+            )}
+            <FormField label={t.fields.minQuantity} htmlFor="offer-min" error={errors.min_quantity?.message} hint={t.fields.minQuantityHint}>
+              <Input id="offer-min" type="number" min={1} max={20} dir="ltr" aria-invalid={!!errors.min_quantity} {...register("min_quantity")} />
+            </FormField>
+          </div>
         )}
 
         <FormField label={ar.promotions.products} htmlFor="offer-products" error={errors.product_ids?.message} required>

@@ -71,6 +71,7 @@ final class PublicPageData
         return Offer::query()
             ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
             ->where(fn ($q) => $q->where(fn ($active) => $active->activeAt($now))->orWhere(fn ($soon) => $soon->upcomingAt($now)))
+            ->with('giftProduct')
             ->orderByDesc('priority')
             ->orderBy('id')
             ->get()
@@ -89,8 +90,14 @@ final class PublicPageData
             'value' => match ($offer->type) {
                 OfferType::Percentage => intdiv($offer->valueCents(), 100),
                 OfferType::Fixed => Money::toFloat($offer->valueCents()),
-                OfferType::Bundle => null,
+                default => null,
             },
+            'min_quantity' => $offer->min_quantity,
+            'free_quantity' => $offer->free_quantity,
+            'required_quantity' => $offer->requiredQuantity(),
+            'gift' => $offer->type === OfferType::Gift && $offer->giftProduct && $offer->giftProduct->is_active && ! $offer->giftProduct->trashed()
+                ? ['id' => $offer->giftProduct->id, 'name' => $offer->giftProduct->name, 'price' => Money::toFloat($offer->giftProduct->priceCents())]
+                : null,
             'bundle_quantity' => $offer->bundle_quantity,
             'bundle_price' => $offer->bundle_price === null ? null : Money::toFloat($offer->bundlePriceCents()),
             'starts_at' => $offer->starts_at?->toIso8601ZuluString(),

@@ -24,8 +24,11 @@ import { OfferFormDialog } from "./offer-form";
 const t = ar.offers;
 
 export function offerValueLabel(offer: Offer): string {
-  if (offer.type === "percentage") return `${offer.value}%`;
-  if (offer.type === "fixed") return `${formatPrice(offer.value)} ${t.perUnit}`;
+  const from = (offer.min_quantity ?? 1) > 1 ? t.fromQuantity(offer.min_quantity) : "";
+  if (offer.type === "percentage") return `${offer.value}%${from}`;
+  if (offer.type === "fixed") return `${formatPrice(offer.value)} ${t.perUnit}${from}`;
+  if (offer.type === "buy_get") return t.buyGetSummary(offer.min_quantity, offer.free_quantity ?? 1);
+  if (offer.type === "gift") return t.giftSummary(offer.gift_product?.name ?? "—", offer.min_quantity ?? 1);
   return t.bundleSummary(offer.bundle_quantity ?? 0, formatPrice(offer.bundle_price));
 }
 

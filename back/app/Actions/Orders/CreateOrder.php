@@ -97,14 +97,15 @@ final class CreateOrder
         $quantity = (int) $input['quantity'];
         $options = (array) ($input['options'] ?? []);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
+        $offerId = OrderForm::chosenOffer($props, $input['offer_id'] ?? null);
 
         // 6. Quote again (an invalid code fails the order on the "code" field).
         $governorate = $customer['governorate'] ?? null;
-        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate);
+        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId);
 
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate) {
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId) {
             // 7. Lock the code row and re-check its limits.
-            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate);
+            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId);
 
             // 8. Sequential number per tenant.
             $number = $this->nextNumber($tenantId);
@@ -165,6 +166,18 @@ final class CreateOrder
                 ], $quote->selectedValues),
                 'line_total' => Money::toDecimal($quote->baseSubtotal),
             ]);
+            // Gift offer: the free product is its own line at 0.
+            if ($quote->gift !== null) {
+                $order->items()->create([
+                    'product_id' => $quote->gift['product_id'],
+                    'product_name' => $quote->gift['name'],
+                    'unit_price' => '0.00',
+                    'quantity' => 1,
+                    'options' => null,
+                    'line_total' => '0.00',
+                    'is_gift' => true,
+                ]);
+            }
 
             $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
 
@@ -197,9 +210,9 @@ final class CreateOrder
      *
      * @throws ValidationException
      */
-    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate): Quote
+    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $offerId = null): Quote
     {
-        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate);
+        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate, $offerId);
 
         if (! $quote->shippingAvailable) {
             throw ValidationException::withMessages(['customer.governorate' => [__('orders.shipping_unavailable')]]);

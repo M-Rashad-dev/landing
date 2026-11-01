@@ -34,6 +34,10 @@ final readonly class Quote
         public ?int $shipping = null,
         public bool $shippingFree = false,
         public bool $shippingAvailable = true,
+        /** Free product of a gift offer: product_id, name, price (cents, its regular price). */
+        public ?array $gift = null,
+        /** Why the offer the customer chose does not apply yet (e.g. needs a bigger quantity). */
+        public ?string $offerError = null,
     ) {}
 
     /** Products after offer and code, before delivery. */
@@ -56,6 +60,8 @@ final readonly class Quote
                 'type' => $this->offer['type']->value,
                 'discount' => Money::toFloat($this->offerDiscount),
             ],
+            'gift' => $this->gift === null ? null : ['product_id' => $this->gift['product_id'], 'name' => $this->gift['name'], 'value' => Money::toFloat($this->gift['price'])],
+            'offer_error' => $this->offerError,
             'subtotal_after_offer' => Money::toFloat($this->subtotalAfterOffer),
             'code' => $this->code === null ? null : [
                 'code' => $this->code->code,

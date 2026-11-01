@@ -1,38 +1,25 @@
 import type { Quote } from "@/lib/types";
 import type { PublicOffer, PublicProduct } from "@/themes/types";
-import { activeOffers } from "./offers";
+import { activeOffers, offerQuantity, pickOffer } from "./offers";
+import { siteMessages } from "@/messages/site";
 import { fromCents, toCents } from "./index";
 
 /**
- * Local estimate shown while the server quote is loading (same rules as
- * PriceCalculator for offers; codes are only applied by the server).
+ * Local estimate shown while the server quote is loading (same rules as PriceCalculator for
+ * offers; codes are only applied by the server). `chosenOffer`: the customer's pick in the offer
+ * picker (0 = no offer); undefined = automatic.
  */
-export function estimateQuote(product: PublicProduct, offers: PublicOffer[], quantity: number, selected: Record<number, number>): Quote {
-  const price = toCents(product.price);
+export function estimateQuote(product: PublicProduct, offers: PublicOffer[], quantity: number, selected: Record<number, number>, chosenOffer?: number | null): Quote {
   let deltas = 0;
   for (const option of product.options) {
     const value = option.values.find((v) => v.id === selected[option.id]);
     if (value) deltas += toCents(value.price_delta);
   }
-  const unit = price + deltas;
+  const unit = toCents(product.price) + deltas;
   const base = unit * quantity;
 
-  let best: { offer: PublicOffer; total: number } | null = null;
-  for (const offer of activeOffers(offers)) {
-    let total: number | null = null;
-    if (offer.type === "percentage") total = base - Math.floor((base * Math.round((offer.value ?? 0) * 100) + 5000) / 10000);
-    else if (offer.type === "fixed") total = base - Math.min(toCents(offer.value) * quantity, base);
-    else {
-      const qty = offer.bundle_quantity ?? 0;
-      const bundle = toCents(offer.bundle_price);
-      if (qty >= 2 && quantity >= qty && bundle < price * qty) total = Math.floor(quantity / qty) * bundle + (quantity % qty) * price + deltas * quantity;
-    }
-    if (total === null || total >= base) continue;
-    if (!best || total < best.total || (total === best.total && (offer.priority > best.offer.priority || (offer.priority === best.offer.priority && offer.id < best.offer.id)))) {
-      best = { offer, total };
-    }
-  }
-
+  const best = pickOffer(offers, product.price, quantity, deltas, chosenOffer);
+  const chosen = chosenOffer ? activeOffers(offers).find((o) => o.id === chosenOffer) : undefined;
   const after = best ? best.total : base;
   return {
     currency: "EGP",
@@ -40,6 +27,8 @@ export function estimateQuote(product: PublicProduct, offers: PublicOffer[], qua
     quantity,
     base_subtotal: fromCents(base),
     offer: best ? { id: best.offer.id, name: best.offer.name, type: best.offer.type, discount: fromCents(base - best.total) } : null,
+    gift: best?.offer.type === "gift" && best.offer.gift ? { product_id: best.offer.gift.id, name: best.offer.gift.name, value: best.offer.gift.price } : null,
+    offer_error: chosen && !best ? siteMessages.offerPicker.needs(offerQuantity(chosen)) : null,
     subtotal_after_offer: fromCents(after),
     code: null,
     code_error: null,

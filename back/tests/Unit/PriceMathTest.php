@@ -40,7 +40,7 @@ it('returns null when an offer gives no discount', function () {
     expect(PriceMath::offerTotal(OfferType::Fixed, 0, null, 0, 35000, 1, 35000, 0))->toBeNull();
 });
 
-it('picks the lowest total, then highest priority, then oldest id', function () {
+it('picks the highest priority, then the lowest total, then the oldest id', function () {
     expect(PriceMath::bestOffer([
         ['id' => 1, 'priority' => 0, 'total' => 600],
         ['id' => 2, 'priority' => 0, 'total' => 500],
@@ -54,7 +54,29 @@ it('picks the lowest total, then highest priority, then oldest id', function () 
             ['id' => 8, 'priority' => 3, 'total' => 500],
             ['id' => 7, 'priority' => 3, 'total' => 500],
         ])['id'])->toBe(7)
+        ->and(PriceMath::bestOffer([
+            ['id' => 1, 'priority' => 0, 'total' => 400],
+            ['id' => 2, 'priority' => 5, 'total' => 700],
+        ])['id'])->toBe(2)
+        ->and(PriceMath::bestOffer([
+            ['id' => 1, 'priority' => 0, 'total' => 600],
+            ['id' => 2, 'priority' => 0, 'total' => 700, 'rank' => 500],
+        ])['id'])->toBe(2)
         ->and(PriceMath::bestOffer([]))->toBeNull();
+});
+
+it('applies minimum quantities, buy-X-get-Y and gifts', function () {
+    // Buy 2 → 20% off: nothing for one piece.
+    expect(PriceMath::offerTotal(OfferType::Percentage, 2000, null, 0, 10000, 1, 10000, 0, 2))->toBeNull()
+        ->and(PriceMath::offerTotal(OfferType::Percentage, 2000, null, 0, 20000, 2, 10000, 0, 2))->toBe(16000)
+        // Buy 5, the 6th free: 6 → pay 5; 11 → still one free; 12 → two free. Options are free too.
+        ->and(PriceMath::offerTotal(OfferType::BuyGet, 0, null, 0, 60000, 6, 10000, 0, 5, 1))->toBe(50000)
+        ->and(PriceMath::offerTotal(OfferType::BuyGet, 0, null, 0, 110000, 11, 10000, 0, 5, 1))->toBe(100000)
+        ->and(PriceMath::offerTotal(OfferType::BuyGet, 0, null, 0, 132000, 12, 10000, 1000, 5, 1))->toBe(110000)
+        ->and(PriceMath::offerTotal(OfferType::BuyGet, 0, null, 0, 50000, 5, 10000, 0, 5, 1))->toBeNull()
+        // Gift: no discount, applies from its minimum quantity.
+        ->and(PriceMath::offerTotal(OfferType::Gift, 0, null, 0, 30000, 1, 30000, 0))->toBe(30000)
+        ->and(PriceMath::offerTotal(OfferType::Gift, 0, null, 0, 30000, 1, 30000, 0, 2))->toBeNull();
 });
 
 dataset('code cases', [

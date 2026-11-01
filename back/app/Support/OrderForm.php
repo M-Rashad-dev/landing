@@ -40,6 +40,21 @@ final class OrderForm
     public function __construct(private readonly PhoneNormalizer $phones) {}
 
     /**
+     * The offer the customer picked, honored only when the published form lets customers choose
+     * (offer_picker); otherwise null = the automatic offer. 0 = no offer.
+     *
+     * @param  array<string, mixed>|null  $props  order_form props
+     */
+    public static function chosenOffer(?array $props, mixed $offerId): ?int
+    {
+        if (($props['offer_picker'] ?? false) !== true || $offerId === null || $offerId === '') {
+            return null;
+        }
+
+        return max(0, (int) $offerId);
+    }
+
+    /**
      * Props of the first visible order_form section of a published content, or null.
      *
      * @param  array<string, mixed>|null  $content

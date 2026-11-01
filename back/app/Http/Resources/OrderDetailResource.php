@@ -40,6 +40,7 @@ final class OrderDetailResource extends OrderResource
                 'product_id' => $item->product_id,
                 'product_name' => $item->product_name,
                 'is_upsell' => $item->upsell_id !== null,
+                'is_gift' => (bool) $item->is_gift,
                 'unit_price' => $money($item->unit_price),
                 'quantity' => $item->quantity,
                 'options' => $item->options ?? [],

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizePhone } from "@/lib/format/phone";
 import { estimateQuote } from "@/lib/price/estimate";
+import { activeOffers, offerQuantity } from "@/lib/price/offers";
 import { withShipping } from "@/lib/price/shipping";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
@@ -48,6 +49,9 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [options, setOptions] = useState<Record<number, number>>({});
   const [quantity, setQuantityState] = useState(1);
+  /** Offer the customer picked in the offer picker; null = automatic, 0 = no offer. */
+  const [chosenOffer, setChosenOffer] = useState<number | null>(null);
+  const picker = props.offer_picker === true;
   const [code, setCode] = useState("");
   const [appliedCode, setAppliedCode] = useState("");
   const [serverQuote, setServerQuote] = useState<Quote | null>(null);
@@ -72,9 +76,12 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
   useEffect(
     () =>
       useOfferStore.subscribe((state, previous) => {
-        if (state.nonce !== previous.nonce && state.requestedQuantity) setQuantity(state.requestedQuantity);
+        if (state.nonce !== previous.nonce && state.requestedQuantity) {
+          setQuantity(state.requestedQuantity);
+          if (picker && state.requestedOfferId) setChosenOffer(state.requestedOfferId);
+        }
       }),
-    [setQuantity],
+    [setQuantity, picker],
   );
 
   // Anti-bot form token (fetched by the browser, never cached in the HTML) + UTM capture.
@@ -105,7 +112,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         const response = await fetch("/api/public/quote", {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ slug: ctx.page.slug, quantity, options, code: appliedCode || null, phone, governorate: governorate || null }),
+          body: JSON.stringify({ slug: ctx.page.slug, quantity, options, code: appliedCode || null, phone, governorate: governorate || null, offer_id: picker ? chosenOffer : null }),
           signal: controller.signal,
         });
         const json = (await response.json().catch(() => ({}))) as ApiBody;
@@ -120,7 +127,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
       controller.abort();
       clearTimeout(timer);
     };
-  }, [live, requiredChosen, ctx.page.slug, quantity, options, appliedCode, phone, governorate]);
+  }, [live, requiredChosen, ctx.page.slug, quantity, options, appliedCode, phone, governorate, picker, chosenOffer]);
 
   // Abandoned form: once a valid phone is typed, the store can follow up even if the visitor leaves.
   const leadName = typeof values["customer.name"] === "string" ? (values["customer.name"] as string).trim() : "";
@@ -142,7 +149,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     return () => clearTimeout(timer);
   }, [live, phone, leadName, governorate, quantity, status, ctx.page.slug]);
 
-  const estimate = useMemo(() => (product ? estimateQuote(product, ctx.offers, quantity, options) : null), [product, ctx.offers, quantity, options]);
+  const estimate = useMemo(() => (product ? estimateQuote(product, ctx.offers, quantity, options, picker ? chosenOffer : null) : null), [product, ctx.offers, quantity, options, picker, chosenOffer]);
   const quoteMatches = serverQuote && serverQuote.quantity === quantity;
   // Delivery fee: the server quote has it; the local estimate gets it from the store's fee list.
   const quote = withShipping(quoteMatches ? serverQuote : estimate, ctx.shipping, governorate);
@@ -238,6 +245,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
         website: "",
         utm: captureUtm(),
         ab: abTestId(),
+        offer_id: picker ? chosenOffer : null,
         idempotency_key: crypto.randomUUID(),
       });
 
@@ -282,7 +290,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     } finally {
       submitting.current = false;
     }
-  }, [appliedCode, code, ctx.conversionEvent, ctx.isPreview, ctx.page.slug, disabledReason, fields, options, product, quantity, status, values]);
+  }, [appliedCode, chosenOffer, code, ctx.conversionEvent, ctx.isPreview, ctx.page.slug, disabledReason, fields, options, picker, product, quantity, status, values]);
 
   // Post-order offer: one click adds it to the order just placed (server checks the signed token).
   async function acceptUpsell() {
@@ -301,9 +309,23 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
     }
   }
 
+  // Picking an offer card also sets the quantity it needs (0 = one piece, no offer).
+  const chooseOffer = useCallback(
+    (offerId: number) => {
+      touch();
+      setChosenOffer(offerId);
+      const offer = activeOffers(ctx.offers).find((o) => o.id === offerId);
+      setQuantity(offer ? offerQuantity(offer) : 1);
+    },
+    [ctx.offers, setQuantity, touch],
+  );
+
   return {
     fields,
     values,
+    offerPicker: picker,
+    chosenOffer: picker ? (chosenOffer ?? quote?.offer?.id ?? 0) : null,
+    chooseOffer,
     setValue,
     errors: { ...errors, ...(quote?.code_error && appliedCode && quoteMatches ? { code: quote.code_error } : {}) },
     options,

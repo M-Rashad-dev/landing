@@ -40,7 +40,7 @@ export function CeliaOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
           {props.show_countdown && offer.ends_at ? (
             <Countdown endsAt={offer.ends_at} onExpire={() => expire(offer.id)} boxClassName="border-2 min-w-16 border-[var(--c-bg)]" numberClassName="text-4xl font-black" labelClassName="font-bold opacity-80" />
           ) : null}
-          <button type="button" onClick={() => chooseOfferQuantity(best.quantity)} className="t-accent t-btn min-h-14 border-2 border-[var(--c-bg)] px-8 text-lg font-black shadow-[4px_4px_0_var(--c-bg)]">
+          <button type="button" onClick={() => chooseOfferQuantity(best.quantity, best.offer.id)} className="t-accent t-btn min-h-14 border-2 border-[var(--c-bg)] px-8 text-lg font-black shadow-[4px_4px_0_var(--c-bg)]">
             {props.cta_label || siteMessages.orderNow}
           </button>
         </div>
@@ -58,7 +58,7 @@ export function CeliaOffers({ props, variant, ctx }: SectionProps<OffersProps>) 
             const top = best?.offer.id === d.offer.id && displays.length > 1;
             return (
               <li key={d.offer.id}>
-                <button type="button" onClick={() => chooseOfferQuantity(d.quantity)} className={cn("t-hard t-press relative flex h-full w-full flex-col items-start gap-2 p-6 text-start", top ? "t-primary" : "t-bg")}>
+                <button type="button" onClick={() => chooseOfferQuantity(d.quantity, d.offer.id)} className={cn("t-hard t-press relative flex h-full w-full flex-col items-start gap-2 p-6 text-start", top ? "t-primary" : "t-bg")}>
                   {top ? <span className="t-accent absolute -top-3 end-4 border-2 t-line px-2 py-0.5 text-xs font-black">{siteMessages.bestSeller}</span> : null}
                   <span className="text-sm font-extrabold uppercase opacity-80">{d.offer.type === "bundle" ? siteMessages.pieces(d.quantity) : d.offer.name}</span>
                   <span className="text-5xl font-black tabular-nums tracking-tight">{formatPrice(d.total)}</span>

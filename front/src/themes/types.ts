@@ -82,10 +82,16 @@ export type PublicProduct = {
 export type PublicOffer = {
   id: number;
   name: string;
-  type: "percentage" | "fixed" | "bundle";
+  type: "percentage" | "fixed" | "bundle" | "buy_get" | "gift";
   value: number | null;
   bundle_quantity: number | null;
   bundle_price: number | null;
+  /** percentage / fixed / gift: smallest quantity; buy_get: units paid (older payloads: absent = 1). */
+  min_quantity?: number;
+  free_quantity?: number | null;
+  /** Quantity to order to get the offer. */
+  required_quantity?: number;
+  gift?: { id: number; name: string; price: number } | null;
   starts_at: string | null;
   ends_at: string | null;
   status: "active" | "scheduled";

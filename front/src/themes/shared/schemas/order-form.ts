@@ -29,6 +29,8 @@ export type OrderFormProps = {
   fields: Record<BuiltInField, BuiltInFieldConfig>;
   custom_fields: CustomField[];
   show_quantity: boolean;
+  /** Offers as cards at the top of the form; the customer picks one (otherwise automatic). */
+  offer_picker: boolean;
   show_summary: boolean;
   show_code_field: boolean;
   success_title: string;
@@ -56,6 +58,7 @@ export const orderFormSchema: ComponentSchema = {
     { key: "submit_label", type: "text", label: t.submitLabel, max: 40 },
     { key: "fields", type: "order_fields", label: t.fields },
     { key: "custom_fields", type: "custom_fields", label: t.customFields, max: 8 },
+    { key: "offer_picker", type: "toggle", label: t.offerPicker, hint: t.offerPickerHint },
     { key: "show_quantity", type: "toggle", label: t.showQuantity },
     { key: "show_summary", type: "toggle", label: t.showSummary },
     { key: "show_code_field", type: "toggle", label: t.showCodeField },
@@ -91,6 +94,7 @@ export const orderFormSchema: ComponentSchema = {
     },
     custom_fields: [],
     show_quantity: true,
+    offer_picker: false,
     show_summary: true,
     show_code_field: true,
     success_title: t.defaults.successTitle,

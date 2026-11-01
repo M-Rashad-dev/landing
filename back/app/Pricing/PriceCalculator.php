@@ -41,6 +41,7 @@ final class PriceCalculator
         ?string $phone = null,
         bool $lockCode = false,
         ?string $governorate = null,
+        ?int $offerId = null,
     ): Quote {
         if ($quantity < self::MIN_QUANTITY || $quantity > self::MAX_QUANTITY) {
             throw ValidationException::withMessages([
@@ -54,7 +55,7 @@ final class PriceCalculator
         $unitPrice = $productPrice + $deltaSum;
         $baseSubtotal = $unitPrice * $quantity;
 
-        [$offer, $afterOffer] = $this->applyBestOffer($product, $now, $baseSubtotal, $quantity, $productPrice, $deltaSum);
+        [$offer, $afterOffer, $gift, $offerError] = $this->applyOffer($product, $now, $baseSubtotal, $quantity, $productPrice, $deltaSum, $offerId);
         $offerDiscount = $baseSubtotal - $afterOffer;
 
         $discountCode = null;
@@ -93,6 +94,8 @@ final class PriceCalculator
             shipping: $shipping['fee'],
             shippingFree: $shipping['free'],
             shippingAvailable: $shipping['available'],
+            gift: $gift,
+            offerError: $offerError,
         );
     }
 
@@ -154,17 +157,33 @@ final class PriceCalculator
         return [$deltaSum, $selected];
     }
 
-    /** @return array{0: array{id: int, name: string, type: OfferType}|null, 1: int} */
-    private function applyBestOffer(Product $product, CarbonInterface $now, int $baseSubtotal, int $quantity, int $productPrice, int $deltaSum): array
+    /**
+     * The offer for this quantity. $offerId null = automatic (merchant priority, then cheapest);
+     * 0 = the customer chose no offer; a positive id = the customer's choice, applied only when it
+     * is active for this product and the quantity qualifies (otherwise no offer and a reason).
+     *
+     * @return array{0: array{id: int, name: string, type: OfferType}|null, 1: int, 2: array{product_id: int, name: string, price: int}|null, 3: string|null}
+     */
+    private function applyOffer(Product $product, CarbonInterface $now, int $baseSubtotal, int $quantity, int $productPrice, int $deltaSum, ?int $offerId): array
     {
+        if ($offerId === 0) {
+            return [null, $baseSubtotal, null, null];
+        }
+
         $offers = Offer::query()
             ->activeAt($now)
             ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
+            ->when($offerId !== null, fn ($q) => $q->whereKey($offerId))
+            ->with(['giftProduct' => fn ($q) => $q->with('options')])
             ->get();
 
         $candidates = [];
         $byId = [];
         foreach ($offers as $offer) {
+            $gift = $offer->type === OfferType::Gift ? $this->gift($offer) : null;
+            if ($offer->type === OfferType::Gift && $gift === null) {
+                continue;
+            }
             $total = PriceMath::offerTotal(
                 $offer->type,
                 $offer->valueCents(),
@@ -174,23 +193,38 @@ final class PriceCalculator
                 $quantity,
                 $productPrice,
                 $deltaSum,
+                $offer->min_quantity,
+                $offer->free_quantity,
             );
 
             if ($total !== null) {
-                $candidates[] = ['id' => $offer->id, 'priority' => $offer->priority, 'total' => $total];
-                $byId[$offer->id] = $offer;
+                $candidates[] = ['id' => $offer->id, 'priority' => $offer->priority, 'total' => $total, 'rank' => $total - ($gift['price'] ?? 0)];
+                $byId[$offer->id] = [$offer, $gift];
             }
         }
 
         $best = PriceMath::bestOffer($candidates);
 
         if ($best === null) {
-            return [null, $baseSubtotal];
+            $chosen = $offerId !== null ? $offers->first() : null;
+
+            return [null, $baseSubtotal, null, $chosen === null ? null : __('pricing.offer_needs_quantity', ['quantity' => $chosen->requiredQuantity()])];
         }
 
-        $offer = $byId[$best['id']];
+        [$offer, $gift] = $byId[$best['id']];
 
-        return [['id' => $offer->id, 'name' => $offer->name, 'type' => $offer->type], $best['total']];
+        return [['id' => $offer->id, 'name' => $offer->name, 'type' => $offer->type], $best['total'], $gift, null];
+    }
+
+    /** The free product of a gift offer, when it can still be given (active, nothing to choose). */
+    private function gift(Offer $offer): ?array
+    {
+        $product = $offer->giftProduct;
+        if ($product === null || $product->trashed() || ! $product->is_active || $product->options->contains(fn ($option) => $option->is_required)) {
+            return null;
+        }
+
+        return ['product_id' => $product->id, 'name' => $product->name, 'price' => $product->priceCents()];
     }
 
     /**

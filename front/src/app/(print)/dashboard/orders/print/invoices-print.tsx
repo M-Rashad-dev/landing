@@ -159,7 +159,10 @@ function Invoice({ order }: { order: OrderDetail }) {
           {order.items.map((item) => (
             <tr key={item.id} className="border-b border-[#e5e0d4]">
               <td className="py-3">
-                <p className="font-semibold">{item.product_name}</p>
+                <p className="font-semibold">
+                  {item.product_name}
+                  {item.is_gift ? ` (${ar.orders.giftItem})` : ""}
+                </p>
                 {item.options.length ? <p className="text-xs text-[#6a6759]">{item.options.map((o) => `${o.option}: ${o.value}`).join(" · ")}</p> : null}
               </td>
               <td className="py-3 text-center tabular-nums">{item.quantity}</td>

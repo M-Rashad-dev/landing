@@ -24,8 +24,12 @@ final class OfferResource extends JsonResource
             'value' => match ($this->type) {
                 OfferType::Percentage => intdiv($this->valueCents(), 100),
                 OfferType::Fixed => Money::toFloat($this->valueCents()),
-                OfferType::Bundle => null,
+                default => null,
             },
+            'min_quantity' => $this->min_quantity,
+            'free_quantity' => $this->free_quantity,
+            'gift_product_id' => $this->gift_product_id,
+            'gift_product' => $this->whenLoaded('giftProduct', fn () => $this->giftProduct ? ['id' => $this->giftProduct->id, 'name' => $this->giftProduct->name, 'price' => Money::toFloat($this->giftProduct->priceCents())] : null),
             'bundle_quantity' => $this->bundle_quantity,
             'bundle_price' => $this->bundle_price === null ? null : Money::toFloat($this->bundlePriceCents()),
             'starts_at' => $this->starts_at?->toIso8601ZuluString(),
