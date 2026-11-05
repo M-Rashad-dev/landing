@@ -14,6 +14,25 @@ export type GalleryLayout = "slider" | "grid" | "thumbs-side" | "masonry";
  * Interactive gallery shared by both themes (layout + class names differ).
  * Slider = scroll-snap with thumbnails; grid/masonry open the lightbox.
  */
+/** Resolve thumbnail className based on variant or custom function. */
+function getThumbClass(
+  active: boolean,
+  thumbVariant?: "celia",
+  thumbClassName?: (active: boolean) => string,
+): string {
+  if (thumbClassName) return thumbClassName(active);
+  if (thumbVariant === "celia") {
+    return cn(
+      "size-16 shrink-0 overflow-hidden border-2 sm:size-20",
+      active ? "t-line shadow-[3px_3px_0_var(--c-fg)]" : "border-transparent opacity-60",
+    );
+  }
+  return cn(
+    "size-16 shrink-0 overflow-hidden rounded-xl border-2 sm:size-20",
+    active ? "border-[var(--c-primary)]" : "border-transparent opacity-70",
+  );
+}
+
 export function GalleryClient({
   images,
   layout,
@@ -22,6 +41,7 @@ export function GalleryClient({
   lightbox,
   frameClassName,
   thumbClassName,
+  thumbVariant,
 }: {
   images: PublicImage[];
   layout: GalleryLayout;
@@ -30,6 +50,7 @@ export function GalleryClient({
   lightbox: boolean;
   frameClassName?: string;
   thumbClassName?: (active: boolean) => string;
+  thumbVariant?: "celia";
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [current, setCurrent] = useState(0);
@@ -46,7 +67,7 @@ export function GalleryClient({
             onClick={() => setTarget(i)}
             aria-label={siteMessages.slide(i + 1, images.length)}
             aria-current={current === i}
-            className={thumbClassName ? thumbClassName(current === i) : cn("size-16 shrink-0 overflow-hidden rounded-xl border-2 sm:size-20", current === i ? "border-[var(--c-primary)]" : "border-transparent opacity-70")}
+            className={getThumbClass(current === i, thumbVariant, thumbClassName)}
           >
             <ResponsiveImage image={image} sizes="80px" className="h-full w-full object-cover" />
           </button>
