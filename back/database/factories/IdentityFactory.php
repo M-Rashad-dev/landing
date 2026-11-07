@@ -29,7 +29,7 @@ class IdentityFactory extends Factory
             'button_radius' => 'md',
             'contact' => [],
             'socials' => [],
-            'tracking' => ['conversion_event' => 'Lead'],
+            'tracking' => ['conversion_event' => 'Purchase'],
         ];
     }
 

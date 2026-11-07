@@ -47,5 +47,5 @@ export function validTracking(tracking: Tracking | null | undefined): Partial<Re
     const value = tracking?.[key];
     if (value && isValidTrackingId(key, value)) result[key] = normalizeTrackingId(key, value);
   }
-  return { ...result, conversion_event: tracking?.conversion_event === "Purchase" ? "Purchase" : "Lead" };
+  return { ...result, conversion_event: tracking?.conversion_event === "Lead" ? "Lead" : "Purchase" };
 }

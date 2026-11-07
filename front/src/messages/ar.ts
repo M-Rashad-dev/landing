@@ -279,9 +279,9 @@ export const ar = {
       facebook_domain_verification: { label: "كود تحقق دومين فيسبوك", hint: "قيمة content فقط من وسم meta", example: "abcdef1234567890" },
       invalid: "الشكل غير صحيح",
       lead: "Lead — عميل محتمل",
-      leadHint: "الأنسب للدفع عند الاستلام: الطلب لم يُدفع بعد.",
-      purchase: "Purchase — شراء",
-      purchaseHint: "يُحسب كعملية شراء بقيمة الطلب، مفيد لتحسين الحملات على المبيعات.",
+      leadHint: "بيتحسب كعميل محتمل من غير قيمة، فمش هتشوف إيراد ولا ROAS في مدير الإعلانات.",
+      purchase: "Purchase — شراء (مُستحسن)",
+      purchaseHint: "بيتبعت بقيمة الطلب بالجنيه، فمدير الإعلانات يحسب الإيراد والـ ROAS، وتقدر تحسّن الحملات على المبيعات.",
     },
   },
   products: {

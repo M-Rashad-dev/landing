@@ -25,7 +25,7 @@ type TrackingWindow = Window & {
 };
 
 const META: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "Lead", Purchase: "Purchase" };
-const TIKTOK: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "SubmitForm", Purchase: "PlaceAnOrder" };
+const TIKTOK: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "SubmitForm", Purchase: "CompletePayment" };
 const GA4: Record<TrackEvent, string> = { ViewContent: "view_item", InitiateCheckout: "begin_checkout", Lead: "generate_lead", Purchase: "purchase" };
 const SNAP: Record<TrackEvent, string> = { ViewContent: "VIEW_CONTENT", InitiateCheckout: "START_CHECKOUT", Lead: "SIGN_UP", Purchase: "PURCHASE" };
 

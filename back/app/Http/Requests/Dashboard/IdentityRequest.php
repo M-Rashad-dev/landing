@@ -146,7 +146,7 @@ final class IdentityRequest extends ApiRequest
             'socials' => $pick($data['socials'] ?? [], Identity::SOCIAL_KEYS),
             'tracking' => array_merge(
                 $pick($data['tracking'] ?? [], Identity::TRACKING_KEYS),
-                ['conversion_event' => $data['tracking']['conversion_event'] ?? 'Lead'],
+                ['conversion_event' => $data['tracking']['conversion_event'] ?? 'Purchase'],
             ),
         ];
     }

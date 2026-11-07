@@ -124,7 +124,7 @@ function toValues(identity?: Identity, storeName = ""): Values {
     socials: Object.fromEntries(SOCIAL_KEYS.map((key) => [key, identity?.socials[key] ?? ""])) as Values["socials"],
     tracking: {
       ...(Object.fromEntries(TRACKING_KEYS.map((key) => [key, identity?.tracking[key] ?? ""])) as Record<TrackingKey, string>),
-      conversion_event: identity?.tracking.conversion_event === "Purchase" ? "Purchase" : "Lead",
+      conversion_event: identity?.tracking.conversion_event === "Lead" ? "Lead" : "Purchase",
     },
   };
 }
@@ -340,7 +340,7 @@ export function IdentityForm({ identity, storeName }: { identity?: Identity; sto
               name="tracking.conversion_event"
               render={({ field }) => (
                 <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t.fields.conversionEvent}>
-                  {(["Lead", "Purchase"] as const).map((event) => (
+                  {(["Purchase", "Lead"] as const).map((event) => (
                     <button
                       key={event}
                       type="button"

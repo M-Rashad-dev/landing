@@ -88,7 +88,7 @@ final class RegisterTenant
             'button_radius' => 'md',
             'contact' => [],
             'socials' => [],
-            'tracking' => ['conversion_event' => 'Lead'],
+            'tracking' => ['conversion_event' => 'Purchase'],
         ]);
         $identity->is_default = true;
         $identity->save();

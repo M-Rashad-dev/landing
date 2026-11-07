@@ -270,7 +270,7 @@ export function useOrderForm(props: OrderFormProps, ctx: PageContext): OrderForm
           // Storage may be blocked; still track once in this session.
         }
         if (!alreadyTracked) {
-          track(ctx.conversionEvent ?? "Lead", { content_ids: [product.id], content_name: product.name, value: data.total, num_items: quantity, transaction_id: data.order_number });
+          track(ctx.conversionEvent ?? "Purchase", { content_ids: [product.id], content_name: product.name, value: data.total, num_items: quantity, transaction_id: data.order_number });
         }
         return;
       }

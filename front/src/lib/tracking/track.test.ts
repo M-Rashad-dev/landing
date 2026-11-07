@@ -22,7 +22,7 @@ describe("track()", () => {
     track("Purchase", payload, win as unknown as Window);
 
     expect(win.fbq).toHaveBeenCalledWith("track", "Purchase", expect.objectContaining({ content_ids: [7], currency: "EGP", content_type: "product", value: 450 }), { eventID: "1001" });
-    expect(win.ttq.track).toHaveBeenCalledWith("PlaceAnOrder", expect.objectContaining({ content_id: "7", quantity: 2, currency: "EGP" }));
+    expect(win.ttq.track).toHaveBeenCalledWith("CompletePayment", expect.objectContaining({ content_id: "7", quantity: 2, currency: "EGP", value: 450 }));
     expect(win.gtag).toHaveBeenCalledWith("event", "purchase", expect.objectContaining({ transaction_id: "1001", value: 450, items: [{ item_id: "7", item_name: "ساعة", quantity: 2 }] }));
     expect(win.dataLayer).toEqual([expect.objectContaining({ event: "purchase" })]);
     expect(win.snaptr).toHaveBeenCalledWith("track", "PURCHASE", expect.objectContaining({ item_ids: ["7"], transaction_id: "1001" }));

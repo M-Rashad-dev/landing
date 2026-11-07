@@ -115,7 +115,7 @@ class Identity extends Model
     public function resolvedTracking(): array
     {
         $tracking = $this->onlyKeys($this->tracking, self::TRACKING_KEYS);
-        $tracking['conversion_event'] = in_array($tracking['conversion_event'], ['Lead', 'Purchase'], true) ? $tracking['conversion_event'] : 'Lead';
+        $tracking['conversion_event'] = in_array($tracking['conversion_event'], ['Lead', 'Purchase'], true) ? $tracking['conversion_event'] : 'Purchase';
 
         return $tracking;
     }

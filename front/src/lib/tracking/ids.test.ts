@@ -38,7 +38,8 @@ describe("tracking ids", () => {
   it("filters invalid ids and defaults the conversion event", () => {
     expect(validTracking({ meta_pixel_id: "1234567890", ga4_id: "bad", conversion_event: null })).toEqual({
       meta_pixel_id: "1234567890",
-      conversion_event: "Lead",
+      conversion_event: "Purchase",
     });
+    expect(validTracking({ conversion_event: "Lead" }).conversion_event).toBe("Lead");
   });
 });

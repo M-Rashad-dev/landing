@@ -231,7 +231,8 @@ final class PublicSite
                 $base[$key] = null;
             }
         }
-        $base['conversion_event'] = in_array($base['conversion_event'], TrackingIds::CONVERSION_EVENTS, true) ? $base['conversion_event'] : 'Lead';
+        // Purchase (with the order value) unless the merchant chose Lead: Meta needs it for ROAS and value optimization.
+        $base['conversion_event'] = in_array($base['conversion_event'], TrackingIds::CONVERSION_EVENTS, true) ? $base['conversion_event'] : 'Purchase';
 
         return $base;
     }
