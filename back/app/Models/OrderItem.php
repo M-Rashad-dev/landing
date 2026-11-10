@@ -21,7 +21,7 @@ class OrderItem extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['order_id', 'product_id', 'upsell_id', 'is_gift', 'product_name', 'unit_price', 'quantity', 'options', 'line_total'];
+    protected $fillable = ['order_id', 'product_id', 'upsell_id', 'is_gift', 'product_name', 'unit_price', 'quantity', 'options', 'line_total', 'variant_id', 'offer_name', 'offer_discount'];
 
     protected function casts(): array
     {

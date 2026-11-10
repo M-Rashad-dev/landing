@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Upsell;
 use App\Services\PublicPageData;
 use App\Services\Webhooks\WebhookDispatcher;
+use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -71,6 +72,7 @@ final class PostOrderUpsell
             }
 
             $price = $upsell->priceCents();
+            app(Stock::class)->take($locked, [['product' => $upsell->offerProduct, 'selected' => [], 'quantity' => 1, 'field' => 'upsell']]);
             OrderItem::query()->create([
                 'order_id' => $locked->id,
                 'product_id' => $upsell->offer_product_id,
@@ -113,7 +115,8 @@ final class PostOrderUpsell
     /** One click means no option to choose: products with required options cannot be offered. */
     public static function sellable(?Product $product): bool
     {
-        return $product !== null && ! $product->trashed() && $product->is_active && ! $product->isLockedByPlan() && ! $product->options->contains(fn ($option) => $option->is_required);
+        return $product !== null && ! $product->trashed() && $product->is_active && ! $product->isLockedByPlan()
+            && app(Stock::class)->available($product, []) !== 0 && ! $product->options->contains(fn ($option) => $option->is_required);
     }
 
     private function token(Order $order): string

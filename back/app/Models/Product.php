@@ -23,13 +23,30 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $compare_at_price decimal string
  * @property string|null $sku
  * @property bool $is_active
+ * @property string|null $slug
+ * @property string|null $short_description
+ * @property bool $in_store
+ * @property bool $is_featured
+ * @property string $stock_mode unlimited | product | variant
+ * @property int|null $stock
+ * @property int|null $low_stock_threshold
+ * @property array<string, mixed>|null $seo
  */
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
     use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
-    protected $fillable = ['name', 'description', 'price', 'compare_at_price', 'sku', 'is_active'];
+    public const STOCK_UNLIMITED = 'unlimited';
+
+    public const STOCK_PRODUCT = 'product';
+
+    public const STOCK_VARIANT = 'variant';
+
+    protected $fillable = [
+        'name', 'slug', 'description', 'short_description', 'price', 'compare_at_price', 'sku', 'is_active',
+        'in_store', 'is_featured', 'stock_mode', 'stock', 'low_stock_threshold', 'seo',
+    ];
 
     protected function casts(): array
     {
@@ -37,6 +54,11 @@ class Product extends Model
             'price' => 'decimal:2',
             'compare_at_price' => 'decimal:2',
             'is_active' => 'boolean',
+            'in_store' => 'boolean',
+            'is_featured' => 'boolean',
+            'stock' => 'integer',
+            'low_stock_threshold' => 'integer',
+            'seo' => 'array',
         ];
     }
 
@@ -53,6 +75,23 @@ class Product extends Model
             ->withPivot('position')
             ->orderBy('product_media.position')
             ->orderBy('product_media.id');
+    }
+
+    /** @return BelongsToMany<Category, $this> */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasMany<ProductVariant, $this> */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
+
+    public function tracksStock(): bool
+    {
+        return $this->stock_mode === self::STOCK_PRODUCT || $this->stock_mode === self::STOCK_VARIANT;
     }
 
     public function priceCents(): int

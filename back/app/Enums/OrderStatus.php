@@ -72,6 +72,12 @@ enum OrderStatus: string
         return $this === self::Fake || $this === self::Cancelled;
     }
 
+    /** Moving here returns the order's units to stock. */
+    public function restocks(): bool
+    {
+        return $this === self::Fake || $this === self::Cancelled || $this === self::Returned;
+    }
+
     /** Orders in these statuses don't count for duplicate detection. */
     public function isDismissed(): bool
     {

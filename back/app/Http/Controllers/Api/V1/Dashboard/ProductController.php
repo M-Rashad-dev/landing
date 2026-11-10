@@ -19,7 +19,7 @@ use Illuminate\Http\Response;
 
 final class ProductController extends Controller
 {
-    private const DETAIL = ['options.values', 'media'];
+    private const DETAIL = ['options.values', 'media', 'categories', 'variants'];
 
     public function index(Request $request): JsonResponse
     {

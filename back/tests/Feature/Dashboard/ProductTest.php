@@ -153,7 +153,7 @@ it('enforces option limits and uniqueness', function () {
     ]))->assertStatus(422)->assertJsonValidationErrors('options.0.values.1.label');
 
     $this->postJson('/api/v1/dashboard/products', productPayload([
-        'options' => [['name' => 'x', 'display_type' => 'buttons', 'values' => [['label' => 'S', 'price_delta' => '-5']]]],
+        'options' => [['name' => 'x', 'display_type' => 'buttons', 'values' => [['label' => 'S', 'price_delta' => '-99999999']]]],
     ]))->assertStatus(422)->assertJsonValidationErrors('options.0.values.0.price_delta');
 });
 

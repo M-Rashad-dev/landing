@@ -9,6 +9,7 @@ use App\Enums\PlanLimit;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Support\Slugs;
 use Illuminate\Support\Facades\DB;
 
 /** Copies a product with its options, values and images; the copy starts inactive. */
@@ -25,7 +26,11 @@ final class DuplicateProduct
             $copy = $source->replicate(['created_at', 'updated_at', 'deleted_at']);
             $copy->name = mb_substr($source->name, 0, 150 - mb_strlen($suffix)).$suffix;
             $copy->is_active = false;
+            // A copy starts with its own link and no stock (the merchant counts it again).
+            $copy->slug = Slugs::unique(Product::query()->withTrashed(), $copy->name);
+            $copy->stock = $copy->stock_mode === Product::STOCK_PRODUCT ? 0 : null;
             $copy->save();
+            $copy->categories()->sync($source->categories()->pluck('categories.id')->all());
 
             foreach ($source->options as $option) {
                 $newOption = ProductOption::create([

@@ -13,6 +13,7 @@ use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
 use App\Services\Webhooks\WebhookDispatcher;
+use App\Store\Stock;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ChangeOrderStatus
 {
-    public function __construct(private readonly WebhookDispatcher $webhooks) {}
+    public function __construct(private readonly WebhookDispatcher $webhooks, private readonly Stock $stock) {}
 
     /** @param array{block_phone?: bool, block_ip?: bool} $options */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
@@ -48,6 +49,10 @@ final class ChangeOrderStatus
 
             if ($to->releasesCode()) {
                 $this->releaseCode($locked);
+            }
+            // Cancelled, fake and returned orders give their units back (once).
+            if ($to->restocks()) {
+                $this->stock->restock($locked);
             }
 
             if ($to === OrderStatus::Fake) {

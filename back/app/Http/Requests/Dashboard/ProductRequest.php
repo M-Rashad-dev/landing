@@ -9,7 +9,9 @@ use App\Http\Requests\ApiRequest;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Rules\PageSlug;
 use App\Rules\TenantExists;
+use App\Rules\TenantUnique;
 use App\Support\Money;
 use Illuminate\Validation\Validator;
 
@@ -20,7 +22,7 @@ final class ProductRequest extends ApiRequest
     {
         $merge = [];
 
-        foreach (['name', 'sku'] as $key) {
+        foreach (['name', 'sku', 'short_description', 'slug'] as $key) {
             if (is_string($this->input($key))) {
                 $value = trim(strip_tags($this->input($key)));
                 $merge[$key] = $value === '' ? null : $value;
@@ -77,6 +79,28 @@ final class ProductRequest extends ApiRequest
             'sku' => ['nullable', 'string', 'max:60'],
             'is_active' => ['sometimes', 'boolean'],
 
+            // Store fields.
+            'slug' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:'.PageSlug::PATTERN, TenantUnique::table('products', 'slug')->ignore($this->route('product')?->id)],
+            'short_description' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'in_store' => ['sometimes', 'boolean'],
+            'is_featured' => ['sometimes', 'boolean'],
+            'category_ids' => ['sometimes', 'array', 'max:20'],
+            'category_ids.*' => ['integer', 'distinct', TenantExists::table('categories')],
+            'seo' => ['sometimes', 'nullable', 'array'],
+            'seo.title' => ['nullable', 'string', 'max:70'],
+            'seo.description' => ['nullable', 'string', 'max:170'],
+            'seo.og_media_id' => ['nullable', 'integer', TenantExists::table('media')],
+            'seo.noindex' => ['nullable', 'boolean'],
+            'stock_mode' => ['sometimes', 'string', 'in:unlimited,product,variant'],
+            'stock' => ['sometimes', 'nullable', 'integer', 'between:0,1000000'],
+            'low_stock_threshold' => ['sometimes', 'nullable', 'integer', 'between:0,1000000'],
+            // Variant stock by option name → value label (resolved after the options are saved).
+            'variants' => ['sometimes', 'array', 'max:300'],
+            'variants.*.values' => ['required', 'array', 'min:1', 'max:5'],
+            'variants.*.values.*' => ['string', 'max:40'],
+            'variants.*.stock' => ['required', 'integer', 'between:0,1000000'],
+            'variants.*.sku' => ['nullable', 'string', 'max:60'],
+
             'media_ids' => ['sometimes', 'array', 'max:10'],
             'media_ids.*' => ['integer', 'distinct', TenantExists::table('media')],
 
@@ -89,7 +113,8 @@ final class ProductRequest extends ApiRequest
             'options.*.values.*.id' => ['nullable', 'integer'],
             'options.*.values.*.label' => ['required', 'string', 'max:40'],
             'options.*.values.*.color_hex' => ['nullable', 'string', 'regex:/^#[0-9A-F]{6}$/'],
-            'options.*.values.*.price_delta' => ['sometimes', ...$money, 'min:0', 'max:9999999.99'],
+            // A value may lower the price too (Salla-style fixed amount); the unit price never goes below 0.
+            'options.*.values.*.price_delta' => ['sometimes', ...$money, 'min:-9999999.99', 'max:9999999.99'],
             'options.*.values.*.is_active' => ['sometimes', 'boolean'],
         ];
     }

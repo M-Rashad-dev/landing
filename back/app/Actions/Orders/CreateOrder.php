@@ -18,6 +18,7 @@ use App\Pricing\PriceCalculator;
 use App\Pricing\Quote;
 use App\Services\FormToken;
 use App\Services\Webhooks\WebhookDispatcher;
+use App\Store\Stock;
 use App\Support\Money;
 use App\Support\OrderForm;
 use App\Tenancy\Tenancy;
@@ -47,6 +48,7 @@ final class CreateOrder
         private readonly CaptureLead $leads,
         private readonly RecordPageEvent $events,
         private readonly WebhookDispatcher $webhooks,
+        private readonly Stock $stock,
     ) {}
 
     /**
@@ -166,6 +168,13 @@ final class CreateOrder
                 ], $quote->selectedValues),
                 'line_total' => Money::toDecimal($quote->baseSubtotal),
             ]);
+            // Stock (rows locked): a race for the last units fails here with the same message as the quote.
+            $lines = [['product' => $product, 'selected' => $quote->selectedValues, 'quantity' => $quote->quantity, 'field' => 'quantity']];
+            if ($quote->gift !== null && ($giftProduct = Product::query()->find($quote->gift['product_id'])) !== null) {
+                $lines[] = ['product' => $giftProduct, 'selected' => [], 'quantity' => 1, 'field' => 'quantity'];
+            }
+            $this->stock->take($order, $lines);
+
             // Gift offer: the free product is its own line at 0.
             if ($quote->gift !== null) {
                 $order->items()->create([

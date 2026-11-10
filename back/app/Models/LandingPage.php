@@ -8,6 +8,7 @@ use App\Enums\PageStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LockableByPlan;
 use Database\Factories\LandingPageFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,7 +39,7 @@ class LandingPage extends Model
     use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
     protected $fillable = [
-        'title', 'slug', 'status', 'theme_key', 'identity_id', 'product_id', 'draft_content', 'published_content',
+        'kind', 'title', 'slug', 'status', 'theme_key', 'identity_id', 'product_id', 'draft_content', 'published_content',
         'version', 'published_at', 'is_home', 'home_key', 'seo_override', 'tracking_override', 'created_by',
     ];
 
@@ -55,6 +56,22 @@ class LandingPage extends Model
             'seo_override' => 'array',
             'tracking_override' => 'array',
         ];
+    }
+
+    public const KIND_LANDING = 'landing';
+
+    /** The store home: built in the Builder with store sections, served at "/" of the store. */
+    public const KIND_STORE_HOME = 'store_home';
+
+    public function isStoreHome(): bool
+    {
+        return $this->kind === self::KIND_STORE_HOME;
+    }
+
+    /** @param Builder<LandingPage> $query */
+    public function scopeLandings(Builder $query): void
+    {
+        $query->where($this->qualifyColumn('kind'), self::KIND_LANDING);
     }
 
     /** @return BelongsTo<Identity, $this> */
