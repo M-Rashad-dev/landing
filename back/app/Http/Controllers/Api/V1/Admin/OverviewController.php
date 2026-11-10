@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\PageStatus;
+use App\Enums\SubscriptionSource;
 use App\Enums\TenantStatus;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -35,6 +36,12 @@ final class OverviewController extends Controller
             'active_tenants' => Tenant::query()->where('status', TenantStatus::Active)->count(),
             'suspended_tenants' => Tenant::query()->where('status', TenantStatus::Suspended)->count(),
             'new_tenants_week' => Tenant::query()->where('created_at', '>=', now()->subDays(7))->count(),
+            // Running plans (tenants carry a copy of their running plan).
+            'plans' => Tenant::query()->whereNotNull('plan_key')->where('plan_ends_at', '>', now())
+                ->selectRaw('plan_key, count(*) as total')->groupBy('plan_key')->pluck('total', 'plan_key')->map(fn ($n) => (int) $n),
+            'trials' => Tenant::query()->where('plan_source', SubscriptionSource::Trial)->where('plan_ends_at', '>', now())->count(),
+            'expiring_week' => Tenant::query()->whereBetween('plan_ends_at', [now(), now()->addDays(7)])->count(),
+            'expired' => Tenant::query()->where(fn ($q) => $q->whereNull('plan_grace_ends_at')->orWhere('plan_grace_ends_at', '<=', now()))->count(),
         ] + $counts);
     }
 }

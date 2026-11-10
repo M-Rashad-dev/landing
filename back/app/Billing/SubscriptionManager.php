@@ -139,6 +139,12 @@ final class SubscriptionManager
         });
     }
 
+    /** The period running now for the tenant, if any. */
+    public function current(Tenant $tenant): ?Subscription
+    {
+        return Tenancy::runAs($tenant->id, fn (): ?Subscription => $this->running(CarbonImmutable::now()));
+    }
+
     /** The paid period that can still be refunded now (3 days, once per 180 days), or null. */
     public function refundable(Tenant $tenant, ?CarbonInterface $at = null): ?Subscription
     {

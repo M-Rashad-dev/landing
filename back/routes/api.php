@@ -3,12 +3,15 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Api\V1\Admin\TenantBillingController as AdminTenantBillingController;
 use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AbTestController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
+use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
@@ -24,6 +27,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
+use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
@@ -34,6 +38,9 @@ use Illuminate\Support\Facades\Route;
 | All routes here are prefixed with /api/v1.
 | Groups: auth (public + token), dashboard (tenant owner), public (Next only, internal key), admin (super admin).
 */
+
+// Marketing pricing page (public, cached 60 s by the browser).
+Route::get('plans', PricingPageController::class)->middleware('throttle:public-plans');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -51,6 +58,13 @@ Route::prefix('dashboard')
         // The owner's own account stays editable on an expired plan.
         Route::patch('profile', [AccountController::class, 'updateProfile'])->withoutMiddleware('plan.writable');
         Route::put('profile/password', [AccountController::class, 'updatePassword'])->withoutMiddleware('plan.writable');
+
+        Route::get('billing/entitlements', [BillingController::class, 'entitlements']);
+        Route::get('billing/usage', [BillingController::class, 'usage']);
+        Route::get('billing/plans', [BillingController::class, 'plans']);
+        Route::get('billing/subscriptions', [BillingController::class, 'subscriptions']);
+        Route::get('billing/locks/{limit}', [BillingController::class, 'lockRows']);
+        Route::put('billing/locks/{limit}', [BillingController::class, 'chooseLocks']);
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);
@@ -167,4 +181,16 @@ Route::prefix('admin')
         Route::post('tenants/{tenant}/reset-password', [AdminTenantController::class, 'resetPassword'])->whereNumber('tenant');
         Route::get('themes', [AdminThemeController::class, 'index']);
         Route::patch('themes/{key}', [AdminThemeController::class, 'update']);
+
+        Route::get('plans', [AdminPlanController::class, 'index']);
+        Route::post('plans', [AdminPlanController::class, 'store']);
+        Route::put('plans/{key}', [AdminPlanController::class, 'update']);
+        Route::delete('plans/{key}', [AdminPlanController::class, 'destroy']);
+        Route::put('billing/settings', [AdminPlanController::class, 'updateSettings']);
+
+        Route::get('tenants/{tenant}/billing', [AdminTenantBillingController::class, 'show'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/billing/grant', [AdminTenantBillingController::class, 'grant'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/billing/extend', [AdminTenantBillingController::class, 'extend'])->whereNumber('tenant');
+        Route::put('tenants/{tenant}/billing/overrides/{entitlement}', [AdminTenantBillingController::class, 'setOverride'])->whereNumber('tenant');
+        Route::delete('tenants/{tenant}/billing/overrides/{entitlement}', [AdminTenantBillingController::class, 'deleteOverride'])->whereNumber('tenant');
     });

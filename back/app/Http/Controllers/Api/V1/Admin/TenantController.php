@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Actions\Admin\ManageTenant;
 use App\Enums\DomainType;
 use App\Enums\PageStatus;
+use App\Enums\SubscriptionSource;
 use App\Enums\TenantStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Concerns\RespondsWithJson;
@@ -122,6 +123,10 @@ final class TenantController extends Controller
             'pages_count' => (int) $tenant->getAttribute('pages_count'),
             'published_pages_count' => (int) $tenant->getAttribute('published_pages_count'),
             'orders_count' => (int) $tenant->getAttribute('orders_count'),
+            'plan_key' => $tenant->plan_key,
+            'plan_state' => $tenant->accessState()->value,
+            'plan_is_trial' => $tenant->plan_source === SubscriptionSource::Trial,
+            'plan_ends_at' => $tenant->plan_ends_at?->toIso8601ZuluString(),
             'created_at' => $tenant->created_at?->toIso8601ZuluString(),
         ];
     }
