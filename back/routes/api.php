@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Api\V1\Admin\TenantBillingController as AdminTenantBillingController;
 use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\IntegrationController;
+use App\Http\Controllers\Api\V1\Dashboard\InvoiceController;
 use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
@@ -65,6 +67,17 @@ Route::prefix('dashboard')
         Route::get('billing/subscriptions', [BillingController::class, 'subscriptions']);
         Route::get('billing/locks/{limit}', [BillingController::class, 'lockRows']);
         Route::put('billing/locks/{limit}', [BillingController::class, 'chooseLocks']);
+
+        // Paying works on an expired plan too (it is how the store comes back).
+        Route::withoutMiddleware('plan.writable')->group(function (): void {
+            Route::get('billing/invoices', [InvoiceController::class, 'index']);
+            Route::post('billing/invoices', [InvoiceController::class, 'store']);
+            Route::get('billing/invoices/{invoice}', [InvoiceController::class, 'show']);
+            Route::post('billing/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
+            Route::post('billing/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->middleware('throttle:receipt-upload');
+            Route::get('billing/invoices/{invoice}/payments/{payment}/receipt', [InvoiceController::class, 'receipt']);
+            Route::post('billing/refund', [InvoiceController::class, 'refund']);
+        });
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);
@@ -187,6 +200,15 @@ Route::prefix('admin')
         Route::put('plans/{key}', [AdminPlanController::class, 'update']);
         Route::delete('plans/{key}', [AdminPlanController::class, 'destroy']);
         Route::put('billing/settings', [AdminPlanController::class, 'updateSettings']);
+
+        Route::get('payments', [AdminPaymentController::class, 'index']);
+        Route::get('payments/{payment}/receipt', [AdminPaymentController::class, 'receipt'])->whereNumber('payment');
+        Route::post('payments/{payment}/approve', [AdminPaymentController::class, 'approve'])->whereNumber('payment');
+        Route::post('payments/{payment}/reject', [AdminPaymentController::class, 'reject'])->whereNumber('payment');
+        Route::get('refunds', [AdminPaymentController::class, 'refunds']);
+        Route::post('invoices/{invoice}/refund', [AdminPaymentController::class, 'completeRefund'])->whereNumber('invoice');
+        Route::get('payment-methods', [AdminPaymentController::class, 'methods']);
+        Route::put('payment-methods/{key}', [AdminPaymentController::class, 'updateMethod']);
 
         Route::get('tenants/{tenant}/billing', [AdminTenantBillingController::class, 'show'])->whereNumber('tenant');
         Route::post('tenants/{tenant}/billing/grant', [AdminTenantBillingController::class, 'grant'])->whereNumber('tenant');

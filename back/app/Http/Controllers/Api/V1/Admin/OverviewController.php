@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Billing\PlanCatalog;
+use App\Enums\InvoiceStatus;
 use App\Enums\PageStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\SubscriptionSource;
 use App\Enums\TenantStatus;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\LandingPage;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Tenant;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
@@ -39,6 +43,9 @@ final class OverviewController extends Controller
             'new_tenants_week' => Tenant::query()->where('created_at', '>=', now()->subDays(7))->count(),
             // Running plans (tenants carry a copy of their running plan).
             'plans' => $this->runningPlans(),
+            // Audited bypass: platform-wide counts of money waiting for the admin.
+            'pending_payments' => Tenancy::withoutTenant(fn () => Payment::query()->where('status', PaymentStatus::PendingReview)->count()),
+            'refund_requests' => Tenancy::withoutTenant(fn () => Invoice::query()->where('status', InvoiceStatus::Paid)->whereNotNull('refund_requested_at')->count()),
             'trials' => Tenant::query()->where('plan_source', SubscriptionSource::Trial)->where('plan_ends_at', '>', now())->count(),
             'expiring_week' => Tenant::query()->whereBetween('plan_ends_at', [now(), now()->addDays(7)])->count(),
             'expired' => Tenant::query()->where(fn ($q) => $q->whereNull('plan_grace_ends_at')->orWhere('plan_grace_ends_at', '<=', now()))->count(),

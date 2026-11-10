@@ -20,6 +20,11 @@ final class PlatformSettings
         'trial_days' => 14,
         'trial_plan_key' => 'basic',
         'grace_hours' => 24,
+        // An unpaid invoice expires (prices and discounts may change meanwhile).
+        'invoice_hours' => 48,
+        // Shown on invoices and the legal pages.
+        'support_email' => null,
+        'support_whatsapp' => null,
     ];
 
     /** @var array<string, mixed>|null */
@@ -52,6 +57,19 @@ final class PlatformSettings
     public function graceHours(): int
     {
         return max(0, (int) $this->all()['grace_hours']);
+    }
+
+    public function invoiceHours(): int
+    {
+        return max(1, (int) $this->all()['invoice_hours']);
+    }
+
+    /** @return array{email: string|null, whatsapp: string|null} */
+    public function support(): array
+    {
+        $all = $this->all();
+
+        return ['email' => $all['support_email'] ?: null, 'whatsapp' => $all['support_whatsapp'] ?: null];
     }
 
     /** @param array<string, mixed> $values known keys only */

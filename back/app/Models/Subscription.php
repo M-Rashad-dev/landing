@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string $plan_key
  * @property BillingPeriod|null $period
  * @property SubscriptionSource $source
+ * @property int|null $invoice_id
  * @property SubscriptionStatus $status
  * @property Carbon $starts_at
  * @property Carbon $ends_at
@@ -38,7 +39,7 @@ class Subscription extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'plan_key', 'period', 'source', 'status', 'starts_at', 'ends_at',
+        'tenant_id', 'plan_key', 'period', 'source', 'invoice_id', 'status', 'starts_at', 'ends_at',
         'amount_paid', 'currency', 'snapshot', 'note', 'created_by', 'refunded_at',
     ];
 

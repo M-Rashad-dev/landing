@@ -7,3 +7,4 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('domains:verify-pending')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('leads:prune')->daily();
 Schedule::command('subscriptions:sweep')->everyMinute()->withoutOverlapping();
+Schedule::command('invoices:expire')->hourly()->withoutOverlapping();

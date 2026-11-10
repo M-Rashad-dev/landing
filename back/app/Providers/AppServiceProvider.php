@@ -49,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
             'media-upload:'.($request->user()?->tenant_id ?? $request->ip()),
         ));
 
+        // Receipt uploads: 10 per hour per store.
+        RateLimiter::for('receipt-upload', fn (Request $request) => Limit::perHour(10)->by('receipt-upload:'.($request->user()?->tenant_id ?? $request->ip())));
         RateLimiter::for('public-plans', fn (Request $request) => Limit::perMinute(60)->by('public-plans:'.$request->ip()));
 
         RateLimiter::for('dashboard', fn (Request $request) => Limit::perMinute(300)->by(

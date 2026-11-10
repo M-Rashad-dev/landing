@@ -113,11 +113,11 @@ final class SubscriptionManager
      *
      * @param  array<string, mixed>  $snapshot
      */
-    public function subscribe(Tenant $tenant, PlanPriceQuote $price, int $amountPaidCents, bool $startsNow, array $snapshot = []): Subscription
+    public function subscribe(Tenant $tenant, PlanPriceQuote $price, int $amountPaidCents, bool $startsNow, array $snapshot = [], ?int $invoiceId = null): Subscription
     {
         $now = CarbonImmutable::now();
 
-        return $this->write($tenant, function () use ($price, $amountPaidCents, $startsNow, $snapshot, $now): Subscription {
+        return $this->write($tenant, function () use ($price, $amountPaidCents, $startsNow, $snapshot, $now, $invoiceId): Subscription {
             if ($startsNow) {
                 $this->endRunning($now);
                 $starts = $now;
@@ -130,6 +130,7 @@ final class SubscriptionManager
                 'plan_key' => $price->planKey,
                 'period' => $price->period,
                 'source' => SubscriptionSource::Payment,
+                'invoice_id' => $invoiceId,
                 'starts_at' => $starts,
                 'ends_at' => $starts->addDays($price->period->days()),
                 'amount_paid' => Money::toDecimal($amountPaidCents),
