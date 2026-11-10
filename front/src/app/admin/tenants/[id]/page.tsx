@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ar } from "@/messages/ar";
 import { TenantBillingCard } from "./tenant-billing";
 import { TenantDetails } from "./tenant-details";
+import { TenantThemesCard } from "./tenant-themes";
 
 export const metadata: Metadata = { title: ar.admin.nav.tenants };
 
@@ -15,6 +16,7 @@ export default async function TenantPage({ params }: { params: Promise<{ id: str
     <>
       <TenantDetails id={tenantId} />
       <TenantBillingCard id={tenantId} />
+      <TenantThemesCard id={tenantId} />
     </>
   );
 }

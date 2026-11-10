@@ -5,9 +5,10 @@ import { E2E, laravelEnv } from "./env";
 /**
  * The six scenarios from PLAN phase 11 (plus the plan limit, v3), in order, on one fresh account:
  * (1) register / logout / login, (2) product + identity, (3) build + publish a page,
- * (4) order from the public page, (5) the order in the dashboard + status change, (6) switch theme,
+ * (4) order from the public page, (5) the order in the dashboard + status change, (6) paid themes locked,
  * (7) the free trial hits its product limit and offers the upgrade,
- * (8) the store pays by transfer + receipt, the admin approves and the plan starts.
+ * (8) the store pays by transfer + receipt, the admin approves and the plan starts,
+ * (9) the store previews and buys a paid theme and owns it after the approval.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -132,7 +133,7 @@ test("5. the order shows in the dashboard and changes status", async ({ page }) 
   await expect(page.getByRole("button", { name: "تحويل إلى «تم التسليم»" })).toBeVisible();
 });
 
-test("6. switch the page theme without losing content", async ({ page }) => {
+test("6. paid themes stay locked in the builder until the store owns them", async ({ page }) => {
   await login(page);
 
   // The page is listed, and its builder opens with the page settings (theme picker).
@@ -141,27 +142,18 @@ test("6. switch the page theme without losing content", async ({ page }) => {
   await page.goto(builderUrl);
   await expect(page.locator("#b-theme")).toContainText("ملاك");
 
+  // Celia is a paid theme this (trial) store does not own: listed, marked, not selectable.
   await page.locator("#b-theme").click();
-  await page.getByRole("option", { name: "سيليا" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "تبديل" }).click();
-  await expect(page.locator("#b-theme")).toContainText("سيليا");
-  await expect(page.getByText("محفوظ").first()).toBeVisible();
+  const celia = page.getByRole("option", { name: /سيليا/ });
+  await expect(celia).toBeVisible();
+  await expect(celia).toContainText("مش ضمن ثيماتك");
+  await expect(celia).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "نشر", exact: true }).click();
-  await expect(page.getByRole("dialog").getByText("تم نشر الصفحة")).toBeVisible();
-
-  // Same product and order form on the public page, now rendered by Celia (revalidated on publish).
-  await expect
-    .poll(
-      async () => {
-        await page.goto(publicUrl);
-        return page.locator("[data-theme]").first().getAttribute("data-theme");
-      },
-      { timeout: 30_000 },
-    )
-    .toBe("celia");
+  // The public page keeps rendering with the free theme.
+  await page.goto(publicUrl);
+  await expect(page.locator("[data-theme]").first()).toHaveAttribute("data-theme", "malak");
   await expect(page.getByText(product.name).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /تأكيد الطلب/ })).toBeVisible();
 });
 
 test("7. the free trial (basic) stops at its product limit with an upgrade dialog", async ({ page }) => {
@@ -256,4 +248,45 @@ test("8. the trial store pays by InstaPay, the admin approves and Pro starts", a
   await merchant.goto("/dashboard/settings/plan");
   await expect(merchant.getByText("برو").first()).toBeVisible();
   await expect(merchant.getByText("شغالة").first()).toBeVisible();
+});
+
+test("9. the Pro store previews and buys a paid theme, the admin approves, the theme is its own", async ({ browser }) => {
+  const signIn = async (email: string, landing: string) => {
+    const page = await (await browser.newContext({ locale: "ar-EG" })).newPage();
+    await page.goto("/login");
+    await page.locator("#login").fill(email);
+    await page.locator("#password").fill(account.password);
+    await page.getByRole("button", { name: "دخول" }).click();
+    await page.waitForURL(`**${landing}`);
+    return page;
+  };
+
+  const merchant = await signIn(`trial${stamp}@example.com`, "/dashboard");
+  await merchant.goto("/dashboard/themes/store");
+  await merchant.getByRole("link", { name: "سيليا" }).first().click();
+  await merchant.waitForURL("**/dashboard/themes/celia");
+
+  // The live preview renders the theme with sample content.
+  await merchant.goto("/theme-preview/celia");
+  await expect(merchant.locator("[data-section-type=hero]").first()).toBeVisible();
+  await merchant.goto("/dashboard/themes/celia");
+
+  await merchant.getByRole("button", { name: /اشتري بـ/ }).click();
+  await merchant.waitForURL(/\/dashboard\/billing\/invoices\/\d+$/);
+  await expect(merchant.getByText("ثيم سيليا")).toBeVisible();
+  await merchant.locator("#pay-ref").fill("TX-THEME-1");
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await merchant.locator("#pay-receipt").setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: png });
+  await merchant.getByRole("button", { name: "إرسال الإيصال" }).click();
+  await expect(merchant.getByText("الإيصال قيد المراجعة")).toBeVisible();
+
+  const admin = await signIn(`admin${stamp}@example.com`, "/admin");
+  await admin.goto("/admin/payments");
+  await admin.locator("li").filter({ hasText: "سيليا" }).getByRole("button", { name: "قبول وتفعيل الباقة" }).click();
+  await admin.getByRole("dialog").getByRole("button", { name: "قبول وتفعيل الباقة" }).click();
+  await expect(admin.getByText("تم القبول وتفعيل الباقة")).toBeVisible();
+
+  await merchant.goto("/dashboard/themes");
+  await expect(merchant.getByRole("link", { name: "سيليا" }).first()).toBeVisible();
+  await expect(merchant.getByText("ملكك").first()).toBeVisible();
 });

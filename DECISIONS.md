@@ -209,3 +209,9 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
 - **Paying works on an expired plan** (the billing routes skip the read-only middleware).
 - **PaymentGateway contract** with `ManualGateway` today; `PaymentGateways` lists how an invoice can be paid now. Paymob adds a gateway kind later without touching invoices or activation.
 - **Legal pages** (`/terms`, `/refund-policy`, `/privacy`) are served on the platform domain and the app host, never on store hosts; the support e-mail / WhatsApp come from the admin settings.
+
+- **Theme store, as built (Nov 2026)**: a theme is code; the admin edits only its store details (kind, texts, features, price + dated discount, minimum plan, featured / listed, version, release), screenshots (re-encoded WebP, public disk `platform/themes/{key}`) and tags. A theme added in code appears unlisted until the admin fills it in; the seeder writes store details only the first time.
+- **Free = price 0** (everyone owns it). A paid theme is bought once through a `theme` invoice (same manual payment and review) or given by the admin, and owned forever (`theme_purchases`). Only the admin's own gifts can be taken back.
+- **Using vs serving**: creating a page on / switching to a theme needs owning it; publishing and serving a paid theme also need `buy_themes` (Pro, Max). On Basic an owned paid theme stays editable and its pages stop serving (checked at render time, so the grace hours apply), coming back with the upgrade.
+- **Plan and theme invoices are separate**: one open invoice per kind; a pending receipt blocks only a new invoice of the same kind (same theme).
+- **Live preview** `/theme-preview/{key}` on the app host, public, sample content only (demo product / colors / images from the dev fixtures, order form off), desktop or a phone frame.

@@ -46,3 +46,11 @@ describe("legal pages", () => {
     }
   });
 });
+
+describe("theme preview", () => {
+  it("is served on the app host only", () => {
+    expect(matchesPrefix("/theme-preview/celia", APP_ALLOWED_PREFIXES)).toBe(true);
+    expect(matchesPrefix("/theme-preview/celia", APP_ONLY_PREFIXES)).toBe(false);
+    expect(matchesPrefix("/preview/1", APP_ALLOWED_PREFIXES)).toBe(true);
+  });
+});

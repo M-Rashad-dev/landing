@@ -12,7 +12,7 @@ const entitlements: EntitlementInfo[] = [
 ];
 
 const values = (products: number | null, upsells: boolean) =>
-  ({ products, landing_pages: 1, custom_domains: 0, media_storage_mb: 1, offers: 1, discount_codes: 1, webhooks: 0, ab_tests: 0, upsells, abandoned_leads: false, advanced_analytics: false, remove_branding: false }) as PricingPlan["values"];
+  ({ products, landing_pages: 1, custom_domains: 0, media_storage_mb: 1, offers: 1, discount_codes: 1, webhooks: 0, ab_tests: 0, upsells, abandoned_leads: false, advanced_analytics: false, remove_branding: false, buy_themes: false }) as PricingPlan["values"];
 
 const plans: PricingPlan[] = [
   {

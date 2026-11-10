@@ -31,7 +31,10 @@ export const APP_ONLY_PREFIXES = ["/dashboard", "/admin", "/preview", "/login", 
 export const LEGAL_PATHS = ["/terms", "/refund-policy", "/privacy"];
 
 /** Paths allowed on the app host; anything else is a 404 there. */
-export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/dashboard", "/admin", "/preview", "/api", "/dev", ...LEGAL_PATHS];
+/** Public theme preview (sample data) for the theme store, on the app host. */
+export const THEME_PREVIEW_PREFIX = "/theme-preview";
+
+export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/dashboard", "/admin", "/preview", "/api", "/dev", THEME_PREVIEW_PREFIX, ...LEGAL_PATHS];
 
 export function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

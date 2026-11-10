@@ -1,7 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Plus } from "lucide-react";
+import { Check, Lock, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { starterContent } from "@/components/builder/store";
@@ -20,7 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { useIdentities } from "@/lib/identity/api";
-import { createPage, pageKeys, slugify, useThemes } from "@/lib/pages/api";
+import { createPage, pageKeys, slugify } from "@/lib/pages/api";
+import { useMyThemes } from "@/lib/themes/api";
 import { productKeys, saveProduct, useProducts } from "@/lib/products/api";
 import { getTheme } from "@/themes/registry";
 import { getTemplate, TEMPLATES, templateContent } from "@/themes/templates";
@@ -29,18 +31,18 @@ import { ar } from "@/messages/ar";
 
 const t = ar.pages.wizard;
 
-export function NewPageWizard({ initialTemplate = null }: { initialTemplate?: string | null }) {
+export function NewPageWizard({ initialTemplate = null, initialTheme = null }: { initialTemplate?: string | null; initialTheme?: string | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const themes = useThemes();
+  const themes = useMyThemes();
   const identities = useIdentities();
   const products = useProducts({ per_page: 100 });
   const preset = getTemplate(initialTemplate);
-  const [step, setStep] = useState<1 | 2>(preset ? 2 : 1);
-  const [mode, setMode] = useState<"template" | "blank">("template");
+  const [step, setStep] = useState<1 | 2>(preset || initialTheme ? 2 : 1);
+  const [mode, setMode] = useState<"template" | "blank">(initialTheme ? "blank" : "template");
   const [templateKey, setTemplateKey] = useState<string | null>(preset?.key ?? null);
   const [useTemplateLook, setUseTemplateLook] = useState(true);
-  const [themeKey, setThemeKey] = useState<string | null>(preset?.themeKey ?? null);
+  const [themeKey, setThemeKey] = useState<string | null>(preset?.themeKey ?? initialTheme);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -51,7 +53,8 @@ export function NewPageWizard({ initialTemplate = null }: { initialTemplate?: st
   const [quickProduct, setQuickProduct] = useState(false);
 
   const template = getTemplate(templateKey);
-  const enabledThemes = new Set((themes.data ?? []).map((theme) => theme.key));
+  // Templates and new pages use the themes the store owns (free or bought).
+  const enabledThemes = new Set((themes.data ?? []).filter((theme) => theme.owned).map((theme) => theme.key));
   const templates = TEMPLATES.filter((item) => enabledThemes.has(item.themeKey));
   const identityList = identities.data?.data ?? [];
   const selectedIdentity = identityList.find((i) => String(i.id) === identityId) ?? identityList.find((i) => i.is_default) ?? identityList[0];
@@ -128,6 +131,25 @@ export function NewPageWizard({ initialTemplate = null }: { initialTemplate?: st
             {themes.data.map((theme) => {
               const def = getTheme(theme.key);
               const selected = themeKey === theme.key;
+              if (!theme.owned) {
+                return (
+                  <div key={theme.key} className="overflow-hidden rounded-2xl border-2 border-dashed bg-card text-start opacity-80">
+                    <div className="aspect-[8/5] border-b bg-muted grayscale">
+                      <ThemeArt themeKey={theme.key} />
+                    </div>
+                    <div className="flex flex-col gap-2 p-4">
+                      <p className="flex items-center gap-2 text-lg font-extrabold">
+                        <Lock className="size-4 text-muted-foreground" aria-hidden />
+                        {theme.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{ar.themeStore.lockedHint}</p>
+                      <Button variant="outline" size="sm" className="self-start" asChild>
+                        <Link href={`/dashboard/themes/${theme.key}`}>{ar.themeStore.seeInStore}</Link>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <button
                   key={theme.key}
@@ -150,6 +172,7 @@ export function NewPageWizard({ initialTemplate = null }: { initialTemplate?: st
                       {selected ? <Check className="size-5 text-primary" aria-hidden /> : null}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">{def.description}</p>
+                    {!theme.can_publish ? <p className="mt-2 text-xs font-semibold text-warning">{ar.themeStore.notInPlan}</p> : null}
                   </div>
                 </button>
               );

@@ -64,14 +64,6 @@ export function usePages(params: { q?: string; status?: string; page?: number })
   });
 }
 
-export function useThemes() {
-  return useQuery({
-    queryKey: ["themes"],
-    queryFn: ({ signal }) => api<Array<{ key: string; name: string }>>("/dashboard/themes", { signal }),
-    staleTime: 5 * 60_000,
-  });
-}
-
 export const createPage = (body: { title: string; slug: string; theme_key: string; identity_id: number | null; product_id: number | null; content: PageContent }) =>
   api<PageDetail>("/dashboard/pages", { method: "POST", body });
 

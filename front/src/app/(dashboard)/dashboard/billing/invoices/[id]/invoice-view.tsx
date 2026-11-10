@@ -108,6 +108,12 @@ export function InvoiceView({ id }: { id: number }) {
   );
 }
 
+/** "باقة برو · شهري" or "ثيم سيليا". */
+export function invoiceItem(invoice: Invoice): string {
+  if (invoice.type === "theme" && invoice.theme) return ar.billing.invoices.theme(invoice.theme.name);
+  return ar.billing.invoices.plan(invoice.plan.name, invoice.period ? ar.billing.periods[invoice.period] : "");
+}
+
 function SummaryCard({ invoice }: { invoice: Invoice }) {
   const row = (label: string, value: string, strong = false) => (
     <div className="flex items-center justify-between gap-3 py-1.5">
@@ -122,7 +128,7 @@ function SummaryCard({ invoice }: { invoice: Invoice }) {
         <CardTitle>{t.summary}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-semibold">{t.plan(invoice.plan.name, invoice.period ? ar.billing.periods[invoice.period] : "")}</p>
+        <p className="font-semibold">{invoiceItem(invoice)}</p>
         {invoice.days ? <p className="text-xs text-muted-foreground">{t.days(invoice.days)}</p> : null}
         <dl className="mt-3 divide-y text-sm">
           {row(t.subtotal, formatPrice(invoice.subtotal))}
@@ -130,7 +136,7 @@ function SummaryCard({ invoice }: { invoice: Invoice }) {
           {invoice.credit > 0 ? row(t.credit, `- ${formatPrice(invoice.credit)}`) : null}
           {row(t.toPay, formatPrice(invoice.total), true)}
         </dl>
-        <p className="mt-3 text-xs text-muted-foreground">{invoice.starts_now ? t.startsNow : t.startsLater}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{invoice.type === "theme" ? t.themeOwnedForever : invoice.starts_now ? t.startsNow : t.startsLater}</p>
         {invoice.payable && invoice.expires_at ? <p className="mt-1 text-xs text-muted-foreground">{t.expiresAt(formatCairo(invoice.expires_at))}</p> : null}
       </CardContent>
     </Card>

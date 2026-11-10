@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, apiPage } from "@/lib/api/client";
 import type { AccessState, BillingPeriod, EntitlementInfo, PlanFeatureKey, PlanLimitKey, PlanQuote, PlanValues, SubscriptionRow, UsageRow } from "@/lib/billing/types";
 import type { Domain } from "@/lib/domains/api";
+import type { ThemeRow, ThemeTag } from "@/lib/themes/api";
 
 export type AdminOverview = {
   tenants: number;
@@ -40,13 +41,11 @@ export type AdminTenant = {
 
 export type AdminTenantDetail = AdminTenant & { suspended_at: string | null; suspended_reason: string | null; domains: Domain[] };
 
-export type AdminTheme = { key: string; name: string; is_active: boolean; sort_order: number; pages_count: number };
 
 export const adminKeys = {
   overview: ["admin", "overview"] as const,
   tenants: (q: string, status: string, page: number) => ["admin", "tenants", { q, status, page }] as const,
   tenant: (id: number) => ["admin", "tenant", id] as const,
-  themes: ["admin", "themes"] as const,
 };
 
 export function useAdminOverview() {
@@ -65,14 +64,11 @@ export function useAdminTenant(id: number) {
   return useQuery({ queryKey: adminKeys.tenant(id), queryFn: () => api<AdminTenantDetail>(`/admin/tenants/${id}`) });
 }
 
-export function useAdminThemes() {
-  return useQuery({ queryKey: adminKeys.themes, queryFn: () => api<AdminTheme[]>("/admin/themes") });
-}
 
 export const suspendTenant = (id: number, reason: string) => api<AdminTenantDetail>(`/admin/tenants/${id}/suspend`, { method: "POST", body: { reason } });
 export const activateTenant = (id: number) => api<AdminTenantDetail>(`/admin/tenants/${id}/activate`, { method: "POST" });
 export const resetTenantPassword = (id: number) => api<{ temporary_password: string }>(`/admin/tenants/${id}/reset-password`, { method: "POST" });
-export const setThemeActive = (key: string, isActive: boolean) => api<AdminTheme>(`/admin/themes/${key}`, { method: "PATCH", body: { is_active: isActive } });
+export const setThemeActive = (key: string, isActive: boolean) => api<AdminThemeRow>(`/admin/themes/${key}`, { method: "PATCH", body: { is_active: isActive } });
 
 // --- plans -------------------------------------------------------------------------------
 
@@ -239,3 +235,71 @@ export const rejectPayment = (id: number, reason: string) => api<AdminPayment>(`
 export const completeRefund = (invoiceId: number, refundRef: string) => api<AdminRefund[]>(`/admin/invoices/${invoiceId}/refund`, { method: "POST", body: { refund_ref: refundRef } });
 export const updatePaymentMethod = (key: string, body: Omit<AdminPaymentMethod, "key" | "kind">) => api<AdminPaymentMethod>(`/admin/payment-methods/${key}`, { method: "PUT", body });
 export const adminReceiptUrl = (paymentId: number) => `/api/bff/admin/payments/${paymentId}/receipt`;
+
+// --- theme catalog -----------------------------------------------------------------------
+
+export type AdminThemeRow = ThemeRow & {
+  is_active: boolean;
+  is_listed: boolean;
+  sort_order: number;
+  pages_count: number;
+  raw: { price: number; discount_percent: number; discount_starts_at: string | null; discount_ends_at: string | null; min_plan_key: string | null; is_featured: boolean; tag_ids: number[] };
+};
+
+export type ThemeDetailsPayload = {
+  name: string;
+  kind: "landing" | "store";
+  short_description: string | null;
+  description: string | null;
+  features: string[];
+  price: number;
+  discount_percent: number;
+  discount_starts_at: string | null;
+  discount_ends_at: string | null;
+  min_plan_key: string | null;
+  is_featured: boolean;
+  is_listed: boolean;
+  version: string | null;
+  released_at: string | null;
+  tag_ids: number[];
+};
+
+export type TenantTheme = { theme_key: string; name: string; source: "purchase" | "admin_grant"; price_paid: number; note: string | null; created_at: string | null };
+
+export const themeCatalogKeys = {
+  list: ["admin", "theme-catalog"] as const,
+  one: (key: string) => ["admin", "theme-catalog", key] as const,
+  tenant: (id: number) => ["admin", "tenant-themes", id] as const,
+};
+
+export function useAdminThemeCatalog() {
+  return useQuery({
+    queryKey: themeCatalogKeys.list,
+    queryFn: async () => {
+      const res = await apiPage<AdminThemeRow>("/admin/themes");
+      return { themes: res.data, tags: (res.meta as unknown as { tags: ThemeTag[] }).tags };
+    },
+  });
+}
+
+export function useAdminTheme(key: string) {
+  return useQuery({
+    queryKey: themeCatalogKeys.one(key),
+    queryFn: async () => {
+      const res = await apiPage<never>(`/admin/themes/${encodeURIComponent(key)}`);
+      return { theme: res.data as unknown as AdminThemeRow, tags: (res.meta as unknown as { tags: ThemeTag[] }).tags };
+    },
+  });
+}
+
+export function useTenantThemes(id: number) {
+  return useQuery({ queryKey: themeCatalogKeys.tenant(id), queryFn: () => api<TenantTheme[]>(`/admin/tenants/${id}/themes`) });
+}
+
+export const updateThemeDetails = (key: string, body: ThemeDetailsPayload) => api<AdminThemeRow>(`/admin/themes/${encodeURIComponent(key)}`, { method: "PUT", body });
+export const uploadThemeImage = (key: string, form: FormData) => api<AdminThemeRow>(`/admin/themes/${encodeURIComponent(key)}/images`, { method: "POST", body: form });
+export const deleteThemeImage = (key: string, id: number) => api<AdminThemeRow>(`/admin/themes/${encodeURIComponent(key)}/images/${id}`, { method: "DELETE" });
+export const reorderThemeImages = (key: string, ids: number[]) => api<AdminThemeRow>(`/admin/themes/${encodeURIComponent(key)}/images/order`, { method: "PUT", body: { ids } });
+export const createThemeTag = (name: string) => api<ThemeTag>("/admin/theme-tags", { method: "POST", body: { name } });
+export const grantTheme = (id: number, themeKey: string, note: string | null) => api<TenantTheme[]>(`/admin/tenants/${id}/themes`, { method: "POST", body: { theme_key: themeKey, note } });
+export const revokeTheme = (id: number, themeKey: string) => api<void>(`/admin/tenants/${id}/themes/${encodeURIComponent(themeKey)}`, { method: "DELETE" });

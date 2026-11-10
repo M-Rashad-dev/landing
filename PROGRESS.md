@@ -223,3 +223,6 @@ Plans, verified: back 629 tests, front 464 tests, e2e 7 (new: the free trial sto
 | Payments (manual) | invoices with the fixed amount, InstaPay / wallet transfer + receipt upload, admin review (approve starts the plan, reject with a reason), refunds within 3 days, payment methods and support contact in the admin, «الفواتير» + checkout pages, legal pages | `a63c070`, this commit |
 
 Payments, verified: back 649+ tests, front 468, e2e 8 (new: the trial store pays by InstaPay, the admin approves in the UI, Pro starts).
+| Theme store | «ثيماتي» (free + owned, newest paid), «متجر الثيمات» (kind / tag / price filters, search, sort), theme page (gallery, features, price + discount, preview, buy / upgrade / use), live preview with sample content, buying through invoices, Basic keeps owned paid themes editable but not served, wizard / builder lock unowned themes, admin catalog (details, images, tags) and gifts; Malak free, Celia 100, Layali 150 | `778bda2`, this commit |
+
+Theme store, verified: back 665 tests, front 473, e2e 9 (new: paid theme locked in the builder; the Pro store previews, buys Celia, the admin approves, it shows as owned).

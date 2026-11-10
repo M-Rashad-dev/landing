@@ -24,6 +24,7 @@ import { requestRefund, useInvoices, type Invoice } from "@/lib/billing/payments
 import { formatCairo } from "@/lib/dates";
 import { formatPrice } from "@/lib/price";
 import { ar } from "@/messages/ar";
+import { invoiceItem } from "./[id]/invoice-view";
 
 const t = ar.billing.invoices;
 
@@ -34,7 +35,7 @@ export function InvoicesList() {
 
   const columns: Column<Invoice>[] = [
     { key: "number", header: t.number, cell: (row) => <span dir="ltr" className="font-mono font-semibold">{row.number}</span> },
-    { key: "plan", header: ar.billing.plan.current, cell: (row) => t.plan(row.plan.name, row.period ? ar.billing.periods[row.period] : "") },
+    { key: "plan", header: ar.billing.plan.current, cell: (row) => invoiceItem(row) },
     { key: "date", header: t.date, cell: (row) => formatCairo(row.created_at, { withTime: false }) },
     { key: "total", header: t.total, cell: (row) => <span className="font-semibold tabular-nums">{formatPrice(row.total)}</span> },
     { key: "status", header: t.status, cell: (row) => <InvoiceStatusBadge status={row.status} /> },

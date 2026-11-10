@@ -35,7 +35,9 @@ export type Invoice = {
   id: number;
   number: string | null;
   status: InvoiceStatus;
+  type: "subscription" | "theme";
   plan: { key: string | null; name: string };
+  theme: { key: string; name: string } | null;
   period: BillingPeriod | null;
   days: number | null;
   starts_now: boolean;

@@ -13,9 +13,9 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
   if (!/^\d+$/.test(id)) notFound();
 
   let page: PageDetail;
-  let themes: Array<{ key: string; name: string }>;
+  let themes: Array<{ key: string; name: string; owned?: boolean }>;
   try {
-    [page, themes] = await Promise.all([serverApi<PageDetail>(`/dashboard/pages/${id}`), serverApi<Array<{ key: string; name: string }>>("/dashboard/themes")]);
+    [page, themes] = await Promise.all([serverApi<PageDetail>(`/dashboard/pages/${id}`), serverApi<Array<{ key: string; name: string; owned?: boolean }>>("/dashboard/themes")]);
   } catch (error) {
     if (isApiError(error) && error.status === 404) notFound();
     throw error;

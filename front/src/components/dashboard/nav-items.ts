@@ -20,6 +20,7 @@ import {
   Settings,
   Sheet,
   ShoppingBag,
+  Store,
   Tag,
   Truck,
   UserRoundSearch,
@@ -80,6 +81,13 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/media", label: ar.nav.media, icon: Images },
       { href: "/dashboard/shipping", label: ar.nav.shipping, icon: Truck },
       { href: "/dashboard/domains", label: ar.nav.domains, icon: Globe },
+    ],
+  },
+  {
+    label: ar.nav.groups.themes,
+    items: [
+      { href: "/dashboard/themes", label: ar.nav.myThemes, icon: Palette, exact: true },
+      { href: "/dashboard/themes/store", label: ar.nav.themeStore, icon: Store, exclude: [] },
     ],
   },
   {

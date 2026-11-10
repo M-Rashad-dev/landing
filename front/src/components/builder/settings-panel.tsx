@@ -24,7 +24,7 @@ export function SettingsPanel({
   onMetaChange,
   metaSaving,
 }: {
-  themes: Array<{ key: string; name: string }>;
+  themes: Array<{ key: string; name: string; owned?: boolean }>;
   identities: Array<{ id: number; name: string }>;
   products: Array<{ id: number; name: string }>;
   onThemeRequest: (themeKey: string) => void;
@@ -46,7 +46,7 @@ export function SettingsPanel({
         <h2 className="font-bold">{t.pageSettings}</h2>
         <p className="text-sm text-muted-foreground">{t.noSelection}</p>
         <FormField label={t.theme} htmlFor="b-theme">
-          <Select id="b-theme" value={themeKey} onChange={(event) => onThemeRequest(event.target.value)} options={themes.map((theme) => ({ value: theme.key, label: theme.name }))} />
+          <Select id="b-theme" value={themeKey} onChange={(event) => onThemeRequest(event.target.value)} options={themes.map((theme) => ({ value: theme.key, label: theme.name, disabled: theme.owned === false && theme.key !== themeKey, hint: theme.owned === false ? ar.themeStore.locked : undefined }))} />
         </FormField>
         <div className="flex flex-col gap-2 border-t pt-4">
           <h3 className="text-sm font-semibold">{t.identity}</h3>

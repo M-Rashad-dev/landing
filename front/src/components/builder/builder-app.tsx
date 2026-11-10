@@ -28,7 +28,7 @@ import { useAutosave } from "./use-autosave";
 const t = ar.builder;
 type MobileTab = "sections" | "preview" | "settings";
 
-export function BuilderApp({ page, themes }: { page: PageDetail; themes: Array<{ key: string; name: string }> }) {
+export function BuilderApp({ page, themes }: { page: PageDetail; themes: Array<{ key: string; name: string; owned?: boolean }> }) {
   const [store] = useState(() => {
     const created = createBuilderStore();
     created.getState().init({
@@ -47,7 +47,7 @@ export function BuilderApp({ page, themes }: { page: PageDetail; themes: Array<{
   );
 }
 
-function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof createBuilderStore>; page: PageDetail; themes: Array<{ key: string; name: string }> }) {
+function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof createBuilderStore>; page: PageDetail; themes: Array<{ key: string; name: string; owned?: boolean }> }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
