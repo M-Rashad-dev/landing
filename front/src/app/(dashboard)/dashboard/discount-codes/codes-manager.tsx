@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, History, MoreVertical, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -135,6 +137,7 @@ export function CodesManager() {
         <div className="flex items-center gap-2">
           <Switch checked={c.is_active} onCheckedChange={() => onToggle(c)} aria-label={t.fields.active} />
           <PromotionStatusBadge status={c.status} />
+          <PlanLockedBadge locked={c.locked_by_plan} />
         </div>
       ),
     },
@@ -194,6 +197,7 @@ export function CodesManager() {
                     {code.code}
                   </button>
                   <PromotionStatusBadge status={code.status} />
+                  <PlanLockedBadge locked={code.locked_by_plan} />
                 </div>
                 <p className="mt-1 text-sm">{codeValueLabel(code)}</p>
                 <p className="mt-1 text-xs text-muted-foreground" dir="ltr">

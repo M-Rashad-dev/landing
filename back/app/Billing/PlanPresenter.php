@@ -21,6 +21,41 @@ final class PlanPresenter
     ) {}
 
     /**
+     * What the dashboard needs on every screen (no counting): state, plan, dates, every
+     * feature and limit. Shared by /auth/me and billing/entitlements.
+     *
+     * @return array<string, mixed>
+     */
+    public static function entitlements(TenantEntitlements $e): array
+    {
+        $limits = [];
+        foreach (PlanLimit::cases() as $limit) {
+            $limits[$limit->value] = ['limit' => $e->limit($limit), 'unlimited' => $e->isUnlimited($limit)];
+        }
+        $features = [];
+        foreach (PlanFeature::cases() as $feature) {
+            $features[$feature->value] = $e->allows($feature);
+        }
+
+        $reminders = (array) config('landing.billing.renewal_reminder_days');
+        $daysLeft = $e->endsAt === null ? null : max(0, (int) ceil(now()->diffInHours($e->endsAt, false) / 24));
+
+        return [
+            'state' => $e->state->value,
+            'plan' => $e->planKey === null ? null : ['key' => $e->planKey, 'name' => $e->planName],
+            'period' => $e->period?->value,
+            'is_trial' => $e->isTrial,
+            'ends_at' => $e->endsAt?->toIso8601ZuluString(),
+            'grace_ends_at' => $e->graceEndsAt?->toIso8601ZuluString(),
+            'days_left' => $daysLeft,
+            // Banner from the first reminder day (7) until the end.
+            'renewal_due' => $daysLeft !== null && $reminders !== [] && $daysLeft <= max($reminders),
+            'features' => $features,
+            'limits' => $limits,
+        ];
+    }
+
+    /**
      * Every entitlement the code enforces, in display order (limits first).
      *
      * @return list<array{key: string, kind: string, label: string}>

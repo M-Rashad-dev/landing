@@ -7,6 +7,8 @@ export type IntegrationKind = "webhook" | "google_sheets";
 export type IntegrationEvent = "order.created" | "order.status_changed" | "order.updated" | "lead.created";
 
 export type Integration = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   kind: IntegrationKind;
   name: string;

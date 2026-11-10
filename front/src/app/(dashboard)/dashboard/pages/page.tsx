@@ -1,3 +1,4 @@
+import { UsageMeter } from "@/components/billing/plan";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,12 +16,15 @@ export default function PagesPage() {
         title={ar.pages.title}
         description={ar.pages.description}
         actions={
-          <Button asChild>
+          <>
+            <UsageMeter limit="landing_pages" />
+            <Button asChild>
             <Link href="/dashboard/pages/new">
               <Plus />
-              {ar.pages.new}
-            </Link>
-          </Button>
+                {ar.pages.new}
+              </Link>
+            </Button>
+          </>
         }
       />
       <PagesList />

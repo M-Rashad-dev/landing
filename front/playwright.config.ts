@@ -21,10 +21,10 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      // Fresh database first (create → migrate:fresh + themes), then serve.
+      // Fresh database first (create → migrate:fresh + themes and plans), then serve.
       command: [
         `"${E2E.php}" ../front/e2e/prepare-db.php ${E2E.database}`,
-        `"${E2E.php}" artisan migrate:fresh --force --seed --seeder=ThemeSeeder`,
+        `"${E2E.php}" artisan migrate:fresh --force --seed`,
         `"${E2E.php}" artisan serve --host=127.0.0.1 --port=${E2E.laravelPort}`,
       ].join(" && "),
       cwd: E2E.backDir,

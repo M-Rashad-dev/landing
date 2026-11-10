@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { BadgePercent, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -96,6 +98,7 @@ export function OffersManager() {
         <div className="flex items-center gap-2">
           <Switch checked={o.is_active} onCheckedChange={() => onToggle(o)} aria-label={t.fields.active} />
           <PromotionStatusBadge status={o.status} />
+          <PlanLockedBadge locked={o.locked_by_plan} />
         </div>
       ),
     },
@@ -162,6 +165,7 @@ export function OffersManager() {
                     {offer.name}
                   </button>
                   <PromotionStatusBadge status={offer.status} />
+                  <PlanLockedBadge locked={offer.locked_by_plan} />
                 </div>
                 <p className="mt-1 text-sm">{offerValueLabel(offer)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{periodLabel(offer.starts_at, offer.ends_at)}</p>

@@ -19,6 +19,16 @@ import { ar } from "@/messages/ar";
 
 const t = ar.admin.tenants;
 
+function TenantPlanBadge({ row }: { row: AdminTenant }) {
+  if (!row.plan_key) return <Badge variant="secondary">{t.noPlan}</Badge>;
+  const variant = row.plan_state === "active" ? (row.plan_is_trial ? "info" : "success") : row.plan_state === "grace" ? "warning" : "destructive";
+  return (
+    <Badge variant={variant} title={row.plan_ends_at ? t.planEnds(formatCairo(row.plan_ends_at, { withTime: false })) : undefined}>
+      <span dir="ltr">{row.plan_key}</span> · {ar.billing.state[row.plan_state]}
+    </Badge>
+  );
+}
+
 export function TenantStatusBadge({ status }: { status: AdminTenant["status"] }) {
   return <Badge variant={status === "active" ? "success" : "destructive"}>{t.statuses[status]}</Badge>;
 }
@@ -73,6 +83,7 @@ export function TenantsManager({ initialStatus }: { initialStatus: string }) {
     { key: "orders", header: t.orders, cell: (row) => <span className="tabular-nums">{formatNumber(row.orders_count)}</span> },
     { key: "registered", header: t.registered, cell: (row) => <span className="text-xs text-muted-foreground">{formatCairo(row.created_at, { withTime: false })}</span> },
     { key: "status", header: t.status, cell: (row) => <TenantStatusBadge status={row.status} /> },
+    { key: "plan", header: t.plan, cell: (row) => <TenantPlanBadge row={row} /> },
   ];
 
   return (

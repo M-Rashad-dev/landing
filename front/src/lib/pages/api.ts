@@ -8,6 +8,8 @@ import type { PageContent, PageContext } from "@/themes/types";
 export type PageStatus = "draft" | "published";
 
 export type PageSummary = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   title: string;
   slug: string;

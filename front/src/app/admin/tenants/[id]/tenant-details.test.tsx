@@ -13,6 +13,7 @@ const session: Session = {
   user: { id: 1, name: "Admin", email: "admin@platform.test", phone: "+201000000000", role: "super_admin", last_login_at: null },
   tenant: null,
   primary_host: null,
+  plan: null,
   public_origin: { scheme: "https", port: "" },
 };
 
@@ -26,6 +27,10 @@ const tenant: AdminTenantDetail = {
   pages_count: 3,
   published_pages_count: 2,
   orders_count: 14,
+  plan_key: "pro",
+  plan_state: "active",
+  plan_is_trial: false,
+  plan_ends_at: "2026-12-01T10:00:00Z",
   created_at: "2026-10-01T10:00:00Z",
   suspended_at: null,
   suspended_reason: null,

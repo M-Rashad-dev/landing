@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * The six scenarios from PLAN phase 11, in order, on one fresh account:
+ * The six scenarios from PLAN phase 11 (plus the plan limit, v3), in order, on one fresh account:
  * (1) register / logout / login, (2) product + identity, (3) build + publish a page,
- * (4) order from the public page, (5) the order in the dashboard + status change, (6) switch theme.
+ * (4) order from the public page, (5) the order in the dashboard + status change, (6) switch theme,
+ * (7) the free trial hits its product limit and offers the upgrade.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -158,4 +159,45 @@ test("6. switch the page theme without losing content", async ({ page }) => {
     .toBe("celia");
   await expect(page.getByText(product.name).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /تأكيد الطلب/ })).toBeVisible();
+});
+
+test("7. the free trial (basic) stops at its product limit with an upgrade dialog", async ({ page }) => {
+  // A second, new store (signing up starts the trial; logging in again would hit the login rate limit).
+  await page.goto("/register");
+  await page.locator("#name").fill(account.name);
+  await page.locator("#email").fill(`trial${stamp}@example.com`);
+  await page.locator("#phone").fill(`011${String(stamp).slice(-8)}`);
+  await page.locator("#store_name").fill("Trial Store");
+  await page.locator("#password").fill(account.password);
+  await page.locator("#password_confirmation").fill(account.password);
+  await page.getByRole("button", { name: "إنشاء الحساب" }).click();
+  await page.waitForURL("**/dashboard");
+
+  // The trial banner and the plan page.
+  await expect(page.getByRole("status").filter({ hasText: "التجربة المجانية" })).toBeVisible();
+  await page.goto("/dashboard/settings/plan");
+  await expect(page.getByText("بيسك").first()).toBeVisible();
+
+  // Basic allows 5 products. Fill them through the dashboard API from the page (same cookie and host).
+  const statuses = await page.evaluate(async () => {
+    const out: number[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const res = await fetch("/api/bff/dashboard/products", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ name: `منتج ${i}`, price: 10 }) });
+      out.push(res.status);
+    }
+    return out;
+  });
+  expect(statuses).toEqual([201, 201, 201, 201, 201]);
+
+  await page.goto("/dashboard/products/new");
+  await page.locator("#product-name").fill("منتج زيادة");
+  await page.locator("#product-price").fill("10");
+  await page.locator("button[type=submit]").click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("وصلت لحد باقتك")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: /برو/ })).toBeVisible();
+  await dialog.getByRole("link", { name: /برو/ }).click();
+  await page.waitForURL("**/dashboard/plans");
+  await expect(page.getByText("مقارنة الباقات")).toBeVisible();
 });

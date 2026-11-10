@@ -252,3 +252,10 @@ it('shows plan counts on the admin overview', function () {
 
     $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.plans.pro', 1)->assertJsonPath('data.expired', 1);
 });
+
+it('sends the plan with the session so the layout needs no extra call', function () {
+    billingOwner('basic');
+
+    $this->getJson('/api/v1/auth/me')->assertOk()->assertJsonPath('data.plan.plan.key', 'basic')->assertJsonPath('data.plan.features.upsells', false);
+    $this->getJson('/api/v1/dashboard/billing/usage?keys=products,offers')->assertOk()->assertJsonCount(2, 'data');
+});

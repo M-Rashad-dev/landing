@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Copy, ExternalLink, Globe, Info, Loader2, Pencil, Plus, RefreshCw, ShieldCheck, Star, Trash2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -365,6 +367,7 @@ function CustomDomainRow({
           </span>
         )}
         {domain.is_primary ? <PrimaryBadge /> : null}
+        <PlanLockedBadge locked={domain.locked_by_plan} />
         <Badge variant={STATUS_VARIANT[domain.status]}>
           {domain.status === "active" ? <CheckCircle2 className="size-3" aria-hidden /> : domain.status === "failed" ? <XCircle className="size-3" aria-hidden /> : null}
           {t.statuses[domain.status]}

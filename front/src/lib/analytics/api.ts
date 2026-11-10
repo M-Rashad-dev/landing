@@ -21,6 +21,8 @@ export type Verdict = { state: "collecting" | "too_close" | "winner"; leader: "a
 export type AbTestPage = { id: number; title: string; slug: string; published: boolean };
 
 export type AbTest = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   name: string;
   status: "running" | "finished";

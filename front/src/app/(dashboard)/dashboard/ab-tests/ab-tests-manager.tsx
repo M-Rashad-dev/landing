@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, Crown, FlaskConical, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -150,6 +152,7 @@ function TestCard({ test, onFinish, onRemove }: { test: AbTest; onFinish: () => 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="truncate text-base font-bold">{test.name}</h2>
+          <PlanLockedBadge locked={test.locked_by_plan} />
           <p className="mt-0.5 text-xs text-muted-foreground">
             {t.since(formatCairo(test.started_at, { withTime: false }))}
             {running ? ` · ${t.splitValue(test.split_a)}` : ""}

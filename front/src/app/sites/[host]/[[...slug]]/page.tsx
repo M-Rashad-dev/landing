@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PlatformBadge } from "@/themes/shared/platform-badge";
 import { notFound, permanentRedirect } from "next/navigation";
 import { serverEnv } from "@/lib/env";
 import { getPublicPage, resolveHost } from "@/lib/public/api";
@@ -83,6 +84,7 @@ export default async function PublicSitePage({ params }: { params: Params }) {
       <IdentityFonts heading={identity.font_heading} body={identity.font_body} />
       <IdentityStyle identity={identity} themeKey={data.theme_key} className="t-site min-h-dvh">
         <SiteRenderer themeKey={data.theme_key} sections={data.content.sections} ctx={ctx} />
+        {data.branding ? <PlatformBadge platformDomain={serverEnv().platformDomain} /> : null}
         <SiteEnhancer />
         <PageBeacon slug={data.page.slug} />
       </IdentityStyle>

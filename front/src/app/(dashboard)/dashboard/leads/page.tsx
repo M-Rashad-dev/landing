@@ -1,3 +1,4 @@
+import { PlanGate } from "@/components/billing/plan";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ar } from "@/messages/ar";
@@ -9,7 +10,9 @@ export default function LeadsPage() {
   return (
     <>
       <PageHeader title={ar.leads.title} description={ar.leads.description} />
-      <LeadsManager />
+      <PlanGate feature="abandoned_leads" label={ar.nav.leads}>
+        <LeadsManager />
+      </PlanGate>
     </>
   );
 }

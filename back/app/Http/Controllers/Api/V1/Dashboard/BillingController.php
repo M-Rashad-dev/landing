@@ -9,7 +9,6 @@ use App\Billing\PlanLocks;
 use App\Billing\PlanPresenter;
 use App\Billing\SubscriptionManager;
 use App\Billing\UsageCounter;
-use App\Enums\PlanFeature;
 use App\Enums\PlanLimit;
 use App\Enums\SubscriptionSource;
 use App\Http\Controllers\Concerns\RespondsWithJson;
@@ -34,44 +33,25 @@ final class BillingController extends Controller
         private readonly SubscriptionManager $subscriptions,
     ) {}
 
-    /** Cheap (no counting): read by the dashboard layout on every screen. */
+    /** Cheap (no counting); the layout gets the same object from /auth/me. */
     public function entitlements(): JsonResponse
     {
-        $e = $this->entitlements->current();
-        $limits = [];
-        foreach (PlanLimit::cases() as $limit) {
-            $limits[$limit->value] = ['limit' => $e->limit($limit), 'unlimited' => $e->isUnlimited($limit)];
-        }
-
-        $reminders = (array) config('landing.billing.renewal_reminder_days');
-        $daysLeft = $e->endsAt === null ? null : max(0, (int) ceil(now()->diffInHours($e->endsAt, false) / 24));
-
-        return $this->ok([
-            'state' => $e->state->value,
-            'plan' => $e->planKey === null ? null : ['key' => $e->planKey, 'name' => $e->planName],
-            'period' => $e->period?->value,
-            'is_trial' => $e->isTrial,
-            'ends_at' => $e->endsAt?->toIso8601ZuluString(),
-            'grace_ends_at' => $e->graceEndsAt?->toIso8601ZuluString(),
-            'days_left' => $daysLeft,
-            // Banner 7 / 3 / 1 days before the end (and every day after the last mark).
-            'renewal_due' => $daysLeft !== null && $reminders !== [] && $daysLeft <= max($reminders),
-            'features' => array_combine(
-                array_map(fn (PlanFeature $f) => $f->value, PlanFeature::cases()),
-                array_map(fn (PlanFeature $f) => $e->allows($f), PlanFeature::cases()),
-            ),
-            'limits' => $limits,
-        ]);
+        return $this->ok(PlanPresenter::entitlements($this->entitlements->current()));
     }
 
-    /** Counting queries: only the plan page and usage meters read this. */
-    public function usage(PlanLocks $locks): JsonResponse
+    /** Counting queries: the plan page reads all, list pages ask for their own (?keys=products). */
+    public function usage(Request $request, PlanLocks $locks): JsonResponse
     {
+        $request->validate(['keys' => ['nullable', 'string', 'max:200']]);
+        $wanted = array_filter(explode(',', (string) $request->query('keys', '')));
         $e = $this->entitlements->current();
         $lockable = array_map(fn (PlanLimit $l) => $l->value, $locks->lockableLimits());
 
         $rows = [];
         foreach (PlanLimit::cases() as $limit) {
+            if ($wanted !== [] && ! in_array($limit->value, $wanted, true)) {
+                continue;
+            }
             $rows[] = [
                 'key' => $limit->value,
                 'label' => $limit->label(),

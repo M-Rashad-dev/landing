@@ -1,5 +1,7 @@
 /** Shapes returned by the Laravel API (dates are ISO 8601 UTC strings). */
 
+import type { Entitlements } from "@/lib/billing/types";
+
 export type User = {
   id: number;
   name: string;
@@ -24,6 +26,8 @@ export type Session = {
   user: User;
   tenant: Tenant | null;
   primary_host: string | null;
+  /** The store's plan right now (null for the super admin). */
+  plan: Entitlements | null;
   public_origin: PublicOrigin;
 };
 
@@ -48,6 +52,8 @@ export type ProductOptionValue = { id: number; label: string; color_hex: string 
 export type ProductOption = { id: number; name: string; display_type: OptionDisplayType; is_required: boolean; values: ProductOptionValue[] };
 
 export type Product = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   name: string;
   description: string | null;
@@ -72,6 +78,8 @@ export type OfferType = "percentage" | "fixed" | "bundle" | "buy_get" | "gift";
 export type DiscountType = "percentage" | "fixed";
 
 export type Offer = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   name: string;
   type: OfferType;
@@ -97,6 +105,8 @@ export type Offer = {
 };
 
 export type DiscountCode = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   code: string;
   type: DiscountType;

@@ -32,6 +32,8 @@ export type PublicPagePayload = {
   seo: PublicSeo;
   tracking: Tracking;
   shipping?: PageContext["shipping"];
+  /** Show the "made with" platform badge (the plan does not remove it). */
+  branding?: boolean;
 };
 
 /** GET /public/sitemap */

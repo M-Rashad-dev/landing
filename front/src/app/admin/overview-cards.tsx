@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarPlus, CheckCircle2, FileCheck2, PauseCircle, ShoppingBag, Sigma } from "lucide-react";
+import { Building2, CalendarClock, CalendarPlus, CheckCircle2, CircleOff, Crown, FileCheck2, Hourglass, PauseCircle, ShoppingBag, Sigma, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { ErrorState } from "@/components/dashboard/error-state";
 import { Card } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export function AdminOverviewCards() {
     );
   }
 
-  const cards = [
+  const cards: { icon: LucideIcon; label: string; value: number; href?: string }[] = [
     { icon: Building2, label: t.tenants, value: data.tenants, href: "/admin/tenants" },
     { icon: CheckCircle2, label: t.active, value: data.active_tenants, href: "/admin/tenants?status=active" },
     { icon: PauseCircle, label: t.suspended, value: data.suspended_tenants, href: "/admin/tenants?status=suspended" },
@@ -33,6 +33,10 @@ export function AdminOverviewCards() {
     { icon: FileCheck2, label: t.published, value: data.published_pages },
     { icon: ShoppingBag, label: t.ordersToday, value: data.orders_today },
     { icon: Sigma, label: t.ordersTotal, value: data.orders_total },
+    { icon: Hourglass, label: t.trials, value: data.trials },
+    { icon: CalendarClock, label: t.expiringWeek, value: data.expiring_week },
+    { icon: CircleOff, label: t.expired, value: data.expired },
+    ...Object.entries(data.plans).map(([key, value]) => ({ icon: Crown, label: t.onPlan(key), value, href: "/admin/plans" })),
   ];
 
   return (

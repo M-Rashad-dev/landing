@@ -4,6 +4,8 @@
  */
 export const siteMessages = {
   currency: "ج.م",
+  /** Shown on pages of plans that keep the platform badge. */
+  branding: { madeWith: "صُنع بواسطة", platform: "منصة اللاندنج" },
   track: {
     link: "تتبع طلبك",
     title: "تتبع طلبك",

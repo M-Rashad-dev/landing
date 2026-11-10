@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, ExternalLink, FileText, Home, MoreVertical, PenSquare, Search, Settings, Star, Trash2, Upload, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -128,6 +130,7 @@ export function PagesList() {
                     </p>
                   </div>
                   <Badge variant={p.status === "published" ? "success" : "secondary"}>{t.status[p.status]}</Badge>
+                  <PlanLockedBadge locked={p.locked_by_plan} />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon-sm" aria-label={ar.common.actions}>

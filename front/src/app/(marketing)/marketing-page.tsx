@@ -1,7 +1,9 @@
 import { LayoutTemplate, Rocket, ShoppingBag, Smartphone } from "lucide-react";
 import { AppRoot } from "@/components/app-root";
 import { Button } from "@/components/ui/button";
+import type { EntitlementInfo, PricingPlan } from "@/lib/billing/types";
 import { ar } from "@/messages/ar";
+import { MarketingPricing } from "./marketing-pricing";
 
 const FEATURES = [
   { icon: LayoutTemplate, title: ar.marketing.feature1Title, text: ar.marketing.feature1Text },
@@ -9,7 +11,7 @@ const FEATURES = [
   { icon: Smartphone, title: ar.marketing.feature3Title, text: ar.marketing.feature3Text },
 ];
 
-export function MarketingPage({ appUrl }: { appUrl: string }) {
+export function MarketingPage({ appUrl, pricing }: { appUrl: string; pricing: { plans: PricingPlan[]; entitlements: EntitlementInfo[] } | null }) {
   return (
     <AppRoot>
       <div className="flex min-h-dvh flex-col bg-gradient-to-b from-secondary via-background to-background">
@@ -50,6 +52,16 @@ export function MarketingPage({ appUrl }: { appUrl: string }) {
               </div>
             ))}
           </section>
+
+          {pricing ? (
+            <section aria-labelledby="pricing-title" className="pb-20">
+              <h2 id="pricing-title" className="mb-2 text-center text-3xl font-extrabold">
+                {ar.billing.pricing.title}
+              </h2>
+              <p className="mx-auto mb-8 max-w-2xl text-center text-muted-foreground">{ar.billing.pricing.description}</p>
+              <MarketingPricing plans={pricing.plans} entitlements={pricing.entitlements} registerUrl={`${appUrl}/register`} />
+            </section>
+          ) : null}
         </main>
 
         <footer className="border-t py-6 text-center text-sm text-muted-foreground">{ar.marketing.copyright(new Date().getFullYear())}</footer>

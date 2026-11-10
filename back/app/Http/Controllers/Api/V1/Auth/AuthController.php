@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Actions\Auth\LoginUser;
 use App\Actions\Auth\RegisterTenant;
+use App\Billing\Entitlements;
+use App\Billing\PlanPresenter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -75,6 +77,7 @@ final class AuthController extends Controller
             'user' => UserResource::make($user)->resolve($request),
             'tenant' => $user->tenant ? TenantResource::make($user->tenant)->resolve($request) : null,
             'primary_host' => $primaryHost,
+            'plan' => $user->tenant === null ? null : PlanPresenter::entitlements(app(Entitlements::class)->for($user->tenant)),
         ]);
     }
 }

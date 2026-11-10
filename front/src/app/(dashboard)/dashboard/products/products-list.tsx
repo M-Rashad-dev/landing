@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, MoreVertical, Package, Pencil, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -204,6 +206,7 @@ export function ProductsList() {
                     <MediaThumb media={product.main_image} className="size-16 shrink-0" />
                     <Link href={`/dashboard/products/${product.id}`} className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{product.name}</p>
+                      <PlanLockedBadge locked={product.locked_by_plan} />
                       <p className="text-sm">{formatPrice(product.price)}</p>
                       <p className="text-xs text-muted-foreground">{t.optionsCount(product.options_count ?? 0)}</p>
                     </Link>

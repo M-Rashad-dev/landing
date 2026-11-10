@@ -1,5 +1,7 @@
 "use client";
 
+import { PlanLockedBadge } from "@/components/billing/plan";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Copy, ExternalLink, Eye, EyeOff, Pause, Pencil, Play, Plus, RefreshCw, Send, Sheet, Trash2, Webhook } from "lucide-react";
 import { useState } from "react";
@@ -253,7 +255,10 @@ function IntegrationCard({ item, onChanged, onEdit, onRemove }: { item: Integrat
             {item.url}
           </p>
         </div>
-        <Badge variant={item.is_active ? "success" : "secondary"}>{item.is_active ? t.active : t.paused}</Badge>
+        <div className="flex flex-wrap gap-1.5">
+          <PlanLockedBadge locked={item.locked_by_plan} />
+          <Badge variant={item.is_active ? "success" : "secondary"}>{item.is_active ? t.active : t.paused}</Badge>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">

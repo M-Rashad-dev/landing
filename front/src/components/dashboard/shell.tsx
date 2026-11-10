@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, LogOut, Menu, Settings, UserRound } from "lucide-react";
+import { ExternalLink, Lock, LogOut, Menu, Settings, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { isClosed, usePlan } from "@/components/billing/plan";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { BrandMark } from "./brand-mark";
@@ -28,12 +29,14 @@ export function DashboardShell({
   footerNav = nav === DASHBOARD_NAV ? DASHBOARD_FOOTER_NAV : [],
   badges = {},
   topbarExtra,
+  banner,
 }: {
   children: ReactNode;
   nav?: NavGroup[];
   footerNav?: NavItem[];
   badges?: Badges;
   topbarExtra?: ReactNode;
+  banner?: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -53,6 +56,7 @@ export function DashboardShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMenu={() => setMobileOpen(true)} extra={topbarExtra} />
+        {banner}
         {/* Keyed by path: each page fades in instead of swapping abruptly. */}
         <main key={pathname} className="page-enter mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
@@ -120,6 +124,9 @@ function Sidebar({ nav, footerNav, badges, home, onNavigate }: { nav: NavGroup[]
 function NavLink({ item, badge, onNavigate }: { item: NavItem; badge?: number; onNavigate?: () => void }) {
   const pathname = usePathname();
   const active = isActive(pathname, item);
+  const plan = usePlan();
+  // Locked features stay in the menu (the merchant learns they exist) with a small lock.
+  const locked = item.gate ? isClosed(plan, item.gate) && plan?.state !== "expired" : false;
 
   return (
     <li>
@@ -135,6 +142,7 @@ function NavLink({ item, badge, onNavigate }: { item: NavItem; badge?: number; o
         <span className={cn("absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-gold transition-opacity duration-200", active ? "opacity-100" : "opacity-0")} aria-hidden />
         <item.icon className={cn("size-[18px] shrink-0 transition-colors", active ? "text-gold" : "text-sidebar-muted group-hover:text-sidebar-foreground")} aria-hidden />
         <span className="flex-1">{item.label}</span>
+        {locked ? <Lock className="size-3.5 shrink-0 text-sidebar-muted" aria-label={ar.billing.upgrade} /> : null}
         {badge ? <span className="min-w-5 rounded-full bg-gold px-1.5 text-center text-[11px] font-bold leading-5 text-gold-foreground">{badge > 99 ? "99+" : badge}</span> : null}
       </Link>
     </li>

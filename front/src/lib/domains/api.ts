@@ -14,6 +14,8 @@ export type DnsInstructions = {
 };
 
 export type Domain = {
+  /** Above the plan limit after a downgrade: kept, not served to visitors. */
+  locked_by_plan?: boolean;
   id: number;
   host: string;
   type: "subdomain" | "custom";

@@ -212,3 +212,11 @@ Templates, verified in the browser: gallery → «استخدم القالب» �
 Conversion sections, verified in the browser on both themes (390 px): video loads the youtube-nocookie player only after the click, the before / after divider follows the range input, the sticky bar shows after the first screen and hides while the order form is visible, countdown ticks (evergreen). Back 508 tests, front 358.
 
 Abandoned forms, verified in the browser: phone typed on the demo store → `/api/public/leads` 202 → row in «الطلبات المتروكة» with the WhatsApp follow-up message filled → «تم التواصل» moves it to its tab. Back 507 tests, front 283.
+
+
+## v3 — plans, payments, stores (docs/features)
+| Feature | Done | Commits |
+|---|---|---|
+| Plans | basic / pro / max with monthly + yearly prices and discounts, free trial (admin), entitlements enforced on every create and public path, locks after a downgrade, expired = sites closed + read-only dashboard, admin plan editor + trial settings + per-store grant / extend / overrides, pricing page (dashboard + marketing), my plan page with usage and «choose what stays live», upgrade dialog, trial / renewal banner, platform badge | `2caad3f`, `be663ea`, `d3a134e`, this commit |
+
+Plans, verified: back 629 tests, front 464 tests, e2e 7 (new: the free trial stops at 5 products, the dialog leads to the pricing page).

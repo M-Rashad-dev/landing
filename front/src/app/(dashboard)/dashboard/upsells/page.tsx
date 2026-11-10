@@ -1,3 +1,4 @@
+import { PlanGate } from "@/components/billing/plan";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ar } from "@/messages/ar";
@@ -9,7 +10,9 @@ export default function UpsellsPage() {
   return (
     <>
       <PageHeader title={ar.upsells.title} description={ar.upsells.description} />
-      <UpsellsManager />
+      <PlanGate feature="upsells" label={ar.nav.upsells}>
+        <UpsellsManager />
+      </PlanGate>
     </>
   );
 }
