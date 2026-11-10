@@ -24,7 +24,7 @@ final class CategoryController extends Controller
 
     public function index(): JsonResponse
     {
-        $tree = $this->categories->tree()->load('image');
+        $tree = $this->categories->tree();
 
         return $this->ok($tree->map(fn (Category $c) => $this->row($c))->values()->all());
     }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StorePage;
+use App\Models\StoreStat;
 use App\Models\Tenant;
 use App\Pricing\PriceCalculator;
 use App\Services\FormToken;
@@ -161,7 +162,7 @@ final class StoreController extends Controller
         return $this->inStore($request, function (Store $store) use ($data) {
             $column = ['view' => 'views', 'product_view' => 'product_views', 'add_to_cart' => 'add_to_cart', 'checkout' => 'checkouts'][$data['type']];
             // One atomic upsert per event (same pattern as page_stats).
-            DB::table('store_stats')->upsert(
+            StoreStat::query()->upsert(
                 [['tenant_id' => $store->tenant_id, 'date' => now('Africa/Cairo')->toDateString(), 'source' => TrafficSource::classify($data['utm_source'] ?? null, $data['referrer'] ?? null), 'device' => ($data['device'] ?? '') === 'desktop' ? 'desktop' : 'mobile', $column => 1]],
                 ['tenant_id', 'date', 'source', 'device'],
                 [$column => DB::raw("{$column} + 1")],

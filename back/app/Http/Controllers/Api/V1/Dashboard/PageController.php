@@ -17,8 +17,11 @@ use App\Http\Resources\PageDetailResource;
 use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
+use App\Models\Product;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
+use App\Store\StoreCatalog;
+use App\Store\StoreSite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -100,7 +103,23 @@ final class PageController extends Controller
             'offers' => $data->offers($page->product, now()),
             'media' => (object) $data->media($page->draft_content),
             'shipping' => $shipping->publicConfig(),
+            // A store home previews its sections with the real catalog.
+            'store' => $page->isStoreHome() ? $this->storePreview($page) : null,
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function storePreview(LandingPage $page): array
+    {
+        $catalog = app(StoreCatalog::class);
+        $sample = $catalog->sellable()->with(['media', 'variants', 'options', 'categories:id'])->orderByDesc('id')->limit(48)->get()
+            ->map(fn (Product $p) => [...$catalog->card($p), 'category_ids' => $p->categories->pluck('id')->all()])->all();
+
+        return [
+            'categories' => $catalog->categoryRows(),
+            'products' => app(StoreSite::class)->sectionData((array) $page->draft_content)['products'],
+            'sample' => $sample,
+        ];
     }
 
     public function saveContent(SavePageContentRequest $request, LandingPage $page, SavePageContent $action): JsonResponse

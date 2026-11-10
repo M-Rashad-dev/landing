@@ -9,11 +9,9 @@ use App\Models\Media;
 use App\Models\Product;
 use App\Services\PublicPageData;
 use App\Support\Money;
-use App\Tenancy\Tenancy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * What visitors of a store see (runs inside the store's tenant context): sellable products,
@@ -138,7 +136,7 @@ final class StoreCatalog
     /** Visible, servable categories (a hidden parent hides its children). @return Collection<int, Category> */
     public function visibleCategories(): Collection
     {
-        $all = $this->categories->tree()->load('image');
+        $all = $this->categories->tree();
         $hidden = [];
         foreach ($all as $category) {
             if (! $category->is_visible || $category->isLockedByPlan() || in_array($category->parent_id, $hidden, true)) {
@@ -152,14 +150,10 @@ final class StoreCatalog
     /** @return list<array<string, mixed>> */
     public function categoryRows(): array
     {
-        $counts = DB::table('category_product')
-            ->join('products', 'products.id', '=', 'category_product.product_id')
-            // Plain query (no model scope): filtered to this store explicitly.
-            ->where('products.tenant_id', Tenancy::id())
-            ->where('products.in_store', true)->where('products.is_active', true)->where('products.locked_by_plan', false)->whereNull('products.deleted_at')
-            ->selectRaw('category_product.category_id, count(*) as total')
-            ->groupBy('category_product.category_id')
-            ->pluck('total', 'category_id');
+        // Sellable products per category (direct members, like the dashboard count).
+        $counts = Category::query()
+            ->withCount(['products as sellable_count' => fn (Builder $q) => $q->where('in_store', true)->where('is_active', true)->servable()])
+            ->pluck('sellable_count', 'id');
 
         return $this->visibleCategories()->map(fn (Category $c) => [
             'id' => $c->id,

@@ -11,12 +11,11 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\StoreStat;
 use App\Support\Money;
-use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Store analytics (S10): visits, product views, add-to-cart, checkouts, orders and revenue
@@ -41,9 +40,7 @@ final class StoreAnalyticsController extends Controller
             $from = $to->subDays(366);
         }
 
-        // Plain table (no model): filtered to this store explicitly.
-        $stats = DB::table('store_stats')
-            ->where('tenant_id', Tenancy::id())
+        $stats = StoreStat::query()
             ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->get(['date', 'source', 'device', 'views', 'product_views', 'add_to_cart', 'checkouts']);
 
@@ -59,7 +56,7 @@ final class StoreAnalyticsController extends Controller
         }
         $sources = [];
         foreach ($stats as $row) {
-            $day = (string) $row->date;
+            $day = $row->date->toDateString();
             foreach (['views', 'product_views', 'add_to_cart', 'checkouts'] as $k) {
                 $days[$day][$k] += (int) $row->{$k};
             }

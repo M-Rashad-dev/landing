@@ -66,7 +66,7 @@ final class Categories
     /** All categories of the store, parents before children, in display order. @return EloquentCollection<int, Category> */
     public function tree(): EloquentCollection
     {
-        $all = Category::query()->withCount('products')->orderBy('position')->orderBy('id')->get();
+        $all = Category::query()->with('image')->withCount('products')->orderBy('position')->orderBy('id')->get();
         $byParent = $all->groupBy(fn (Category $c) => $c->parent_id ?? 0);
         $out = new EloquentCollection;
         $walk = function (int $parentId) use (&$walk, $byParent, $out): void {

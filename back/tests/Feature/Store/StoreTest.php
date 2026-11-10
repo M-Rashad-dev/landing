@@ -290,3 +290,27 @@ it('records abandoned checkouts and store traffic', function () {
         ->assertJsonPath('data.top_products.0.units', 1);
     expect($lead->fresh()->status->value)->toBe('converted');
 });
+
+it('previews the store home in the builder with the real catalog', function () {
+    $owner = storeOwner();
+    asTenant($owner, function () {
+        $c = Category::query()->create(['name' => 'أحذية', 'slug' => 'shoes', 'depth' => 0]);
+        Product::factory()->create(['slug' => 'p1', 'name' => 'حذاء'])->categories()->attach($c);
+        Product::factory()->create(['slug' => 'p2', 'in_store' => false]);
+    });
+    $this->postJson('/api/v1/dashboard/store/setup', ['content' => ['version' => 1, 'sections' => [storeSection('product_grid', ['source' => 'newest', 'limit' => 4])]]])->assertOk();
+    $home = $this->getJson('/api/v1/dashboard/store')->json('data.home.id');
+
+    $this->getJson("/api/v1/dashboard/pages/{$home}")->assertOk()->assertJsonPath('data.kind', 'store_home');
+    $this->getJson("/api/v1/dashboard/pages/{$home}/preview")->assertOk()
+        ->assertJsonPath('data.store.categories.0.slug', 'shoes')
+        ->assertJsonPath('data.store.categories.0.products_count', 1)
+        ->assertJsonCount(1, 'data.store.sample')
+        ->assertJsonPath('data.store.sample.0.category_ids', fn ($ids) => count($ids) === 1);
+
+    // A landing page previews without store data; another store's home is not reachable.
+    $landing = asTenant($owner, fn () => LandingPage::factory()->create()->id);
+    $this->getJson("/api/v1/dashboard/pages/{$landing}/preview")->assertOk()->assertJsonPath('data.store', null);
+    Sanctum::actingAs(User::factory()->for(Tenant::factory()->onPlan('pro')->create())->create()->fresh(['tenant']));
+    $this->getJson("/api/v1/dashboard/pages/{$home}/preview")->assertNotFound();
+});
