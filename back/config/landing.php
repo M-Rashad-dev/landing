@@ -45,6 +45,8 @@ return [
     'reserved_slugs' => [
         'api', '_next', 'admin', 'dashboard', 'login', 'register', 'preview', 'media',
         'sitemap', 'robots', 'favicon', 'thank-you', 'track',
+        // Store routes (the store owns these paths on the tenant host).
+        'products', 'categories', 'cart', 'checkout', 'pages', 'search',
     ],
 
     // Platform safety ceilings. Plan limits (admin) apply below these; "unlimited" means up to here.
@@ -58,6 +60,9 @@ return [
         'media_storage_mb' => 50000,
         'webhooks' => 10,
         'ab_tests' => 20,
+        'store_categories' => 500,
+        'store_pages' => 50,
+        'category_depth' => 5,
         'upload_max_kb' => 5 * 1024,
         'upload_files_per_request' => 10,
         'sections_per_page' => 30,
@@ -103,6 +108,12 @@ return [
         'video', 'before_after', 'size_chart', 'comparison', 'countdown', 'sticky_cta',
     ],
 
+    // Sections the store home may use (store blocks + the ones that need no product).
+    'store_home_types' => [
+        'banner_slider', 'category_grid', 'product_grid', 'promo_banner',
+        'hero', 'gallery', 'features', 'testimonials', 'faq', 'video', 'before_after', 'comparison', 'countdown',
+    ],
+
     'components' => [
         'singleton' => ['header', 'footer'],
         'pinned' => ['header' => 'top', 'footer' => 'bottom'],
@@ -123,6 +134,10 @@ return [
             'comparison' => 3,
             'countdown' => 3,
             'sticky_cta' => 1,
+            'banner_slider' => 2,
+            'category_grid' => 3,
+            'product_grid' => 6,
+            'promo_banner' => 5,
         ],
     ],
 

@@ -28,11 +28,12 @@ class AbandonedLead extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['landing_page_id', 'product_id', 'customer_name', 'customer_phone', 'governorate', 'quantity', 'status', 'order_id', 'contacted_at', 'last_seen_at', 'ip_address'];
+    protected $fillable = ['source', 'cart', 'landing_page_id', 'product_id', 'customer_name', 'customer_phone', 'governorate', 'quantity', 'status', 'order_id', 'contacted_at', 'last_seen_at', 'ip_address'];
 
     protected function casts(): array
     {
-        return ['status' => LeadStatus::class, 'quantity' => 'integer', 'contacted_at' => 'datetime', 'last_seen_at' => 'datetime'];
+        return [
+            'cart' => 'array', 'status' => LeadStatus::class, 'quantity' => 'integer', 'contacted_at' => 'datetime', 'last_seen_at' => 'datetime'];
     }
 
     /** @return BelongsTo<LandingPage, $this> */

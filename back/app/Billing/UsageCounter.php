@@ -8,6 +8,7 @@ use App\Enums\AbTestStatus;
 use App\Enums\DomainType;
 use App\Enums\PlanLimit;
 use App\Models\AbTest;
+use App\Models\Category;
 use App\Models\DiscountCode;
 use App\Models\Domain;
 use App\Models\LandingPage;
@@ -49,7 +50,8 @@ final class UsageCounter
     {
         return match ($limit) {
             PlanLimit::Products => Product::query(),
-            PlanLimit::LandingPages => LandingPage::query(),
+            PlanLimit::LandingPages => LandingPage::query()->landings(),
+            PlanLimit::StoreCategories => Category::query(),
             PlanLimit::CustomDomains => Domain::query()->where('type', DomainType::Custom),
             PlanLimit::Offers => Offer::query(),
             PlanLimit::DiscountCodes => DiscountCode::query(),

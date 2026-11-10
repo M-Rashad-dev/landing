@@ -30,6 +30,12 @@ class OrderResource extends JsonResource
             'product' => $this->whenLoaded('product', fn () => $this->product === null ? null : ['id' => $this->product->id, 'name' => $this->product->name]),
             'page' => $this->whenLoaded('page', fn () => $this->page === null ? null : ['id' => $this->page->id, 'title' => $this->page->title, 'slug' => $this->page->slug]),
             'quantity' => $this->quantity,
+            'source' => $this->source,
+            // Store orders: "تيشيرت + 2 منتج تاني" in lists.
+            'items_summary' => $this->whenLoaded('items', fn () => [
+                'first' => $this->items->firstWhere('is_gift', false)?->product_name,
+                'count' => $this->items->where('is_gift', false)->count(),
+            ]),
             'total' => Money::toFloat(Money::toCents($this->total)),
             'currency' => $this->currency,
             'is_duplicate_suspect' => $this->is_duplicate_suspect,

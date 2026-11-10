@@ -89,6 +89,22 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class)->orderBy('id');
     }
 
+    /** Something can still be ordered (any unit left, or stock not tracked). */
+    public function inStock(): bool
+    {
+        return match ($this->stock_mode) {
+            self::STOCK_PRODUCT => (int) $this->stock > 0,
+            self::STOCK_VARIANT => $this->relationLoaded('variants') ? $this->variants->contains(fn ($v) => $v->stock > 0) : $this->variants()->where('stock', '>', 0)->exists(),
+            default => true,
+        };
+    }
+
+    /** @return HasMany<OrderItem, $this> */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function tracksStock(): bool
     {
         return $this->stock_mode === self::STOCK_PRODUCT || $this->stock_mode === self::STOCK_VARIANT;

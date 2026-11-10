@@ -59,6 +59,44 @@ final class CaptureLead
         $this->webhooks->lead($lead);
     }
 
+    /**
+     * A store checkout left after typing the phone: one open lead per phone with the cart
+     * (product names, quantities, total) for the follow-up call.
+     *
+     * @param  array{name?: string|null, governorate?: string|null, ip?: string|null}  $details
+     * @param  array{items: list<array{product_id: int, name: string, quantity: int}>, total: float}  $cart
+     */
+    public function captureCart(string $phone, array $details, array $cart): void
+    {
+        if (BlockedCustomer::isBlocked($phone, $details['ip'] ?? null)) {
+            return;
+        }
+        if (Order::query()->where('customer_phone', $phone)->where('source', 'store')->where('created_at', '>=', now()->subDay())->exists()) {
+            return;
+        }
+
+        $values = array_filter([
+            'customer_name' => $details['name'] ?? null,
+            'governorate' => $details['governorate'] ?? null,
+            'ip_address' => $details['ip'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '') + [
+            'cart' => $cart,
+            'quantity' => max(1, min(65535, array_sum(array_column($cart['items'], 'quantity')))),
+            'product_id' => $cart['items'][0]['product_id'] ?? null,
+            'last_seen_at' => now(),
+        ];
+
+        $lead = AbandonedLead::query()->where('customer_phone', $phone)->where('source', 'store')->where('status', LeadStatus::Open)->first();
+        if ($lead !== null) {
+            $lead->fill($values)->save();
+
+            return;
+        }
+
+        $lead = AbandonedLead::query()->create($values + ['source' => 'store', 'customer_phone' => $phone, 'status' => LeadStatus::Open]);
+        $this->webhooks->lead($lead);
+    }
+
     /** The phone ordered: its open / contacted leads become converted. */
     public function converted(Order $order): void
     {

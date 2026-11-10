@@ -96,7 +96,7 @@ final class BillingController extends Controller
     {
         $key = $this->lockable($limit);
         $label = match ($key) {
-            PlanLimit::Products, PlanLimit::Offers, PlanLimit::Webhooks, PlanLimit::AbTests => 'name',
+            PlanLimit::Products, PlanLimit::Offers, PlanLimit::Webhooks, PlanLimit::AbTests, PlanLimit::StoreCategories => 'name',
             PlanLimit::LandingPages => 'title',
             PlanLimit::CustomDomains => 'host',
             PlanLimit::DiscountCodes => 'code',

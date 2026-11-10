@@ -78,7 +78,7 @@ it('filters, searches and sorts the theme store, hiding unlisted themes', functi
     Theme::query()->whereKey('layali')->update(['is_listed' => false]);
     ThemeCatalog::flush();
 
-    $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('meta.tags.0.slug', 'general');
+    $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('meta.tags.0.slug', 'general');
     $this->getJson('/api/v1/dashboard/theme-store?price=paid')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'celia');
     $this->getJson('/api/v1/dashboard/theme-store?tag=fashion')->assertJsonCount(1, 'data');
     $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('ملاك'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'malak');

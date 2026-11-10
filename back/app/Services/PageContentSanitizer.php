@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\LandingPage;
 use App\Models\Media;
 use App\Rules\SafeUrl;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +39,7 @@ final class PageContentSanitizer
      *
      * @throws ValidationException
      */
-    public function sanitize(mixed $content, string $root = 'content'): array
+    public function sanitize(mixed $content, string $root = 'content', string $kind = LandingPage::KIND_LANDING): array
     {
         $this->errors = [];
         $this->mediaIds = [];
@@ -59,7 +60,8 @@ final class PageContentSanitizer
             throw ValidationException::withMessages(["{$root}.sections" => [__('pages.too_many_sections', ['max' => $limits['sections_per_page']])]]);
         }
 
-        $types = config('landing.component_types');
+        // Landing pages: product sections; the store home: store sections (no product-bound ones).
+        $types = $kind === LandingPage::KIND_STORE_HOME ? config('landing.store_home_types') : config('landing.component_types');
         $maxPerType = config('landing.components.max_per_type');
         $counts = [];
         $ids = [];

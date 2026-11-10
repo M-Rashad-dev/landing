@@ -18,6 +18,7 @@ enum PlanLimit: string
     case DiscountCodes = 'discount_codes';
     case Webhooks = 'webhooks';
     case AbTests = 'ab_tests';
+    case StoreCategories = 'store_categories';
 
     public function label(): string
     {
@@ -30,6 +31,7 @@ enum PlanLimit: string
             self::DiscountCodes => 'أكواد الخصم',
             self::Webhooks => 'الربط (Webhooks و Google Sheets)',
             self::AbTests => 'اختبارات A/B الشغالة',
+            self::StoreCategories => 'تصنيفات المتجر',
         };
     }
 
@@ -47,6 +49,7 @@ enum PlanLimit: string
             self::DiscountCodes => 'discount_codes',
             self::Webhooks => 'webhooks',
             self::AbTests => 'ab_tests',
+            self::StoreCategories => 'store_categories',
         });
     }
 

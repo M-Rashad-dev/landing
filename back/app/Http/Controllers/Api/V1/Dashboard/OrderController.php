@@ -37,7 +37,7 @@ final class OrderController extends Controller
 {
     use RespondsWithJson;
 
-    private const LIST_RELATIONS = ['product:id,name,deleted_at', 'page:id,title,slug,deleted_at'];
+    private const LIST_RELATIONS = ['product:id,name,deleted_at', 'page:id,title,slug,deleted_at', 'items:id,order_id,product_name,quantity,is_gift'];
 
     public function index(Request $request): JsonResponse
     {

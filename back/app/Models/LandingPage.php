@@ -38,6 +38,8 @@ class LandingPage extends Model
     /** @use HasFactory<LandingPageFactory> */
     use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
+    protected $attributes = ['kind' => self::KIND_LANDING];
+
     protected $fillable = [
         'kind', 'title', 'slug', 'status', 'theme_key', 'identity_id', 'product_id', 'draft_content', 'published_content',
         'version', 'published_at', 'is_home', 'home_key', 'seo_override', 'tracking_override', 'created_by',

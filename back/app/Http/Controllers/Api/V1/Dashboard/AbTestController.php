@@ -47,8 +47,8 @@ final class AbTestController extends Controller
             'split_a' => ['required', 'integer', 'between:10,90'],
         ]);
 
-        $a = LandingPage::query()->findOrFail($data['page_a_id']);
-        $b = LandingPage::query()->findOrFail($data['page_b_id']);
+        $a = LandingPage::query()->landings()->findOrFail($data['page_a_id']);
+        $b = LandingPage::query()->landings()->findOrFail($data['page_b_id']);
         foreach (['page_a_id' => $a, 'page_b_id' => $b] as $field => $page) {
             if (! $page->isPublished()) {
                 throw ValidationException::withMessages([$field => [__('analytics.page_not_published')]]);

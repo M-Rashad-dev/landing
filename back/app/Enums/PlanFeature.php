@@ -6,7 +6,7 @@ namespace App\Enums;
 
 /**
  * On/off plan features. The admin turns each one on or off per plan; the code enforces it.
- * Store features are added with the stores feature (never a key without its check).
+ * Every key here is enforced in the code (never a key without its check).
  */
 enum PlanFeature: string
 {
@@ -15,6 +15,7 @@ enum PlanFeature: string
     case AdvancedAnalytics = 'advanced_analytics';
     case RemoveBranding = 'remove_branding';
     case BuyThemes = 'buy_themes';
+    case Store = 'store';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum PlanFeature: string
             self::AdvancedAnalytics => 'التحليلات المتقدمة',
             self::RemoveBranding => 'إخفاء شعار المنصة من الصفحات',
             self::BuyThemes => 'شراء واستخدام الثيمات المدفوعة',
+            self::Store => 'متجر إلكتروني كامل',
         };
     }
 }

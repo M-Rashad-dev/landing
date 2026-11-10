@@ -130,6 +130,7 @@ final class PublicSite
     public function publishedPages(): Builder
     {
         return LandingPage::query()
+            ->landings()
             ->where('status', PageStatus::Published)
             ->whereNotNull('published_content')
             ->servable()

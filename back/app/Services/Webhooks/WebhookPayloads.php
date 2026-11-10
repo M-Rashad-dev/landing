@@ -38,6 +38,7 @@ final class WebhookPayloads
                 'options' => collect($item->options ?? [])->map(fn ($o) => ['name' => $o['option'] ?? null, 'value' => $o['value'] ?? null])->values()->all(),
             ])->values()->all(),
             'quantity' => (int) $order->quantity,
+            'source' => $order->source,
             'subtotal' => Money::toFloat(Money::toCents((string) $order->subtotal)),
             'discount' => Money::toFloat(Money::toCents((string) $order->offer_discount) + Money::toCents((string) $order->code_discount)),
             'discount_code' => $order->discount_code,

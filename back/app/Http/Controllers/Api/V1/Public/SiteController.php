@@ -9,7 +9,10 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Domain;
 use App\Models\LandingPage;
+use App\Models\StorePage;
 use App\Services\PublicSite;
+use App\Store\StoreCatalog;
+use App\Store\StoreSite;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +42,8 @@ final class SiteController extends Controller
             'primary_host' => $primary,
             'is_primary' => $primary === $domain->host,
             'home_slug' => $active ? Tenancy::runAs($domain->tenant_id, fn () => $this->site->homeSlug()) : null,
+            // A live store owns "/" (landing pages stay on /{slug}).
+            'store_live' => $active && Tenancy::runAs($domain->tenant_id, fn () => app(StoreSite::class)->live($tenant) !== null),
         ]));
     }
 
@@ -82,7 +87,33 @@ final class SiteController extends Controller
             ->values()
             ->all());
 
-        return $this->noStore($this->ok(['primary_host' => $primary, 'pages' => $pages]));
+        // The store: home, products, categories and its pages.
+        $store = Tenancy::runAs($domain->tenant_id, function () use ($domain, $primary): array {
+            if (app(StoreSite::class)->live($domain->tenant) === null) {
+                return [];
+            }
+            $catalog = app(StoreCatalog::class);
+            $urls = [['slug' => '', 'url' => PublicSite::url($primary), 'updated_at' => null], ['slug' => 'products', 'url' => PublicSite::url($primary).'products', 'updated_at' => null]];
+            foreach ($catalog->sellable()->whereNotNull('slug')->orderBy('id')->limit(5000)->get(['slug', 'seo', 'updated_at']) as $product) {
+                if (($product->seo['noindex'] ?? false) !== true) {
+                    $urls[] = ['slug' => 'products/'.$product->slug, 'url' => PublicSite::url($primary).'products/'.rawurlencode((string) $product->slug), 'updated_at' => $product->updated_at?->toIso8601ZuluString()];
+                }
+            }
+            foreach ($catalog->visibleCategories() as $category) {
+                $urls[] = ['slug' => 'categories/'.$category->slug, 'url' => PublicSite::url($primary).'categories/'.rawurlencode($category->slug), 'updated_at' => $category->updated_at?->toIso8601ZuluString()];
+            }
+            foreach (StorePage::query()->where('is_published', true)->get(['slug', 'updated_at']) as $page) {
+                $urls[] = ['slug' => 'pages/'.$page->slug, 'url' => PublicSite::url($primary).'pages/'.rawurlencode($page->slug), 'updated_at' => $page->updated_at?->toIso8601ZuluString()];
+            }
+
+            return $urls;
+        });
+        if ($store !== []) {
+            // The store home replaces the landing home at "/".
+            $pages = array_values(array_filter($pages, fn (array $p) => $p['slug'] !== ''));
+        }
+
+        return $this->noStore($this->ok(['primary_host' => $primary, 'pages' => [...$store, ...$pages]]));
     }
 
     private function domainOrFail(Request $request): Domain

@@ -9,6 +9,7 @@ use App\Actions\Pages\PageLifecycle;
 use App\Actions\Pages\PublishPage;
 use App\Actions\Pages\SavePageContent;
 use App\Actions\Pages\SyncPageMedia;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\PageRequest;
 use App\Http\Requests\Dashboard\SavePageContentRequest;
@@ -31,7 +32,9 @@ final class PageController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', '');
 
+        // The store home is edited from «المتجر», not listed with the landing pages.
         $pages = LandingPage::query()
+            ->landings()
             ->with(self::RELATIONS)
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('title', 'like', '%'.addcslashes($search, '%_\\').'%')->orWhere('slug', 'like', '%'.addcslashes($search, '%_\\').'%')))
             ->when(in_array($status, ['draft', 'published'], true), fn ($q) => $q->where('status', $status))
@@ -119,6 +122,7 @@ final class PageController extends Controller
 
     public function duplicate(Request $request, LandingPage $page, PageLifecycle $lifecycle): JsonResponse
     {
+        $this->notStoreHome($page);
         $copy = $lifecycle->duplicate($page, $request->user()?->getAuthIdentifier());
 
         return $this->created(PageDetailResource::make($copy->load(self::RELATIONS))->resolve($request));
@@ -126,13 +130,24 @@ final class PageController extends Controller
 
     public function setHome(LandingPage $page, PageLifecycle $lifecycle): JsonResponse
     {
+        $this->notStoreHome($page);
+
         return $this->ok(PageDetailResource::make($lifecycle->setHome($page)->load(self::RELATIONS)));
     }
 
     public function destroy(LandingPage $page, PageLifecycle $lifecycle): Response
     {
+        $this->notStoreHome($page);
         $lifecycle->delete($page);
 
         return $this->noContent();
+    }
+
+    /** The store home lives in «المتجر»: it is not copied, deleted or made the landing home. */
+    private function notStoreHome(LandingPage $page): void
+    {
+        if ($page->isStoreHome()) {
+            throw new ApiException(422, 'store_home', __('pages.store_home_locked'));
+        }
     }
 }

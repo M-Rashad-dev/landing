@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,7 +32,13 @@ final class PublicProductResource extends JsonResource
             'description' => $this->description,
             'price' => Money::toFloat($this->priceCents()),
             'compare_at_price' => $compare === null ? null : Money::toFloat($compare),
-            'available' => $this->is_active,
+            'available' => $this->is_active && $this->inStock(),
+            'slug' => $this->slug,
+            'short_description' => $this->short_description,
+            // Stock: unlimited → null; product → units left; variant → units per combination key.
+            'stock_mode' => $this->stock_mode,
+            'stock' => $this->stock_mode === Product::STOCK_PRODUCT ? max(0, (int) $this->stock) : null,
+            'variant_stock' => $this->stock_mode === Product::STOCK_VARIANT ? app(Stock::class)->variantStock($this->resource) : null,
             'images' => $this->media->map(fn (Media $media) => [
                 'id' => $media->id,
                 'alt' => $media->alt,

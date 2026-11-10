@@ -34,7 +34,11 @@ final class PublishPage
             $blockers[] = $this->blocker('locked_by_plan');
         }
 
-        if ($page->product_id === null) {
+        $store = $page->isStoreHome();
+
+        if ($store) {
+            // The store home sells the catalog: no product, no order form.
+        } elseif ($page->product_id === null) {
             $blockers[] = $this->blocker('no_product');
         } elseif ($page->product === null || $page->product->trashed() || ! $page->product->is_active) {
             $blockers[] = $this->blocker('product_inactive');
@@ -47,7 +51,7 @@ final class PublishPage
         }
 
         try {
-            $clean = $this->sanitizer->sanitize($page->draft_content)['content'];
+            $clean = $this->sanitizer->sanitize($page->draft_content, 'content', $page->kind)['content'];
         } catch (ValidationException $e) {
             $first = collect($e->errors())->flatten()->first();
             $blockers[] = $this->blocker('content_invalid', ['error' => (string) $first]);
@@ -57,7 +61,9 @@ final class PublishPage
         $visible = array_values(array_filter($sections, fn ($s) => is_array($s) && ($s['visible'] ?? true) === true));
         $forms = count(array_filter($visible, fn ($s) => ($s['type'] ?? null) === 'order_form'));
 
-        if ($forms === 0) {
+        if ($store) {
+            // Store sections only (checked by the sanitizer).
+        } elseif ($forms === 0) {
             $blockers[] = $this->blocker('order_form_missing');
         } elseif ($forms > 1) {
             $blockers[] = $this->blocker('order_form_multiple');
@@ -86,7 +92,9 @@ final class PublishPage
             ])->save();
 
             $this->syncMedia->handle($page);
-            $this->home->handle($page);
+            if (! $page->isStoreHome()) {
+                $this->home->handle($page);
+            }
         });
 
         RevalidateTenantHosts::dispatch($page->tenant_id)->afterCommit();

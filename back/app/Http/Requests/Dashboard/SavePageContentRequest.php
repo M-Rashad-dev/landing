@@ -23,7 +23,7 @@ final class SavePageContentRequest extends ApiRequest
             // Switching needs an active theme; a page already on a disabled theme keeps saving.
             'theme_key' => $this->input('theme_key') !== null && $this->input('theme_key') === $current
                 ? ['string']
-                : ['nullable', 'string', 'bail', Rule::exists('themes', 'key')->where('is_active', true), new OwnedTheme],
+                : ['nullable', 'string', 'bail', Rule::exists('themes', 'key')->where('is_active', true), new OwnedTheme($page?->isStoreHome() ? 'store' : 'landing')],
             'content' => ['required', 'array'],
         ];
     }

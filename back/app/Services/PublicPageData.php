@@ -52,7 +52,7 @@ final class PublicPageData
             return null;
         }
 
-        $product->loadMissing(['options.values', 'media']);
+        $product->loadMissing(['options.values', 'media', 'variants']);
 
         return PublicProductResource::make($product)->resolve(request());
     }
@@ -132,7 +132,7 @@ final class PublicPageData
     }
 
     /** @return array<string, mixed>|null */
-    private function image(?Media $media): ?array
+    public function image(?Media $media): ?array
     {
         return $media === null ? null : [
             'id' => $media->id,

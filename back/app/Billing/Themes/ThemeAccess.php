@@ -44,7 +44,12 @@ final class ThemeAccess
             return false;
         }
 
-        return $this->catalog->isFree($key) || $this->entitlements->for($tenant)->allows(PlanFeature::BuyThemes);
+        $plan = $this->entitlements->for($tenant);
+        if (($this->catalog->theme($key)['kind'] ?? 'landing') === 'store' && ! $plan->allows(PlanFeature::Store)) {
+            return false;
+        }
+
+        return $this->catalog->isFree($key) || $plan->allows(PlanFeature::BuyThemes);
     }
 
     /** @return list<string> */

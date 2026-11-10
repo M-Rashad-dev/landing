@@ -21,7 +21,7 @@ final class OrderDetailResource extends OrderResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
-        $money = fn (string $value): float => Money::toFloat(Money::toCents($value));
+        $money = fn (?string $value): ?float => $value === null ? null : Money::toFloat(Money::toCents($value));
 
         return array_merge(parent::toArray($request), [
             'customer_phone2' => $this->customer_phone2,
@@ -44,6 +44,8 @@ final class OrderDetailResource extends OrderResource
                 'unit_price' => $money($item->unit_price),
                 'quantity' => $item->quantity,
                 'options' => $item->options ?? [],
+                'offer_name' => $item->offer_name,
+                'offer_discount' => $money((string) ($item->offer_discount ?? '0')),
                 'line_total' => $money($item->line_total),
             ])->values()->all(),
             'logs' => $this->logs->map(fn (OrderStatusLog $log) => [

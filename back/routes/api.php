@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AccountController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
+use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
@@ -28,12 +29,16 @@ use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
+use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
+use App\Http\Controllers\Api\V1\Dashboard\StoreController;
+use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
 use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
+use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +112,17 @@ Route::prefix('dashboard')
         Route::delete('upsells/{upsell}', [UpsellController::class, 'destroy']);
 
         Route::post('pricing/preview', [PricingController::class, 'preview']);
+
+        Route::get('store', [StoreController::class, 'show']);
+        Route::post('store/setup', [StoreController::class, 'setup']);
+        Route::put('store', [StoreController::class, 'update']);
+        Route::get('categories', [CategoryController::class, 'index']);
+        Route::post('categories', [CategoryController::class, 'store']);
+        Route::put('categories/order', [CategoryController::class, 'reorder']);
+        Route::put('categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
+        Route::apiResource('store-pages', StorePageController::class)->except(['show']);
+        Route::get('store/analytics', StoreAnalyticsController::class);
 
         Route::get('themes', [ThemeStoreController::class, 'mine']);
         Route::get('theme-store', [ThemeStoreController::class, 'index']);
@@ -185,6 +201,19 @@ Route::prefix('public')
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
         Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');
         Route::get('ab-routes', [EventController::class, 'abRoutes'])->middleware('throttle:public-read');
+
+        // The online store.
+        Route::middleware('throttle:public-read')->group(function (): void {
+            Route::get('store', [PublicStoreController::class, 'config']);
+            Route::get('store/products', [PublicStoreController::class, 'products']);
+            Route::get('store/products/{slug}', [PublicStoreController::class, 'product']);
+            Route::get('store/pages/{slug}', [PublicStoreController::class, 'page']);
+        });
+        Route::get('store/form-token', [PublicStoreController::class, 'formToken'])->middleware('throttle:public-form-token');
+        Route::post('store/quote', [PublicStoreController::class, 'quote'])->middleware('throttle:public-quote');
+        Route::post('store/orders', [PublicStoreController::class, 'order'])->middleware('throttle:public-order-attempts');
+        Route::post('store/leads', [PublicStoreController::class, 'lead'])->middleware('throttle:public-leads');
+        Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
     });
 
 Route::prefix('admin')

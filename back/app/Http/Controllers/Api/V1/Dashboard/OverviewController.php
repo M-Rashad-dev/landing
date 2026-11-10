@@ -72,8 +72,8 @@ final class OverviewController extends Controller
                 'orders' => (int) $row->orders_count,
             ])->values()->all(),
             'latest_orders' => OrderResource::collection(Order::query()->with(['product:id,name,deleted_at'])->orderByDesc('order_number')->limit(5)->get())->resolve(request()),
-            'pages_count' => LandingPage::query()->count(),
-            'published_pages' => LandingPage::query()->where('status', 'published')->count(),
+            'pages_count' => LandingPage::query()->landings()->count(),
+            'published_pages' => LandingPage::query()->landings()->where('status', 'published')->count(),
         ]);
     }
 }

@@ -20,7 +20,7 @@ final class EnsureHomePage
             return;
         }
 
-        $first = LandingPage::query()->where('status', PageStatus::Published)->orderBy('published_at')->orderBy('id')->first();
+        $first = LandingPage::query()->landings()->where('status', PageStatus::Published)->orderBy('published_at')->orderBy('id')->first();
         $first?->forceFill(['is_home' => true, 'home_key' => 1])->save();
         if ($first !== null && $current?->id === $first->id) {
             $current->forceFill(['is_home' => true, 'home_key' => 1])->syncOriginal();

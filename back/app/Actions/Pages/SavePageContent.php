@@ -20,7 +20,7 @@ final class SavePageContent
 
     public function handle(LandingPage $page, int $version, mixed $content, ?string $themeKey): LandingPage
     {
-        $clean = $this->sanitizer->sanitize($content)['content'];
+        $clean = $this->sanitizer->sanitize($content, 'content', $page->kind)['content'];
 
         return DB::transaction(function () use ($page, $version, $clean, $themeKey): LandingPage {
             /** @var LandingPage $locked */

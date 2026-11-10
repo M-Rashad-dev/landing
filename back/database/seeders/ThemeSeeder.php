@@ -37,6 +37,13 @@ class ThemeSeeder extends Seeder
             'features' => ['وضع ليلي من ألوانك', 'لمسات زجاج وتوهج', 'مناسب للمنتجات الفاخرة'],
             'tags' => ['perfumes', 'accessories'],
         ],
+        [
+            'key' => 'rewaq', 'name' => 'رواق', 'sort_order' => 10, 'price' => 0, 'kind' => 'store',
+            'short_description' => 'ثيم متجر نظيف وسريع، مجاني لكل المتاجر.',
+            'description' => 'هيدر بقائمة وسلة، صفحات تصنيفات بفلاتر وبحث، صفحة منتج بالخيارات والمخزون، سلة وإتمام طلب في صفحة واحدة.',
+            'features' => ['قائمة تصنيفات متعددة المستويات', 'فلاتر وبحث وترتيب', 'سلة وإتمام طلب سريع'],
+            'tags' => ['general'],
+        ],
     ];
 
     private const TAGS = [
@@ -64,7 +71,7 @@ class ThemeSeeder extends Seeder
             // First time only: the store details (afterwards they belong to the admin).
             if ($existing->short_description === null && ! $existing->is_listed) {
                 $existing->update([
-                    'kind' => 'landing',
+                    'kind' => $theme['kind'] ?? 'landing',
                     'short_description' => $theme['short_description'],
                     'description' => $theme['description'],
                     'features' => $theme['features'],
