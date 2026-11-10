@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Billing\Entitlements;
+use App\Billing\PlanCatalog;
+use App\Billing\PlatformSettings;
 use App\Services\Dns\DnsResolver;
 use App\Services\Dns\NativeDnsResolver;
 use App\Tenancy\Tenancy;
@@ -19,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
+        // Per-request memos over cached plan data (flushed by model events).
+        $this->app->scoped(PlanCatalog::class);
+        $this->app->scoped(PlatformSettings::class);
+        $this->app->scoped(Entitlements::class);
         $this->app->bind(DnsResolver::class, NativeDnsResolver::class);
     }
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
+use App\Enums\PlanFeature;
+use App\Enums\PlanLimit;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
@@ -41,6 +43,31 @@ class ApiException extends RuntimeException
     public static function limitReached(int $limit): self
     {
         return new self(422, 'limit_reached', __('landing.limit_reached', ['limit' => $limit]));
+    }
+
+    /** @param array{key: string, name: string}|null $upgradeTo cheapest plan with more room */
+    public static function planLimitReached(PlanLimit $limit, int $max, int $used, ?array $upgradeTo): self
+    {
+        return new self(403, 'plan_limit_reached', __('billing.limit_reached', ['label' => $limit->label(), 'limit' => $max]), null, [
+            'limit_key' => $limit->value,
+            'limit' => $max,
+            'used' => $used,
+            'upgrade_to' => $upgradeTo,
+        ]);
+    }
+
+    /** @param array{key: string, name: string}|null $upgradeTo cheapest plan with the feature */
+    public static function planFeatureLocked(PlanFeature $feature, ?array $upgradeTo): self
+    {
+        return new self(403, 'plan_feature_locked', __('billing.feature_locked', ['label' => $feature->label()]), null, [
+            'feature' => $feature->value,
+            'upgrade_to' => $upgradeTo,
+        ]);
+    }
+
+    public static function subscriptionExpired(): self
+    {
+        return new self(403, 'subscription_expired', __('billing.subscription_expired'));
     }
 
     public function render(): JsonResponse

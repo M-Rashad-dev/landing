@@ -47,7 +47,7 @@ return [
         'sitemap', 'robots', 'favicon', 'thank-you', 'track',
     ],
 
-    // Internal safety limits (no plans/billing UI).
+    // Platform safety ceilings. Plan limits (admin) apply below these; "unlimited" means up to here.
     'limits' => [
         'pages' => 200,
         'products' => 500,
@@ -55,6 +55,9 @@ return [
         'discount_codes' => 500,
         'offers' => 200,
         'custom_domains' => 10,
+        'media_storage_mb' => 50000,
+        'webhooks' => 10,
+        'ab_tests' => 20,
         'upload_max_kb' => 5 * 1024,
         'upload_files_per_request' => 10,
         'sections_per_page' => 30,
@@ -62,6 +65,17 @@ return [
         'content_max_depth' => 5,
         'content_max_array_items' => 50,
         'export_max_rows' => 10000,
+    ],
+
+    // Plans and subscriptions (docs/features/3-PLANS.md). Prices, limits and the trial are set in the admin.
+    'billing' => [
+        'currency' => 'EGP',
+        // Upgrading within these days of a paid period costs only the difference.
+        'upgrade_difference_days' => 7,
+        'refund_days' => 3,
+        'refund_cooldown_days' => 180,
+        'renewal_reminder_days' => [7, 3, 1],
+        'max_discount_percent' => 90,
     ],
 
     'duplicate_order_window_hours' => 24,
