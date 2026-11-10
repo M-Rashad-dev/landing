@@ -115,6 +115,16 @@ it('prices the plans with the upgrade difference inside the first 7 days', funct
         ->and($plans['basic']['values']['products'])->toBe(5);
 });
 
+it('marks a granted plan (no period) as current in both periods', function () {
+    billingOwner('pro');
+
+    $plans = collect($this->getJson('/api/v1/dashboard/billing/plans')->assertOk()->json('data'))->keyBy('key');
+
+    expect($plans['pro']['prices']['monthly']['is_current'])->toBeTrue()
+        ->and($plans['pro']['prices']['yearly']['is_current'])->toBeTrue()
+        ->and($plans['max']['prices']['monthly']['is_current'])->toBeFalse();
+});
+
 it('lists only its own subscriptions', function () {
     billingOwner('pro');
     Tenant::factory()->onPlan('max')->create();
@@ -250,7 +260,7 @@ it('shows plan counts on the admin overview', function () {
     Tenant::factory()->expired('pro')->create();
     Sanctum::actingAs(User::factory()->superAdmin()->create());
 
-    $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.plans.pro', 1)->assertJsonPath('data.expired', 1);
+    $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.plans.0.name', 'برو')->assertJsonPath('data.plans.0.total', 1)->assertJsonPath('data.expired', 1);
 });
 
 it('sends the plan with the session so the layout needs no extra call', function () {

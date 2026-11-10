@@ -86,7 +86,8 @@ final class PlanPresenter
                 }
                 $row = $quote->toArray();
                 if ($current !== null || $currentPlanKey !== null) {
-                    $row['is_current'] = $plan['key'] === $currentPlanKey && $period === $currentPeriod;
+                    // A trial or admin grant has no period: its plan is current in both periods.
+                    $row['is_current'] = $plan['key'] === $currentPlanKey && ($currentPeriod === null || $period === $currentPeriod);
                     $row['change'] = $this->prices->change($current, $quote)->toArray();
                 }
                 $prices[$period->value] = $row;

@@ -1253,7 +1253,6 @@ export const ar = {
       published: "الصفحات المنشورة",
       ordersToday: "طلبات اليوم",
       ordersTotal: "إجمالي الطلبات",
-      plansTitle: "الاشتراكات",
       trials: "في التجربة المجانية",
       expiringWeek: "بينتهوا الأسبوع ده",
       expired: "اشتراكهم منتهي",

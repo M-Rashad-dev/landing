@@ -36,7 +36,7 @@ export function AdminOverviewCards() {
     { icon: Hourglass, label: t.trials, value: data.trials },
     { icon: CalendarClock, label: t.expiringWeek, value: data.expiring_week },
     { icon: CircleOff, label: t.expired, value: data.expired },
-    ...Object.entries(data.plans).map(([key, value]) => ({ icon: Crown, label: t.onPlan(key), value, href: "/admin/plans" })),
+    ...data.plans.map((plan) => ({ icon: Crown, label: t.onPlan(plan.name), value: plan.total, href: "/admin/plans" })),
   ];
 
   return (

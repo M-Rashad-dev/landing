@@ -13,7 +13,7 @@ export type AdminOverview = {
   published_pages: number;
   orders_today: number;
   orders_total: number;
-  plans: Record<string, number>;
+  plans: { key: string; name: string; total: number }[];
   trials: number;
   expiring_week: number;
   expired: number;
