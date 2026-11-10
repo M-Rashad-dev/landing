@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
  */
 class ThemeSeeder extends Seeder
 {
-    /** Owner decision: Malak free, Celia 100, Layali 150 (landing themes). */
+    /** Owner decision: Malak free, Celia 100, Layali 150 (landing themes); store: Rewaq free, Diwan 200. */
     private const THEMES = [
         [
             'key' => 'malak', 'name' => 'ملاك', 'sort_order' => 1, 'price' => 0,
@@ -43,6 +43,13 @@ class ThemeSeeder extends Seeder
             'description' => 'هيدر بقائمة وسلة، صفحات تصنيفات بفلاتر وبحث، صفحة منتج بالخيارات والمخزون، سلة وإتمام طلب في صفحة واحدة.',
             'features' => ['قائمة تصنيفات متعددة المستويات', 'فلاتر وبحث وترتيب', 'سلة وإتمام طلب سريع'],
             'tags' => ['general'],
+        ],
+        [
+            'key' => 'diwan', 'name' => 'ديوان', 'sort_order' => 11, 'price' => 200, 'kind' => 'store',
+            'short_description' => 'ثيم متجر ليلي فخم بأسطح زجاجية.',
+            'description' => 'خلفية داكنة من ألوان هويتك، بطاقات منتجات زجاجية وتوهج خفيف، نفس مميزات المتجر كاملة. مناسب للعطور والساعات والهدايا الفاخرة.',
+            'features' => ['وضع ليلي من ألوانك', 'بطاقات منتجات فخمة', 'كل أقسام المتجر'],
+            'tags' => ['perfumes', 'accessories'],
         ],
     ];
 

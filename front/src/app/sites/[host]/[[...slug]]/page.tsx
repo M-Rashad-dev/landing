@@ -15,6 +15,8 @@ import { SiteEnhancer } from "@/themes/shared/components/site-enhancer";
 import { SiteRenderer } from "@/themes/site-renderer";
 import type { PageContext } from "@/themes/types";
 import { SuspendedStore } from "../suspended";
+import { StoreHome, storeHomeMetadata } from "../store-home";
+import { loadStore } from "@/lib/public/store-route";
 
 /** ISR: pages are cached per host/slug and refreshed by tag on publish/edit (or after 60 s). */
 export const revalidate = 60;
@@ -42,13 +44,18 @@ async function load(params: Params) {
     permanentRedirect(primaryRedirectUrl(site.primary_host, pathForSlug(slug), { scheme: env.publicScheme, port: env.publicPort }));
   }
 
+  // A live store owns "/": the landing home moves out of the way (landing pages keep /{slug}).
+  if (slug === "" && site.store_live) return { host, slug, site, data: null, store: await loadStore(host, "/") };
+
   const data = await getPublicPage(host, slug);
   if (!data) notFound();
   return { host, slug, site, data };
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { data } = await load(params);
+  const loaded = await load(params);
+  if ("store" in loaded && loaded.store) return storeHomeMetadata(loaded.store);
+  const { data } = loaded;
   if (!data) return { title: { absolute: "—" }, robots: { index: false, follow: false } };
   return buildMetadata(data);
 }
@@ -59,7 +66,9 @@ export async function generateViewport({ params }: { params: Params }): Promise<
 }
 
 export default async function PublicSitePage({ params }: { params: Params }) {
-  const { host, data } = await load(params);
+  const loaded = await load(params);
+  if ("store" in loaded && loaded.store) return <StoreHome store={loaded.store} />;
+  const { host, data } = loaded;
   if (!data) return <SuspendedStore />;
   if (!data.identity) notFound();
   // A page-only design (builder) replaces the identity's colors, fonts and radius.

@@ -47,8 +47,8 @@ function plan(buyThemes: boolean): Entitlements {
     grace_ends_at: null,
     days_left: 20,
     renewal_due: false,
-    features: { upsells: buyThemes, abandoned_leads: buyThemes, advanced_analytics: buyThemes, remove_branding: false, buy_themes: buyThemes },
-    limits: { products: limit, landing_pages: limit, custom_domains: limit, media_storage_mb: limit, offers: limit, discount_codes: limit, webhooks: limit, ab_tests: limit },
+    features: { upsells: buyThemes, abandoned_leads: buyThemes, advanced_analytics: buyThemes, remove_branding: false, buy_themes: buyThemes, store: buyThemes },
+    limits: { products: limit, landing_pages: limit, custom_domains: limit, media_storage_mb: limit, offers: limit, discount_codes: limit, webhooks: limit, ab_tests: limit, store_categories: limit },
   };
 }
 

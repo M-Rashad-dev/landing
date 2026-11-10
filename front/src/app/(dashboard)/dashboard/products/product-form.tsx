@@ -23,13 +23,16 @@ import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useUnsavedChangesWarning } from "@/lib/hooks/use-unsaved-changes";
 import { discountPercent, formatPrice } from "@/lib/price";
 import { productKeys, saveProduct } from "@/lib/products/api";
-import { formToPayload, newKey, newOption, newValue, productSchema, productToForm, type ProductFormValues } from "@/lib/products/form";
+import { combinations, formToPayload, MAX_VARIANTS, newKey, newOption, newValue, productSchema, productToForm, type ProductFormValues } from "@/lib/products/form";
+import { isClosed, usePlan } from "@/components/billing/plan";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useCategories } from "@/lib/store/api";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
 const t = ar.products;
-const ROOTS = ["name", "description", "sku", "price", "compare_at_price", "is_active", "media_ids", "options"];
+const ROOTS = ["name", "description", "sku", "price", "compare_at_price", "is_active", "media_ids", "options", "slug", "short_description", "in_store", "is_featured", "category_ids", "stock_mode", "stock", "low_stock_threshold", "variants", "seo"];
 
 export function ProductForm({ product, onSaved }: { product?: Product; onSaved?: (product: Product) => void }) {
   const router = useRouter();
@@ -141,6 +144,29 @@ export function ProductForm({ product, onSaved }: { product?: Product; onSaved?:
         {(watched.options?.length ?? 0) > 0 ? <OptionsPreview control={control} /> : null}
       </FormSection>
 
+      <StoreSection control={control} register={register} errors={errors} />
+      <StockSection control={control} register={register} errors={errors} />
+      <FormSection title={t.sections.seo} description={t.seo.hint} hasError={Boolean(errors.seo_title || errors.seo_description)}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label={t.seo.title} htmlFor="product-seo-title" error={errors.seo_title?.message}>
+            <Input id="product-seo-title" maxLength={70} {...register("seo_title")} />
+          </FormField>
+          <FormField label={t.seo.description} htmlFor="product-seo-description" error={errors.seo_description?.message}>
+            <Input id="product-seo-description" maxLength={170} {...register("seo_description")} />
+          </FormField>
+        </div>
+        <Controller
+          control={control}
+          name="seo_noindex"
+          render={({ field }) => (
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+              {t.seo.noindex}
+            </label>
+          )}
+        />
+      </FormSection>
+
       <div className="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <Button type="button" variant="outline" onClick={() => router.push("/dashboard/products")}>
           {ar.common.cancel}
@@ -224,7 +250,7 @@ function OptionEditor({
                 </div>
               ) : null}
               <div className="w-32">
-                <Input aria-label={t.options.priceDelta} placeholder={`+ ${t.options.priceDelta}`} inputMode="decimal" dir="ltr" className="text-start" aria-invalid={!!valueErrors?.price_delta} {...register(`options.${index}.values.${valueIndex}.price_delta`)} />
+                <Input aria-label={t.options.priceDelta} title={t.options.priceDeltaHint} placeholder={`± ${t.options.priceDelta}`} inputMode="decimal" dir="ltr" className="text-start" aria-invalid={!!valueErrors?.price_delta} {...register(`options.${index}.values.${valueIndex}.price_delta`)} />
                 {valueErrors?.price_delta?.message ? <p className="mt-1 text-xs text-destructive">{valueErrors.price_delta.message}</p> : null}
               </div>
               <Controller
@@ -327,5 +353,135 @@ function OptionsPreview({ control }: { control: Control<ProductFormValues> }) {
         })}
       </div>
     </div>
+  );
+}
+
+type SectionArgs = { control: Control<ProductFormValues>; register: UseFormRegister<ProductFormValues>; errors: FieldErrors<ProductFormValues> };
+
+/** Store fields: shown in the store, featured, link, short text, categories. */
+function StoreSection({ control, register, errors }: SectionArgs) {
+  const plan = usePlan();
+  const storeOpen = !isClosed(plan, { feature: "store" });
+  const categories = useCategories(storeOpen);
+
+  return (
+    <FormSection title={t.sections.store} hasError={Boolean(errors.slug || errors.short_description || errors.category_ids)}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(["in_store", "is_featured"] as const).map((name) => (
+          <Controller
+            key={name}
+            control={control}
+            name={name}
+            render={({ field }) => (
+              <label className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <span>
+                  <span className="block text-sm font-semibold">{name === "in_store" ? t.store.inStore : t.store.featured}</span>
+                  <span className="block text-xs text-muted-foreground">{name === "in_store" ? t.store.inStoreHint : t.store.featuredHint}</span>
+                </span>
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              </label>
+            )}
+          />
+        ))}
+      </div>
+      <FormField label={t.store.slug} htmlFor="product-slug" hint={t.store.slugHint} error={errors.slug?.message}>
+        <Input id="product-slug" dir="auto" maxLength={120} aria-invalid={!!errors.slug} {...register("slug")} />
+      </FormField>
+      <FormField label={t.store.shortDescription} htmlFor="product-short" hint={t.store.shortDescriptionHint} error={errors.short_description?.message}>
+        <Textarea id="product-short" rows={2} maxLength={300} {...register("short_description")} />
+      </FormField>
+      {storeOpen ? (
+        <FormField label={t.store.categories} error={typeof errors.category_ids?.message === "string" ? errors.category_ids.message : undefined}>
+          {(categories.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.store.noCategories}</p>
+          ) : (
+            <Controller
+              control={control}
+              name="category_ids"
+              render={({ field }) => (
+                <ul className="grid max-h-56 gap-1 overflow-y-auto rounded-lg border p-2 sm:grid-cols-2">
+                  {(categories.data ?? []).map((c) => {
+                    const checked = field.value.includes(c.id);
+                    return (
+                      <li key={c.id} style={{ paddingInlineStart: `${c.depth}rem` }}>
+                        <label className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                          <Checkbox checked={checked} onCheckedChange={(next) => field.onChange(next ? [...field.value, c.id] : field.value.filter((id) => id !== c.id))} />
+                          {c.name}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            />
+          )}
+        </FormField>
+      ) : null}
+    </FormSection>
+  );
+}
+
+/** Stock: unlimited, one quantity, or a quantity per combination of the required options. */
+function StockSection({ control, register, errors }: SectionArgs) {
+  const mode = useWatch({ control, name: "stock_mode" });
+  const options = useWatch({ control, name: "options" });
+  const combos = mode === "variant" ? combinations(options ?? []) : [];
+
+  return (
+    <FormSection title={t.sections.stock} description={t.stock.modeHint} hasError={Boolean(errors.stock || errors.low_stock_threshold || errors.variant_stock)}>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField label={t.stock.mode} htmlFor="product-stock-mode">
+          <Controller
+            control={control}
+            name="stock_mode"
+            render={({ field }) => <Select id="product-stock-mode" value={field.value} onChange={(e) => field.onChange(e.target.value)} options={(["unlimited", "product", "variant"] as const).map((m) => ({ value: m, label: t.stock.modes[m] }))} />}
+          />
+        </FormField>
+        {mode === "product" ? (
+          <FormField label={t.stock.quantity} htmlFor="product-stock" error={errors.stock?.message} required>
+            <Input id="product-stock" inputMode="numeric" dir="ltr" className="text-start" aria-invalid={!!errors.stock} {...register("stock")} />
+          </FormField>
+        ) : null}
+        {mode !== "unlimited" ? (
+          <FormField label={t.stock.lowThreshold} htmlFor="product-low" hint={t.stock.lowThresholdHint} error={errors.low_stock_threshold?.message}>
+            <Input id="product-low" inputMode="numeric" dir="ltr" className="text-start" {...register("low_stock_threshold")} />
+          </FormField>
+        ) : null}
+      </div>
+      {mode === "variant" ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">{t.stock.variantsTitle}</p>
+          <p className="text-xs text-muted-foreground">{t.stock.variantsHint}</p>
+          {combos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.stock.noVariants}</p>
+          ) : combos.length > MAX_VARIANTS ? (
+            <p className="text-sm text-destructive">{t.stock.tooMany}</p>
+          ) : (
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {combos.map((combo) => (
+                <li key={combo.key} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                  <span className="truncate text-sm">{combo.label}</span>
+                  <Controller
+                    control={control}
+                    name="variant_stock"
+                    render={({ field }) => (
+                      <Input
+                        aria-label={`${t.stock.quantity} — ${combo.label}`}
+                        inputMode="numeric"
+                        dir="ltr"
+                        className="h-9 w-24 text-start"
+                        placeholder="0"
+                        value={field.value[combo.key] ?? ""}
+                        onChange={(e) => field.onChange({ ...field.value, [combo.key]: e.target.value })}
+                      />
+                    )}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </FormSection>
   );
 }

@@ -3,8 +3,8 @@
 export type AccessState = "active" | "grace" | "expired";
 export type BillingPeriod = "monthly" | "yearly";
 
-export const PLAN_LIMITS = ["products", "landing_pages", "custom_domains", "media_storage_mb", "offers", "discount_codes", "webhooks", "ab_tests"] as const;
-export const PLAN_FEATURES = ["upsells", "abandoned_leads", "advanced_analytics", "remove_branding", "buy_themes"] as const;
+export const PLAN_LIMITS = ["products", "landing_pages", "custom_domains", "media_storage_mb", "offers", "discount_codes", "webhooks", "ab_tests", "store_categories"] as const;
+export const PLAN_FEATURES = ["upsells", "abandoned_leads", "advanced_analytics", "remove_branding", "buy_themes", "store"] as const;
 
 export type PlanLimitKey = (typeof PLAN_LIMITS)[number];
 export type PlanFeatureKey = (typeof PLAN_FEATURES)[number];

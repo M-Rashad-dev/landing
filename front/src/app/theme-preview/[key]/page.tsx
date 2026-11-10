@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { starterContent } from "@/components/builder/store";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { DEMO_IDENTITIES, DEMO_PROP_OVERRIDES, demoContext } from "@/themes/dev/fixtures";
+import { DEMO_IDENTITIES, DEMO_IMAGES, DEMO_PROP_OVERRIDES, demoContext, demoStore } from "@/themes/dev/fixtures";
 import { THEMES } from "@/themes/registry";
 import { SiteEnhancer } from "@/themes/shared/components/site-enhancer";
 import { IdentityFonts } from "@/themes/shared/identity-fonts";
@@ -39,8 +39,16 @@ export default async function ThemePreviewPage({ params, searchParams }: { param
   const mobile = device === "mobile";
   const href = (changes: Record<string, string>) => `/theme-preview/${key}?${new URLSearchParams({ identity: identityKey, device: mobile ? "mobile" : "desktop", ...changes })}`;
 
-  const ctx = demoContext(DEMO_IDENTITIES[identityKey]);
-  const sections = starterContent(key).sections.map((section) => ({ ...section, props: { ...section.props, ...(PREVIEW_OVERRIDES[section.type] ?? {}) } }));
+  // A store theme previews its home sections with a sample catalog.
+  const ctx = demoContext(DEMO_IDENTITIES[identityKey], theme.kind === "store" ? { store: demoStore() } : {});
+  const storeImages: Record<string, Record<string, unknown>> =
+    theme.kind === "store"
+      ? {
+          banner_slider: { slides: [{ image_media_id: DEMO_IMAGES[3].id, mobile_image_media_id: null, title: ar.sections.banner_slider.defaults.title, subtitle: ar.sections.banner_slider.defaults.subtitle, cta_label: ar.sections.banner_slider.defaults.cta, cta_url: "/products" }] },
+          promo_banner: { image_media_id: DEMO_IMAGES[3].id },
+        }
+      : {};
+  const sections = starterContent(key).sections.map((section) => ({ ...section, props: { ...section.props, ...(PREVIEW_OVERRIDES[section.type] ?? {}), ...(storeImages[section.type] ?? {}) } }));
   const site = (
     <>
       <IdentityFonts heading={ctx.identity.font_heading} body={ctx.identity.font_body} />

@@ -18,7 +18,7 @@ function entitlements(overrides: Partial<Entitlements> = {}): Entitlements {
     grace_ends_at: "2026-12-11T10:00:00Z",
     days_left: 30,
     renewal_due: false,
-    features: { upsells: false, abandoned_leads: false, advanced_analytics: false, remove_branding: false, buy_themes: false },
+    features: { upsells: false, abandoned_leads: false, advanced_analytics: false, remove_branding: false, buy_themes: false, store: false },
     limits: {
       products: { limit: 5, unlimited: false },
       landing_pages: { limit: 3, unlimited: false },
@@ -28,6 +28,7 @@ function entitlements(overrides: Partial<Entitlements> = {}): Entitlements {
       discount_codes: { limit: 2, unlimited: false },
       webhooks: { limit: 0, unlimited: false },
       ab_tests: { limit: 0, unlimited: false },
+      store_categories: { limit: 0, unlimited: false },
     },
     ...overrides,
   };

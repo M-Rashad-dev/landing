@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTheme, THEMES } from "@/themes/registry";
 import { SCHEMAS } from "@/themes/shared/schemas";
 import { SiteRenderer } from "@/themes/site-renderer";
-import { COMPONENT_TYPES, type Section } from "@/themes/types";
+import { COMPONENT_TYPES, STORE_HOME_TYPES, type Section } from "@/themes/types";
 import { DEMO_PROP_OVERRIDES, demoContext } from "@/themes/dev/fixtures";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }) }));
@@ -25,8 +25,14 @@ describe("theme parity", () => {
         expect(def.variants.map((v) => v.key)).toContain(def.defaultVariant);
         expect(def.Thumbnail).toBeTypeOf("function");
       }
-      // New pages start with the ten core sections; conversion sections (video, countdown, ...) are added from the library.
-      expect(theme.starterSections.map((s) => s.type)).toEqual(COMPONENT_TYPES.slice(0, 10));
+      if (theme.kind === "landing") {
+        // New pages start with the ten core sections; conversion sections (video, countdown, ...) are added from the library.
+        expect(theme.starterSections.map((s) => s.type)).toEqual(COMPONENT_TYPES.slice(0, 10));
+      } else {
+        // A store home starts with store-home sections only (header/footer come from the store layout).
+        for (const section of theme.starterSections) expect(STORE_HOME_TYPES as readonly string[]).toContain(section.type);
+        for (const section of theme.starterSections) expect(theme.components[section.type].variants.map((v) => v.key)).toContain(section.variant);
+      }
     }
   });
 

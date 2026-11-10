@@ -79,6 +79,9 @@ final class LeadController extends Controller
             'status' => $lead->status->value,
             'page' => $lead->page ? ['id' => $lead->page->id, 'title' => $lead->page->title] : null,
             'product' => $lead->product ? ['id' => $lead->product->id, 'name' => $lead->product->name] : null,
+            // Store checkouts: the cart the visitor left (items + total), no single product.
+            'source' => $lead->source ?? 'landing',
+            'cart' => $lead->cart,
             'order' => $lead->order ? ['id' => $lead->order->id, 'number' => $lead->order->order_number] : null,
             'contacted_at' => $lead->contacted_at?->toIso8601ZuluString(),
             'last_seen_at' => $lead->last_seen_at?->toIso8601ZuluString(),

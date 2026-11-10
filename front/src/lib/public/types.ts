@@ -9,6 +9,8 @@ export type ResolvedHost = {
   primary_host: string;
   is_primary: boolean;
   home_slug: string | null;
+  /** The store owns "/" (and the store paths); landing pages stay on /{slug}. */
+  store_live?: boolean;
 };
 
 export type PublicSeo = {

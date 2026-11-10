@@ -32,7 +32,8 @@ export function OptionSelector({
   disabled?: boolean;
 }) {
   const id = `opt-${option.id}`;
-  const delta = (d: number) => (d > 0 ? ` (+${formatPrice(d)})` : "");
+  // A value may raise or lower the price (fixed amount).
+  const delta = (d: number) => (d > 0 ? ` (+${formatPrice(d)})` : d < 0 ? ` (−${formatPrice(-d)})` : "");
   const selectedLabel = option.values.find((v) => v.id === value)?.label;
 
   return (
@@ -76,7 +77,7 @@ export function OptionSelector({
             ) : (
               <button key={v.id} type="button" role="radio" aria-checked={selected} onClick={() => onChange(v.id)} className={classes.button ? classes.button(selected) : cn("min-h-11 rounded-lg border px-4 text-sm font-semibold", selected ? "t-primary border-transparent" : "t-border")}>
                 {v.label}
-                {v.price_delta > 0 ? <span className="ms-1 text-xs opacity-80">+{formatPrice(v.price_delta)}</span> : null}
+                {v.price_delta !== 0 ? <span className="ms-1 text-xs opacity-80" dir="ltr">{v.price_delta > 0 ? "+" : "−"}{formatPrice(Math.abs(v.price_delta))}</span> : null}
               </button>
             );
           })}

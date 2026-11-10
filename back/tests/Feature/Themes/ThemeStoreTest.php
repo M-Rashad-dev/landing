@@ -78,11 +78,13 @@ it('filters, searches and sorts the theme store, hiding unlisted themes', functi
     Theme::query()->whereKey('layali')->update(['is_listed' => false]);
     ThemeCatalog::flush();
 
-    $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('meta.tags.0.slug', 'general');
-    $this->getJson('/api/v1/dashboard/theme-store?price=paid')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'celia');
+    $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(4, 'data')->assertJsonPath('meta.tags.0.slug', 'general');
+    $this->getJson('/api/v1/dashboard/theme-store?price=paid')->assertJsonCount(2, 'data');
+    $this->getJson('/api/v1/dashboard/theme-store?price=paid&kind=landing')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'celia');
+    $this->getJson('/api/v1/dashboard/theme-store?kind=store')->assertJsonCount(2, 'data');
     $this->getJson('/api/v1/dashboard/theme-store?tag=fashion')->assertJsonCount(1, 'data');
     $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('ملاك'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'malak');
-    $this->getJson('/api/v1/dashboard/theme-store?sort=price_desc')->assertJsonPath('data.0.key', 'celia');
+    $this->getJson('/api/v1/dashboard/theme-store?sort=price_desc')->assertJsonPath('data.0.key', 'diwan');
     $this->getJson('/api/v1/dashboard/theme-store?sort=bad&kind=shop')->assertStatus(422)->assertJsonValidationErrors(['sort', 'kind']);
     $this->getJson('/api/v1/dashboard/theme-store/layali')->assertNotFound();
     $this->getJson('/api/v1/dashboard/theme-store/nope')->assertNotFound();

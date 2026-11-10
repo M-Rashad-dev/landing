@@ -18,6 +18,7 @@ import { formatCairo } from "@/lib/dates";
 import { formatPhoneLocal } from "@/lib/format/phone";
 import { deleteLead, leadKeys, updateLead, useLeads, type Lead, type LeadStatus } from "@/lib/leads/api";
 import { leadRecoveryMessage, telLink, whatsappLink } from "@/lib/orders/whatsapp";
+import { formatPrice } from "@/lib/price";
 import { ar } from "@/messages/ar";
 
 const t = ar.leads;
@@ -80,11 +81,23 @@ export function LeadsManager() {
       header: t.product,
       cell: (lead) => (
         <div className="flex flex-col gap-0.5 text-sm">
-          <span>{lead.product?.name ?? "—"}</span>
-          <span className="text-xs text-muted-foreground">
-            {t.quantity(lead.quantity)}
-            {lead.governorate ? ` · ${lead.governorate}` : ""}
-          </span>
+          {lead.source === "store" && lead.cart ? (
+            <>
+              <span>{lead.cart.items.map((i) => `${i.name} × ${i.quantity}`).join("، ") || "—"}</span>
+              <span className="text-xs text-muted-foreground">
+                {t.cartTotal(formatPrice(lead.cart.total))}
+                {lead.governorate ? ` · ${lead.governorate}` : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>{lead.product?.name ?? "—"}</span>
+              <span className="text-xs text-muted-foreground">
+                {t.quantity(lead.quantity)}
+                {lead.governorate ? ` · ${lead.governorate}` : ""}
+              </span>
+            </>
+          )}
         </div>
       ),
     },

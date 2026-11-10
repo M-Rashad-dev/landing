@@ -1,5 +1,6 @@
-import type { ComponentType, ThemeComponentDef, ThemeDef } from "@/themes/types";
+import type { ThemeComponentDef, ThemeDef } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { storeSectionDefs } from "@/themes/shared/store/register";
 import { MalakFaq } from "./components/faq";
 import { MalakFeatures } from "./components/features";
 import { MalakFooter } from "./components/footer";
@@ -15,13 +16,14 @@ import { MalakThumbs } from "./thumbnails";
 
 const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
 
-function def(type: ComponentType, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
+function def(type: keyof typeof MalakThumbs, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
   return { component, variants: v(variants), defaultVariant: variants[0], Thumbnail: MalakThumbs[type] };
 }
 
 /** «ملاك» — soft and calm: big rounded corners, light shadows, airy spacing, tinted backgrounds. */
 export const malakTheme: ThemeDef = {
   key: "malak",
+  kind: "landing",
   name: ar.themes.malak.name,
   description: ar.themes.malak.description,
   components: {
@@ -41,6 +43,7 @@ export const malakTheme: ThemeDef = {
     comparison: def("comparison", MalakComparison, ["check-table", "versus-cards"]),
     countdown: def("countdown", MalakCountdown, ["boxes", "banner"]),
     sticky_cta: def("sticky_cta", MalakStickyCta, ["full-bar", "pill"]),
+    ...storeSectionDefs("malak"),
   },
   starterSections: [
     { type: "header", variant: "centered-logo" },

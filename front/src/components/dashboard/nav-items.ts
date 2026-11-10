@@ -7,13 +7,17 @@ import {
   FileText,
   Fingerprint,
   FlaskConical,
+  FolderTree,
   Gift,
   Globe,
   Home,
   Images,
   LayoutTemplate,
   LayoutDashboard,
+  LineChart,
+  ListTree,
   Package,
+  Paintbrush,
   Palette,
   PhoneCall,
   ReceiptText,
@@ -47,6 +51,16 @@ export type NavGroup = { label?: string; items: NavItem[] };
 
 export const DASHBOARD_NAV: NavGroup[] = [
   { items: [{ href: "/dashboard", label: ar.nav.home, icon: Home, exact: true }] },
+  {
+    label: ar.nav.groups.onlineStore,
+    items: [
+      { href: "/dashboard/store", label: ar.store.nav.overview, icon: Store, exact: true, gate: { feature: "store" } },
+      { href: "/dashboard/store/categories", label: ar.store.nav.categories, icon: FolderTree, gate: { feature: "store" } },
+      { href: "/dashboard/store/menus", label: ar.store.nav.menus, icon: ListTree, gate: { feature: "store" } },
+      { href: "/dashboard/store/pages", label: ar.store.nav.pages, icon: FileText, gate: { feature: "store" } },
+      { href: "/dashboard/store/analytics", label: ar.store.nav.analytics, icon: LineChart, gate: { feature: "store" } },
+    ],
+  },
   {
     label: ar.nav.groups.sales,
     items: [
@@ -87,7 +101,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     label: ar.nav.groups.themes,
     items: [
       { href: "/dashboard/themes", label: ar.nav.myThemes, icon: Palette, exact: true },
-      { href: "/dashboard/themes/store", label: ar.nav.themeStore, icon: Store, exclude: [] },
+      { href: "/dashboard/themes/store", label: ar.nav.themeStore, icon: Paintbrush, exclude: [] },
     ],
   },
   {

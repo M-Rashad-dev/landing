@@ -3,17 +3,18 @@
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getTheme } from "@/themes/registry";
 import { SCHEMAS } from "@/themes/shared/schemas";
-import { COMPONENT_TYPES, type ComponentType } from "@/themes/types";
+import { typesForKind, type ComponentType } from "@/themes/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { useBuilder } from "./context";
 import { canAdd, MAX_SECTIONS } from "./store";
 
-/** The 10 component cards; singletons already on the page are disabled. */
+/** The component cards the page kind allows; singletons already on the page are disabled. */
 export function LibraryDialog({ open, onOpenChange, onAdded }: { open: boolean; onOpenChange: (open: boolean) => void; onAdded?: (id: string) => void }) {
   const sections = useBuilder((s) => s.content.sections);
   const themeKey = useBuilder((s) => s.themeKey);
   const addSection = useBuilder((s) => s.addSection);
+  const kind = useBuilder((s) => s.page?.kind ?? "landing");
   const theme = getTheme(themeKey);
   const full = sections.length >= MAX_SECTIONS;
 
@@ -34,7 +35,7 @@ export function LibraryDialog({ open, onOpenChange, onAdded }: { open: boolean; 
         </DialogHeader>
         <DialogBody>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {COMPONENT_TYPES.map((type) => {
+            {typesForKind(kind).map((type) => {
               const schema = SCHEMAS[type];
               const allowed = canAdd(sections, type);
               const Thumb = theme.components[type].Thumbnail;

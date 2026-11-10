@@ -2,7 +2,7 @@
  * Sends one logical event to every loaded pixel (section 8 mapping).
  * Missing tools (not configured or blocked) are skipped silently.
  */
-export type TrackEvent = "ViewContent" | "InitiateCheckout" | "Lead" | "Purchase";
+export type TrackEvent = "ViewContent" | "AddToCart" | "InitiateCheckout" | "Lead" | "Purchase";
 
 export type TrackPayload = {
   content_ids?: Array<string | number>;
@@ -24,10 +24,10 @@ type TrackingWindow = Window & {
   __lpGtm?: boolean;
 };
 
-const META: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "Lead", Purchase: "Purchase" };
-const TIKTOK: Record<TrackEvent, string> = { ViewContent: "ViewContent", InitiateCheckout: "InitiateCheckout", Lead: "SubmitForm", Purchase: "CompletePayment" };
-const GA4: Record<TrackEvent, string> = { ViewContent: "view_item", InitiateCheckout: "begin_checkout", Lead: "generate_lead", Purchase: "purchase" };
-const SNAP: Record<TrackEvent, string> = { ViewContent: "VIEW_CONTENT", InitiateCheckout: "START_CHECKOUT", Lead: "SIGN_UP", Purchase: "PURCHASE" };
+const META: Record<TrackEvent, string> = { ViewContent: "ViewContent", AddToCart: "AddToCart", InitiateCheckout: "InitiateCheckout", Lead: "Lead", Purchase: "Purchase" };
+const TIKTOK: Record<TrackEvent, string> = { ViewContent: "ViewContent", AddToCart: "AddToCart", InitiateCheckout: "InitiateCheckout", Lead: "SubmitForm", Purchase: "CompletePayment" };
+const GA4: Record<TrackEvent, string> = { ViewContent: "view_item", AddToCart: "add_to_cart", InitiateCheckout: "begin_checkout", Lead: "generate_lead", Purchase: "purchase" };
+const SNAP: Record<TrackEvent, string> = { ViewContent: "VIEW_CONTENT", AddToCart: "ADD_CART", InitiateCheckout: "START_CHECKOUT", Lead: "SIGN_UP", Purchase: "PURCHASE" };
 
 function safe(fn: () => void) {
   try {

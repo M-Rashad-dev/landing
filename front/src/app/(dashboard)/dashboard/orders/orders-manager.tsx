@@ -32,6 +32,7 @@ import {
   type OrderFilters,
   type OrderRow,
   type OrderStatus,
+  orderProductLabel,
 } from "@/lib/orders/api";
 import { usePages } from "@/lib/pages/api";
 import { formatPrice } from "@/lib/price";
@@ -142,7 +143,13 @@ export function OrdersManager({ initialStatus = "", initialPageId = "" }: { init
       ),
     },
     { key: "phone", header: t.columns.phone, cell: (o) => <span dir="ltr" className="whitespace-nowrap tabular-nums">{formatPhoneLocal(o.customer_phone)}</span> },
-    { key: "product", header: t.columns.product, cell: (o) => <span className="text-sm">{o.product?.name ?? "—"}{o.quantity > 1 ? <span className="text-muted-foreground"> × {o.quantity}</span> : null}</span> },
+    { key: "product", header: t.columns.product, cell: (o) => (
+        <span className="text-sm">
+          {orderProductLabel(o, t.moreItems)}
+          {o.source !== "store" && o.quantity > 1 ? <span className="text-muted-foreground"> × {o.quantity}</span> : null}
+          {o.source === "store" ? <Badge variant="info" className="ms-2">{t.sourceStore}</Badge> : null}
+        </span>
+      ) },
     { key: "total", header: t.columns.total, cell: (o) => <span className="whitespace-nowrap font-semibold">{formatPrice(o.total)}</span> },
     { key: "status", header: t.columns.status, cell: (o) => <OrderStatusBadge status={o.status} /> },
   ];
@@ -303,7 +310,7 @@ export function OrdersManager({ initialStatus = "", initialPageId = "" }: { init
                     {formatPhoneLocal(order.customer_phone)}
                   </p>
                   <div className="mt-1 flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate text-muted-foreground">{order.product?.name ?? "—"}</span>
+                    <span className="truncate text-muted-foreground">{orderProductLabel(order, t.moreItems)}</span>
                     <span className="font-semibold">{formatPrice(order.total)}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{formatCairo(order.created_at)}</p>

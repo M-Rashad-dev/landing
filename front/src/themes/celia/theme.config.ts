@@ -1,5 +1,6 @@
-import type { ComponentType, ThemeComponentDef, ThemeDef } from "@/themes/types";
+import type { ThemeComponentDef, ThemeDef } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { storeSectionDefs } from "@/themes/shared/store/register";
 import { CeliaFaq } from "./components/faq";
 import { CeliaFeatures } from "./components/features";
 import { CeliaFooter } from "./components/footer";
@@ -15,13 +16,14 @@ import { CeliaThumbs } from "./thumbnails";
 
 const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
 
-function def(type: ComponentType, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
+function def(type: keyof typeof CeliaThumbs, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
   return { component, variants: v(variants), defaultVariant: variants[0], Thumbnail: CeliaThumbs[type] };
 }
 
 /** «سيليا» — bold and modern: hard borders, solid shadows, huge type, dark bands. */
 export const celiaTheme: ThemeDef = {
   key: "celia",
+  kind: "landing",
   name: ar.themes.celia.name,
   description: ar.themes.celia.description,
   components: {
@@ -41,6 +43,7 @@ export const celiaTheme: ThemeDef = {
     comparison: def("comparison", CeliaComparison, ["check-table", "versus-cards"]),
     countdown: def("countdown", CeliaCountdown, ["banner", "boxes"]),
     sticky_cta: def("sticky_cta", CeliaStickyCta, ["full-bar", "pill"]),
+    ...storeSectionDefs("celia"),
   },
   starterSections: [
     { type: "header", variant: "bar" },

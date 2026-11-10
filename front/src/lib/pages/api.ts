@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, apiPage } from "@/lib/api/client";
 import type { Tracking } from "@/lib/tracking/ids";
-import type { PageContent, PageContext } from "@/themes/types";
+import type { PageContent, PageContext, PageKind, StoreSectionData } from "@/themes/types";
 
 export type PageStatus = "draft" | "published";
 
@@ -11,6 +11,8 @@ export type PageSummary = {
   /** Above the plan limit after a downgrade: kept, not served to visitors. */
   locked_by_plan?: boolean;
   id: number;
+  /** A store home is the store's "/" (edited here, shown only through the store). */
+  kind: PageKind;
   title: string;
   slug: string;
   status: PageStatus;
@@ -45,6 +47,7 @@ export type PreviewData = {
   offers: PageContext["offers"];
   media: PageContext["media"];
   shipping?: PageContext["shipping"];
+  store?: StoreSectionData | null;
 };
 
 export type Blocker = { code: string; message: string };

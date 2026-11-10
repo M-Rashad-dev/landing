@@ -14,6 +14,9 @@ export type Lead = {
   status: LeadStatus;
   page: { id: number; title: string } | null;
   product: { id: number; name: string } | null;
+  /** Store checkouts keep the cart instead of one product. */
+  source?: "landing" | "store";
+  cart?: { items: Array<{ product_id: number; name: string; quantity: number }>; total: number } | null;
   order: { id: number; number: number } | null;
   contacted_at: string | null;
   last_seen_at: string | null;

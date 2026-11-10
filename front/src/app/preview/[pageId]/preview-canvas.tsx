@@ -79,8 +79,9 @@ export function PreviewCanvas({ initial, host }: { initial: PreviewData; host: s
       page: initial.page,
       media,
       shipping: initial.shipping,
+      store: initial.store ?? undefined,
     }),
-    [host, initial.identity, content.design, initial.product, initial.offers, initial.page, media, initial.shipping],
+    [host, initial.identity, content.design, initial.product, initial.offers, initial.page, media, initial.shipping, initial.store],
   );
 
   return (

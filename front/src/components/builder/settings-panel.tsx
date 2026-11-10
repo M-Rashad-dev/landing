@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { useBuilder } from "./context";
 import { PageIdentity } from "./page-identity";
+import { useBuilderCategories } from "./store-data";
 
 const t = ar.builder;
 
@@ -39,19 +40,34 @@ export function SettingsPanel({
   const updateProps = useBuilder((s) => s.updateProps);
   const setVariant = useBuilder((s) => s.setVariant);
   const select = useBuilder((s) => s.select);
+  const categories = useBuilderCategories();
+  const isStoreHome = page?.kind === "store_home";
 
   if (!section || !selectedId) {
     return (
       <div className="flex flex-col gap-4 p-4">
         <h2 className="font-bold">{t.pageSettings}</h2>
         <p className="text-sm text-muted-foreground">{t.noSelection}</p>
-        <FormField label={t.theme} htmlFor="b-theme">
-          <Select id="b-theme" value={themeKey} onChange={(event) => onThemeRequest(event.target.value)} options={themes.map((theme) => ({ value: theme.key, label: theme.name, disabled: theme.owned === false && theme.key !== themeKey, hint: theme.owned === false ? ar.themeStore.locked : undefined }))} />
-        </FormField>
+        {isStoreHome ? (
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <p className="font-semibold">
+              {t.theme}: {getTheme(themeKey).name}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{ar.store.home.themeFromStore}</p>
+            <Button variant="link" size="sm" className="mt-1 h-auto p-0" asChild>
+              <Link href="/dashboard/store">{ar.store.home.openStore}</Link>
+            </Button>
+          </div>
+        ) : (
+          <FormField label={t.theme} htmlFor="b-theme">
+            <Select id="b-theme" value={themeKey} onChange={(event) => onThemeRequest(event.target.value)} options={themes.map((theme) => ({ value: theme.key, label: theme.name, disabled: theme.owned === false && theme.key !== themeKey, hint: theme.owned === false ? ar.themeStore.locked : undefined }))} />
+          </FormField>
+        )}
         <div className="flex flex-col gap-2 border-t pt-4">
           <h3 className="text-sm font-semibold">{t.identity}</h3>
           <PageIdentity identities={identities} metaSaving={metaSaving} onMetaChange={onMetaChange} />
         </div>
+        {isStoreHome ? null : (
         <FormField label={t.product} htmlFor="b-product">
           <Select
             id="b-product"
@@ -62,7 +78,8 @@ export function SettingsPanel({
             options={products.map((p) => ({ value: String(p.id), label: p.name }))}
           />
         </FormField>
-        {page ? (
+        )}
+        {page && !isStoreHome ? (
           <Button variant="outline" asChild>
             <Link href={`/dashboard/pages/${page.id}`}>{ar.pages.settings}</Link>
           </Button>
@@ -105,7 +122,7 @@ export function SettingsPanel({
         </div>
       </FormField>
 
-      <FieldList key={section.id} fields={schema.fields} values={props} onChange={(patch) => updateProps(section.id, patch)} ctx={{ sections, idPrefix: `s-${section.id.slice(0, 8)}` }} />
+      <FieldList key={section.id} fields={schema.fields} values={props} onChange={(patch) => updateProps(section.id, patch)} ctx={{ sections, idPrefix: `s-${section.id.slice(0, 8)}`, ...(isStoreHome ? { categories } : {}) }} />
     </div>
   );
 }

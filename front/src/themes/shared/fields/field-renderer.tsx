@@ -15,6 +15,7 @@ import { LinkField } from "./link-field";
 import { CustomFieldsField, OrderFieldsField } from "./order-fields";
 import { RepeaterField } from "./repeater-field";
 import type { FieldContext } from "./types";
+import { ar } from "@/messages/ar";
 
 /** Is a field visible given its sibling values (simple showIf)? */
 export function isFieldVisible(field: FieldDef, values: Record<string, unknown>): boolean {
@@ -132,6 +133,16 @@ export function FieldRenderer({ field, value, onChange, ctx }: { field: FieldDef
         );
       case "order_fields":
         return <OrderFieldsField field={field} value={value as never} onChange={(v) => onChange(v)} ctx={ctx} id={id} />;
+      case "category":
+        return (
+          <Select
+            id={id}
+            value={typeof value === "number" ? String(value) : ""}
+            placeholder={ar.fields.chooseCategory}
+            onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
+            options={(ctx.categories ?? []).map((c) => ({ value: String(c.id), label: `${"— ".repeat(c.depth)}${c.name}` }))}
+          />
+        );
       case "custom_fields":
         return <CustomFieldsField field={field} value={Array.isArray(value) ? (value as never) : []} onChange={(v) => onChange(v)} ctx={ctx} id={id} />;
     }

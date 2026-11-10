@@ -15,6 +15,7 @@ import { countdownSchema } from "./countdown";
 import { sizeChartSchema } from "./size-chart";
 import { stickyCtaSchema } from "./sticky-cta";
 import { videoSchema } from "./video";
+import { bannerSliderSchema, categoryGridSchema, productGridSchema, promoBannerSchema } from "./store";
 
 export const SCHEMAS: Record<ComponentType, ComponentSchema> = {
   header: headerSchema,
@@ -33,6 +34,10 @@ export const SCHEMAS: Record<ComponentType, ComponentSchema> = {
   comparison: comparisonSchema,
   countdown: countdownSchema,
   sticky_cta: stickyCtaSchema,
+  banner_slider: bannerSliderSchema,
+  category_grid: categoryGridSchema,
+  product_grid: productGridSchema,
+  promo_banner: promoBannerSchema,
 };
 
 export function getSchema(type: ComponentType): ComponentSchema {
@@ -60,3 +65,4 @@ export type { SizeChartProps, SizeRow } from "./size-chart";
 export type { ComparisonProps, ComparisonRow } from "./comparison";
 export type { CountdownProps } from "./countdown";
 export type { StickyCtaProps } from "./sticky-cta";
+export type { BannerSliderProps, BannerSlide, CategoryGridProps, ProductGridProps, ProductGridSource, PromoBannerProps } from "./store";

@@ -279,6 +279,7 @@ it('records abandoned checkouts and store traffic', function () {
     storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'form_token' => app(FormToken::class)->issue((int) $store->home_page_id, time() - 10)])->assertStatus(202);
     $lead = AbandonedLead::query()->withoutGlobalScopes()->firstOrFail();
     expect($lead->source)->toBe('store')->and($lead->cart['items'][0]['quantity'])->toBe(2);
+    $this->getJson('/api/v1/dashboard/leads')->assertOk()->assertJsonPath('data.0.source', 'store')->assertJsonPath('data.0.cart.items.0.quantity', 2)->assertJsonPath('data.0.cart.total', 200);
 
     storePost('store/events', ['type' => 'view'])->assertStatus(202);
     storePost('store/events', ['type' => 'view'])->assertStatus(202);

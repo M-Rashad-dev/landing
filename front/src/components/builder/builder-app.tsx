@@ -23,16 +23,17 @@ import { PreviewFrame, type Device } from "./preview-frame";
 import { SectionsPanel } from "./sections-panel";
 import { SettingsPanel } from "./settings-panel";
 import { createBuilderStore } from "./store";
+import { BuilderStoreData, type BuilderCategory } from "./store-data";
 import { useAutosave } from "./use-autosave";
 
 const t = ar.builder;
 type MobileTab = "sections" | "preview" | "settings";
 
-export function BuilderApp({ page, themes }: { page: PageDetail; themes: Array<{ key: string; name: string; owned?: boolean }> }) {
+export function BuilderApp({ page, themes, categories = [] }: { page: PageDetail; themes: Array<{ key: string; name: string; owned?: boolean }>; categories?: BuilderCategory[] }) {
   const [store] = useState(() => {
     const created = createBuilderStore();
     created.getState().init({
-      page: { id: page.id, title: page.title, slug: page.slug, status: page.status, identity_id: page.identity_id, product_id: page.product_id },
+      page: { id: page.id, title: page.title, slug: page.slug, status: page.status, identity_id: page.identity_id, product_id: page.product_id, kind: page.kind ?? "landing" },
       content: page.draft_content,
       themeKey: page.theme_key,
       version: page.version,
@@ -42,7 +43,9 @@ export function BuilderApp({ page, themes }: { page: PageDetail; themes: Array<{
 
   return (
     <BuilderProvider store={store}>
-      <BuilderScreen store={store} page={page} themes={themes} />
+      <BuilderStoreData categories={categories}>
+        <BuilderScreen store={store} page={page} themes={themes} />
+      </BuilderStoreData>
     </BuilderProvider>
   );
 }
@@ -69,7 +72,7 @@ function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof creat
   const identities = useIdentities();
   const products = useProducts({ per_page: 100 });
 
-  const liveUrl = meta ? toSite(session.primary_host, page.is_home ? "/" : `/${meta.slug}`) : "";
+  const liveUrl = meta ? toSite(session.primary_host, page.is_home || page.kind === "store_home" ? "/" : `/${meta.slug}`) : "";
 
   const select = useCallback(
     (id: string) => {
@@ -175,7 +178,7 @@ function BuilderScreen({ store, page, themes }: { store: ReturnType<typeof creat
     <div className="flex h-dvh flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card px-2 sm:px-3">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/pages" aria-label={t.back}>
+          <Link href={page.kind === "store_home" ? "/dashboard/store" : "/dashboard/pages"} aria-label={t.back}>
             <ArrowRight />
           </Link>
         </Button>

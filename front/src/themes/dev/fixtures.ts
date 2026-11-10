@@ -1,4 +1,4 @@
-import type { PageContext, PublicIdentity, PublicImage, PublicOffer, PublicProduct } from "@/themes/types";
+import type { PageContext, PublicIdentity, PublicImage, PublicOffer, PublicProduct, StoreCategory, StoreProductCard, StoreSectionData } from "@/themes/types";
 
 /**
  * Demo data for the /dev/themes review page and component tests only
@@ -74,6 +74,27 @@ export const DEMO_PRODUCT: PublicProduct = {
     { id: 3, name: "التغليف", display_type: "dropdown", is_required: false, values: [{ id: 31, label: "هدية", color_hex: null, price_delta: 15 }] },
   ],
 };
+
+/** Sample catalog for the store sections in the theme store preview and /dev/themes. */
+export function demoStore(): StoreSectionData {
+  const names = ["تيشيرت قطن", "هودي شتوي", "بنطلون جينز", "جاكيت جلد", "شنطة كتف", "كاب صيفي", "حذاء رياضي", "ساعة يد"];
+  const sample: StoreProductCard[] = names.map((name, i) => ({
+    id: 100 + i,
+    slug: `demo-${i + 1}`,
+    name,
+    short_description: null,
+    price: 250 + i * 50,
+    compare_at_price: i % 3 === 0 ? 350 + i * 50 : null,
+    discount_percent: i % 3 === 0 ? Math.round(100 / (350 + i * 50) * 100) : null,
+    image: DEMO_IMAGES[i % DEMO_IMAGES.length],
+    available: i !== 5,
+    is_featured: i % 2 === 0,
+    needs_options: i % 4 === 0,
+    category_ids: [1 + (i % 4)],
+  }));
+  const categories: StoreCategory[] = ["رجالي", "حريمي", "أطفال", "إكسسوارات"].map((name, i) => ({ id: i + 1, parent_id: null, depth: 0, name, slug: `demo-c${i + 1}`, description: null, image: DEMO_IMAGES[(i + 1) % DEMO_IMAGES.length], products_count: 2, seo: null }));
+  return { categories, products: {}, sample };
+}
 
 export function demoOffers(now = Date.now()): PublicOffer[] {
   const iso = (ms: number) => new Date(now + ms).toISOString();

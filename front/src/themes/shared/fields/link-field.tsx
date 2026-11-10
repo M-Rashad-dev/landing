@@ -10,11 +10,12 @@ import { SCHEMAS } from "@/themes/shared/schemas";
 import { ar } from "@/messages/ar";
 import type { FieldProps } from "./types";
 
-type Kind = "none" | "section" | "external" | "phone" | "whatsapp";
+type Kind = "none" | "section" | "store" | "external" | "phone" | "whatsapp";
 
 export function detectKind(value: string): Kind {
   if (!value) return "none";
   if (value.startsWith("#")) return "section";
+  if (value.startsWith("/")) return "store";
   if (value.startsWith("tel:")) return "phone";
   if (value.startsWith("https://wa.me/")) return "whatsapp";
   return "external";
@@ -32,12 +33,22 @@ export function LinkField({ value, onChange, ctx, id }: FieldProps<string>) {
     .map((s) => ({ value: `#${anchorFor(s)}`, label: s.type === "order_form" ? t.linkOrder : SCHEMAS[s.type].label }));
   if (!anchors.some((a) => a.value === "#order")) anchors.unshift({ value: "#order", label: t.linkOrder });
 
+  const inStore = ctx.categories !== undefined;
+  const storeTargets = [
+    { value: "/products", label: t.storeLinks.products },
+    { value: "/products?sort=featured", label: t.storeLinks.featured },
+    { value: "/products?sort=best_sellers", label: t.storeLinks.bestSellers },
+    { value: "/cart", label: t.storeLinks.cart },
+    ...(ctx.categories ?? []).map((c) => ({ value: `/categories/${encodeURIComponent(c.slug)}`, label: t.storeLinks.category(c.name) })),
+  ];
+  if (current.startsWith("/") && !storeTargets.some((s) => s.value === current)) storeTargets.push({ value: current, label: current });
+
   const invalid = kind === "external" && draft !== "" && !safeHref(draft);
 
   function changeKind(next: Kind) {
     setKind(next);
     setDraft("");
-    onChange(next === "section" ? "#order" : "");
+    onChange(next === "section" ? "#order" : next === "store" ? "/products" : "");
   }
 
   function changeDraft(text: string) {
@@ -57,9 +68,11 @@ export function LinkField({ value, onChange, ctx, id }: FieldProps<string>) {
         id={id}
         value={kind}
         onChange={(event) => changeKind(event.target.value as Kind)}
-        options={(["section", "external", "phone", "whatsapp", "none"] as const).map((k) => ({ value: k, label: t.linkKinds[k] }))}
+        options={(inStore ? (["store", "section", "external", "phone", "whatsapp", "none"] as const) : (["section", "external", "phone", "whatsapp", "none"] as const)).map((k) => ({ value: k, label: t.linkKinds[k] }))}
       />
-      {kind === "section" ? (
+      {kind === "store" ? (
+        <Select aria-label={t.chooseStorePage} value={current} onChange={(event) => onChange(event.target.value)} options={storeTargets} />
+      ) : kind === "section" ? (
         <Select aria-label={t.chooseSection} value={current} onChange={(event) => onChange(event.target.value)} options={anchors} />
       ) : kind === "external" ? (
         <Input aria-label={t.linkKinds.external} dir="ltr" className="text-start" placeholder={t.urlPlaceholder} value={draft} onChange={(event) => changeDraft(event.target.value)} aria-invalid={invalid} />

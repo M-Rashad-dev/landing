@@ -1,5 +1,6 @@
-import type { ComponentType, ThemeComponentDef, ThemeDef } from "@/themes/types";
+import type { ThemeComponentDef, ThemeDef } from "@/themes/types";
 import { ar } from "@/messages/ar";
+import { storeSectionDefs } from "@/themes/shared/store/register";
 import { LayaliBeforeAfter, LayaliComparison, LayaliCountdown, LayaliSizeChart, LayaliStickyCta, LayaliVideo } from "./components/blocks";
 import { LayaliFaq } from "./components/faq";
 import { LayaliFeatures } from "./components/features";
@@ -15,7 +16,7 @@ import { LayaliThumbs } from "./thumbnails";
 
 const v = (keys: string[]) => keys.map((key) => ({ key, label: ar.themes.variants[key] ?? key }));
 
-function def(type: ComponentType, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
+function def(type: keyof typeof LayaliThumbs, component: ThemeComponentDef["component"], variants: string[]): ThemeComponentDef {
   return { component, variants: v(variants), defaultVariant: variants[0], Thumbnail: LayaliThumbs[type] };
 }
 
@@ -25,6 +26,7 @@ function def(type: ComponentType, component: ThemeComponentDef["component"], var
  */
 export const layaliTheme: ThemeDef = {
   key: "layali",
+  kind: "landing",
   name: ar.themes.layali.name,
   description: ar.themes.layali.description,
   components: {
@@ -44,6 +46,7 @@ export const layaliTheme: ThemeDef = {
     comparison: def("comparison", LayaliComparison, ["versus-cards", "check-table"]),
     countdown: def("countdown", LayaliCountdown, ["boxes", "banner"]),
     sticky_cta: def("sticky_cta", LayaliStickyCta, ["pill", "full-bar"]),
+    ...storeSectionDefs("layali"),
   },
   starterSections: [
     { type: "header", variant: "glass-bar" },

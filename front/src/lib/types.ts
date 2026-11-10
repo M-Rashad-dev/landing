@@ -67,9 +67,22 @@ export type Product = {
   media_ids?: number[];
   options_count?: number;
   options?: ProductOption[];
+  /* Store fields. */
+  slug?: string | null;
+  short_description?: string | null;
+  in_store?: boolean;
+  is_featured?: boolean;
+  stock_mode?: StockMode;
+  stock?: number | null;
+  low_stock_threshold?: number | null;
+  seo?: { title?: string | null; description?: string | null; og_media_id?: number | null; noindex?: boolean | null } | null;
+  category_ids?: number[];
+  variants?: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null }>;
   created_at: string | null;
   updated_at: string | null;
 };
+
+export type StockMode = "unlimited" | "product" | "variant";
 
 export type PageRef = { id: number; title: string };
 

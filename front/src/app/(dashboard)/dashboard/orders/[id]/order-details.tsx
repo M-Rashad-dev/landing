@@ -109,6 +109,7 @@ export function OrderDetails({ id }: { id: number }) {
                     {item.is_gift ? <Badge variant="success">🎁 {t.giftItem}</Badge> : null}
                   </p>
                   {item.options.length > 0 ? <p className="text-sm text-muted-foreground">{item.options.map((o) => `${o.option}: ${o.value}`).join("، ")}</p> : null}
+                  {item.offer_name ? <p className="text-xs font-semibold text-success">{t.lineOffer(item.offer_name)}{item.offer_discount ? ` (− ${formatPrice(item.offer_discount)})` : ""}</p> : null}
                   <p className="text-sm">
                     {t.quantity}: <span className="font-semibold tabular-nums">{item.quantity}</span> · {t.unitPrice}: <span className="font-semibold">{formatPrice(item.unit_price)}</span>
                   </p>

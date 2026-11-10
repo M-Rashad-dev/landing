@@ -18,6 +18,9 @@ export type OrderRow = {
   product: { id: number; name: string } | null;
   page: { id: number; title: string; slug: string } | null;
   quantity: number;
+  /** "store" = a cart order with several lines (product is null); "landing" = a page order. */
+  source?: "landing" | "store";
+  items_summary?: { first: string | null; count: number };
   total: number;
   currency: string;
   is_duplicate_suspect: boolean;
@@ -40,7 +43,7 @@ export type OrderDetail = OrderRow & {
   offer: { id: number | null; name: string; discount: number } | null;
   code: { id: number | null; code: string; discount: number } | null;
   shipping_fee: number;
-  items: Array<{ id: number; product_id: number | null; product_name: string; is_upsell?: boolean; is_gift?: boolean; unit_price: number; quantity: number; options: Array<{ option: string; value: string; price_delta: number }>; line_total: number }>;
+  items: Array<{ id: number; product_id: number | null; product_name: string; is_upsell?: boolean; is_gift?: boolean; unit_price: number; quantity: number; options: Array<{ option: string; value: string; price_delta: number }>; line_total: number; offer_name?: string | null; offer_discount?: number }>;
   logs: Array<{ id: number; from_status: OrderStatus | null; to_status: OrderStatus; to_label: string; note: string | null; user: { id: number; name: string } | null; created_at: string }>;
   events: Array<{ id: number; type: ContactResult; label: string; note: string | null; follow_up_at: string | null; user: { id: number; name: string } | null; created_at: string }>;
   allowed_transitions: Array<{ status: OrderStatus; label: string }>;
@@ -196,4 +199,14 @@ export function useConfirmationQueue() {
 /** Log a contact attempt; follow_up_at is Cairo wall time "YYYY-MM-DDTHH:mm". */
 export function recordContact(id: number, result: ContactResult, extra: { note?: string; follow_up_at?: string } = {}) {
   return api<OrderDetail>(`/dashboard/orders/${id}/contact`, { method: "POST", body: { result, ...extra } });
+}
+
+/** What a list shows for the ordered product(s): the page product, or "first item + N more" for store carts. */
+export function orderProductLabel(order: Pick<OrderRow, "product" | "source" | "items_summary">, more: (n: number) => string): string {
+  if (order.source === "store" && order.items_summary) {
+    const { first, count } = order.items_summary;
+    if (!first) return "—";
+    return count > 1 ? `${first} ${more(count - 1)}` : first;
+  }
+  return order.product?.name ?? "—";
 }

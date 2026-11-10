@@ -1,7 +1,9 @@
 import { FALLBACK_COMPONENTS } from "@/themes/_fallback";
 import { celiaTheme } from "@/themes/celia/theme.config";
+import { diwanTheme } from "@/themes/diwan/theme.config";
 import { layaliTheme } from "@/themes/layali/theme.config";
 import { malakTheme } from "@/themes/malak/theme.config";
+import { rewaqTheme } from "@/themes/rewaq/theme.config";
 import { isComponentType, type ComponentType, type ThemeComponentDef, type ThemeDef } from "@/themes/types";
 
 /** Registered themes. Adding a theme = new folder + one line here + a row in ThemeSeeder. */
@@ -9,7 +11,15 @@ export const THEMES: Record<string, ThemeDef> = {
   malak: malakTheme,
   celia: celiaTheme,
   layali: layaliTheme,
+  rewaq: rewaqTheme,
+  diwan: diwanTheme,
 };
+
+export const DEFAULT_STORE_THEME = "rewaq";
+
+export function themesOfKind(kind: ThemeDef["kind"]): ThemeDef[] {
+  return Object.values(THEMES).filter((theme) => theme.kind === kind);
+}
 
 export const DEFAULT_THEME = "malak";
 

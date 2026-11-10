@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { getTheme, resolveVariant } from "@/themes/registry";
 import { defaultProps, SCHEMAS } from "@/themes/shared/schemas";
-import type { ComponentType, PageContent, PageDesign, Section } from "@/themes/types";
+import type { ComponentType, PageContent, PageDesign, PageKind, Section } from "@/themes/types";
 
 export const MAX_SECTIONS = 30;
 const HISTORY_LIMIT = 50;
@@ -15,6 +15,8 @@ export type BuilderPageMeta = {
   status: "draft" | "published";
   identity_id: number;
   product_id: number | null;
+  /** Landing pages (default) or the store home; decides which sections the library offers. */
+  kind?: PageKind;
 };
 
 type Snapshot = { content: PageContent; themeKey: string };

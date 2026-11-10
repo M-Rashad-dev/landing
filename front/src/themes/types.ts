@@ -17,9 +17,42 @@ export const COMPONENT_TYPES = [
   "comparison",
   "countdown",
   "sticky_cta",
+  // Store home sections (only on the store home page; data comes from the store catalog).
+  "banner_slider",
+  "category_grid",
+  "product_grid",
+  "promo_banner",
 ] as const;
 
 export type ComponentType = (typeof COMPONENT_TYPES)[number];
+
+/** Sections that exist only on the store home. */
+export const STORE_SECTION_TYPES = ["banner_slider", "category_grid", "product_grid", "promo_banner"] as const satisfies readonly ComponentType[];
+
+/** What the store home may hold (mirror of back config landing.store_home_types). Header/footer come from the store layout. */
+export const STORE_HOME_TYPES = [
+  "banner_slider",
+  "category_grid",
+  "product_grid",
+  "promo_banner",
+  "hero",
+  "gallery",
+  "features",
+  "testimonials",
+  "faq",
+  "video",
+  "before_after",
+  "comparison",
+  "countdown",
+] as const satisfies readonly ComponentType[];
+
+export type PageKind = "landing" | "store_home";
+
+/** Section types the Builder library offers for a page kind. */
+export function typesForKind(kind: PageKind): readonly ComponentType[] {
+  if (kind === "store_home") return STORE_HOME_TYPES;
+  return COMPONENT_TYPES.filter((type) => !(STORE_SECTION_TYPES as readonly string[]).includes(type));
+}
 
 export function isComponentType(value: unknown): value is ComponentType {
   return typeof value === "string" && (COMPONENT_TYPES as readonly string[]).includes(value);
@@ -112,7 +145,47 @@ export interface PageContext {
   conversionEvent?: "Lead" | "Purchase";
   /** Store delivery fees (the server quote stays the authority). */
   shipping?: PublicShipping;
+  /** Store home only: the catalog data its store sections show. */
+  store?: StoreSectionData;
 }
+
+/* ---------- Store ---------- */
+
+export type StoreProductCard = {
+  id: number;
+  slug: string | null;
+  name: string;
+  short_description: string | null;
+  price: number;
+  compare_at_price: number | null;
+  discount_percent: number | null;
+  image: PublicImage | null;
+  available: boolean;
+  is_featured: boolean;
+  needs_options: boolean;
+  /** Builder preview only. */
+  category_ids?: number[];
+};
+
+export type StoreCategory = {
+  id: number;
+  parent_id: number | null;
+  depth: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: PublicImage | null;
+  products_count: number;
+  seo?: { title?: string; description?: string } | null;
+};
+
+export type StoreSectionData = {
+  categories: StoreCategory[];
+  /** Product grid cards by section id (computed by the server for the saved content). */
+  products: Record<string, StoreProductCard[]>;
+  /** Builder preview: recent store products, used for grids added since the last save. */
+  sample?: StoreProductCard[];
+};
 
 export type PublicShipping = { enabled: false } | { enabled: true; fees: Record<string, number>; unavailable: string[]; free_over: number | null };
 
@@ -136,6 +209,8 @@ export interface ThemeComponentDef {
 
 export interface ThemeDef {
   key: string;
+  /** Landing themes style landing pages; store themes style the store (layout + home sections). */
+  kind: "landing" | "store";
   name: string;
   description: string;
   components: Record<ComponentType, ThemeComponentDef>;
@@ -172,6 +247,8 @@ export type FieldDef =
   | (BaseField & { type: "repeater"; min?: number; max: number; fields: FieldDef[]; itemLabel: string; titleField?: string; newItem: Record<string, unknown> })
   | (BaseField & { type: "group"; fields: FieldDef[]; collapsible?: boolean })
   | (BaseField & { type: "order_fields" })
+  /** A store category (id), from the store's category tree. */
+  | (BaseField & { type: "category"; allowEmpty?: boolean })
   | (BaseField & { type: "custom_fields"; max: number });
 
 export type FieldType = FieldDef["type"];
