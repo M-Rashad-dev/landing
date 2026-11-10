@@ -99,5 +99,5 @@ it('lists redemptions and filters codes', function () {
 it('enforces the codes limit', function () {
     config(['landing.limits.discount_codes' => 1]);
     $this->postJson('/api/v1/dashboard/discount-codes', codePayload())->assertCreated();
-    $this->postJson('/api/v1/dashboard/discount-codes', codePayload(['code' => 'OTHER']))->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/discount-codes', codePayload(['code' => 'OTHER']))->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });

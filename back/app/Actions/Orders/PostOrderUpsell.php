@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Orders;
 
+use App\Billing\Entitlements;
 use App\Enums\OrderStatus;
+use App\Enums\PlanFeature;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Models\Order;
@@ -92,6 +94,10 @@ final class PostOrderUpsell
     /** Active offer for the order's product (or any product), the offered product sellable without choices. */
     private function candidate(Order $order): ?Upsell
     {
+        if (! app(Entitlements::class)->allows(PlanFeature::Upsells)) {
+            return null;
+        }
+
         return Upsell::query()
             ->with('offerProduct.options')
             ->where('is_active', true)
@@ -107,7 +113,7 @@ final class PostOrderUpsell
     /** One click means no option to choose: products with required options cannot be offered. */
     public static function sellable(?Product $product): bool
     {
-        return $product !== null && ! $product->trashed() && $product->is_active && ! $product->options->contains(fn ($option) => $option->is_required);
+        return $product !== null && ! $product->trashed() && $product->is_active && ! $product->isLockedByPlan() && ! $product->options->contains(fn ($option) => $option->is_required);
     }
 
     private function token(Order $order): string

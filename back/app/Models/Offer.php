@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\OfferType;
 use App\Enums\PromotionStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use App\Support\Money;
 use Carbon\CarbonInterface;
 use Database\Factories\OfferFactory;
@@ -37,7 +38,7 @@ use Illuminate\Support\Carbon;
 class Offer extends Model
 {
     /** @use HasFactory<OfferFactory> */
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
     protected $fillable = ['name', 'type', 'value', 'bundle_quantity', 'bundle_price', 'starts_at', 'ends_at', 'is_active', 'badge_text', 'priority', 'min_quantity', 'free_quantity', 'gift_product_id'];
 

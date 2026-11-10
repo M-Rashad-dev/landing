@@ -25,7 +25,7 @@ final class WebhookDispatcher
     /** A new abandoned form is reported only if no order follows within 30 minutes. */
     public function lead(AbandonedLead $lead): void
     {
-        if (Webhook::query()->where('is_active', true)->whereJsonContains('events', WebhookEvent::LeadCreated->value)->exists()) {
+        if (Webhook::query()->where('is_active', true)->servable()->whereJsonContains('events', WebhookEvent::LeadCreated->value)->exists()) {
             NotifyAbandonedLead::dispatch((int) Tenancy::id(), $lead->id)->delay(now()->addMinutes(NotifyAbandonedLead::DELAY_MINUTES))->afterCommit();
         }
     }
@@ -38,7 +38,7 @@ final class WebhookDispatcher
     /** @param callable(): array<string, mixed> $data built only when someone listens */
     private function dispatch(WebhookEvent $event, callable $data): void
     {
-        $webhooks = Webhook::query()->where('is_active', true)->get(['id', 'events'])->filter(fn (Webhook $w) => in_array($event->value, $w->events, true));
+        $webhooks = Webhook::query()->where('is_active', true)->servable()->get(['id', 'events'])->filter(fn (Webhook $w) => in_array($event->value, $w->events, true));
         if ($webhooks->isEmpty()) {
             return;
         }

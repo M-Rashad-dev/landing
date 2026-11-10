@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Domains;
 
+use App\Billing\Entitlements;
 use App\Enums\DomainStatus;
 use App\Enums\DomainType;
+use App\Enums\PlanLimit;
 use App\Enums\SslStatus;
-use App\Exceptions\ApiException;
 use App\Models\Domain;
 use App\Services\DomainRules;
 use App\Services\DomainVerifier;
@@ -20,10 +21,7 @@ final class AddCustomDomain
 
     public function handle(string $input): Domain
     {
-        $limit = (int) config('landing.limits.custom_domains');
-        if (Domain::query()->where('type', DomainType::Custom)->count() >= $limit) {
-            throw new ApiException(422, 'limit_reached', __('domains.limit', ['limit' => $limit]));
-        }
+        app(Entitlements::class)->ensureCanAdd(PlanLimit::CustomDomains);
 
         $host = DomainRules::normalize($input);
         $error = DomainRules::error($host);

@@ -207,7 +207,7 @@ it('enforces the product limit', function () {
     config(['landing.limits.products' => 1]);
     $this->postJson('/api/v1/dashboard/products', productPayload())->assertCreated();
 
-    $this->postJson('/api/v1/dashboard/products', productPayload())->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/products', productPayload())->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('blocks deleting media used by a product', function () {

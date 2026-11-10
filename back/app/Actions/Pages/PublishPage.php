@@ -28,10 +28,16 @@ final class PublishPage
         $blockers = [];
         $clean = null;
 
+        if ($page->isLockedByPlan()) {
+            $blockers[] = $this->blocker('locked_by_plan');
+        }
+
         if ($page->product_id === null) {
             $blockers[] = $this->blocker('no_product');
         } elseif ($page->product === null || $page->product->trashed() || ! $page->product->is_active) {
             $blockers[] = $this->blocker('product_inactive');
+        } elseif ($page->product->isLockedByPlan()) {
+            $blockers[] = $this->blocker('product_locked_by_plan');
         }
 
         if ($page->identity === null || $page->identity->trashed()) {

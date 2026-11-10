@@ -16,7 +16,6 @@ return [
     'method_not_allowed' => 'طريقة الطلب غير مسموحة.',
     'conflict' => 'تعارض في البيانات.',
     'rejected' => 'تعذر إتمام الطلب.',
-    'limit_reached' => 'وصلت للحد الأقصى المسموح (:limit).',
     'current_password_wrong' => 'كلمة المرور الحالية غير صحيحة.',
     'social_invalid' => 'الرابط يجب أن يكون رابط https صحيحًا.',
     'social_wrong_network' => 'الرابط لا يتبع هذه الشبكة الاجتماعية.',

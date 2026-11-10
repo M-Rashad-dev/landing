@@ -36,7 +36,7 @@ final class RecordPageEvent
         if (! $abTestId) {
             return 0;
         }
-        $test = AbTest::query()->whereKey($abTestId)->where('status', AbTestStatus::Running)->first();
+        $test = AbTest::query()->whereKey($abTestId)->where('status', AbTestStatus::Running)->servable()->first();
 
         return $test !== null && $test->hasPage($page->id) ? $test->id : 0;
     }

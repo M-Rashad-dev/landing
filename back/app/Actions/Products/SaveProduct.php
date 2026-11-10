@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Products;
 
-use App\Exceptions\ApiException;
+use App\Billing\Entitlements;
+use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Product;
 use App\Models\ProductOption;
@@ -24,10 +25,7 @@ final class SaveProduct
     public function handle(array $data, ?Product $product = null): Product
     {
         if ($product === null) {
-            $limit = (int) config('landing.limits.products');
-            if (Product::query()->count() >= $limit) {
-                throw ApiException::limitReached($limit);
-            }
+            app(Entitlements::class)->ensureCanAdd(PlanLimit::Products);
         }
 
         $product = DB::transaction(function () use ($data, $product): Product {

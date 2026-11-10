@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\DiscountType;
 use App\Enums\PromotionStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use App\Support\Money;
 use Carbon\CarbonInterface;
 use Database\Factories\DiscountCodeFactory;
@@ -35,7 +36,7 @@ use Illuminate\Support\Carbon;
 class DiscountCode extends Model
 {
     /** @use HasFactory<DiscountCodeFactory> */
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
     protected $fillable = [
         'code', 'type', 'value', 'max_discount', 'min_order_total', 'starts_at', 'ends_at',

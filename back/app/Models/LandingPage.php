@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\PageStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use Database\Factories\LandingPageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
 class LandingPage extends Model
 {
     /** @use HasFactory<LandingPageFactory> */
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
     protected $fillable = [
         'title', 'slug', 'status', 'theme_key', 'identity_id', 'product_id', 'draft_content', 'published_content',

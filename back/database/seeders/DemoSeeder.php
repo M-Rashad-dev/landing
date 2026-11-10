@@ -13,6 +13,7 @@ use App\Actions\Pages\PublishPage;
 use App\Actions\Products\SaveProduct;
 use App\Actions\Promotions\SaveDiscountCode;
 use App\Actions\Promotions\SaveOffer;
+use App\Billing\SubscriptionManager;
 use App\Enums\DiscountType;
 use App\Enums\OfferType;
 use App\Enums\OrderStatus;
@@ -85,6 +86,9 @@ final class DemoSeeder extends Seeder
             'store_name' => 'Demo Store',
             'password' => self::PASSWORD,
         ]);
+
+        // The demo store tries every feature (owner decision: demo accounts get Pro).
+        app(SubscriptionManager::class)->grant($registered['tenant'], 'pro', 365, 'demo', null);
 
         Tenancy::runAs($registered['tenant']->id, fn () => $this->store($registered['user']->id, $registered['domain']->host));
     }

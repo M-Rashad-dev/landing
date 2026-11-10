@@ -34,6 +34,7 @@ final class DiscountCodeResource extends JsonResource
             'remaining' => $this->remaining(),
             'stackable_with_offers' => $this->stackable_with_offers,
             'is_active' => $this->is_active,
+            'locked_by_plan' => (bool) $this->locked_by_plan,
             'status' => $this->statusAt(now())->value,
             'products' => $this->whenLoaded('products', fn () => $this->products->map(fn (Product $product) => ['id' => $product->id, 'name' => $product->name])->values()->all()),
             'product_ids' => $this->whenLoaded('products', fn () => $this->products->pluck('id')->all()),

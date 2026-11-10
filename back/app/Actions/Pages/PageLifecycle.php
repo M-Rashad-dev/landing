@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Pages;
 
+use App\Billing\Entitlements;
 use App\Enums\PageStatus;
+use App\Enums\PlanLimit;
 use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
@@ -38,10 +40,7 @@ final class PageLifecycle
 
     public function duplicate(LandingPage $page, ?int $userId): LandingPage
     {
-        $limit = (int) config('landing.limits.pages');
-        if (LandingPage::query()->count() >= $limit) {
-            throw new ApiException(422, 'limit_reached', __('pages.limit', ['limit' => $limit]));
-        }
+        app(Entitlements::class)->ensureCanAdd(PlanLimit::LandingPages);
 
         return DB::transaction(function () use ($page, $userId): LandingPage {
             $suffix = __('pages.copy_suffix');

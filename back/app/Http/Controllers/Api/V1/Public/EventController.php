@@ -60,7 +60,7 @@ final class EventController extends Controller
 
         $routes = Tenancy::runAs($domain->tenant_id, fn () => AbTest::query()
             ->with(['pageA:id,slug,is_home,status', 'pageB:id,slug,status'])
-            ->where(fn ($q) => $q->where('status', AbTestStatus::Running)->orWhere(fn ($w) => $w->where('status', AbTestStatus::Finished)->whereColumn('winner_page_id', 'page_b_id')))
+            ->where(fn ($q) => $q->where(fn ($r) => $r->where('status', AbTestStatus::Running)->servable())->orWhere(fn ($w) => $w->where('status', AbTestStatus::Finished)->whereColumn('winner_page_id', 'page_b_id')))
             ->get()
             ->filter(fn (AbTest $test) => $test->pageA?->isPublished() && $test->pageB?->isPublished())
             ->map(fn (AbTest $test) => [

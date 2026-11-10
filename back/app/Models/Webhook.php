@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\WebhookKind;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -25,7 +26,7 @@ use Illuminate\Support\Carbon;
  */
 class Webhook extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LockableByPlan;
 
     protected $fillable = ['kind', 'name', 'url', 'secret', 'events', 'is_active'];
 

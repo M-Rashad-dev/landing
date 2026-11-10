@@ -8,6 +8,7 @@ use App\Enums\DomainStatus;
 use App\Enums\DomainType;
 use App\Enums\SslStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use App\Services\PublicSite;
 use Database\Factories\DomainFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Model;
 class Domain extends Model
 {
     /** @use HasFactory<DomainFactory> */
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, LockableByPlan;
 
     protected $fillable = [
         'tenant_id', 'host', 'type', 'status', 'is_primary', 'active_host', 'verified_at',

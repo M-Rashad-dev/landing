@@ -25,7 +25,7 @@ final class DeliverWebhook implements ShouldQueue
     public function handle(WebhookSender $sender): void
     {
         Tenancy::runAs($this->tenantId, function () use ($sender): void {
-            $webhook = Webhook::query()->whereKey($this->webhookId)->where('is_active', true)->first();
+            $webhook = Webhook::query()->whereKey($this->webhookId)->where('is_active', true)->servable()->first();
             if ($webhook === null) {
                 return;
             }

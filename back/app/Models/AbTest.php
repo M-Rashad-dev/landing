@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\AbTestStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LockableByPlan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -24,7 +25,7 @@ use Illuminate\Support\Carbon;
  */
 class AbTest extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LockableByPlan;
 
     protected $fillable = ['name', 'page_a_id', 'page_b_id', 'split_a', 'status', 'winner_page_id', 'started_at', 'ended_at'];
 

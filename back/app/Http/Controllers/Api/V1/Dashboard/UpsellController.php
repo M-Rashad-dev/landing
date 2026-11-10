@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Orders\PostOrderUpsell;
+use App\Billing\Entitlements;
+use App\Enums\PlanFeature;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
@@ -37,6 +39,7 @@ final class UpsellController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        app(Entitlements::class)->ensure(PlanFeature::Upsells);
         $upsell = Upsell::query()->create($this->validated($request));
 
         return $this->created($this->row($upsell->load(['triggerProduct', 'offerProduct'])));
@@ -44,6 +47,7 @@ final class UpsellController extends Controller
 
     public function update(Request $request, Upsell $upsell): JsonResponse
     {
+        app(Entitlements::class)->ensure(PlanFeature::Upsells);
         $upsell->update($this->validated($request));
 
         return $this->ok($this->row($upsell->load(['triggerProduct', 'offerProduct'])));
@@ -51,6 +55,10 @@ final class UpsellController extends Controller
 
     public function toggle(Upsell $upsell): JsonResponse
     {
+        // Turning an offer off is always allowed.
+        if (! $upsell->is_active) {
+            app(Entitlements::class)->ensure(PlanFeature::Upsells);
+        }
         $upsell->update(['is_active' => ! $upsell->is_active]);
 
         return $this->ok($this->row($upsell->load(['triggerProduct', 'offerProduct'])));

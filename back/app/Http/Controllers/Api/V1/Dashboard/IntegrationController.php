@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Billing\Entitlements;
+use App\Enums\PlanLimit;
 use App\Enums\WebhookEvent;
 use App\Enums\WebhookKind;
-use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Webhook;
@@ -26,9 +27,7 @@ final class IntegrationController extends Controller
 {
     use RespondsWithJson;
 
-    public const MAX = 10;
-
-    public function __construct(private readonly OutboundUrl $urls) {}
+    public function __construct(private readonly OutboundUrl $urls, private readonly Entitlements $entitlements) {}
 
     public function index(): JsonResponse
     {
@@ -39,9 +38,7 @@ final class IntegrationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        if (Webhook::query()->count() >= self::MAX) {
-            throw new ApiException(422, 'limit_reached', __('integrations.limit', ['max' => self::MAX]));
-        }
+        $this->entitlements->ensureCanAdd(PlanLimit::Webhooks);
         $data = $this->validated($request, null);
 
         $webhook = Webhook::query()->create($data + ['secret' => Str::random(48), 'is_active' => true]);
@@ -120,6 +117,7 @@ final class IntegrationController extends Controller
     {
         return [
             'id' => $webhook->id,
+            'locked_by_plan' => $webhook->isLockedByPlan(),
             'kind' => $webhook->kind->value,
             'name' => $webhook->name,
             'url' => $webhook->url,

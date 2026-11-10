@@ -35,6 +35,7 @@ final class OfferResource extends JsonResource
             'starts_at' => $this->starts_at?->toIso8601ZuluString(),
             'ends_at' => $this->ends_at?->toIso8601ZuluString(),
             'is_active' => $this->is_active,
+            'locked_by_plan' => (bool) $this->locked_by_plan,
             'status' => $this->statusAt(now())->value,
             'badge_text' => $this->badge_text,
             'priority' => $this->priority,

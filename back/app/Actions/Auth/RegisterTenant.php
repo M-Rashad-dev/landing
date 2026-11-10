@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Billing\SubscriptionManager;
 use App\Enums\DomainStatus;
 use App\Enums\DomainType;
 use App\Enums\SslStatus;
@@ -22,6 +23,7 @@ final class RegisterTenant
     public function __construct(
         private readonly SubdomainGenerator $subdomains,
         private readonly IssueToken $issueToken,
+        private readonly SubscriptionManager $subscriptions,
     ) {}
 
     /**
@@ -67,6 +69,9 @@ final class RegisterTenant
 
             return [$user, $tenant, $domain];
         });
+
+        // Free trial when the admin has it on; otherwise the dashboard opens on the pricing page.
+        $this->subscriptions->startTrial($tenant);
 
         return [
             'user' => $user,

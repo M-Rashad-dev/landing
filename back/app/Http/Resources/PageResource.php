@@ -19,6 +19,7 @@ class PageResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             'status' => $this->status->value,
+            'locked_by_plan' => (bool) $this->locked_by_plan,
             'theme_key' => $this->theme_key,
             'identity_id' => $this->identity_id,
             'product_id' => $this->product_id,

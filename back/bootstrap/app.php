@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\EnsureInternalKey;
+use App\Http\Middleware\EnsurePlanWritable;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantActive;
 use App\Http\Middleware\ResolveTenantFromUser;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.active' => EnsureTenantActive::class,
             'internal.key' => EnsureInternalKey::class,
             'super.admin' => EnsureSuperAdmin::class,
+            'plan.writable' => EnsurePlanWritable::class,
         ]);
 
         // The tenant must be known before route-model binding runs (bound ids are tenant-scoped).

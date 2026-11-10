@@ -28,7 +28,8 @@ final class SiteController extends Controller
     {
         $domain = $this->domainOrFail($request);
         $tenant = $domain->tenant;
-        $active = $tenant !== null && $tenant->isActive();
+        // Suspended and expired (unpaid) tenants look the same to visitors: "temporarily unavailable".
+        $active = $tenant !== null && $tenant->sitesOpen();
         $primary = $this->site->primaryHost($domain->tenant_id) ?? $domain->host;
 
         return $this->noStore($this->ok([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Media;
 
+use App\Billing\Entitlements;
 use App\Exceptions\ApiException;
 use App\Models\Media;
 use App\Services\MediaProcessor;
@@ -15,7 +16,7 @@ use Throwable;
 
 final class UploadMedia
 {
-    public function __construct(private readonly MediaProcessor $processor) {}
+    public function __construct(private readonly MediaProcessor $processor, private readonly Entitlements $entitlements) {}
 
     /**
      * Processes every file; if any fails, nothing is kept and the error is reported on files.{index}.
@@ -44,6 +45,9 @@ final class UploadMedia
                     throw new ApiException(422, 'validation_failed', $e->getMessage(), ["files.{$index}" => [$e->getMessage()]]);
                 }
             }
+
+            // Plan storage: what is stored after processing (all variants), checked before any row is saved.
+            $this->entitlements->ensureStorageFor(array_sum(array_column($processed, 'size_bytes')));
 
             return DB::transaction(fn (): array => array_map(
                 fn (array $data): Media => Media::create($data),

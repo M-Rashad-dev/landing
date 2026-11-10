@@ -99,7 +99,7 @@ it('updates, toggles and deletes an offer', function () {
 it('enforces the offers limit', function () {
     config(['landing.limits.offers' => 1]);
     $this->postJson('/api/v1/dashboard/offers', offerPayload())->assertCreated();
-    $this->postJson('/api/v1/dashboard/offers', offerPayload())->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/offers', offerPayload())->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('unlinks offers when a product is deleted', function () {

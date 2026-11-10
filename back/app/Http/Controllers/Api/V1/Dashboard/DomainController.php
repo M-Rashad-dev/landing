@@ -7,7 +7,9 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Actions\Domains\AddCustomDomain;
 use App\Actions\Domains\ChangeSubdomain;
 use App\Actions\Domains\ManageDomain;
+use App\Billing\Entitlements;
 use App\Enums\DomainType;
+use App\Enums\PlanLimit;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -32,7 +34,7 @@ final class DomainController extends Controller
 
         return $this->ok(DomainResource::collection($domains), [
             'platform_domain' => (string) config('landing.platform_domain'),
-            'custom_limit' => (int) config('landing.limits.custom_domains'),
+            'custom_limit' => app(Entitlements::class)->current()->limit(PlanLimit::CustomDomains),
         ]);
     }
 

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Pages;
 
+use App\Billing\Entitlements;
 use App\Enums\PageStatus;
-use App\Exceptions\ApiException;
+use App\Enums\PlanLimit;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Services\PageContentSanitizer;
@@ -21,10 +22,7 @@ final class CreatePage
     /** @param array{title: string, slug: string, theme_key: string, identity_id?: int|null, product_id?: int|null, content?: mixed} $data */
     public function handle(array $data, ?int $userId): LandingPage
     {
-        $limit = (int) config('landing.limits.pages');
-        if (LandingPage::query()->count() >= $limit) {
-            throw new ApiException(422, 'limit_reached', __('pages.limit', ['limit' => $limit]));
-        }
+        app(Entitlements::class)->ensureCanAdd(PlanLimit::LandingPages);
 
         $content = isset($data['content']) && $data['content'] !== null
             ? $this->sanitizer->sanitize($data['content'])['content']

@@ -63,7 +63,7 @@ final class CreateOrder
             throw new ApiException(422, 'form_unavailable', __('orders.form_unavailable'));
         }
         $product = $page->product;
-        if ($product === null || $product->trashed() || ! $product->is_active) {
+        if ($product === null || $product->trashed() || ! $product->is_active || $product->isLockedByPlan()) {
             throw new ApiException(422, 'product_unavailable', __('orders.product_unavailable'));
         }
 

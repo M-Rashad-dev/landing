@@ -313,7 +313,7 @@ it('enforces the pages limit', function () {
     config(['landing.limits.pages' => 1]);
     createPage();
 
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'malak'])->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'malak'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('filters the list by status and search', function () {

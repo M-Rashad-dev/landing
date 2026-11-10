@@ -172,6 +172,7 @@ final class PriceCalculator
 
         $offers = Offer::query()
             ->activeAt($now)
+            ->servable()
             ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
             ->when($offerId !== null, fn ($q) => $q->whereKey($offerId))
             ->with(['giftProduct' => fn ($q) => $q->with('options')])
@@ -220,7 +221,7 @@ final class PriceCalculator
     private function gift(Offer $offer): ?array
     {
         $product = $offer->giftProduct;
-        if ($product === null || $product->trashed() || ! $product->is_active || $product->options->contains(fn ($option) => $option->is_required)) {
+        if ($product === null || $product->trashed() || ! $product->is_active || $product->isLockedByPlan() || $product->options->contains(fn ($option) => $option->is_required)) {
             return null;
         }
 
@@ -234,7 +235,8 @@ final class PriceCalculator
      */
     private function checkCode(string $code, Product $product, CarbonInterface $now, ?string $phone, int $afterOffer, bool $offerApplied, bool $lock): array
     {
-        $query = DiscountCode::query()->where('code', $code);
+        // A code locked by a downgrade answers like an unknown code.
+        $query = DiscountCode::query()->where('code', $code)->servable();
         if ($lock) {
             $query->lockForUpdate();
         }

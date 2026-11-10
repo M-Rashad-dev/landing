@@ -93,7 +93,7 @@ it('limits custom domains per tenant', function () {
     config(['landing.limits.custom_domains' => 2]);
     $this->postJson('/api/v1/dashboard/domains/custom', ['host' => 'a.com'])->assertCreated();
     $this->postJson('/api/v1/dashboard/domains/custom', ['host' => 'b.com'])->assertCreated();
-    $this->postJson('/api/v1/dashboard/domains/custom', ['host' => 'c.com'])->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/domains/custom', ['host' => 'c.com'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('gives the right DNS record for root and sub domains', function () {

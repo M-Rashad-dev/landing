@@ -46,10 +46,11 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::prefix('dashboard')
-    ->middleware(['auth:sanctum', 'tenant.user', 'tenant.active', 'throttle:dashboard'])
+    ->middleware(['auth:sanctum', 'tenant.user', 'tenant.active', 'plan.writable', 'throttle:dashboard'])
     ->group(function (): void {
-        Route::patch('profile', [AccountController::class, 'updateProfile']);
-        Route::put('profile/password', [AccountController::class, 'updatePassword']);
+        // The owner's own account stays editable on an expired plan.
+        Route::patch('profile', [AccountController::class, 'updateProfile'])->withoutMiddleware('plan.writable');
+        Route::put('profile/password', [AccountController::class, 'updatePassword'])->withoutMiddleware('plan.writable');
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);

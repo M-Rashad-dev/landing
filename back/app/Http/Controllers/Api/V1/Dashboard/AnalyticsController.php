@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Billing\Entitlements;
+use App\Enums\PlanFeature;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Rules\TenantExists;
@@ -19,6 +21,8 @@ final class AnalyticsController extends Controller
     /** Range in Cairo days, at most one year; defaults to the last 30 days. */
     public function __invoke(Request $request, PageAnalytics $analytics): JsonResponse
     {
+        app(Entitlements::class)->ensure(PlanFeature::AdvancedAnalytics);
+
         $data = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Billing\Entitlements;
 use App\Enums\DomainStatus;
 use App\Enums\PageStatus;
+use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
 use App\Models\Domain;
 use App\Models\Identity;
@@ -45,6 +47,7 @@ final class PublicSite
                 ->with('tenant')
                 ->where('active_host', $host)
                 ->where('status', DomainStatus::Active)
+                ->servable()
                 ->first());
 
             return $domain === null ? [] : ['domain' => $domain->getAttributes(), 'tenant' => $domain->tenant?->getAttributes()];
@@ -85,12 +88,12 @@ final class PublicSite
         }
     }
 
-    /** Active domain of an active tenant, or a 404 (suspended tenants serve nothing). */
+    /** Active domain of a tenant whose sites are open, or a 404 (suspended / expired tenants serve nothing). */
     public function activeDomainOrFail(string $host): Domain
     {
         $domain = $this->domain($host);
 
-        if ($domain === null || $domain->tenant === null || ! $domain->tenant->isActive()) {
+        if ($domain === null || $domain->tenant === null || ! $domain->tenant->sitesOpen()) {
             throw new ApiException(404, 'site_not_found', __('landing.not_found'));
         }
 
@@ -117,10 +120,19 @@ final class PublicSite
         return $host === '' ? null : $host;
     }
 
-    /** Published pages of the current tenant. @return Builder<LandingPage> */
+    /**
+     * Published pages of the current tenant that the plan lets serve (the page and its product
+     * not locked by a downgrade).
+     *
+     * @return Builder<LandingPage>
+     */
     public function publishedPages(): Builder
     {
-        return LandingPage::query()->where('status', PageStatus::Published)->whereNotNull('published_content');
+        return LandingPage::query()
+            ->where('status', PageStatus::Published)
+            ->whereNotNull('published_content')
+            ->servable()
+            ->whereDoesntHave('product', fn (Builder $q) => $q->where('locked_by_plan', true));
     }
 
     public function homeSlug(): ?string
@@ -165,6 +177,8 @@ final class PublicSite
             'seo' => $this->seo($page, $identity, $primaryHost),
             'tracking' => $this->tracking($page, $identity),
             'shipping' => $this->shipping->publicConfig(),
+            // "Made with …" badge unless the plan removes it.
+            'branding' => ! app(Entitlements::class)->allows(PlanFeature::RemoveBranding),
         ];
     }
 

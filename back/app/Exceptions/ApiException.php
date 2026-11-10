@@ -40,11 +40,6 @@ class ApiException extends RuntimeException
         return new self(409, $code, $message, null, $extra);
     }
 
-    public static function limitReached(int $limit): self
-    {
-        return new self(422, 'limit_reached', __('landing.limit_reached', ['limit' => $limit]));
-    }
-
     /** @param array{key: string, name: string}|null $upgradeTo cheapest plan with more room */
     public static function planLimitReached(PlanLimit $limit, int $max, int $used, ?array $upgradeTo): self
     {

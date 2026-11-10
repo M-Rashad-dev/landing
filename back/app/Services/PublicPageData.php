@@ -69,6 +69,7 @@ final class PublicPageData
         }
 
         return Offer::query()
+            ->servable()
             ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
             ->where(fn ($q) => $q->where(fn ($active) => $active->activeAt($now))->orWhere(fn ($soon) => $soon->upcomingAt($now)))
             ->with('giftProduct')

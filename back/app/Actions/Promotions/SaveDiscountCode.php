@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Promotions;
 
-use App\Exceptions\ApiException;
+use App\Billing\Entitlements;
+use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\DiscountCode;
 use App\Tenancy\Tenancy;
@@ -19,10 +20,7 @@ final class SaveDiscountCode
     public function handle(array $data, array $productIds, ?DiscountCode $code = null): DiscountCode
     {
         if ($code === null) {
-            $limit = (int) config('landing.limits.discount_codes');
-            if (DiscountCode::query()->count() >= $limit) {
-                throw new ApiException(422, 'limit_reached', __('promotions.codes_limit', ['limit' => $limit]));
-            }
+            app(Entitlements::class)->ensureCanAdd(PlanLimit::DiscountCodes);
         }
 
         $code = DB::transaction(function () use ($data, $productIds, $code): DiscountCode {

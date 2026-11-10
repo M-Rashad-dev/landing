@@ -20,6 +20,7 @@ final class DomainResource extends JsonResource
             'host' => $this->host,
             'type' => $this->type->value,
             'status' => $this->status->value,
+            'locked_by_plan' => (bool) $this->locked_by_plan,
             'is_primary' => $this->is_primary,
             'verified_at' => $this->verified_at?->toIso8601ZuluString(),
             'check_attempts' => $this->check_attempts,

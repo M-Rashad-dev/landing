@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api\V1\Public;
 use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Orders\PostOrderUpsell;
+use App\Billing\Entitlements;
+use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -108,6 +110,10 @@ final class OrderController extends Controller
             $page = $this->site->pageOrFail((string) ($data['slug'] ?? ''));
             $phone = $phones->normalize($data['phone']);
             if ($phone === null || $page->product_id === null || ! $tokens->isValid($data['form_token'], $page->id)) {
+                return;
+            }
+            // Not in the plan: answered the same way (202), nothing stored.
+            if (! app(Entitlements::class)->allows(PlanFeature::AbandonedLeads)) {
                 return;
             }
 

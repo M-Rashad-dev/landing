@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Billing\Entitlements;
 use App\Enums\AbTestStatus;
+use App\Enums\PlanLimit;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -36,6 +38,8 @@ final class AbTestController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        app(Entitlements::class)->ensureCanAdd(PlanLimit::AbTests);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:80'],
             'page_a_id' => ['required', 'integer', TenantExists::table('landing_pages')],
@@ -105,6 +109,7 @@ final class AbTestController extends Controller
 
         return [
             'id' => $test->id,
+            'locked_by_plan' => $test->isLockedByPlan(),
             'name' => $test->name,
             'status' => $test->status->value,
             'split_a' => $test->split_a,

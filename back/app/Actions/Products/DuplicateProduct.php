@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Products;
 
-use App\Exceptions\ApiException;
+use App\Billing\Entitlements;
+use App\Enums\PlanLimit;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
@@ -15,10 +16,7 @@ final class DuplicateProduct
 {
     public function handle(Product $source): Product
     {
-        $limit = (int) config('landing.limits.products');
-        if (Product::query()->count() >= $limit) {
-            throw ApiException::limitReached($limit);
-        }
+        app(Entitlements::class)->ensureCanAdd(PlanLimit::Products);
 
         return DB::transaction(function () use ($source): Product {
             $source->loadMissing(['options.values', 'media']);

@@ -85,7 +85,7 @@ it('validates events and caps integrations per store', function () {
     foreach (range(1, 10) as $_) {
         hook();
     }
-    $this->postJson('/api/v1/dashboard/integrations', ['kind' => 'webhook', 'name' => 'x', 'url' => HOOK_URL, 'events' => ['order.created']])->assertStatus(422)->assertJsonPath('code', 'limit_reached');
+    $this->postJson('/api/v1/dashboard/integrations', ['kind' => 'webhook', 'name' => 'x', 'url' => HOOK_URL, 'events' => ['order.created']])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('signs the test delivery and logs the result', function () {

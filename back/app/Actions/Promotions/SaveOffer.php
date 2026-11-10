@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Promotions;
 
-use App\Exceptions\ApiException;
+use App\Billing\Entitlements;
+use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Offer;
 use App\Tenancy\Tenancy;
@@ -19,10 +20,7 @@ final class SaveOffer
     public function handle(array $data, array $productIds, ?Offer $offer = null): Offer
     {
         if ($offer === null) {
-            $limit = (int) config('landing.limits.offers');
-            if (Offer::query()->count() >= $limit) {
-                throw new ApiException(422, 'limit_reached', __('promotions.offers_limit', ['limit' => $limit]));
-            }
+            app(Entitlements::class)->ensureCanAdd(PlanLimit::Offers);
         }
 
         $offer = DB::transaction(function () use ($data, $productIds, $offer): Offer {

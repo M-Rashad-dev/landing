@@ -32,7 +32,7 @@ final class TlsAskController extends Controller
         }
 
         // Audited bypass: Caddy asks without a tenant; only an active host of an active tenant passes.
-        $tenantId = Tenancy::withoutTenant(fn () => Domain::query()->where('active_host', $domain)->value('tenant_id'));
+        $tenantId = Tenancy::withoutTenant(fn () => Domain::query()->where('active_host', $domain)->servable()->value('tenant_id'));
 
         return $tenantId !== null && Tenant::query()->whereKey($tenantId)->where('status', TenantStatus::Active)->exists();
     }

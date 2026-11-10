@@ -29,6 +29,7 @@ final class ProductResource extends JsonResource
             'discount_percent' => $compare !== null && $compare > $price ? (int) round(($compare - $price) * 100 / $compare) : null,
             'sku' => $this->sku,
             'is_active' => $this->is_active,
+            'locked_by_plan' => (bool) $this->locked_by_plan,
             'main_image' => $this->whenLoaded('media', fn () => $this->media->first() ? MediaResource::make($this->media->first())->resolve($request) : null),
             'media' => $this->whenLoaded('media', fn () => MediaResource::collection($this->media)->resolve($request)),
             'media_ids' => $this->whenLoaded('media', fn () => $this->media->pluck('id')->all()),
