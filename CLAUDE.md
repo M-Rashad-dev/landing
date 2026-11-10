@@ -12,7 +12,7 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 - Money: `decimal(12,2)` in DB, integer cents in code, `PriceCalculator` is the only price authority.
 - `declare(strict_types=1)` everywhere; thin controllers → FormRequest → Action/Service → Resource; backed enums.
 - Front: TS strict, Server Components by default, RTL logical classes only (ms/me/ps/pe/start/end), every Arabic string in `src/messages/ar.ts`, react-hook-form + zod, 4 states per screen (skeleton/empty/error/toast).
-- No external services or API keys at runtime. No TODOs, mocks or fake data left in code.
+- Prefer in-house solutions. An external service is allowed when clearly better: propose it with the reason, build it only after the owner approves, log it in DECISIONS.md, keep it behind our own interface with keys in `.env` only and a fake for tests/e2e. Approved so far: payment gateway (see `docs/features/RULES.md`). No TODOs, mocks or fake data left in code.
 
 ## Commands
 - back: `composer test` (Pest), `composer lint` (Pint --test)

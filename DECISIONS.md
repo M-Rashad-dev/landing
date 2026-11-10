@@ -173,3 +173,22 @@ Small decisions taken while implementing PLAN.MD that the plan did not spell out
 - **Automatic offer = merchant priority first**, then the lowest total for the customer, then the oldest offer (was: lowest total first). With all priorities at 0 (the default) nothing changes.
 - **Offer picker** (`order_form.offer_picker`, off by default): offers appear as cards at the top of the form with "one piece, no offer"; picking a card sets the quantity it needs and sends `offer_id` (0 = none). The server honors `offer_id` only when the published form has the picker on, applies it only when active and the quantity qualifies, and otherwise returns `offer_error` ("needs N pieces"); offer cards elsewhere on the page select the offer too.
 - **Orders are reported to pixels as Purchase by default (Nov 2026)**, with value (order total, EGP), currency and the order number as event id; Lead carries no value, so Ads Manager showed no revenue or ROAS. Existing identities were migrated to Purchase; Lead stays available in the identity settings. TikTok's purchase event is CompletePayment (counts revenue), GA4 `purchase`, Snapchat `PURCHASE`.
+
+## v3 — stores, payments, plans (discussion, Nov 2026)
+Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
+- **External services rule relaxed (owner, 2026-11-10)**: in-house first; an external service is fine when clearly better, proposed with the reason and approved by the owner. The payment gateway is the first approved one.
+- **No company papers yet**: billing starts with manual InstaPay / wallet transfers (receipt + admin review); a Paymob individual (Starter) account is applied for in parallel; the same `PaymobGateway` code serves the individual and company accounts.
+- **All plans are paid**, each with its own monthly and yearly price and discount; a free trial for new sign-ups only (default 14 days of Basic), switched and sized from the admin. Seed prices: 50 / 100 / 150 EGP monthly, 600 / 1200 / 1800 EGP yearly. No monthly order cap in any plan.
+- **Refunds / upgrades**: themes are never refunded; a paid plan can be refunded within 3 days (manual refund by the admin, subscription ends at once). Upgrading within the first 7 days of a subscription costs only the difference between the new price and what was actually paid.
+- **Only the platform owner reviews receipts**; a rejection needs a written reason that the merchant sees, and the merchant can upload a new receipt for the same invoice.
+- **Manual payment is the live method for now** (InstaPay + wallets: transfer, upload the receipt, admin approves or rejects); the Paymob gateway waits for an account.
+- **Expiry**: 24 h grace, then every public site of the tenant closes to visitors and the dashboard turns read-only; nothing is ever deleted; paying restores everything at once.
+- **Downgrade**: features above the plan stop for the merchant only; over-limit items keep their own status and get `locked_by_plan` (most recently edited stay live within the limit, swappable).
+- **Clean launch**: production starts with an empty database, so no data migration for existing tenants; demo / test accounts get Pro.
+- **Upgrade period**: an upgrade always starts a fresh full period from the upgrade day (month = 30 days, year = 365); within the first 7 days the merchant pays only the difference, later the full price.
+- **Plan refunds**: at most one per account per 180 days (so at most two a year).
+- **Stores are the core of the platform, landing pages a side feature**: one store per tenant (never more), many landing pages each with its own theme and product; an enabled store owns `/`.
+- **Categories** are a `parent_id` tree (depth cap in config, cycles rejected). **Per-product SEO.** Option values may lower the price (fixed signed amount, unit price never below zero).
+- **Stock modes per product**: unlimited (default), one quantity for the product, or per combination of options; stock is taken at order creation and returned on cancel/reject/return, logged in `stock_movements`.
+- **Themes**: Malak free; Celia and Layali paid (landing only, no store versions). Store themes start with one free theme «رواق» (`rewaq`); paid store themes follow one at a time («ديوان», «مدى», «سوق» proposed).
+- **Owned paid themes on Basic**: still owned and editable in the Builder, but shown to visitors only on a plan with `buy_themes` (Pro / Max); published landing pages on a paid theme get `locked_by_plan` after the grace day. Basic has no store. Seed theme prices: Celia 100 EGP, Layali 150 EGP.
