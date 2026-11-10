@@ -200,3 +200,12 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
 - **Until payments ship**, choosing a plan on the pricing page explains that activation is done by the platform admin (admin → store → «منح باقة»).
 - **Tests**: factory tenants run on Max (every feature on) so other features' tests are not limited; plan tests use `onPlan()` / `expired()` / `withoutPlan()`. e2e seeds themes and plans.
 - **Owned paid themes on Basic**: still owned and editable in the Builder, but shown to visitors only on a plan with `buy_themes` (Pro / Max); published landing pages on a paid theme get `locked_by_plan` after the grace day. Basic has no store. Seed theme prices: Celia 100 EGP, Layali 150 EGP.
+
+- **Payments, as built (Nov 2026, manual first)**: an invoice fixes its amount when created (difference inside 7 days, full price, or free when the credit covers it and then it activates at once); one open invoice per store; no new invoice while a receipt is under review (two periods could otherwise be paid); unpaid invoices expire after `invoice_hours` (admin, default 48) by the hourly `invoices:expire`.
+- **A receipt is for the invoice total** (the merchant types no amount); a short transfer is rejected with a reason. Rejecting reopens the invoice with a fresh expiry so the merchant can send a new receipt.
+- **Receipts are decoded and re-encoded to WebP** (metadata and any hidden payload dropped), stored on the private disk and streamed only to the owning store (tenant-scoped route bindings) and the super admin.
+- **Approval is idempotent** (invoice row locked; a second approve answers 409); the subscription row keeps `invoice_id`.
+- **Refunds**: the merchant asks from «الفواتير» while the paid period is refundable; the admin sends the money back manually and records the transfer reference, which ends the period at once.
+- **Paying works on an expired plan** (the billing routes skip the read-only middleware).
+- **PaymentGateway contract** with `ManualGateway` today; `PaymentGateways` lists how an invoice can be paid now. Paymob adds a gateway kind later without touching invoices or activation.
+- **Legal pages** (`/terms`, `/refund-policy`, `/privacy`) are served on the platform domain and the app host, never on store hosts; the support e-mail / WhatsApp come from the admin settings.

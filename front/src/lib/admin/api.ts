@@ -17,6 +17,8 @@ export type AdminOverview = {
   trials: number;
   expiring_week: number;
   expired: number;
+  pending_payments: number;
+  refund_requests: number;
 };
 
 export type AdminTenant = {
@@ -98,7 +100,15 @@ export type AdminPlan = {
   subscribers: number;
 };
 
-export type BillingSettings = { trial_enabled: boolean; trial_days: number; trial_plan_key: string; grace_hours: number };
+export type BillingSettings = {
+  trial_enabled: boolean;
+  trial_days: number;
+  trial_plan_key: string;
+  grace_hours: number;
+  invoice_hours: number;
+  support_email: string | null;
+  support_whatsapp: string | null;
+};
 
 export type AdminPlansData = { plans: AdminPlan[]; entitlements: EntitlementInfo[]; settings: BillingSettings };
 
@@ -162,3 +172,70 @@ export const extendPlan = (id: number, days: number) => api<TenantBilling>(`/adm
 export const setOverride = (id: number, entitlement: string, body: { value: number | boolean | null; reason: string; expires_at: string | null }) =>
   api<TenantBilling>(`/admin/tenants/${id}/billing/overrides/${entitlement}`, { method: "PUT", body });
 export const deleteOverride = (id: number, entitlement: string) => api<void>(`/admin/tenants/${id}/billing/overrides/${entitlement}`, { method: "DELETE" });
+
+// --- payments ----------------------------------------------------------------------------
+
+export type AdminPayment = {
+  id: number;
+  status: "pending_review" | "approved" | "rejected";
+  tenant: { id: number; name: string };
+  method: { key: string; name: string };
+  amount: number;
+  sender_ref: string;
+  reject_reason: string | null;
+  created_at: string | null;
+  reviewed_at: string | null;
+  invoice: { id: number; number: string | null; status: string; plan_name: string; period: BillingPeriod | null; total: number; starts_now: boolean } | null;
+};
+
+export type AdminRefund = {
+  id: number;
+  number: string | null;
+  tenant: { id: number; name: string };
+  plan_name: string;
+  total: number;
+  status: string;
+  refund_requested_at: string | null;
+  refund_reason: string | null;
+  refunded_at: string | null;
+  refund_ref: string | null;
+};
+
+export type AdminPaymentMethod = {
+  key: string;
+  name: string;
+  kind: string;
+  account_label: string | null;
+  account_value: string | null;
+  instructions: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+export const paymentKeys = {
+  list: (status: string, page: number) => ["admin", "payments", status, page] as const,
+  refunds: ["admin", "refunds"] as const,
+  methods: ["admin", "payment-methods"] as const,
+};
+
+export function useAdminPayments(status: string, page: number) {
+  return useQuery({
+    queryKey: paymentKeys.list(status, page),
+    queryFn: () => apiPage<AdminPayment>("/admin/payments", { query: { status, page } }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminRefunds() {
+  return useQuery({ queryKey: paymentKeys.refunds, queryFn: () => api<AdminRefund[]>("/admin/refunds") });
+}
+
+export function useAdminPaymentMethods() {
+  return useQuery({ queryKey: paymentKeys.methods, queryFn: () => api<AdminPaymentMethod[]>("/admin/payment-methods") });
+}
+
+export const approvePayment = (id: number) => api<AdminPayment>(`/admin/payments/${id}/approve`, { method: "POST" });
+export const rejectPayment = (id: number, reason: string) => api<AdminPayment>(`/admin/payments/${id}/reject`, { method: "POST", body: { reason } });
+export const completeRefund = (invoiceId: number, refundRef: string) => api<AdminRefund[]>(`/admin/invoices/${invoiceId}/refund`, { method: "POST", body: { refund_ref: refundRef } });
+export const updatePaymentMethod = (key: string, body: Omit<AdminPaymentMethod, "key" | "kind">) => api<AdminPaymentMethod>(`/admin/payment-methods/${key}`, { method: "PUT", body });
+export const adminReceiptUrl = (paymentId: number) => `/api/bff/admin/payments/${paymentId}/receipt`;

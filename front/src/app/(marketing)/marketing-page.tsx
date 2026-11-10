@@ -1,8 +1,10 @@
 import { LayoutTemplate, Rocket, ShoppingBag, Smartphone } from "lucide-react";
+import Link from "next/link";
 import { AppRoot } from "@/components/app-root";
 import { Button } from "@/components/ui/button";
 import type { EntitlementInfo, PricingPlan } from "@/lib/billing/types";
 import { ar } from "@/messages/ar";
+import { LEGAL_LINKS } from "./legal-page";
 import { MarketingPricing } from "./marketing-pricing";
 
 const FEATURES = [
@@ -64,7 +66,16 @@ export function MarketingPage({ appUrl, pricing }: { appUrl: string; pricing: { 
           ) : null}
         </main>
 
-        <footer className="border-t py-6 text-center text-sm text-muted-foreground">{ar.marketing.copyright(new Date().getFullYear())}</footer>
+        <footer className="flex flex-col items-center gap-2 border-t py-6 text-center text-sm text-muted-foreground">
+          <nav className="flex flex-wrap justify-center gap-4">
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className="hover:text-foreground">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          {ar.marketing.copyright(new Date().getFullYear())}
+        </footer>
       </div>
     </AppRoot>
   );

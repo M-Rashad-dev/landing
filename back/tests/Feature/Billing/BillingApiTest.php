@@ -6,6 +6,7 @@ use App\Billing\BillingPriceCalculator;
 use App\Billing\PlanCatalog;
 use App\Billing\PlanLocks;
 use App\Billing\PlanPresenter;
+use App\Billing\PlatformSettings;
 use App\Billing\SubscriptionManager;
 use App\Enums\BillingPeriod;
 use App\Models\AdminAuditLog;
@@ -159,7 +160,9 @@ it('serves public plans without archived or hidden ones', function () {
     Plan::query()->whereKey('max')->update(['is_public' => false]);
     PlanCatalog::flush();
 
-    $this->getJson('/api/v1/plans')->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.0.key', 'basic')->assertJsonPath('data.0.prices.monthly.final', 50);
+    app(PlatformSettings::class)->save(['support_email' => 'help@platform.test']);
+
+    $this->getJson('/api/v1/plans')->assertOk()->assertJsonPath('meta.support.email', 'help@platform.test')->assertJsonCount(2, 'data')->assertJsonPath('data.0.key', 'basic')->assertJsonPath('data.0.prices.monthly.final', 50);
 });
 
 // --- admin -----------------------------------------------------------------------------

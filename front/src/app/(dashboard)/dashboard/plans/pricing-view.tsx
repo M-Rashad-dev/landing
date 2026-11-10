@@ -1,14 +1,17 @@
 "use client";
 
 import { Crown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { ErrorState } from "@/components/dashboard/error-state";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toaster";
+import { errorMessage } from "@/lib/api/errors";
 import { useBillingPlans } from "@/lib/billing/api";
-import type { PlanQuote, PricingPlan } from "@/lib/billing/types";
+import { createInvoice } from "@/lib/billing/payments";
+import type { PlanQuote } from "@/lib/billing/types";
 import { formatPrice } from "@/lib/price";
 import { ar } from "@/messages/ar";
 
@@ -23,8 +26,20 @@ export function changeText(quote: PlanQuote): string {
 }
 
 export function PricingView() {
+  const router = useRouter();
   const { data, isPending, isError, error, refetch } = useBillingPlans();
-  const [chosen, setChosen] = useState<{ plan: PricingPlan; quote: PlanQuote } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function choose(quote: PlanQuote) {
+    setBusy(`${quote.plan_key}:${quote.period}`);
+    try {
+      const invoice = await createInvoice(quote.plan_key, quote.period);
+      router.push(`/dashboard/billing/invoices/${invoice.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err));
+      setBusy(null);
+    }
+  }
 
   if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
   if (isPending || !data) {
@@ -38,41 +53,24 @@ export function PricingView() {
   }
 
   return (
-    <>
-      <PricingCards
-        plans={data.plans}
-        entitlements={data.entitlements}
-        action={(plan, quote) =>
-          quote.is_current ? (
-            <Button variant="outline" className="w-full" disabled>
-              {t.current}
+    <PricingCards
+      plans={data.plans}
+      entitlements={data.entitlements}
+      action={(plan, quote) =>
+        quote.is_current ? (
+          <Button variant="outline" className="w-full" disabled>
+            {t.current}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-xs text-muted-foreground">{changeText(quote)}</p>
+            <Button variant={plan.is_highlighted ? "gold" : "default"} className="w-full" loading={busy === `${quote.plan_key}:${quote.period}`} disabled={busy !== null} onClick={() => choose(quote)}>
+              <Crown />
+              {t.choose}
             </Button>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-center text-xs text-muted-foreground">{changeText(quote)}</p>
-              <Button variant={plan.is_highlighted ? "gold" : "default"} className="w-full" onClick={() => setChosen({ plan, quote })}>
-                <Crown />
-                {t.choose}
-              </Button>
-            </div>
-          )
-        }
-      />
-
-      <Dialog open={chosen !== null} onOpenChange={(open) => (!open ? setChosen(null) : undefined)}>
-        <DialogContent size="sm">
-          <DialogHeader>
-            <DialogTitle>{chosen ? t.requestTitle(chosen.plan.name) : ""}</DialogTitle>
-            <DialogDescription>
-              {chosen ? `${changeText(chosen.quote)}. ` : ""}
-              {t.requestText}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setChosen(null)}>{t.ok}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          </div>
+        )
+      }
+    />
   );
 }

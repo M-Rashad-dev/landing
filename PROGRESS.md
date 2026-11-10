@@ -220,3 +220,6 @@ Abandoned forms, verified in the browser: phone typed on the demo store → `/ap
 | Plans | basic / pro / max with monthly + yearly prices and discounts, free trial (admin), entitlements enforced on every create and public path, locks after a downgrade, expired = sites closed + read-only dashboard, admin plan editor + trial settings + per-store grant / extend / overrides, pricing page (dashboard + marketing), my plan page with usage and «choose what stays live», upgrade dialog, trial / renewal banner, platform badge | `2caad3f`, `be663ea`, `d3a134e`, this commit |
 
 Plans, verified: back 629 tests, front 464 tests, e2e 7 (new: the free trial stops at 5 products, the dialog leads to the pricing page).
+| Payments (manual) | invoices with the fixed amount, InstaPay / wallet transfer + receipt upload, admin review (approve starts the plan, reject with a reason), refunds within 3 days, payment methods and support contact in the admin, «الفواتير» + checkout pages, legal pages | `a63c070`, this commit |
+
+Payments, verified: back 649+ tests, front 468, e2e 8 (new: the trial store pays by InstaPay, the admin approves in the UI, Pro starts).

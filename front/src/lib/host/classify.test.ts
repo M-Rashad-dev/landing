@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ONLY_PREFIXES, classifyHost, matchesPrefix, normalizeHost } from "./classify";
+import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, LEGAL_PATHS, matchesPrefix, normalizeHost } from "./classify";
 
 const config = { platformDomain: "platform.com", appHost: "app.platform.com" };
 
@@ -35,5 +35,14 @@ describe("matchesPrefix", () => {
     expect(matchesPrefix("/dashboard/pages", APP_ONLY_PREFIXES)).toBe(true);
     expect(matchesPrefix("/dashboards", APP_ONLY_PREFIXES)).toBe(false);
     expect(matchesPrefix("/offer", APP_ONLY_PREFIXES)).toBe(false);
+  });
+});
+
+describe("legal pages", () => {
+  it("are allowed on the app host and never app-only (store hosts render their own pages)", () => {
+    for (const path of LEGAL_PATHS) {
+      expect(matchesPrefix(path, APP_ALLOWED_PREFIXES)).toBe(true);
+      expect(matchesPrefix(path, APP_ONLY_PREFIXES)).toBe(false);
+    }
   });
 });

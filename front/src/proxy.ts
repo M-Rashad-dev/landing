@@ -6,6 +6,7 @@ import {
   APP_ALLOWED_PREFIXES,
   APP_ONLY_PREFIXES,
   classifyHost,
+  LEGAL_PATHS,
   matchesPrefix,
   normalizeHost,
 } from "@/lib/host/classify";
@@ -36,7 +37,7 @@ export async function proxy(request: NextRequest) {
   if (kind === "app") return handleAppHost(request, pathname);
 
   if (kind === "platform") {
-    if (pathname === "/") return NextResponse.next();
+    if (pathname === "/" || LEGAL_PATHS.includes(pathname)) return NextResponse.next();
     if (matchesPrefix(pathname, APP_ONLY_PREFIXES)) {
       const url = new URL(request.nextUrl.toString());
       url.host = config.appHost;

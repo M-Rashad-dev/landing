@@ -1,10 +1,13 @@
+import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
+import { E2E, laravelEnv } from "./env";
 
 /**
  * The six scenarios from PLAN phase 11 (plus the plan limit, v3), in order, on one fresh account:
  * (1) register / logout / login, (2) product + identity, (3) build + publish a page,
  * (4) order from the public page, (5) the order in the dashboard + status change, (6) switch theme,
- * (7) the free trial hits its product limit and offers the upgrade.
+ * (7) the free trial hits its product limit and offers the upgrade,
+ * (8) the store pays by transfer + receipt, the admin approves and the plan starts.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -200,4 +203,57 @@ test("7. the free trial (basic) stops at its product limit with an upgrade dialo
   await dialog.getByRole("link", { name: /برو/ }).click();
   await page.waitForURL("**/dashboard/plans");
   await expect(page.getByText("مقارنة الباقات")).toBeVisible();
+});
+
+test("8. the trial store pays by InstaPay, the admin approves and Pro starts", async ({ browser }) => {
+  // A super admin for the review (the e2e database starts empty).
+  execFileSync(E2E.php, ["artisan", "tinker", "--execute", `App\\Models\\User::factory()->superAdmin()->create(['email' => 'admin${stamp}@example.com', 'password' => '${account.password}']);`], {
+    cwd: E2E.backDir,
+    env: { ...process.env, ...laravelEnv },
+  });
+  const signIn = async (email: string, landing: string) => {
+    const page = await (await browser.newContext({ locale: "ar-EG" })).newPage();
+    await page.goto("/login");
+    await page.locator("#login").fill(email);
+    await page.locator("#password").fill(account.password);
+    await page.getByRole("button", { name: "دخول" }).click();
+    await page.waitForURL(`**${landing}`);
+    return page;
+  };
+
+  // The admin turns InstaPay on with the platform's address.
+  const admin = await signIn(`admin${stamp}@example.com`, "/admin");
+  await admin.goto("/admin/payments");
+  await admin.getByRole("tab", { name: "وسائل الدفع" }).click();
+  await admin.locator("#instapay-value").fill("e2e@instapay");
+  await admin.getByRole("switch").first().click();
+  await admin.getByRole("button", { name: "حفظ" }).first().click();
+  await expect(admin.getByText("تم حفظ وسيلة الدفع")).toBeVisible();
+
+  // The trial store chooses Pro, sees where to transfer and uploads the receipt.
+  const merchant = await signIn(`trial${stamp}@example.com`, "/dashboard");
+  await merchant.goto("/dashboard/plans");
+  await merchant.locator("li").filter({ has: merchant.getByRole("heading", { name: "برو" }) }).getByRole("button", { name: "اختار الباقة" }).click();
+  await merchant.waitForURL(/\/dashboard\/billing\/invoices\/\d+$/);
+  await expect(merchant.getByText("e2e@instapay")).toBeVisible();
+  await merchant.locator("#pay-ref").fill("TX-E2E-1");
+  // A tiny valid PNG (re-encoded by the back end).
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await merchant.locator("#pay-receipt").setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: png });
+  await merchant.getByRole("button", { name: "إرسال الإيصال" }).click();
+  await expect(merchant.getByText("الإيصال قيد المراجعة")).toBeVisible();
+
+  // The admin approves.
+  await admin.goto("/admin/payments");
+  const card = admin.locator("li").filter({ hasText: "Trial Store" });
+  await card.getByRole("button", { name: "قبول وتفعيل الباقة" }).click();
+  await admin.getByRole("dialog").getByRole("button", { name: "قبول وتفعيل الباقة" }).click();
+  await expect(admin.getByText("تم القبول وتفعيل الباقة")).toBeVisible();
+
+  // The store is on Pro now.
+  await merchant.reload();
+  await expect(merchant.getByText("تم الدفع")).toBeVisible();
+  await merchant.goto("/dashboard/settings/plan");
+  await expect(merchant.getByText("برو").first()).toBeVisible();
+  await expect(merchant.getByText("شغالة").first()).toBeVisible();
 });

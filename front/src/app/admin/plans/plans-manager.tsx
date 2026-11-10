@@ -103,18 +103,22 @@ const settingsSchema = z.object({
   trial_days: z.coerce.number().int().min(1).max(90),
   trial_plan_key: z.string().min(1),
   grace_hours: z.coerce.number().int().min(0).max(168),
+  invoice_hours: z.coerce.number().int().min(1).max(720),
+  support_email: z.union([z.literal(""), z.string().email(ar.validation.email).max(120)]),
+  support_whatsapp: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{8,15}$/, ar.validation.phone)]),
 });
 
 function TrialSettings({ settings, plans }: { settings: BillingSettings; plans: AdminPlan[] }) {
   const queryClient = useQueryClient();
-  const form = useForm<z.input<typeof settingsSchema>, unknown, z.output<typeof settingsSchema>>({ resolver: zodResolver(settingsSchema), defaultValues: settings });
+  const toForm = (s: BillingSettings) => ({ ...s, support_email: s.support_email ?? "", support_whatsapp: s.support_whatsapp ?? "" });
+  const form = useForm<z.input<typeof settingsSchema>, unknown, z.output<typeof settingsSchema>>({ resolver: zodResolver(settingsSchema), defaultValues: toForm(settings) });
   const { errors, isSubmitting, isDirty } = form.formState;
   const options = plans.filter((p) => !p.is_archived).map((p) => ({ value: p.key, label: p.name }));
 
-  async function onSubmit(values: BillingSettings) {
+  async function onSubmit(values: z.output<typeof settingsSchema>) {
     try {
-      const saved = await saveBillingSettings(values);
-      form.reset(saved);
+      const saved = await saveBillingSettings({ ...values, support_email: values.support_email || null, support_whatsapp: values.support_whatsapp || null });
+      form.reset(toForm(saved));
       await queryClient.invalidateQueries({ queryKey: planKeys.all });
       toast.success(t.settingsSaved);
     } catch (error) {
@@ -142,6 +146,15 @@ function TrialSettings({ settings, plans }: { settings: BillingSettings; plans: 
           </FormField>
           <FormField label={t.graceHours} htmlFor="grace-hours" error={errors.grace_hours?.message} hint={t.graceHint} required>
             <Input id="grace-hours" type="number" dir="ltr" min={0} max={168} {...form.register("grace_hours")} />
+          </FormField>
+          <FormField label={t.invoiceHours} htmlFor="invoice-hours" error={errors.invoice_hours?.message} hint={t.invoiceHint} required>
+            <Input id="invoice-hours" type="number" dir="ltr" min={1} max={720} {...form.register("invoice_hours")} />
+          </FormField>
+          <FormField label={t.supportEmail} htmlFor="support-email" error={errors.support_email?.message} hint={t.supportHint} optional>
+            <Input id="support-email" type="email" dir="ltr" {...form.register("support_email")} />
+          </FormField>
+          <FormField label={t.supportWhatsapp} htmlFor="support-whatsapp" error={errors.support_whatsapp?.message} optional>
+            <Input id="support-whatsapp" dir="ltr" inputMode="tel" placeholder="+2010…" {...form.register("support_whatsapp")} />
           </FormField>
         </CardContent>
         <CardFooter className="justify-end">

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Billing\PlanPresenter;
+use App\Billing\PlatformSettings;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -14,9 +15,9 @@ final class PricingPageController extends Controller
 {
     use RespondsWithJson;
 
-    public function __invoke(PlanPresenter $presenter): JsonResponse
+    public function __invoke(PlanPresenter $presenter, PlatformSettings $settings): JsonResponse
     {
-        return $this->ok($presenter->pricing(), ['entitlements' => PlanPresenter::entitlementCatalog()])
+        return $this->ok($presenter->pricing(), ['entitlements' => PlanPresenter::entitlementCatalog(), 'support' => $settings->support()])
             ->header('Cache-Control', 'public, max-age=60');
     }
 }

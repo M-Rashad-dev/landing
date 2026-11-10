@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarClock, CalendarPlus, CheckCircle2, CircleOff, Crown, FileCheck2, Hourglass, PauseCircle, ShoppingBag, Sigma, type LucideIcon } from "lucide-react";
+import { Building2, CalendarClock, CalendarPlus, CheckCircle2, CircleOff, Crown, FileCheck2, Hourglass, PauseCircle, ShoppingBag, Sigma, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { ErrorState } from "@/components/dashboard/error-state";
 import { Card } from "@/components/ui/card";
@@ -33,6 +33,8 @@ export function AdminOverviewCards() {
     { icon: FileCheck2, label: t.published, value: data.published_pages },
     { icon: ShoppingBag, label: t.ordersToday, value: data.orders_today },
     { icon: Sigma, label: t.ordersTotal, value: data.orders_total },
+    { icon: Wallet, label: t.pendingPayments, value: data.pending_payments, href: "/admin/payments" },
+    { icon: Undo2, label: t.refundRequests, value: data.refund_requests, href: "/admin/payments" },
     { icon: Hourglass, label: t.trials, value: data.trials },
     { icon: CalendarClock, label: t.expiringWeek, value: data.expiring_week },
     { icon: CircleOff, label: t.expired, value: data.expired },

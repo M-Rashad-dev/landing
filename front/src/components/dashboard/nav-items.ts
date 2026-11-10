@@ -16,12 +16,14 @@ import {
   Package,
   Palette,
   PhoneCall,
+  ReceiptText,
   Settings,
   Sheet,
   ShoppingBag,
   Tag,
   Truck,
   UserRoundSearch,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import type { PlanFeatureKey, PlanLimitKey } from "@/lib/billing/types";
@@ -89,6 +91,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
 /** Pinned at the bottom of the sidebar. */
 export const DASHBOARD_FOOTER_NAV: NavItem[] = [
   { href: "/dashboard/settings/plan", label: ar.nav.plan, icon: Crown },
+  { href: "/dashboard/billing/invoices", label: ar.nav.invoices, icon: ReceiptText },
   { href: "/dashboard/settings", label: ar.nav.settings, icon: Settings, exclude: ["/dashboard/settings/plan"] },
 ];
 
@@ -99,6 +102,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/tenants", label: ar.admin.nav.tenants, icon: Building2 },
       { href: "/admin/themes", label: ar.admin.nav.themes, icon: Palette },
       { href: "/admin/plans", label: ar.admin.nav.plans, icon: Crown },
+      { href: "/admin/payments", label: ar.admin.nav.payments, icon: Wallet },
     ],
   },
 ];

@@ -27,8 +27,11 @@ export function classifyHost(
 /** Paths that exist only on the app host and must 404 on tenant hosts. */
 export const APP_ONLY_PREFIXES = ["/dashboard", "/admin", "/preview", "/login", "/register", "/api/bff", "/api/auth", "/dev"];
 
+/** Platform legal pages: served on the platform domain and the app host (never on store hosts). */
+export const LEGAL_PATHS = ["/terms", "/refund-policy", "/privacy"];
+
 /** Paths allowed on the app host; anything else is a 404 there. */
-export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/dashboard", "/admin", "/preview", "/api", "/dev"];
+export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/dashboard", "/admin", "/preview", "/api", "/dev", ...LEGAL_PATHS];
 
 export function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
