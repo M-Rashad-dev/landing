@@ -72,8 +72,8 @@ final class SiteController extends Controller
         $pages = Tenancy::runAs($domain->tenant_id, fn () => $this->site->publishedPages()
             ->orderByDesc('is_home')
             ->orderBy('id')
-            ->get(['id', 'slug', 'is_home', 'seo_override', 'published_at', 'updated_at'])
-            ->reject(fn (LandingPage $page) => ($page->seo_override['noindex'] ?? false) === true)
+            ->get(['id', 'tenant_id', 'slug', 'is_home', 'theme_key', 'published_content', 'seo_override', 'published_at', 'updated_at'])
+            ->reject(fn (LandingPage $page) => ($page->seo_override['noindex'] ?? false) === true || ! $this->site->servesTheme($page))
             ->map(fn (LandingPage $page) => [
                 'slug' => $page->is_home ? '' : $page->slug,
                 'url' => PublicSite::url($primary, $page->is_home ? '' : $page->slug),

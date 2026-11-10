@@ -14,6 +14,7 @@ use App\Actions\Products\SaveProduct;
 use App\Actions\Promotions\SaveDiscountCode;
 use App\Actions\Promotions\SaveOffer;
 use App\Billing\SubscriptionManager;
+use App\Billing\Themes\ThemeAccess;
 use App\Enums\DiscountType;
 use App\Enums\OfferType;
 use App\Enums\OrderStatus;
@@ -89,6 +90,10 @@ final class DemoSeeder extends Seeder
 
         // The demo store tries every feature (owner decision: demo accounts get Pro).
         app(SubscriptionManager::class)->grant($registered['tenant'], 'pro', 365, 'demo', null);
+        // …and owns the paid themes its pages use.
+        foreach (['celia', 'layali'] as $theme) {
+            app(ThemeAccess::class)->grant($registered['tenant'], $theme, 'admin_grant', null, 0, 'demo');
+        }
 
         Tenancy::runAs($registered['tenant']->id, fn () => $this->store($registered['user']->id, $registered['domain']->host));
     }

@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Billing\Payments;
 
 use App\Billing\BillingPriceCalculator;
+use App\Billing\Entitlements;
 use App\Billing\PlanCatalog;
 use App\Billing\PlanPriceQuote;
 use App\Billing\PlatformSettings;
 use App\Billing\SubscriptionManager;
+use App\Billing\Themes\ThemeAccess;
+use App\Billing\Themes\ThemeCatalog;
 use App\Enums\BillingPeriod;
 use App\Enums\InvoiceStatus;
+use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
 use App\Models\Invoice;
 use App\Models\Tenant;
@@ -30,6 +34,9 @@ final class Invoices
         private readonly PlanCatalog $catalog,
         private readonly SubscriptionManager $subscriptions,
         private readonly PlatformSettings $settings,
+        private readonly ThemeCatalog $themes,
+        private readonly ThemeAccess $access,
+        private readonly Entitlements $entitlements,
     ) {}
 
     /** A new invoice for a plan period; other open invoices of the store are cancelled. */
@@ -46,12 +53,12 @@ final class Invoices
 
         $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($tenant, $plan, $price, $quote, $period, $now): Invoice {
             // A receipt under review must be decided first (otherwise two periods could be paid).
-            if (Invoice::query()->where('status', InvoiceStatus::PendingReview)->lockForUpdate()->exists()) {
+            if (Invoice::query()->where('type', 'subscription')->where('status', InvoiceStatus::PendingReview)->lockForUpdate()->exists()) {
                 throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
             }
 
-            // One open invoice per store at a time.
-            Invoice::query()->whereIn('status', [InvoiceStatus::Open])->lockForUpdate()->get()
+            // One open plan invoice per store at a time (theme invoices are separate).
+            Invoice::query()->where('type', 'subscription')->where('status', InvoiceStatus::Open)->lockForUpdate()->get()
                 ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
 
             $invoice = Invoice::query()->create([
@@ -87,6 +94,61 @@ final class Invoices
         return $invoice->refresh();
     }
 
+    /**
+     * An invoice for a paid theme (bought once, owned forever). Needs a plan with "buy_themes"
+     * (and the theme's minimum plan, when set); a theme already owned or free is refused.
+     */
+    public function forTheme(Tenant $tenant, string $themeKey): Invoice
+    {
+        $theme = $this->themes->theme($themeKey);
+        $price = $this->prices->themePrice($themeKey);
+        if ($theme === null || $price === null || ! $theme['is_listed'] || ! $theme['is_active']) {
+            throw new ApiException(404, 'not_found', __('landing.not_found'));
+        }
+        if ($price->isFree() || $this->access->owns($tenant, $themeKey)) {
+            throw new ApiException(422, 'theme_owned', __('themes.already_owned'));
+        }
+
+        Entitlements::forget($tenant->id);
+        $plan = $this->entitlements->for($tenant);
+        $minRank = $theme['min_plan_key'] === null ? null : $this->catalog->rank($theme['min_plan_key']);
+        if (! $plan->allows(PlanFeature::BuyThemes) || ($minRank !== null && ($plan->planKey === null || $this->catalog->rank($plan->planKey) < $minRank))) {
+            $needed = $theme['min_plan_key'] === null ? $this->catalog->cheapestWithFeature(PlanFeature::BuyThemes) : ['key' => $theme['min_plan_key'], 'name' => $this->catalog->plan($theme['min_plan_key'])['name'] ?? $theme['min_plan_key']];
+            throw ApiException::planFeatureLocked(PlanFeature::BuyThemes, $needed);
+        }
+
+        $now = CarbonImmutable::now();
+
+        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($tenant, $theme, $price, $now): Invoice {
+            $same = Invoice::query()->where('type', 'theme')->where('theme_key', $theme['key'])->lockForUpdate();
+            if ((clone $same)->where('status', InvoiceStatus::PendingReview)->exists()) {
+                throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
+            }
+            (clone $same)->where('status', InvoiceStatus::Open)->get()
+                ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
+
+            $invoice = Invoice::query()->create([
+                'tenant_id' => $tenant->id,
+                'type' => 'theme',
+                'theme_key' => $theme['key'],
+                'starts_now' => true,
+                'status' => InvoiceStatus::Open,
+                'subtotal' => Money::toDecimal($price->originalCents),
+                'discount' => Money::toDecimal($price->originalCents - $price->finalCents),
+                'credit' => Money::toDecimal(0),
+                'total' => Money::toDecimal($price->finalCents),
+                'currency' => (string) config('landing.billing.currency'),
+                'snapshot' => ['theme' => ['key' => $theme['key'], 'name' => $theme['name']], 'price' => $price->toArray()],
+                'expires_at' => $now->addHours($this->settings->invoiceHours()),
+            ]);
+            $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
+
+            return $invoice;
+        }));
+
+        return $invoice->refresh();
+    }
+
     public function cancel(Invoice $invoice): Invoice
     {
         if (! $invoice->status->acceptsPayment()) {
@@ -117,6 +179,12 @@ final class Invoices
 
         if ($activated === null) {
             return $invoice->refresh();
+        }
+
+        if ($activated->type === 'theme') {
+            $this->access->grant($tenant, (string) $activated->theme_key, 'purchase', $activated->id, $activated->totalCents());
+
+            return $activated->refresh();
         }
 
         $snapshot = $activated->snapshot;

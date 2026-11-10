@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
+use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
 use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
@@ -107,7 +108,10 @@ Route::prefix('dashboard')
 
         Route::post('pricing/preview', [PricingController::class, 'preview']);
 
-        Route::get('themes', [PageController::class, 'themes']);
+        Route::get('themes', [ThemeStoreController::class, 'mine']);
+        Route::get('theme-store', [ThemeStoreController::class, 'index']);
+        Route::get('theme-store/{key}', [ThemeStoreController::class, 'show']);
+        Route::post('theme-store/{key}/buy', [ThemeStoreController::class, 'buy']);
         Route::apiResource('pages', PageController::class);
         Route::put('pages/{page}/content', [PageController::class, 'saveContent']);
         Route::get('pages/{page}/preview', [PageController::class, 'preview']);
@@ -194,6 +198,16 @@ Route::prefix('admin')
         Route::post('tenants/{tenant}/reset-password', [AdminTenantController::class, 'resetPassword'])->whereNumber('tenant');
         Route::get('themes', [AdminThemeController::class, 'index']);
         Route::patch('themes/{key}', [AdminThemeController::class, 'update']);
+        Route::get('themes/{key}', [AdminThemeController::class, 'show']);
+        Route::put('themes/{key}', [AdminThemeController::class, 'updateDetails']);
+        Route::post('themes/{key}/images', [AdminThemeController::class, 'storeImage']);
+        Route::put('themes/{key}/images/order', [AdminThemeController::class, 'reorderImages']);
+        Route::delete('themes/{key}/images/{image}', [AdminThemeController::class, 'destroyImage'])->whereNumber('image');
+        Route::post('theme-tags', [AdminThemeController::class, 'storeTag']);
+        Route::delete('theme-tags/{tag}', [AdminThemeController::class, 'destroyTag'])->whereNumber('tag');
+        Route::get('tenants/{tenant}/themes', [AdminThemeController::class, 'tenantThemes'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/themes', [AdminThemeController::class, 'grant'])->whereNumber('tenant');
+        Route::delete('tenants/{tenant}/themes/{key}', [AdminThemeController::class, 'revoke'])->whereNumber('tenant');
 
         Route::get('plans', [AdminPlanController::class, 'index']);
         Route::post('plans', [AdminPlanController::class, 'store']);

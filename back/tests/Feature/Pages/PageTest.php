@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 beforeEach(function () {
     $this->seed(ThemeSeeder::class);
     $this->user = actingAsOwner();
+    ownThemes($this->user, 'celia', 'layali');
     $this->identity = asTenant($this->user, fn () => Identity::factory()->default()->create());
     $this->product = asTenant($this->user, fn () => Product::factory()->create());
 });

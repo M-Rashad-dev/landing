@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Pages;
 
+use App\Billing\Themes\ThemeAccess;
 use App\Enums\PageStatus;
 use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
+use App\Models\Tenant;
 use App\Models\Theme;
 use App\Services\PageContentSanitizer;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +66,8 @@ final class PublishPage
         // A disabled theme only stops new pages from choosing it; pages already on it keep publishing.
         if (! Theme::query()->where('key', $page->theme_key)->exists()) {
             $blockers[] = $this->blocker('theme_inactive');
+        } elseif (! app(ThemeAccess::class)->canPublish(Tenant::query()->findOrFail($page->tenant_id), $page->theme_key)) {
+            $blockers[] = $this->blocker('theme_not_available');
         }
 
         if ($visible === []) {

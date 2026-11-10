@@ -31,7 +31,7 @@ class PlanSeeder extends Seeder
             'values' => [
                 'products' => 5, 'landing_pages' => 3, 'custom_domains' => 0, 'media_storage_mb' => 200,
                 'offers' => 2, 'discount_codes' => 2, 'webhooks' => 0, 'ab_tests' => 0,
-                'upsells' => 0, 'abandoned_leads' => 0, 'advanced_analytics' => 0, 'remove_branding' => 0,
+                'upsells' => 0, 'abandoned_leads' => 0, 'advanced_analytics' => 0, 'remove_branding' => 0, 'buy_themes' => 0,
             ],
         ],
         'pro' => [
@@ -44,7 +44,7 @@ class PlanSeeder extends Seeder
             'values' => [
                 'products' => 20, 'landing_pages' => 20, 'custom_domains' => 1, 'media_storage_mb' => 2000,
                 'offers' => 20, 'discount_codes' => 50, 'webhooks' => 3, 'ab_tests' => 1,
-                'upsells' => 1, 'abandoned_leads' => 1, 'advanced_analytics' => 1, 'remove_branding' => 0,
+                'upsells' => 1, 'abandoned_leads' => 1, 'advanced_analytics' => 1, 'remove_branding' => 0, 'buy_themes' => 1,
             ],
         ],
         'max' => [
@@ -57,7 +57,7 @@ class PlanSeeder extends Seeder
             'values' => [
                 'products' => 200, 'landing_pages' => null, 'custom_domains' => 5, 'media_storage_mb' => 10000,
                 'offers' => null, 'discount_codes' => null, 'webhooks' => 10, 'ab_tests' => 5,
-                'upsells' => 1, 'abandoned_leads' => 1, 'advanced_analytics' => 1, 'remove_branding' => 1,
+                'upsells' => 1, 'abandoned_leads' => 1, 'advanced_analytics' => 1, 'remove_branding' => 1, 'buy_themes' => 1,
             ],
         ],
     ];

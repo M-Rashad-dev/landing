@@ -58,7 +58,7 @@ it('runs the whole store flow through the API', function () {
     $page = $this->postJson('/api/v1/dashboard/pages', [
         'title' => 'صفحة الشنطة',
         'slug' => 'bag',
-        'theme_key' => 'celia',
+        'theme_key' => 'malak',
         'identity_id' => $identity['id'],
         'product_id' => $product['id'],
         'content' => ['version' => 1, 'sections' => [
@@ -74,7 +74,7 @@ it('runs the whole store flow through the API', function () {
     $this->getJson("/api/v1/public/resolve-host?host={$host}", $internal)->assertOk()->assertJsonPath('data.status', 'active')->assertJsonPath('data.home_slug', 'bag');
     $this->getJson("/api/v1/public/pages?host={$host}&slug=", $internal)
         ->assertOk()
-        ->assertJsonPath('data.theme_key', 'celia')
+        ->assertJsonPath('data.theme_key', 'malak')
         ->assertJsonPath('data.tracking.meta_pixel_id', '123456789012345');
 
     // Quote: 2 × (400 + 25) = 850, offer −85 = 765, code −50 = 715.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Billing\Entitlements;
+use App\Billing\Themes\ThemeAccess;
 use App\Enums\DomainStatus;
 use App\Enums\PageStatus;
 use App\Enums\PlanFeature;
@@ -140,13 +141,24 @@ final class PublicSite
         return $this->publishedPages()->where('is_home', true)->value('slug');
     }
 
-    /** Empty slug → the home page. Never returns drafts. */
+    /** Empty slug → the home page. Never returns drafts, nor a page whose theme the plan does not serve. */
     public function page(string $slug): ?LandingPage
     {
         $query = $this->publishedPages()->with(['identity.logo', 'identity.favicon', 'identity.ogImage', 'product']);
 
         // home_key = 1 mirrors is_home and hits the unique (tenant_id, home_key) index.
-        return $slug === '' ? $query->where('home_key', 1)->first() : $query->where('slug', $slug)->first();
+        $page = $slug === '' ? $query->where('home_key', 1)->first() : $query->where('slug', $slug)->first();
+
+        return $page !== null && $this->servesTheme($page) ? $page : null;
+    }
+
+    /** The published theme is owned and, when paid, the plan has "buy_themes". */
+    public function servesTheme(LandingPage $page): bool
+    {
+        $theme = (string) ($page->published_content['theme_key'] ?? $page->theme_key);
+        $tenant = Tenant::query()->find($page->tenant_id);
+
+        return $tenant !== null && app(ThemeAccess::class)->canPublish($tenant, $theme);
     }
 
     /** @return array<string, mixed> */

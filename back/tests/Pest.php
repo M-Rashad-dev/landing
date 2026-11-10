@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Billing\Themes\ThemeAccess;
 use App\Models\Domain;
 use App\Models\Tenant;
 use App\Models\User;
@@ -51,4 +52,13 @@ function asTenant(User|Tenant|int $tenant, Closure $callback): mixed
 function internalHeaders(): array
 {
     return ['X-Internal-Key' => 'test-internal-key', 'Accept' => 'application/json'];
+}
+
+/** The store owns these paid themes (as if bought). */
+function ownThemes(User|Tenant $tenant, string ...$keys): void
+{
+    $model = $tenant instanceof User ? $tenant->tenant : $tenant;
+    foreach ($keys as $key) {
+        app(ThemeAccess::class)->grant($model, $key, 'admin_grant', null, 0);
+    }
 }

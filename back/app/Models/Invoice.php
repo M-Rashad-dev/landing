@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string $type
  * @property string|null $plan_key
  * @property BillingPeriod|null $period
+ * @property string|null $theme_key
  * @property bool $starts_now
  * @property InvoiceStatus $status
  * @property string $subtotal decimal string
@@ -45,7 +46,7 @@ class Invoice extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'type', 'plan_key', 'period', 'starts_now', 'status', 'subtotal', 'discount', 'credit', 'total',
+        'tenant_id', 'type', 'plan_key', 'period', 'theme_key', 'starts_now', 'status', 'subtotal', 'discount', 'credit', 'total',
         'currency', 'snapshot', 'expires_at', 'paid_at', 'subscription_id', 'refund_requested_at', 'refund_reason',
         'refunded_at', 'refund_ref',
     ];

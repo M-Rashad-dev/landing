@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Billing;
 
+use App\Billing\Themes\ThemeCatalog;
+use App\Billing\Themes\ThemePriceQuote;
 use App\Enums\BillingPeriod;
 use App\Enums\SubscriptionSource;
 use App\Models\Subscription;
@@ -12,12 +14,15 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
 /**
- * The only price authority for what merchants pay the platform (plans now, themes later).
+ * The only price authority for what merchants pay the platform (plans and themes).
  * Integer cents only. Discounted prices are rounded to the nearest pound.
  */
 final class BillingPriceCalculator
 {
-    public function __construct(private readonly PlanCatalog $catalog) {}
+    public function __construct(
+        private readonly PlanCatalog $catalog,
+        private readonly ThemeCatalog $themes,
+    ) {}
 
     /** Null when the plan has no active price for that period. */
     public function planPrice(string $planKey, BillingPeriod $period, ?CarbonInterface $at = null): ?PlanPriceQuote
@@ -28,14 +33,7 @@ final class BillingPriceCalculator
             return null;
         }
 
-        $at = CarbonImmutable::instance($at ?? now());
-        $starts = $row['discount_starts_at'] === null ? null : CarbonImmutable::parse($row['discount_starts_at']);
-        $ends = $row['discount_ends_at'] === null ? null : CarbonImmutable::parse($row['discount_ends_at']);
-        // Both ends inclusive.
-        $running = $row['discount_percent'] > 0
-            && ($starts === null || $at->gte($starts))
-            && ($ends === null || $at->lte($ends));
-        $percent = $running ? $row['discount_percent'] : 0;
+        [$percent, $ends] = $this->runningDiscount($row['discount_percent'], $row['discount_starts_at'], $row['discount_ends_at'], $at);
 
         return new PlanPriceQuote(
             planKey: $planKey,
@@ -43,8 +41,36 @@ final class BillingPriceCalculator
             originalCents: $row['price_cents'],
             discountPercent: $percent,
             finalCents: self::discounted($row['price_cents'], $percent),
-            discountEndsAt: $running ? $ends : null,
+            discountEndsAt: $ends,
         );
+    }
+
+    /** Null for an unknown theme. A theme is paid once and owned forever. */
+    public function themePrice(string $key, ?CarbonInterface $at = null): ?ThemePriceQuote
+    {
+        $row = $this->themes->theme($key);
+        if ($row === null) {
+            return null;
+        }
+
+        [$percent, $ends] = $this->runningDiscount($row['discount_percent'], $row['discount_starts_at'], $row['discount_ends_at'], $at);
+
+        return new ThemePriceQuote($key, $row['price_cents'], $percent, self::discounted($row['price_cents'], $percent), $ends);
+    }
+
+    /**
+     * The discount percent running at $at (both ends inclusive) and its end, or 0.
+     *
+     * @return array{0: int, 1: CarbonImmutable|null}
+     */
+    private function runningDiscount(int $percent, ?string $startsAt, ?string $endsAt, ?CarbonInterface $at): array
+    {
+        $at = CarbonImmutable::instance($at ?? now());
+        $starts = $startsAt === null ? null : CarbonImmutable::parse($startsAt);
+        $ends = $endsAt === null ? null : CarbonImmutable::parse($endsAt);
+        $running = $percent > 0 && ($starts === null || $at->gte($starts)) && ($ends === null || $at->lte($ends));
+
+        return $running ? [$percent, $ends] : [0, null];
     }
 
     /** Percentage off, rounded to the nearest pound; 0% leaves the price untouched. */

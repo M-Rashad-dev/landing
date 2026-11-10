@@ -16,7 +16,6 @@ use App\Http\Resources\PageDetailResource;
 use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
-use App\Models\Theme;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use Illuminate\Http\JsonResponse;
@@ -26,11 +25,6 @@ use Illuminate\Http\Response;
 final class PageController extends Controller
 {
     private const RELATIONS = ['identity', 'product'];
-
-    public function themes(): JsonResponse
-    {
-        return $this->ok(Theme::query()->active()->orderBy('sort_order')->get(['key', 'name'])->map(fn (Theme $t) => ['key' => $t->key, 'name' => $t->name])->all());
-    }
 
     public function index(Request $request): JsonResponse
     {

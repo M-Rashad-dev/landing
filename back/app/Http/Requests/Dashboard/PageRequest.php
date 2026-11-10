@@ -6,6 +6,7 @@ namespace App\Http\Requests\Dashboard;
 
 use App\Http\Requests\ApiRequest;
 use App\Models\LandingPage;
+use App\Rules\OwnedTheme;
 use App\Rules\PageSlug;
 use App\Rules\TenantExists;
 use App\Rules\TenantUnique;
@@ -62,7 +63,7 @@ final class PageRequest extends ApiRequest
             'title' => ['required', 'string', 'min:1', 'max:120'],
             'slug' => ['required', 'string', new PageSlug, TenantUnique::table('landing_pages', 'slug')->ignore($page?->id)->ignoreTrashed()],
             'theme_key' => $creating
-                ? ['required', 'string', Rule::exists('themes', 'key')->where('is_active', true)]
+                ? ['required', 'string', 'bail', Rule::exists('themes', 'key')->where('is_active', true), new OwnedTheme]
                 : ['prohibited'],
             'identity_id' => [$creating ? 'nullable' : 'required', 'integer', TenantExists::table('identities')->ignoreTrashed()],
             'product_id' => ['nullable', 'integer', TenantExists::table('products')->ignoreTrashed()],
