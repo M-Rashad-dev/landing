@@ -227,13 +227,18 @@ test("8. the trial store pays by InstaPay, the admin approves and Pro starts", a
   const merchant = await signIn(`trial${stamp}@example.com`, "/dashboard");
   await merchant.goto("/dashboard/plans");
   await merchant.locator("li").filter({ has: merchant.getByRole("heading", { name: "برو" }) }).getByRole("button", { name: "اختار الباقة" }).click();
-  await merchant.waitForURL(/\/dashboard\/billing\/invoices\/\d+$/);
+  // The pay page is only a look: no invoice until the receipt is sent.
+  await merchant.waitForURL(/\/dashboard\/billing\/checkout\?/);
   await expect(merchant.getByText("e2e@instapay")).toBeVisible();
+  await merchant.goto("/dashboard/billing/invoices");
+  await expect(merchant.getByText("مفيش فواتير لسه.")).toBeVisible();
+  await merchant.goBack();
   await merchant.locator("#pay-ref").fill("TX-E2E-1");
   // A tiny valid PNG (re-encoded by the back end).
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   await merchant.locator("#pay-receipt").setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: png });
   await merchant.getByRole("button", { name: "إرسال الإيصال" }).click();
+  await merchant.waitForURL(/\/dashboard\/billing\/invoices\/\d+$/);
   await expect(merchant.getByText("الإيصال قيد المراجعة")).toBeVisible();
 
   // The admin approves.
@@ -273,8 +278,8 @@ test("9. the Pro store previews and buys a paid theme, the admin approves, the t
   await merchant.goto("/dashboard/themes/celia");
 
   await merchant.getByRole("button", { name: /اشتري بـ/ }).click();
-  await merchant.waitForURL(/\/dashboard\/billing\/invoices\/\d+$/);
-  await expect(merchant.getByText("ثيم سيليا")).toBeVisible();
+  await merchant.waitForURL(/\/dashboard\/billing\/checkout\?/);
+  await expect(merchant.getByText("ثيم سيليا").first()).toBeVisible();
   await merchant.locator("#pay-ref").fill("TX-THEME-1");
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   await merchant.locator("#pay-receipt").setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: png });

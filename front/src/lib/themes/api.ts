@@ -2,7 +2,6 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, apiPage } from "@/lib/api/client";
-import type { Invoice } from "@/lib/billing/payments";
 
 export type ThemeKind = "landing" | "store";
 export type ThemeTag = { id: number; slug: string; name: string };
@@ -62,4 +61,3 @@ export function useThemeDetail(key: string) {
   return useQuery({ queryKey: themeKeys.one(key), queryFn: () => api<ThemeRow>(`/dashboard/theme-store/${encodeURIComponent(key)}`) });
 }
 
-export const buyTheme = (key: string) => api<Invoice>(`/dashboard/theme-store/${encodeURIComponent(key)}/buy`, { method: "POST" });

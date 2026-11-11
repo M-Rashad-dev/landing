@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
-use App\Billing\Payments\Invoices;
 use App\Billing\Themes\ThemeCatalog;
 use App\Billing\Themes\ThemePresenter;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\InvoiceResource;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -72,13 +70,6 @@ final class ThemeStoreController extends Controller
         abort_if($theme === null || ! $theme['is_active'] || ! $theme['is_listed'], 404);
 
         return $this->ok($this->presenter->row($theme, $this->tenant($request), detail: true));
-    }
-
-    public function buy(Request $request, string $key, Invoices $invoices): JsonResponse
-    {
-        $invoice = $invoices->forTheme($this->tenant($request), $key);
-
-        return $this->created(InvoiceResource::make($invoice->load('payments.method:key,name')));
     }
 
     private function tenant(Request $request): Tenant

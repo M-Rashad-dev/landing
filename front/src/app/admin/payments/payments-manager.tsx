@@ -133,6 +133,11 @@ function PaymentCard({ payment }: { payment: AdminPayment }) {
           <Link href={`/admin/tenants/${payment.tenant.id}`} className="font-bold hover:underline">
             {payment.tenant.name}
           </Link>
+          {payment.tenant.reference ? (
+            <span className="ms-2 rounded bg-muted px-1.5 py-0.5 font-mono text-xs" dir="ltr" title={ar.billing.invoices.reference}>
+              {payment.tenant.reference}
+            </span>
+          ) : null}
           <p className="text-xs text-muted-foreground">
             {t.sentAt} {formatCairo(payment.created_at)}
           </p>

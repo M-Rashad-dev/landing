@@ -77,7 +77,8 @@ Route::prefix('dashboard')
         // Paying works on an expired plan too (it is how the store comes back).
         Route::withoutMiddleware('plan.writable')->group(function (): void {
             Route::get('billing/invoices', [InvoiceController::class, 'index']);
-            Route::post('billing/invoices', [InvoiceController::class, 'store']);
+            Route::post('billing/checkout/preview', [InvoiceController::class, 'preview']);
+            Route::post('billing/checkout', [InvoiceController::class, 'checkout'])->middleware('throttle:receipt-upload');
             Route::get('billing/invoices/{invoice}', [InvoiceController::class, 'show']);
             Route::post('billing/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
             Route::post('billing/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->middleware('throttle:receipt-upload');
@@ -127,7 +128,6 @@ Route::prefix('dashboard')
         Route::get('themes', [ThemeStoreController::class, 'mine']);
         Route::get('theme-store', [ThemeStoreController::class, 'index']);
         Route::get('theme-store/{key}', [ThemeStoreController::class, 'show']);
-        Route::post('theme-store/{key}/buy', [ThemeStoreController::class, 'buy']);
         Route::apiResource('pages', PageController::class);
         Route::put('pages/{page}/content', [PageController::class, 'saveContent']);
         Route::get('pages/{page}/preview', [PageController::class, 'preview']);

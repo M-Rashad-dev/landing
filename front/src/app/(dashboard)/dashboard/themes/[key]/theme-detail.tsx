@@ -10,9 +10,8 @@ import { previewUrl, ThemeBadges, ThemeCover, ThemePriceTag } from "@/components
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/toaster";
-import { errorMessage } from "@/lib/api/errors";
-import { buyTheme, useThemeDetail, type ThemeRow } from "@/lib/themes/api";
+import { checkoutPath } from "@/lib/billing/payments";
+import { useThemeDetail, type ThemeRow } from "@/lib/themes/api";
 import { formatPrice } from "@/lib/price";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -104,15 +103,9 @@ function BuyCard({ theme }: { theme: ThemeRow }) {
   const [busy, setBusy] = useState(false);
   const canBuyOnPlan = plan?.features.buy_themes ?? false;
 
-  async function buy() {
+  function buy() {
     setBusy(true);
-    try {
-      const invoice = await buyTheme(theme.key);
-      router.push(`/dashboard/billing/invoices/${invoice.id}`);
-    } catch (err) {
-      toast.error(errorMessage(err));
-      setBusy(false);
-    }
+    router.push(checkoutPath({ type: "theme", theme_key: theme.key }));
   }
 
   return (

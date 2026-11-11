@@ -31,9 +31,23 @@ function payOwner(string $plan = 'basic', bool $expired = false): User
     return $user;
 }
 
-function newInvoice(string $plan = 'pro', string $period = 'monthly')
+/** The pay page of a plan period: what would be paid, nothing saved. */
+function previewPlan(string $plan = 'pro', string $period = 'monthly')
 {
-    return test()->postJson('/api/v1/dashboard/billing/invoices', ['plan_key' => $plan, 'period' => $period]);
+    return test()->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'subscription', 'plan_key' => $plan, 'period' => $period]);
+}
+
+/** Sending the receipt for a plan period: the invoice is created with it. */
+function buyPlan(string $plan = 'pro', string $period = 'monthly', array $overrides = [])
+{
+    return test()->post('/api/v1/dashboard/billing/checkout', array_merge([
+        'type' => 'subscription',
+        'plan_key' => $plan,
+        'period' => $period,
+        'method' => 'instapay',
+        'sender_ref' => 'TX-998877',
+        'receipt' => UploadedFile::fake()->image('receipt.jpg', 600, 900),
+    ], $overrides), ['Accept' => 'application/json']);
 }
 
 function sendReceipt(int $invoiceId, array $overrides = [])
@@ -56,22 +70,38 @@ function asAdmin(): User
 // --- merchant ---------------------------------------------------------------------------
 
 it('needs a signed-in owner', function () {
-    newInvoice()->assertUnauthorized();
+    previewPlan()->assertUnauthorized();
+    buyPlan()->assertUnauthorized();
     $this->getJson('/api/v1/dashboard/billing/invoices')->assertUnauthorized();
 });
 
-it('creates an invoice with the price, the way to pay and the reference', function () {
-    payOwner('basic');
+it('shows the pay page with the price, the way to pay and the store reference, saving nothing', function () {
+    $owner = payOwner('basic');
 
-    newInvoice('pro', 'monthly')
-        ->assertCreated()
-        ->assertJsonPath('data.status', 'open')
+    previewPlan('pro', 'monthly')
+        ->assertOk()
+        ->assertJsonPath('data.id', null)
+        ->assertJsonPath('data.number', null)
         ->assertJsonPath('data.total', 100)
         ->assertJsonPath('data.plan.name', 'برو')
         ->assertJsonPath('data.payable', true)
         ->assertJsonPath('data.pay_with.0.key', 'instapay')
         ->assertJsonPath('data.pay_with.0.account_value', 'platform@instapay')
-        ->assertJsonPath('data.pay_with.0.amount', 100);
+        ->assertJsonPath('data.pay_with.0.amount', 100)
+        ->assertJsonPath('data.pay_with.0.reference', sprintf('ST-%05d', $owner->tenant_id));
+
+    // Only a look: no invoice until the receipt is sent.
+    expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
+    $this->getJson('/api/v1/dashboard/billing/invoices')->assertJsonCount(0, 'data');
+});
+
+it('creates the invoice together with the receipt', function () {
+    payOwner('basic');
+
+    buyPlan('pro')->assertCreated()
+        ->assertJsonPath('data.status', 'pending_review')
+        ->assertJsonPath('data.total', 100)
+        ->assertJsonPath('data.payments.0.status', 'pending_review');
 
     expect(Invoice::query()->withoutGlobalScopes()->value('number'))->toStartWith('INV-');
 });
@@ -80,14 +110,15 @@ it('hides methods the admin did not finish (off or without an account)', functio
     PaymentMethod::query()->whereKey('vodafone_cash')->update(['is_active' => true, 'account_value' => null]);
     payOwner('basic');
 
-    newInvoice()->assertCreated()->assertJsonCount(1, 'data.pay_with');
+    previewPlan()->assertOk()->assertJsonCount(1, 'data.pay_with');
 });
 
 it('validates the plan and period', function () {
     payOwner('basic');
 
-    newInvoice('nope', 'monthly')->assertStatus(422)->assertJsonPath('code', 'plan_not_found');
-    newInvoice('pro', 'weekly')->assertStatus(422)->assertJsonValidationErrors('period');
+    previewPlan('nope', 'monthly')->assertStatus(422)->assertJsonPath('code', 'plan_not_found');
+    previewPlan('pro', 'weekly')->assertStatus(422)->assertJsonValidationErrors('period');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'gift'])->assertStatus(422)->assertJsonValidationErrors('type');
 });
 
 it('charges only the difference when upgrading inside the first 7 days', function () {
@@ -96,57 +127,62 @@ it('charges only the difference when upgrading inside the first 7 days', functio
     app(SubscriptionManager::class)->subscribe($owner->tenant, app(BillingPriceCalculator::class)->planPrice('pro', BillingPeriod::Monthly), 10000, startsNow: true);
     Sanctum::actingAs($owner->fresh(['tenant']));
 
-    newInvoice('max', 'monthly')->assertCreated()->assertJsonPath('data.total', 50)->assertJsonPath('data.credit', 100)->assertJsonPath('data.starts_now', true);
+    previewPlan('max', 'monthly')->assertOk()->assertJsonPath('data.total', 50)->assertJsonPath('data.credit', 100)->assertJsonPath('data.starts_now', true);
+    buyPlan('max')->assertCreated()->assertJsonPath('data.total', 50)->assertJsonPath('data.payments.0.amount', 50);
 });
 
-it('starts the plan at once when the credit covers everything', function () {
+it('starts the plan at once when the credit covers everything (nothing to transfer)', function () {
     $owner = payOwner('basic');
     asTenant($owner, fn () => Subscription::query()->delete());
     app(SubscriptionManager::class)->subscribe($owner->tenant, app(BillingPriceCalculator::class)->planPrice('pro', BillingPeriod::Yearly), 120000, startsNow: true);
     Sanctum::actingAs($owner->fresh(['tenant']));
 
-    newInvoice('max', 'monthly')->assertCreated()->assertJsonPath('data.status', 'paid')->assertJsonPath('data.total', 0);
+    previewPlan('max')->assertOk()->assertJsonPath('data.total', 0);
+    expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
+    $this->postJson('/api/v1/dashboard/billing/checkout', ['type' => 'subscription', 'plan_key' => 'max', 'period' => 'monthly'])
+        ->assertCreated()->assertJsonPath('data.status', 'paid')->assertJsonPath('data.total', 0);
     expect($owner->tenant->fresh()->plan_key)->toBe('max');
 });
 
-it('keeps one open invoice and refuses a new one while a receipt is under review', function () {
+it('refuses a new plan payment while a receipt is under review', function () {
     payOwner('basic');
-    $first = newInvoice('pro')->json('data.id');
-    $second = newInvoice('max')->json('data.id');
+    buyPlan('pro')->assertCreated();
 
-    $this->getJson("/api/v1/dashboard/billing/invoices/{$first}")->assertJsonPath('data.status', 'cancelled')->assertJsonPath('data.pay_with', []);
-    sendReceipt($second)->assertCreated();
-    newInvoice('pro')->assertStatus(422)->assertJsonPath('code', 'invoice_pending_review');
+    previewPlan('max')->assertStatus(422)->assertJsonPath('code', 'invoice_pending_review');
+    buyPlan('max')->assertStatus(422)->assertJsonPath('code', 'invoice_pending_review');
+    expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(1);
 });
 
-it('takes a receipt: stored privately, invoice under review, no second receipt', function () {
+it('stores the receipt privately and takes no second receipt on the same invoice', function () {
     payOwner('basic');
-    $id = newInvoice()->json('data.id');
-
-    sendReceipt($id)->assertCreated()
-        ->assertJsonPath('data.status', 'pending_review')
-        ->assertJsonPath('data.payments.0.status', 'pending_review')
+    $id = buyPlan()->assertCreated()
         ->assertJsonPath('data.payments.0.sender_ref', 'TX-998877')
-        ->assertJsonMissingPath('data.payments.0.receipt_path');
+        ->assertJsonMissingPath('data.payments.0.receipt_path')
+        ->json('data.id');
 
     $path = Payment::query()->withoutGlobalScopes()->value('receipt_path');
     expect($path)->toStartWith('receipts/')->and(Storage::disk('local')->exists($path))->toBeTrue();
     sendReceipt($id)->assertStatus(422)->assertJsonPath('code', 'invoice_not_open');
 });
 
-it('validates receipts and methods', function () {
+it('validates receipts and methods, leaving no invoice behind', function () {
     payOwner('basic');
-    $id = newInvoice()->json('data.id');
 
-    sendReceipt($id, ['receipt' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')])->assertStatus(422)->assertJsonValidationErrors('receipt');
-    sendReceipt($id, ['receipt' => UploadedFile::fake()->create('fake.jpg', 10, 'image/jpeg')])->assertStatus(422)->assertJsonValidationErrors('receipt');
-    sendReceipt($id, ['method' => 'vodafone_cash'])->assertStatus(422)->assertJsonValidationErrors('method');
-    sendReceipt($id, ['sender_ref' => ''])->assertStatus(422)->assertJsonValidationErrors('sender_ref');
+    buyPlan('pro', 'monthly', ['receipt' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')])->assertStatus(422)->assertJsonValidationErrors('receipt');
+    buyPlan('pro', 'monthly', ['receipt' => UploadedFile::fake()->create('fake.jpg', 10, 'image/jpeg')])->assertStatus(422)->assertJsonValidationErrors('receipt');
+    buyPlan('pro', 'monthly', ['method' => 'vodafone_cash'])->assertStatus(422)->assertJsonValidationErrors('method');
+    buyPlan('pro', 'monthly', ['sender_ref' => ''])->assertStatus(422)->assertJsonValidationErrors('sender_ref');
+    buyPlan('pro', 'monthly', ['receipt' => null])->assertStatus(422)->assertJsonValidationErrors('receipt');
+
+    expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0)->and(Payment::query()->withoutGlobalScopes()->count())->toBe(0);
 });
 
-it('refuses receipts for an expired invoice', function () {
-    payOwner('basic');
-    $id = newInvoice()->json('data.id');
+it('refuses receipts for a rejected invoice left past its time', function () {
+    $owner = payOwner('basic');
+    $id = buyPlan()->json('data.id');
+    asAdmin();
+    $this->postJson('/api/v1/admin/payments/'.Payment::query()->withoutGlobalScopes()->value('id').'/reject', ['reason' => 'مش واضح'])->assertOk();
+    Sanctum::actingAs($owner->fresh(['tenant']));
     $this->travel(49)->hours();
 
     sendReceipt($id)->assertStatus(422)->assertJsonPath('code', 'invoice_not_open');
@@ -158,14 +194,13 @@ it('lets an expired store pay (the dashboard is read-only otherwise)', function 
     payOwner('pro', expired: true);
 
     $this->postJson('/api/v1/dashboard/products', ['name' => 'x', 'price' => 1])->assertForbidden();
-    $id = newInvoice('pro')->assertCreated()->json('data.id');
-    sendReceipt($id)->assertCreated();
+    previewPlan('pro')->assertOk();
+    buyPlan('pro')->assertCreated();
 });
 
 it('isolates invoices and receipts between stores', function () {
     payOwner('basic');
-    $mine = newInvoice()->json('data.id');
-    sendReceipt($mine)->assertCreated();
+    $mine = buyPlan()->assertCreated()->json('data.id');
     $payment = Payment::query()->withoutGlobalScopes()->value('id');
 
     $this->get("/api/v1/dashboard/billing/invoices/{$mine}/payments/{$payment}/receipt")->assertOk()->assertHeader('Content-Type', 'image/webp');
@@ -188,8 +223,7 @@ it('keeps the review queue to super admins', function () {
 
 it('approves a receipt once: invoice paid, plan started, audited', function () {
     $owner = payOwner('basic');
-    $id = newInvoice('pro')->json('data.id');
-    sendReceipt($id);
+    $id = buyPlan('pro')->json('data.id');
     $payment = Payment::query()->withoutGlobalScopes()->value('id');
 
     asAdmin();
@@ -209,8 +243,7 @@ it('approves a receipt once: invoice paid, plan started, audited', function () {
 
 it('rejects with a reason the merchant sees, then takes a new receipt', function () {
     $owner = payOwner('basic');
-    $id = newInvoice('pro')->json('data.id');
-    sendReceipt($id);
+    $id = buyPlan('pro')->json('data.id');
     $payment = Payment::query()->withoutGlobalScopes()->value('id');
 
     asAdmin();
@@ -238,8 +271,7 @@ it('edits payment methods (an active one needs its account) and audits it', func
 function paidPro(User $owner): int
 {
     Sanctum::actingAs($owner->fresh(['tenant']));
-    $id = newInvoice('pro')->json('data.id');
-    sendReceipt($id);
+    $id = buyPlan('pro')->json('data.id');
     $payment = Payment::query()->withoutGlobalScopes()->where('invoice_id', $id)->value('id');
     asAdmin();
     test()->postJson("/api/v1/admin/payments/{$payment}/approve")->assertOk();
@@ -276,7 +308,7 @@ it('allows no refund after 3 days', function () {
 
 it('counts money waiting for the admin on the overview', function () {
     payOwner('basic');
-    sendReceipt(newInvoice()->json('data.id'));
+    buyPlan()->assertCreated();
     asAdmin();
 
     $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.pending_payments', 1)->assertJsonPath('data.refund_requests', 0);

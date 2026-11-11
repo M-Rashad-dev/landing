@@ -58,7 +58,7 @@ function themedPage(Tenant $tenant, string $theme, string $host): LandingPage
 
 it('needs a signed-in owner', function () {
     $this->getJson('/api/v1/dashboard/theme-store')->assertUnauthorized();
-    $this->postJson('/api/v1/dashboard/theme-store/celia/buy')->assertUnauthorized();
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'celia'])->assertUnauthorized();
 });
 
 it('lists the store themes with what it owns and can publish', function () {
@@ -103,34 +103,35 @@ it('applies a theme discount inside its dates', function () {
 it('refuses buying on Basic with the plan to upgrade to', function () {
     themeOwner('basic');
 
-    $this->postJson('/api/v1/dashboard/theme-store/celia/buy')->assertForbidden()->assertJsonPath('code', 'plan_feature_locked')->assertJsonPath('upgrade_to.key', 'pro');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'celia'])->assertForbidden()->assertJsonPath('code', 'plan_feature_locked')->assertJsonPath('upgrade_to.key', 'pro');
 });
 
 it('respects a theme minimum plan', function () {
     themeOwner('pro');
     Theme::query()->whereKey('layali')->firstOrFail()->update(['min_plan_key' => 'max']);
 
-    $this->postJson('/api/v1/dashboard/theme-store/layali/buy')->assertForbidden()->assertJsonPath('upgrade_to.key', 'max');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'layali'])->assertForbidden()->assertJsonPath('upgrade_to.key', 'max');
 });
 
-it('buys a theme through an invoice that leaves plan invoices alone', function () {
+it('shows what a theme costs without creating an invoice, and refuses owned themes', function () {
     themeOwner('pro');
-    $planInvoice = $this->postJson('/api/v1/dashboard/billing/invoices', ['plan_key' => 'max', 'period' => 'monthly'])->json('data.id');
 
-    $this->postJson('/api/v1/dashboard/theme-store/celia/buy')->assertCreated()
-        ->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.total', 100);
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'celia'])->assertOk()
+        ->assertJsonPath('data.id', null)->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.total', 100);
 
-    expect(Invoice::query()->withoutGlobalScopes()->find($planInvoice)->status->value)->toBe('open');
-    $this->postJson('/api/v1/dashboard/theme-store/malak/buy')->assertStatus(422)->assertJsonPath('code', 'theme_owned');
+    expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'malak'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
 });
 
 it('owns the theme forever once the admin approves the payment', function () {
     Storage::fake('local');
     PaymentMethod::query()->whereKey('instapay')->update(['is_active' => true, 'account_value' => 'x@instapay']);
     $owner = themeOwner('pro');
-    $invoice = $this->postJson('/api/v1/dashboard/theme-store/celia/buy')->json('data.id');
-    $this->post("/api/v1/dashboard/billing/invoices/{$invoice}/payments", ['method' => 'instapay', 'sender_ref' => 'TX-1', 'receipt' => UploadedFile::fake()->image('r.jpg', 300, 300)], ['Accept' => 'application/json'])->assertCreated();
-    $this->postJson('/api/v1/dashboard/theme-store/celia/buy')->assertStatus(422)->assertJsonPath('code', 'invoice_pending_review');
+    $this->post('/api/v1/dashboard/billing/checkout', ['type' => 'theme', 'theme_key' => 'celia', 'method' => 'instapay', 'sender_ref' => 'TX-1', 'receipt' => UploadedFile::fake()->image('r.jpg', 300, 300)], ['Accept' => 'application/json'])
+        ->assertCreated()->assertJsonPath('data.type', 'theme')->assertJsonPath('data.status', 'pending_review');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'celia'])->assertStatus(422)->assertJsonPath('code', 'invoice_pending_review');
+    // A plan payment is not blocked by a theme receipt.
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'subscription', 'plan_key' => 'max', 'period' => 'monthly'])->assertOk();
 
     themeAdmin();
     $payment = Payment::query()->withoutGlobalScopes()->value('id');

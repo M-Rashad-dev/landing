@@ -174,7 +174,7 @@ export const deleteOverride = (id: number, entitlement: string) => api<void>(`/a
 export type AdminPayment = {
   id: number;
   status: "pending_review" | "approved" | "rejected";
-  tenant: { id: number; name: string };
+  tenant: { id: number; name: string; reference?: string };
   method: { key: string; name: string };
   amount: number;
   sender_ref: string;

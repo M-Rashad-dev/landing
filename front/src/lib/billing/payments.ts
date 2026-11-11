@@ -32,7 +32,8 @@ export type PayOption = {
 };
 
 export type Invoice = {
-  id: number;
+  /** null on the pay page (a draft: the invoice is created with the receipt). */
+  id: number | null;
   number: string | null;
   status: InvoiceStatus;
   type: "subscription" | "theme";
@@ -84,7 +85,45 @@ export function useInvoice(id: number) {
   });
 }
 
-export const createInvoice = (planKey: string, period: BillingPeriod) => api<Invoice>("/dashboard/billing/invoices", { method: "POST", body: { plan_key: planKey, period } });
+/** What is being bought on the pay page. */
+export type CheckoutItem = { type: "subscription"; plan_key: string; period: BillingPeriod } | { type: "theme"; theme_key: string };
+
+export function checkoutPath(item: CheckoutItem): string {
+  const query: Record<string, string> = item.type === "theme" ? { type: item.type, theme_key: item.theme_key } : { type: item.type, plan_key: item.plan_key, period: item.period };
+  return `/dashboard/billing/checkout?${new URLSearchParams(query).toString()}`;
+}
+
+/** Reads the pay page item from its URL (null when something is missing). */
+export function checkoutItemFrom(search: { get: (key: string) => string | null }): CheckoutItem | null {
+  const type = search.get("type");
+  if (type === "theme") {
+    const key = search.get("theme_key");
+    return key ? { type, theme_key: key } : null;
+  }
+  const plan = search.get("plan_key");
+  const period = search.get("period");
+  return type === "subscription" && plan && (period === "monthly" || period === "yearly") ? { type, plan_key: plan, period } : null;
+}
+
+/** The pay page: what would be paid and how. Nothing is saved until the receipt is sent. */
+export function useCheckoutPreview(item: CheckoutItem | null) {
+  return useQuery({
+    queryKey: ["billing", "checkout", item],
+    enabled: item !== null,
+    retry: false,
+    queryFn: async () => {
+      const res = await apiPage<never>("/dashboard/billing/checkout/preview", { method: "POST", body: item });
+      return { invoice: res.data as unknown as Invoice, support: (res.meta as unknown as { support: Support }).support };
+    },
+  });
+}
+
+/** Sends the receipt: the invoice is created with it (or the plan starts at once when nothing is due). */
+export function placeCheckout(item: CheckoutItem, form?: FormData): Promise<Invoice> {
+  if (!form) return api<Invoice>("/dashboard/billing/checkout", { method: "POST", body: item });
+  for (const [key, value] of Object.entries(item)) form.set(key, value);
+  return api<Invoice>("/dashboard/billing/checkout", { method: "POST", body: form });
+}
 export const cancelInvoice = (id: number) => api<Invoice>(`/dashboard/billing/invoices/${id}/cancel`, { method: "POST" });
 export const payInvoice = (id: number, form: FormData) => api<Invoice>(`/dashboard/billing/invoices/${id}/payments`, { method: "POST", body: form });
 export const requestRefund = (reason: string) => api<Invoice>("/dashboard/billing/refund", { method: "POST", body: { reason } });

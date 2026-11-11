@@ -39,19 +39,23 @@ final class Invoices
         private readonly Entitlements $entitlements,
     ) {}
 
+    /**
+     * What a plan invoice would be, nothing saved: the pay page shows it, and the invoice is
+     * only created when the merchant sends the receipt (Checkout::place).
+     */
+    public function draftPlan(Tenant $tenant, string $planKey, BillingPeriod $period): Invoice
+    {
+        $this->ensureNoReceiptUnderReview($tenant, 'subscription');
+
+        return $this->draft($this->planAttributes($tenant, $planKey, $period));
+    }
+
     /** A new invoice for a plan period; other open invoices of the store are cancelled. */
     public function forPlan(Tenant $tenant, string $planKey, BillingPeriod $period): Invoice
     {
-        $plan = $this->catalog->sellable()[$planKey] ?? null;
-        $price = $plan === null ? null : $this->prices->planPrice($planKey, $period);
-        if ($plan === null || $price === null) {
-            throw new ApiException(422, 'plan_not_found', __('billing.plan_not_found'), ['plan_key' => [__('billing.plan_not_found')]]);
-        }
+        $attributes = $this->planAttributes($tenant, $planKey, $period);
 
-        $quote = $this->prices->change($this->subscriptions->current($tenant), $price);
-        $now = CarbonImmutable::now();
-
-        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($tenant, $plan, $price, $quote, $period, $now): Invoice {
+        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($attributes): Invoice {
             // A receipt under review must be decided first (otherwise two periods could be paid).
             if (Invoice::query()->where('type', 'subscription')->where('status', InvoiceStatus::PendingReview)->lockForUpdate()->exists()) {
                 throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
@@ -61,26 +65,7 @@ final class Invoices
             Invoice::query()->where('type', 'subscription')->where('status', InvoiceStatus::Open)->lockForUpdate()->get()
                 ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
 
-            $invoice = Invoice::query()->create([
-                'tenant_id' => $tenant->id,
-                'type' => 'subscription',
-                'plan_key' => $plan['key'],
-                'period' => $period,
-                'starts_now' => $quote->startsNow,
-                'status' => InvoiceStatus::Open,
-                'subtotal' => Money::toDecimal($price->originalCents),
-                'discount' => Money::toDecimal($price->originalCents - $price->finalCents),
-                'credit' => Money::toDecimal($quote->creditCents),
-                'total' => Money::toDecimal($quote->payCents),
-                'currency' => (string) config('landing.billing.currency'),
-                'snapshot' => [
-                    'plan' => ['key' => $plan['key'], 'name' => $plan['name']],
-                    'price' => $price->toArray(),
-                    'change' => $quote->toArray(),
-                    'days' => $period->days(),
-                ],
-                'expires_at' => $now->addHours($this->settings->invoiceHours()),
-            ]);
+            $invoice = Invoice::query()->create($attributes);
             $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
 
             return $invoice;
@@ -100,6 +85,70 @@ final class Invoices
      */
     public function forTheme(Tenant $tenant, string $themeKey): Invoice
     {
+        $attributes = $this->themeAttributes($tenant, $themeKey);
+
+        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($attributes): Invoice {
+            $same = Invoice::query()->where('type', 'theme')->where('theme_key', $attributes['theme_key'])->lockForUpdate();
+            if ((clone $same)->where('status', InvoiceStatus::PendingReview)->exists()) {
+                throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
+            }
+            (clone $same)->where('status', InvoiceStatus::Open)->get()
+                ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
+
+            $invoice = Invoice::query()->create($attributes);
+            $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
+
+            return $invoice;
+        }));
+
+        return $invoice->refresh();
+    }
+
+    /** What a theme invoice would be, nothing saved (see draftPlan). */
+    public function draftTheme(Tenant $tenant, string $themeKey): Invoice
+    {
+        $attributes = $this->themeAttributes($tenant, $themeKey);
+        $this->ensureNoReceiptUnderReview($tenant, 'theme', $themeKey);
+
+        return $this->draft($attributes);
+    }
+
+    /** @return array<string, mixed> */
+    private function planAttributes(Tenant $tenant, string $planKey, BillingPeriod $period): array
+    {
+        $plan = $this->catalog->sellable()[$planKey] ?? null;
+        $price = $plan === null ? null : $this->prices->planPrice($planKey, $period);
+        if ($plan === null || $price === null) {
+            throw new ApiException(422, 'plan_not_found', __('billing.plan_not_found'), ['plan_key' => [__('billing.plan_not_found')]]);
+        }
+
+        $quote = $this->prices->change($this->subscriptions->current($tenant), $price);
+
+        return [
+            'tenant_id' => $tenant->id,
+            'type' => 'subscription',
+            'plan_key' => $plan['key'],
+            'period' => $period,
+            'starts_now' => $quote->startsNow,
+            'status' => InvoiceStatus::Open,
+            'subtotal' => Money::toDecimal($price->originalCents),
+            'discount' => Money::toDecimal($price->originalCents - $price->finalCents),
+            'credit' => Money::toDecimal($quote->creditCents),
+            'total' => Money::toDecimal($quote->payCents),
+            'currency' => (string) config('landing.billing.currency'),
+            'snapshot' => [
+                'plan' => ['key' => $plan['key'], 'name' => $plan['name']],
+                'price' => $price->toArray(),
+                'change' => $quote->toArray(),
+                'days' => $period->days(),
+            ],
+            'expires_at' => CarbonImmutable::now()->addHours($this->settings->invoiceHours()),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function themeAttributes(Tenant $tenant, string $themeKey): array
+    {
         $theme = $this->themes->theme($themeKey);
         $price = $this->prices->themePrice($themeKey);
         if ($theme === null || $price === null || ! $theme['is_listed'] || ! $theme['is_active']) {
@@ -117,36 +166,42 @@ final class Invoices
             throw ApiException::planFeatureLocked(PlanFeature::BuyThemes, $needed);
         }
 
-        $now = CarbonImmutable::now();
+        return [
+            'tenant_id' => $tenant->id,
+            'type' => 'theme',
+            'theme_key' => $theme['key'],
+            'starts_now' => true,
+            'status' => InvoiceStatus::Open,
+            'subtotal' => Money::toDecimal($price->originalCents),
+            'discount' => Money::toDecimal($price->originalCents - $price->finalCents),
+            'credit' => Money::toDecimal(0),
+            'total' => Money::toDecimal($price->finalCents),
+            'currency' => (string) config('landing.billing.currency'),
+            'snapshot' => ['theme' => ['key' => $theme['key'], 'name' => $theme['name']], 'price' => $price->toArray()],
+            'expires_at' => CarbonImmutable::now()->addHours($this->settings->invoiceHours()),
+        ];
+    }
 
-        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($tenant, $theme, $price, $now): Invoice {
-            $same = Invoice::query()->where('type', 'theme')->where('theme_key', $theme['key'])->lockForUpdate();
-            if ((clone $same)->where('status', InvoiceStatus::PendingReview)->exists()) {
-                throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
-            }
-            (clone $same)->where('status', InvoiceStatus::Open)->get()
-                ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
+    /** @param array<string, mixed> $attributes */
+    private function draft(array $attributes): Invoice
+    {
+        $invoice = (new Invoice)->forceFill($attributes);
+        $invoice->setRelation('payments', $invoice->newCollection());
 
-            $invoice = Invoice::query()->create([
-                'tenant_id' => $tenant->id,
-                'type' => 'theme',
-                'theme_key' => $theme['key'],
-                'starts_now' => true,
-                'status' => InvoiceStatus::Open,
-                'subtotal' => Money::toDecimal($price->originalCents),
-                'discount' => Money::toDecimal($price->originalCents - $price->finalCents),
-                'credit' => Money::toDecimal(0),
-                'total' => Money::toDecimal($price->finalCents),
-                'currency' => (string) config('landing.billing.currency'),
-                'snapshot' => ['theme' => ['key' => $theme['key'], 'name' => $theme['name']], 'price' => $price->toArray()],
-                'expires_at' => $now->addHours($this->settings->invoiceHours()),
-            ]);
-            $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
+        return $invoice;
+    }
 
-            return $invoice;
-        }));
-
-        return $invoice->refresh();
+    /** A new invoice is refused while a receipt of the same kind (same theme) waits for the admin. */
+    private function ensureNoReceiptUnderReview(Tenant $tenant, string $type, ?string $themeKey = null): void
+    {
+        $pending = Tenancy::runAs($tenant->id, fn (): bool => Invoice::query()
+            ->where('type', $type)
+            ->when($themeKey !== null, fn ($q) => $q->where('theme_key', $themeKey))
+            ->where('status', InvoiceStatus::PendingReview)
+            ->exists());
+        if ($pending) {
+            throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
+        }
     }
 
     public function cancel(Invoice $invoice): Invoice

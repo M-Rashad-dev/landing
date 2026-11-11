@@ -91,12 +91,13 @@ describe("ThemeDetail", () => {
     expect(screen.getByRole("link", { name: new RegExp(t.preview) })).toHaveAttribute("href", "/theme-preview/celia");
   });
 
-  it("buys on Pro and opens the invoice", async () => {
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => (init?.method === "POST" ? json({ id: 42 }, 201) : json(celia)));
+  it("buys on Pro by opening the pay page (no invoice is created yet)", async () => {
+    fetchMock.mockImplementation(() => json(celia));
     renderDetail(plan(true));
 
     fireEvent.click(await screen.findByRole("button", { name: new RegExp(t.buyFor(formatPrice(80))) }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard/billing/invoices/42"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard/billing/checkout?type=theme&theme_key=celia"));
+    expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST")).toBe(false);
   });
 
   it("asks Basic to upgrade instead of buying", async () => {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Admin\ManageTenant;
+use App\Billing\Payments\ManualGateway;
 use App\Billing\Payments\ManualPayments;
 use App\Billing\Payments\ReceiptStore;
 use App\Billing\Payments\Refunds;
@@ -152,7 +153,7 @@ final class PaymentController extends Controller
         return [
             'id' => $p->id,
             'status' => $p->status->value,
-            'tenant' => ['id' => $p->tenant_id, 'name' => $p->tenant->name ?? ''],
+            'tenant' => ['id' => $p->tenant_id, 'name' => $p->tenant->name ?? '', 'reference' => ManualGateway::storeReference($p->tenant_id)],
             'method' => ['key' => $p->method_key, 'name' => $p->method->name ?? $p->method_key],
             'amount' => Money::toFloat($p->amountCents()),
             'sender_ref' => $p->sender_ref,

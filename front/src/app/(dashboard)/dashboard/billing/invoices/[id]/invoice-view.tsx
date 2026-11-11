@@ -114,7 +114,7 @@ export function invoiceItem(invoice: Invoice): string {
   return ar.billing.invoices.plan(invoice.plan.name, invoice.period ? ar.billing.periods[invoice.period] : "");
 }
 
-function SummaryCard({ invoice }: { invoice: Invoice }) {
+export function SummaryCard({ invoice }: { invoice: Invoice }) {
   const row = (label: string, value: string, strong = false) => (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <dt className={strong ? "font-bold" : "text-muted-foreground"}>{label}</dt>
@@ -137,15 +137,26 @@ function SummaryCard({ invoice }: { invoice: Invoice }) {
           {row(t.toPay, formatPrice(invoice.total), true)}
         </dl>
         <p className="mt-3 text-xs text-muted-foreground">{invoice.type === "theme" ? t.themeOwnedForever : invoice.starts_now ? t.startsNow : t.startsLater}</p>
-        {invoice.payable && invoice.expires_at ? <p className="mt-1 text-xs text-muted-foreground">{t.expiresAt(formatCairo(invoice.expires_at))}</p> : null}
+        {invoice.id !== null && invoice.payable && invoice.expires_at ? <p className="mt-1 text-xs text-muted-foreground">{t.expiresAt(formatCairo(invoice.expires_at))}</p> : null}
       </CardContent>
     </Card>
   );
 }
 
 function StateCard({ invoice }: { invoice: Invoice }) {
-  if (invoice.payable) return <PayCard invoice={invoice} />;
-  return <StatusNotice invoice={invoice} />;
+  const queryClient = useQueryClient();
+  if (!invoice.payable || invoice.id === null) return <StatusNotice invoice={invoice} />;
+  const id = invoice.id;
+
+  // A new receipt after a rejection (the invoice already exists).
+  async function pay(body: FormData) {
+    const updated = await payInvoice(id, body);
+    queryClient.setQueryData(invoiceKeys.one(id), (old: { invoice: Invoice; support: Support } | undefined) => (old ? { ...old, invoice: updated } : old));
+    await queryClient.invalidateQueries({ queryKey: ["billing"] });
+    toast.success(t.sent);
+  }
+
+  return <PayCard invoice={invoice} onPay={pay} />;
 }
 
 function StatusNotice({ invoice }: { invoice: Invoice }) {
@@ -215,8 +226,8 @@ const paySchema = z.object({
 
 type PayValues = z.infer<typeof paySchema>;
 
-function PayCard({ invoice }: { invoice: Invoice }) {
-  const queryClient = useQueryClient();
+/** How to transfer + the receipt form. `onPay` sends it (a new invoice on the pay page, a new receipt on an invoice). */
+export function PayCard({ invoice, onPay }: { invoice: Invoice; onPay: (body: FormData) => Promise<void> }) {
   const options = invoice.pay_with ?? [];
   const form = useForm<PayValues>({ resolver: zodResolver(paySchema), defaultValues: { method: options[0]?.key ?? "", sender_ref: "" } });
   const { errors, isSubmitting } = form.formState;
@@ -232,10 +243,7 @@ function PayCard({ invoice }: { invoice: Invoice }) {
     body.set("sender_ref", values.sender_ref);
     body.set("receipt", values.receipt);
     try {
-      const updated = await payInvoice(invoice.id, body);
-      queryClient.setQueryData(invoiceKeys.one(invoice.id), (old: { invoice: Invoice; support: Support } | undefined) => (old ? { ...old, invoice: updated } : old));
-      await queryClient.invalidateQueries({ queryKey: ["billing"] });
-      toast.success(t.sent);
+      await onPay(body);
     } catch (error) {
       const unmatched = applyServerErrors(error, form.setError, ["method", "sender_ref", "receipt"]);
       if (!(isApiError(error) && error.isValidation) || unmatched.length) toast.error(unmatched[0] ?? errorMessage(error));
@@ -378,7 +386,7 @@ function PaymentsCard({ invoice }: { invoice: Invoice }) {
   );
 }
 
-function SupportCard({ support }: { support: Support }) {
+export function SupportCard({ support }: { support: Support }) {
   return (
     <Card className="no-print">
       <CardHeader>

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Billing\Payments\Checkout;
 use App\Billing\Payments\Invoices;
 use App\Billing\Payments\ManualPayments;
 use App\Billing\Payments\PaymentGateways;
 use App\Billing\Payments\ReceiptStore;
 use App\Billing\Payments\Refunds;
 use App\Billing\PlatformSettings;
-use App\Enums\BillingPeriod;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\CheckoutRequest;
 use App\Http\Requests\Dashboard\PayInvoiceRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
@@ -21,7 +22,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -47,14 +47,16 @@ final class InvoiceController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    /** The pay page: what would be paid and how. Nothing is saved (no invoice yet). */
+    public function preview(CheckoutRequest $request, Checkout $checkout): JsonResponse
     {
-        $data = $request->validate([
-            'plan_key' => ['required', 'string', 'max:40'],
-            'period' => ['required', Rule::enum(BillingPeriod::class)],
-        ]);
+        return $this->detail($checkout->preview($this->tenant($request), $request->item()));
+    }
 
-        $invoice = $this->invoices->forPlan($this->tenant($request), $data['plan_key'], BillingPeriod::from($data['period']));
+    /** Sending the receipt: the invoice is created with it (or activated when nothing is due). */
+    public function checkout(CheckoutRequest $request, Checkout $checkout): JsonResponse
+    {
+        $invoice = $checkout->place($this->tenant($request), $request->item(), $request->validated('method'), $request->senderRef(), $request->file('receipt'));
 
         return $this->detail($invoice, 201);
     }
@@ -95,7 +97,10 @@ final class InvoiceController extends Controller
     /** The invoice with its payments, how it can be paid now, and the support contact. */
     private function detail(Invoice $invoice, int $status = 200): JsonResponse
     {
-        $data = InvoiceResource::make($invoice->load('payments.method:key,name'))->resolve(request()) + ['pay_with' => $this->gateways->options($invoice)];
+        if ($invoice->exists) {
+            $invoice->load('payments.method:key,name');
+        }
+        $data = InvoiceResource::make($invoice)->resolve(request()) + ['pay_with' => $this->gateways->options($invoice)];
 
         return $this->ok($data, ['support' => $this->settings->support()], $status);
     }

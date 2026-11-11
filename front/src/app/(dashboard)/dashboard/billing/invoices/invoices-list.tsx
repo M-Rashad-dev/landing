@@ -59,7 +59,7 @@ export function InvoicesList() {
         />
       ) : (
         <>
-          <DataTable columns={columns} rows={data?.data} rowKey={(row) => row.id} loading={isPending} onRowClick={(row) => router.push(`/dashboard/billing/invoices/${row.id}`)} />
+          <DataTable columns={columns} rows={data?.data} rowKey={(row) => row.id ?? 0} loading={isPending} onRowClick={(row) => router.push(`/dashboard/billing/invoices/${row.id}`)} />
           <Pagination meta={data?.meta} onPageChange={setPage} />
         </>
       )}

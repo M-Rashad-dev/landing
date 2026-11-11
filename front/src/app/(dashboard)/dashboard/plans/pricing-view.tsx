@@ -7,10 +7,8 @@ import { PricingCards } from "@/components/billing/pricing-cards";
 import { ErrorState } from "@/components/dashboard/error-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/toaster";
-import { errorMessage } from "@/lib/api/errors";
 import { useBillingPlans } from "@/lib/billing/api";
-import { createInvoice } from "@/lib/billing/payments";
+import { checkoutPath } from "@/lib/billing/payments";
 import type { PlanQuote } from "@/lib/billing/types";
 import { formatPrice } from "@/lib/price";
 import { ar } from "@/messages/ar";
@@ -30,15 +28,10 @@ export function PricingView() {
   const { data, isPending, isError, error, refetch } = useBillingPlans();
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function choose(quote: PlanQuote) {
+  // The pay page only shows what is due; the invoice is created when the receipt is sent.
+  function choose(quote: PlanQuote) {
     setBusy(`${quote.plan_key}:${quote.period}`);
-    try {
-      const invoice = await createInvoice(quote.plan_key, quote.period);
-      router.push(`/dashboard/billing/invoices/${invoice.id}`);
-    } catch (err) {
-      toast.error(errorMessage(err));
-      setBusy(null);
-    }
+    router.push(checkoutPath({ type: "subscription", plan_key: quote.plan_key, period: quote.period }));
   }
 
   if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
