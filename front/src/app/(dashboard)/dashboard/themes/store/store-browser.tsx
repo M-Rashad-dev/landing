@@ -2,6 +2,7 @@
 
 import { Search, Store } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useDeferredValue, useState } from "react";
 import { ThemeCard } from "@/components/themes/theme-card";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -18,7 +19,9 @@ import { ar } from "@/messages/ar";
 const t = ar.themeStore;
 
 export function StoreBrowser() {
-  const [kind, setKind] = useState("");
+  // «المتجر ← متجر الثيمات» opens on the store themes.
+  const initialKind = useSearchParams().get("kind");
+  const [kind, setKind] = useState(initialKind === "store" || initialKind === "landing" ? initialKind : "");
   const [tag, setTag] = useState("");
   const [price, setPrice] = useState("");
   const [sort, setSort] = useState("newest");
