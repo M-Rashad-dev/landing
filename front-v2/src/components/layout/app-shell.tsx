@@ -6,7 +6,7 @@ import * as React from "react";
 import { Avatar, Kbd } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Popover, PopoverContent, PopoverTrigger, TooltipProvider } from "@/components/ui/overlay";
-import { Toaster } from "@/components/ui/feedback";
+import { logout } from "@/lib/auth/logout";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { CommandPalette } from "./command-palette";
@@ -22,7 +22,9 @@ export function useShell() {
 }
 
 /** Dashboard frame: sidebar (desktop fixed / mobile sheet), top bar, quick search, toasts. */
-export function AppShell({ children, account }: { children: React.ReactNode; account: { name: string; store: string } }) {
+export type ShellAccount = { name: string; store: string; /** Public address of the store (null until it has one). */ storeUrl: string | null };
+
+export function AppShell({ children, account }: { children: React.ReactNode; account: ShellAccount }) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -84,10 +86,14 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
               <Kbd className="hidden sm:inline-flex">Ctrl K</Kbd>
             </button>
             <div className="ms-auto flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-                <ExternalLink />
-                {ar.nav.visitStore}
-              </Button>
+              {account.storeUrl ? (
+                <Button variant="ghost" size="sm" className="hidden md:inline-flex" asChild>
+                  <a href={account.storeUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink />
+                    {ar.nav.visitStore}
+                  </a>
+                </Button>
+              ) : null}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label={ar.nav.notifications}>
@@ -111,12 +117,13 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
                 </MenuTrigger>
                 <MenuContent>
                   <MenuLabel>{account.store}</MenuLabel>
-                  <MenuItem>
+                  <MenuItem disabled>
                     <UserRound />
                     {ar.nav.account}
+                    <span className="ms-auto text-[11px] text-ink-3">{ar.common.soon}</span>
                   </MenuItem>
                   <MenuSeparator />
-                  <MenuItem destructive>
+                  <MenuItem destructive onSelect={() => void logout()}>
                     <LogOut />
                     {ar.nav.logout}
                   </MenuItem>
@@ -128,7 +135,6 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
         </div>
       </div>
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-      <Toaster />
     </TooltipProvider>
     </ShellContext.Provider>
   );

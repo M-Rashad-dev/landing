@@ -7,6 +7,7 @@ import "@fontsource/readex-pro/600.css";
 import "@fontsource/readex-pro/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { Toaster } from "@/components/ui/feedback";
 import { BRAND } from "@/config/brand";
 
 export const metadata: Metadata = {
@@ -20,7 +21,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

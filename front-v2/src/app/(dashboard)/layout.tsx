@@ -1,10 +1,12 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { ar } from "@/messages/ar";
+import { getSession } from "@/lib/auth/session";
+import { storeUrl } from "@/lib/auth/store-url";
 
-/**
- * Dashboard frame. Sign-in arrives with its part (HANDOFF.md, F2); until then the account menu
- * shows neutral placeholders and no page reads store data.
- */
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell account={{ name: ar.nav.accountPlaceholder, store: ar.nav.storePlaceholder }}>{children}</AppShell>;
+/** Store owner dashboard: a signed-in owner only (the platform admin has /admin). */
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  if (session.user.role === "super_admin") redirect("/admin");
+
+  return <AppShell account={{ name: session.user.name, store: session.tenant?.name ?? "", storeUrl: storeUrl(session) }}>{children}</AppShell>;
 }

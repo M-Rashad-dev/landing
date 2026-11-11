@@ -32,8 +32,6 @@ export const nav = {
   notifications: "الإشعارات",
   noNotifications: "مفيش إشعارات جديدة",
   account: "حسابي",
-  accountPlaceholder: "حسابك",
-  storePlaceholder: "متجرك",
   logout: "تسجيل الخروج",
   quickSearch: "ابحث عن طلب أو عميل أو منتج...",
   quickSearchShort: "بحث سريع",

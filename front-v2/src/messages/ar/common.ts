@@ -36,6 +36,8 @@ export const common = {
   noResults: "مفيش نتايج",
   unsavedChanges: "فيه تعديلات لسه متحفظتش",
   discard: "تجاهل",
+  showPassword: "إظهار كلمة المرور",
+  hidePassword: "إخفاء كلمة المرور",
   page: (n: number, total: number) => `صفحة ${n} من ${total}`,
   rowsSelected: (n: number) => (n === 1 ? "صف واحد متحدد" : n === 2 ? "صفين متحددين" : `${n} صفوف متحددة`),
   vsPrevious: "عن الفترة اللي قبلها",

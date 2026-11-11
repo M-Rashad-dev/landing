@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Minus, Plus, Upload, X } from "lucide-react";
+import { Eye, EyeOff, ImagePlus, Minus, Plus, Upload, X } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +32,27 @@ export function MoneyInput({ value, onChange, signed = false, ...props }: Omit<R
 }
 
 /** Egyptian mobile, typed as 01xxxxxxxxx. */
-export function PhoneInput(props: React.ComponentProps<"input">) {
+export function PhoneInput(props: Omit<React.ComponentProps<typeof InputGroup>, "ltr" | "type">) {
   return <InputGroup ltr type="tel" inputMode="tel" autoComplete="tel" placeholder="01xxxxxxxxx" inputClassName="tabular" maxLength={14} {...props} />;
+}
+
+/** Password with a show / hide eye (latin text, so the field reads left-to-right). */
+export function PasswordInput({ className, inputClassName, ...props }: Omit<React.ComponentProps<"input">, "type"> & { inputClassName?: string }) {
+  const [shown, setShown] = React.useState(false);
+  return (
+    <div dir="ltr" className={cn("relative flex items-center", className)}>
+      <input type={shown ? "text" : "password"} className={cn(controlClass, "h-9 ps-3 pe-10 text-sm", inputClassName)} {...props} />
+      <button
+        type="button"
+        onClick={() => setShown((v) => !v)}
+        aria-label={shown ? ar.common.hidePassword : ar.common.showPassword}
+        aria-pressed={shown}
+        className="absolute end-1.5 flex size-8 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+      >
+        {shown ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+      </button>
+    </div>
+  );
 }
 
 export function QuantityStepper({ value, onChange, min = 1, max = 99, disabled }: { value: number; onChange: (v: number) => void; min?: number; max?: number; disabled?: boolean }) {
