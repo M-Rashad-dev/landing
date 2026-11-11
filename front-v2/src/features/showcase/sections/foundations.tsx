@@ -6,7 +6,7 @@ const t = ar.showcase.foundations;
 
 const COLORS: Array<{ token: string; role: keyof typeof t.roles; dark?: boolean }> = [
   { token: "--ink", role: "ink", dark: true },
-  { token: "--brand", role: "brand", dark: true },
+  { token: "--brand", role: "brand" },
   { token: "--brand-strong", role: "brandStrong", dark: true },
   { token: "--accent", role: "accent" },
   { token: "--bg", role: "bg" },

@@ -2,7 +2,7 @@
  * Color identities under review (tokens in app/globals.css). The chosen one becomes :root
  * and this list is deleted with the picker (HANDOFF.md).
  */
-export const PALETTES = ["hibr", "tamr", "nile"] as const;
+export const PALETTES = ["naana", "mishmish", "lamoon"] as const;
 export type PaletteKey = (typeof PALETTES)[number];
 
 export const PALETTE_STORAGE_KEY = "mk_palette";

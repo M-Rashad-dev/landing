@@ -34,6 +34,6 @@ export function Badge({ className, tone, size, dot = false, children, ...props }
 /** Round count for menus and tabs (0 hides it). */
 export function CountBadge({ value, tone = "neutral", className }: { value: number; tone?: "neutral" | "attention" | "brand"; className?: string }) {
   if (value <= 0) return null;
-  const tones = { neutral: "bg-surface-3 text-ink-2", attention: "bg-accent text-ink", brand: "bg-brand text-white" };
+  const tones = { neutral: "bg-surface-3 text-ink-2", attention: "bg-accent text-ink", brand: "bg-brand text-brand-ink" };
   return <span className={cn("tabular inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold", tones[tone], className)}>{value > 99 ? "99+" : value}</span>;
 }

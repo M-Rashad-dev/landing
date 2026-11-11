@@ -13,9 +13,9 @@ import { ar } from "@/messages/ar";
 const t = ar.showcase.palettes;
 
 function currentPalette(): PaletteKey {
-  if (typeof document === "undefined") return "hibr";
+  if (typeof document === "undefined") return "naana";
   const p = document.documentElement.dataset.palette as PaletteKey | undefined;
-  return p && (PALETTES as readonly string[]).includes(p) ? p : "hibr";
+  return p && (PALETTES as readonly string[]).includes(p) ? p : "naana";
 }
 
 /**
@@ -23,7 +23,7 @@ function currentPalette(): PaletteKey {
  * and a button to try one on the whole dashboard (kept in this browser).
  */
 export function PalettePicker() {
-  const [active, setActive] = useState<PaletteKey>("hibr");
+  const [active, setActive] = useState<PaletteKey>("naana");
 
   useEffect(() => {
     // Read the palette the boot script applied before paint.

@@ -201,7 +201,7 @@ export function MultiSelect({ options, value, onChange, placeholder, searchPlace
                 const on = value.includes(o.value);
                 return (
                   <Command.Item key={o.value} value={o.label} onSelect={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm data-[selected=true]:bg-surface-2">
-                    <span className={cn("flex size-4 items-center justify-center rounded border", on ? "border-primary bg-primary text-white" : "border-border-strong")}>{on ? <Check className="size-3" strokeWidth={3} /> : null}</span>
+                    <span className={cn("flex size-4 items-center justify-center rounded border", on ? "border-primary bg-primary text-primary-ink" : "border-border-strong")}>{on ? <Check className="size-3" strokeWidth={3} /> : null}</span>
                     {o.label}
                   </Command.Item>
                 );

@@ -13,127 +13,122 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --sidebar-width: 15.5rem;
   --sidebar-width-collapsed: 4.25rem;
-  --ink-inverse: #ffffff;
-  --primary-ink: #ffffff;
-  --brand-ink: #ffffff;
   --shadow-sm: 0 1px 2px rgb(var(--shadow-rgb) / 0.06);
   --shadow-md: 0 2px 4px rgb(var(--shadow-rgb) / 0.04), 0 8px 24px rgb(var(--shadow-rgb) / 0.09);
   --shadow-lg: 0 4px 8px rgb(var(--shadow-rgb) / 0.06), 0 24px 56px rgb(var(--shadow-rgb) / 0.18);
 }
 
-/* «حبر» Ink & Persimmon — editorial: warm graphite + paper, one deep persimmon from the logo. */
+/*
+ * Shared state colors for every palette: cheerful but dark enough to read on their soft tints.
+ * (Bright tones show in dots and fills; text uses these.)
+ */
+:root {
+  --success: #1b7f52;
+  --success-soft: #e2f6ea;
+  --warning: #b46100;
+  --warning-soft: #fff0d2;
+  --danger: #cc3339;
+  --danger-soft: #fde7e7;
+  --info: #1f7ab8;
+  --info-soft: #e3f2fc;
+  --ink-inverse: #ffffff;
+}
+
+/* «نعناع» Mint — fresh and lively: mint green with a sunny yellow, on a white with a hint of green. */
 :root,
-[data-palette="hibr"] {
-  --bg: #faf9f7;
+[data-palette="naana"] {
+  --bg: #f5fbf8;
   --surface: #ffffff;
-  --surface-2: #f3f2ef;
-  --surface-3: #e9e7e3;
-  --border: #e6e4e0;
-  --border-strong: #d1cec8;
-  --ink: #181715;
-  --ink-2: #57534d;
-  --ink-3: #8d8880;
-  --primary: #181715;
-  --primary-hover: #2c2a27;
-  --brand: #d9541e;
-  --brand-strong: #b4441a;
-  --brand-soft: #fbe9e0;
-  --accent: #e8b23a;
-  --accent-soft: #fbf2dc;
-  --accent-ink: #6e4e0a;
-  --success: #3b7a57;
-  --success-soft: #e3f0e8;
-  --warning: #a8681a;
-  --warning-soft: #f7ecdb;
-  --danger: #b8372b;
-  --danger-soft: #f8e2df;
-  --info: #3a6488;
-  --info-soft: #e3ebf3;
-  --chart-1: #d9541e;
-  --chart-2: #181715;
-  --chart-3: #e8b23a;
-  --chart-4: #8d8880;
-  --ring: #d9541e;
-  --logo-1: #f0a23b;
-  --logo-2: #d9541e;
-  --logo-3: #a83f15;
-  --shadow-rgb: 24 23 21;
+  --surface-2: #ecf7f1;
+  --surface-3: #dcf0e5;
+  --border: #dcede3;
+  --border-strong: #bedcca;
+  --ink: #13261d;
+  --ink-2: #4a6156;
+  --ink-3: #7e968a;
+  --primary: #3cd69b;
+  --primary-hover: #2cc88b;
+  --primary-ink: #0d2a1e;
+  --brand: #2fcf91;
+  --brand-strong: #0b7a55;
+  --brand-soft: #dcf6ea;
+  --brand-ink: #0d2a1e;
+  --accent: #ffc83d;
+  --accent-soft: #fff4d1;
+  --accent-ink: #6b4d00;
+  --chart-1: #2fcf91;
+  --chart-2: #3a9ee0;
+  --chart-3: #ffc83d;
+  --chart-4: #7e968a;
+  --ring: #2fcf91;
+  --logo-1: #8beac1;
+  --logo-2: #3cd69b;
+  --logo-3: #12a06e;
+  --shadow-rgb: 19 38 29;
 }
 
-/* «تمر» Date & Clay — warm earth of the Egyptian market: date brown, terracotta, saffron, sand. */
-[data-palette="tamr"] {
-  --bg: #f7f3ee;
-  --surface: #fffdfa;
-  --surface-2: #f1ebe3;
-  --surface-3: #e8dfd4;
-  --border: #e6ddd1;
-  --border-strong: #d3c6b6;
-  --ink: #2b1f18;
-  --ink-2: #6b5a4e;
-  --ink-3: #9a8879;
-  --primary: #2b1f18;
-  --primary-hover: #3d2d23;
-  --brand: #b5532e;
-  --brand-strong: #9a4424;
-  --brand-soft: #f6e6dc;
-  --accent: #d99a1e;
-  --accent-soft: #fbf0d6;
-  --accent-ink: #6b4a08;
-  --success: #4f7a3a;
-  --success-soft: #e9f0e1;
-  --warning: #a86a12;
-  --warning-soft: #f8ecd8;
-  --danger: #b03a2e;
-  --danger-soft: #f7e1dd;
-  --info: #2f6577;
-  --info-soft: #e1ecef;
-  --chart-1: #b5532e;
-  --chart-2: #2b1f18;
-  --chart-3: #d99a1e;
-  --chart-4: #9a8879;
-  --ring: #b5532e;
-  --logo-1: #e6a23c;
-  --logo-2: #c8682f;
-  --logo-3: #9a4424;
-  --shadow-rgb: 43 31 24;
+/* «مشمش» Apricot — warm and friendly: peach with sunshine yellow, on a soft cream. */
+[data-palette="mishmish"] {
+  --bg: #fff9f4;
+  --surface: #ffffff;
+  --surface-2: #fff1e6;
+  --surface-3: #fce3d1;
+  --border: #f6e4d6;
+  --border-strong: #eacbb3;
+  --ink: #2b1b14;
+  --ink-2: #6e5546;
+  --ink-3: #a88b78;
+  --primary: #ff8a5c;
+  --primary-hover: #ff7a47;
+  --primary-ink: #2b1b14;
+  --brand: #ff8a5c;
+  --brand-strong: #c24a1c;
+  --brand-soft: #ffe6da;
+  --brand-ink: #2b1b14;
+  --accent: #ffd166;
+  --accent-soft: #fff5d6;
+  --accent-ink: #6e5000;
+  --chart-1: #ff8a5c;
+  --chart-2: #3a9ad9;
+  --chart-3: #ffd166;
+  --chart-4: #a88b78;
+  --ring: #ff8a5c;
+  --logo-1: #ffc08a;
+  --logo-2: #ff8a5c;
+  --logo-3: #e5622e;
+  --shadow-rgb: 43 27 20;
 }
 
-/* «نيل» Nile & Amber — calm and trustworthy: deep Nile teal, amber for attention, coral only in charts, cool stone. */
-[data-palette="nile"] {
-  --bg: #f5f6f3;
+/* «ليمون» Lemon — sunny and bold: lemon yellow with tangerine and sky, on a warm white. */
+[data-palette="lamoon"] {
+  --bg: #fffdf5;
   --surface: #ffffff;
-  --surface-2: #eef1ed;
-  --surface-3: #e3e8e3;
-  --border: #e2e6e1;
-  --border-strong: #c9d1ca;
-  --ink: #10282a;
-  --ink-2: #4e6264;
-  --ink-3: #849496;
-  --primary: #0e5f5b;
-  --primary-hover: #0b4d4a;
-  --brand: #0e6e6a;
-  --brand-strong: #0b5753;
-  --brand-soft: #ddefec;
-  --accent: #e2a43b;
-  --accent-soft: #fbf1db;
-  --accent-ink: #6e4a0b;
-  --success: #2e7d4f;
-  --success-soft: #e1f1e7;
-  --warning: #b26b12;
-  --warning-soft: #f7ebd7;
-  --danger: #bf3b2c;
-  --danger-soft: #f8e1de;
-  --info: #2e6a9a;
-  --info-soft: #e1ecf5;
-  --chart-1: #0e6e6a;
-  --chart-2: #e07a5f;
-  --chart-3: #10282a;
-  --chart-4: #849496;
-  --ring: #0e6e6a;
-  --logo-1: #3fa59d;
-  --logo-2: #0e6e6a;
-  --logo-3: #0b4d4a;
-  --shadow-rgb: 16 40 42;
+  --surface-2: #fff8dc;
+  --surface-3: #fcefc0;
+  --border: #f3eacb;
+  --border-strong: #e4d6a5;
+  --ink: #22201a;
+  --ink-2: #5f5a49;
+  --ink-3: #9a937c;
+  --primary: #ffd23f;
+  --primary-hover: #ffc61a;
+  --primary-ink: #22201a;
+  --brand: #ffd23f;
+  --brand-strong: #8a6500;
+  --brand-soft: #fff4c7;
+  --brand-ink: #22201a;
+  --accent: #ff8f5a;
+  --accent-soft: #ffe9de;
+  --accent-ink: #8a3412;
+  --chart-1: #f2b705;
+  --chart-2: #2d9cdb;
+  --chart-3: #ff8f5a;
+  --chart-4: #9a937c;
+  --ring: #f2b705;
+  --logo-1: #ffe27a;
+  --logo-2: #ffd23f;
+  --logo-3: #e0a800;
+  --shadow-rgb: 34 32 26;
 }
 
 @theme inline {
