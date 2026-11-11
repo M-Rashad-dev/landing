@@ -8,7 +8,8 @@ import { E2E, laravelEnv } from "./env";
  * (4) order from the public page, (5) the order in the dashboard + status change, (6) paid themes locked,
  * (7) the free trial hits its product limit and offers the upgrade,
  * (8) the store pays by transfer + receipt, the admin approves and the plan starts,
- * (9) the store previews and buys a paid theme and owns it after the approval.
+ * (9) the store previews and buys a paid theme and owns it after the approval,
+ * (10) the Pro store opens its online store and a visitor checks out a cart of two products.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -289,4 +290,80 @@ test("9. the Pro store previews and buys a paid theme, the admin approves, the t
   await merchant.goto("/dashboard/themes");
   await expect(merchant.getByRole("link", { name: "سيليا" }).first()).toBeVisible();
   await expect(merchant.getByText("ملكك").first()).toBeVisible();
+});
+
+test("10. the Pro store opens its online store and a visitor buys two products from the cart", async ({ browser }) => {
+  const merchant = await (await browser.newContext({ locale: "ar-EG" })).newPage();
+  await merchant.goto("/login");
+  await merchant.locator("#login").fill(`trial${stamp}@example.com`);
+  await merchant.locator("#password").fill(account.password);
+  await merchant.getByRole("button", { name: "دخول" }).click();
+  await merchant.waitForURL("**/dashboard");
+
+  // A category and two products shown in the store.
+  await merchant.goto("/dashboard/store/categories");
+  await merchant.getByRole("button", { name: "تصنيف جديد" }).first().click();
+  await merchant.locator("#cat-name").fill("مطبخ");
+  await merchant.locator("#cat-slug").fill("kitchen");
+  await merchant.getByRole("dialog").getByRole("button", { name: "حفظ" }).click();
+  await expect(merchant.getByTestId("category-row").filter({ hasText: "مطبخ" })).toBeVisible();
+
+  for (const [name, price] of [
+    ["كوباية سيراميك", "120"],
+    ["طقم ملاعق", "80"],
+  ]) {
+    await merchant.goto("/dashboard/products/new");
+    await merchant.locator("#product-name").fill(name);
+    await merchant.locator("#product-price").fill(price);
+    await merchant.getByRole("checkbox", { name: "مطبخ" }).click();
+    await merchant.locator("button[type=submit]").click();
+    await merchant.waitForURL("**/dashboard/products");
+  }
+
+  // The store: created with a ready home, published from the builder, then turned on.
+  await merchant.goto("/dashboard/store");
+  await merchant.getByRole("button", { name: "إنشاء المتجر" }).click();
+  await expect(merchant.getByText("حالة المتجر")).toBeVisible();
+  await merchant.getByRole("link", { name: "تعديل الرئيسية" }).click();
+  await merchant.waitForURL(/\/dashboard\/pages\/\d+\/builder/);
+  await merchant.getByRole("button", { name: "نشر", exact: true }).click();
+  await expect(merchant.getByRole("dialog").getByText("تم نشر الصفحة")).toBeVisible();
+  await merchant.goto("/dashboard/store");
+  await merchant.getByRole("switch", { name: "تفعيل المتجر" }).click();
+  await expect(merchant.getByTestId("store-status")).toHaveText("المتجر شغال على موقعك");
+  const storeUrl = (await merchant.getByRole("link", { name: "زيارة المتجر" }).getAttribute("href")) ?? "";
+  expect(storeUrl).toMatch(/^http:\/\/[a-z0-9-]+\.localhost:\d+\/$/);
+
+  // A visitor: home → add from the cards → cart → checkout.
+  const visitor = await (await browser.newContext({ locale: "ar-EG" })).newPage();
+  await visitor.goto(storeUrl);
+  await expect(visitor.getByText("كوباية سيراميك").first()).toBeVisible();
+  for (const name of ["كوباية سيراميك", "طقم ملاعق"]) {
+    await visitor.locator("article").filter({ hasText: name }).first().getByRole("button", { name: /أضف للسلة/ }).click();
+  }
+  await expect(visitor.getByTestId("cart-count")).toHaveText("2");
+
+  await visitor.goto(`${storeUrl}categories/kitchen`);
+  await expect(visitor.getByTestId("products-count")).toHaveText("منتجين");
+
+  await visitor.goto(`${storeUrl}cart`);
+  await expect(visitor.getByTestId("cart-lines").locator("li")).toHaveCount(2);
+  await visitor.getByTestId("go-checkout").click();
+  await visitor.waitForURL("**/checkout");
+  const form = visitor.getByTestId("checkout-form");
+  await form.getByLabel(/^الاسم/).fill("زائر المتجر");
+  await form.getByLabel(/^رقم الموبايل/).fill("01122334455");
+  await form.getByLabel(/^المحافظة/).selectOption("الجيزة");
+  await form.getByLabel(/^العنوان بالتفصيل/).fill("10 شارع الهرم");
+  await expect(form.getByText("200").first()).toBeVisible();
+  // The anti-bot token must be a few seconds old.
+  await visitor.waitForTimeout(3500);
+  await visitor.getByTestId("place-order").click();
+  await expect(visitor.getByTestId("order-success")).toBeVisible();
+  await expect(visitor.getByTestId("cart-count")).toHaveCount(0);
+
+  // The merchant sees one store order with both lines.
+  await merchant.goto("/dashboard/orders");
+  await expect(merchant.getByText("زائر المتجر").first()).toBeVisible();
+  await expect(merchant.getByText("+ منتج تاني").first()).toBeVisible();
 });

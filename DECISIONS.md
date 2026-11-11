@@ -215,3 +215,11 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
 - **Using vs serving**: creating a page on / switching to a theme needs owning it; publishing and serving a paid theme also need `buy_themes` (Pro, Max). On Basic an owned paid theme stays editable and its pages stop serving (checked at render time, so the grace hours apply), coming back with the upgrade.
 - **Plan and theme invoices are separate**: one open invoice per kind; a pending receipt blocks only a new invoice of the same kind (same theme).
 - **Live preview** `/theme-preview/{key}` on the app host, public, sample content only (demo product / colors / images from the dev fixtures, order form off), desktop or a phone frame.
+
+- **Stores, as built (Nov 2026)**: the store home is a `landing_pages` row of kind `store_home`, edited in the same Builder (kept out of the pages list, can't be duplicated / set as home / deleted); its theme is the store's theme and changes only from «المتجر». It takes the store sections + conversion sections (`landing.store_home_types`); header and footer come from the store layout.
+- **Store themes reuse a landing theme's section markup** (`rewaq` ← Malak look, `diwan` ← Layali look, both night/light handled by `themes/color-mode.ts`) and share one store layout (`themes/store`) with per-theme classes (`themes/store/look.ts`). A new store theme = one look entry + one theme config + a ThemeSeeder row.
+- **The cart lives in the visitor's browser** (localStorage, display copies only); every price on the cart and checkout comes from the server quote, and the order recomputes everything. Store checkout reuses the page-order protections (honeypot, signed form token tied to the store home, rate limits, blocked customers).
+- **Store paths are reserved slugs** (`products`, `categories`, `cart`, `checkout`, `pages`, `search`), so a landing page can never take them.
+- **Builder preview of the store home** uses a sample of the real catalog (48 newest store products with their categories) so grids added since the last save show real products; the live site uses the products the server picked per section.
+- **Store analytics** are first-party counters per day / source / device (`store_stats`, no personal data); conversion = orders ÷ store views.
+- **Seed price**: «ديوان» 200 EGP (admin can change it).
