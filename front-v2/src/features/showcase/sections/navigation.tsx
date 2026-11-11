@@ -61,6 +61,22 @@ export function NavigationSection() {
           />
         </div>
       </Specimen>
+      <Specimen label={n.pills} stack>
+        <Tabs defaultValue="all">
+          <TabsList variant="pills">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} count={tab.count}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {tabs.map((tab) => (
+            <TabsContent key={tab.value} value={tab.value} className="pt-3 text-[13px] text-ink-3">
+              {n.tabContent(tab.label)}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </Specimen>
       <Specimen label={n.segmented}>
         <Segmented
           value={range}

@@ -151,7 +151,7 @@ export function Funnel({ steps }: { steps: Array<{ label: string; value: number 
           <li key={step.label} className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 text-[13px]">
             <span className="truncate text-ink-2">{step.label}</span>
             <div className="h-7 overflow-hidden rounded-md bg-surface-2">
-              <div className="flex h-full items-center rounded-md bg-brand px-2 text-[11px] font-semibold text-brand-ink" style={{ width: `${Math.max(4, share)}%` }}>
+              <div className="flex h-full items-center rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-ink" style={{ width: `${Math.max(4, share)}%` }}>
                 <span className="tabular" dir="ltr">{Math.round(share)}%</span>
               </div>
             </div>

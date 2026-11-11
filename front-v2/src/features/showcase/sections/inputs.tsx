@@ -2,9 +2,11 @@
 
 import { Search } from "lucide-react";
 import { useState } from "react";
-import { ColorInput, DateRange, DateTimeInput, FileDrop, MarkdownEditor, MediaTiles, MoneyInput, MultiSelect, PhoneInput, QuantityStepper } from "@/components/forms/inputs";
+import { DatePicker, DateRangePicker, presetRange, type RangeValue } from "@/components/forms/date-pickers";
+import { ColorInput, FileDrop, MarkdownEditor, MediaTiles, MoneyInput, MultiSelect, PhoneInput, QuantityStepper } from "@/components/forms/inputs";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox, RadioCards, Select, SwitchRow } from "@/components/ui/choice";
+import { Checkbox, RadioCards, SwitchRow } from "@/components/ui/choice";
+import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { AddonInput, Input, InputGroup, Textarea } from "@/components/ui/input";
 import { SortableList } from "@/components/data/sortable-list";
@@ -16,13 +18,17 @@ const t = ar.showcase.inputs;
 
 export function InputsSection() {
   const [price, setPrice] = useState("350");
+  const [gov, setGov] = useState("");
+  const [sort, setSort] = useState("newest");
   const [delta, setDelta] = useState("-20");
   const [color, setColor] = useState("#F26B1D");
   const [active, setActive] = useState(true);
   const [notify, setNotify] = useState(true);
   const [period, setPeriod] = useState("monthly");
   const [cats, setCats] = useState<string[]>(["2"]);
-  const [range, setRange] = useState({ from: "2026-11-01", to: "2026-11-11" });
+  const [range, setRange] = useState<RangeValue>({ ...presetRange("last30"), preset: "last30" });
+  const [day, setDay] = useState("");
+  const [startsAt, setStartsAt] = useState("2026-11-15T10:00");
   const [qty, setQty] = useState(2);
   const [file, setFile] = useState<File | null>(null);
   const [images, setImages] = useState(DEMO_IMAGES);
@@ -54,7 +60,10 @@ export function InputsSection() {
           <InputGroup id="sc-search" start={<Search />} placeholder={t.searchPlaceholder} />
         </Field>
         <Field label={t.select} htmlFor="sc-select">
-          <Select id="sc-select" placeholder={t.selectPlaceholder} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} defaultValue="" />
+          <Select id="sc-select" placeholder={t.selectPlaceholder} searchPlaceholder={t.selectSearch} value={gov} onValueChange={setGov} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} searchable />
+        </Field>
+        <Field label={t.sort} htmlFor="sc-sort">
+          <Select id="sc-sort" value={sort} onValueChange={setSort} options={(Object.keys(t.sorts) as Array<keyof typeof t.sorts>).map((k) => ({ value: k, label: t.sorts[k] }))} />
         </Field>
         <Field label={t.multi}>
           <MultiSelect options={DEMO_CATEGORY_OPTIONS} value={cats} onChange={setCats} placeholder={t.multiPlaceholder} searchPlaceholder={t.multiSearch} />
@@ -89,10 +98,13 @@ export function InputsSection() {
 
       <Specimen label={t.date} className="grid w-full gap-4 sm:grid-cols-2">
         <Field label={t.date}>
-          <DateTimeInput defaultValue="2026-11-15T10:00" />
+          <DatePicker value={startsAt} onChange={setStartsAt} withTime />
         </Field>
         <Field label={t.range}>
-          <DateRange from={range.from} to={range.to} onChange={setRange} />
+          <DateRangePicker value={range} onChange={setRange} />
+        </Field>
+        <Field label={t.dateOnly}>
+          <DatePicker value={day} onChange={setDay} />
         </Field>
         <Field label={t.color} htmlFor="sc-color">
           <ColorInput id="sc-color" value={color} onChange={setColor} />

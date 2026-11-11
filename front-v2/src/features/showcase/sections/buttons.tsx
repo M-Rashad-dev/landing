@@ -126,7 +126,7 @@ export function BadgesSection() {
         <Badge tone="warning">{ar.domain.productState.overLimit}</Badge>
       </Specimen>
       <Specimen label={b.tones}>
-        {(["neutral", "brand", "attention", "success", "warning", "danger", "info", "ink"] as const).map((tone) => (
+        {(["neutral", "brand", "brand-soft", "attention", "success", "warning", "danger", "info", "ink"] as const).map((tone) => (
           <Badge key={tone} tone={tone}>
             <span dir="ltr">{tone}</span>
           </Badge>

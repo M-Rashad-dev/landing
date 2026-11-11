@@ -1,29 +1,9 @@
 "use client";
 
-import { Check, ChevronDown, Minus } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { Checkbox as CheckboxPrimitive, RadioGroup as RadioPrimitive, Switch as SwitchPrimitive } from "radix-ui";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { controlClass } from "./input";
-
-export type SelectOption = { value: string; label: string; disabled?: boolean };
-
-/** Native select (fast, accessible, mobile-friendly) styled like the other controls. */
-export function Select({ options, placeholder, className, ...props }: React.ComponentProps<"select"> & { options: SelectOption[]; placeholder?: string }) {
-  return (
-    <div className={cn("relative", className)}>
-      <select className={cn(controlClass, "h-9 appearance-none pe-9 ps-3 text-sm")} {...props}>
-        {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
-        {options.map((o) => (
-          <option key={o.value} value={o.value} disabled={o.disabled}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden />
-    </div>
-  );
-}
 
 export function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
   return (

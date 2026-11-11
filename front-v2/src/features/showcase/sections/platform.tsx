@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ExternalLink, Eye, PencilRuler, ShoppingBag } from "lucide-react";
+import { Check, ExternalLink, Eye, PencilRuler, ShoppingBag, X } from "lucide-react";
 import { Price } from "@/components/data/details";
 import { useShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -87,9 +87,17 @@ export function PlatformSection() {
             </p>
             <ul className="mt-3 flex flex-col gap-1.5 text-[13px]">
               {p.planFeatures.map((feature) => (
-                <li key={feature} className="flex items-center gap-2">
-                  <Check className="size-3.5 text-success" />
-                  {feature}
+                <li key={feature.label} className={feature.included ? "flex items-center gap-2" : "flex items-center gap-2 text-ink-3"}>
+                  {feature.included ? (
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-soft text-success">
+                      <Check className="size-3" strokeWidth={3} aria-label={p.included} />
+                    </span>
+                  ) : (
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-3">
+                      <X className="size-3" strokeWidth={3} aria-label={p.notIncluded} />
+                    </span>
+                  )}
+                  <span className={feature.included ? undefined : "line-through decoration-ink-3/50"}>{feature.label}</span>
                 </li>
               ))}
             </ul>

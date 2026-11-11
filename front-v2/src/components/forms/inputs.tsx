@@ -225,18 +225,3 @@ export function MultiSelect({ options, value, onChange, placeholder, searchPlace
     </div>
   );
 }
-
-/** From / to dates (reports, offer validity). Native date inputs: full keyboard + mobile pickers. */
-export function DateRange({ from, to, onChange }: { from: string; to: string; onChange: (v: { from: string; to: string }) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <input type="date" dir="ltr" value={from} max={to || undefined} onChange={(e) => onChange({ from: e.target.value, to })} className={cn(controlClass, "tabular h-9 w-40 px-3 text-sm")} aria-label={t.from} />
-      <span className="text-ink-3">—</span>
-      <input type="date" dir="ltr" value={to} min={from || undefined} onChange={(e) => onChange({ from, to: e.target.value })} className={cn(controlClass, "tabular h-9 w-40 px-3 text-sm")} aria-label={t.to} />
-    </div>
-  );
-}
-
-export function DateTimeInput(props: React.ComponentProps<"input">) {
-  return <input type="datetime-local" dir="ltr" className={cn(controlClass, "tabular h-9 w-56 px-3 text-sm")} {...props} />;
-}

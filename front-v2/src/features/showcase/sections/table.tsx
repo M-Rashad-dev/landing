@@ -7,7 +7,7 @@ import { EntityCell } from "@/components/data/details";
 import { ORDER_STATUSES, OrderStatusBadge } from "@/components/domain/order-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/choice";
+import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/feedback";
 import { MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/tabs";
@@ -93,8 +93,8 @@ export function TableSection() {
           searchPlaceholder={t.search}
           filters={
             <>
-              <Select aria-label={t.statusFilter} placeholder={t.statusFilter} value={state.status} onChange={(e) => setState({ status: e.target.value })} options={ORDER_STATUSES.map((s) => ({ value: s, label: ar.domain.orderStatus[s] }))} className="w-40" />
-              <Select aria-label={t.governorateFilter} placeholder={t.governorateFilter} value={state.gov} onChange={(e) => setState({ gov: e.target.value })} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} className="w-40" />
+              <Select aria-label={t.statusFilter} emptyLabel={t.statusFilter} value={state.status} onValueChange={(status) => setState({ status })} options={ORDER_STATUSES.map((s) => ({ value: s, label: ar.domain.orderStatus[s] }))} className="w-40" />
+              <Select aria-label={t.governorateFilter} emptyLabel={t.governorateFilter} value={state.gov} onValueChange={(gov) => setState({ gov })} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} searchable searchPlaceholder={t.governorateSearch} className="w-44" />
             </>
           }
           chips={chips}

@@ -42,26 +42,37 @@ export function FormSection({
   const isOpen = !collapsible || open || hasError;
   return (
     <section className={cn("rounded-xl border border-border bg-surface", className)}>
-      <header className="flex items-start justify-between gap-3 px-5 py-4">
-        <div>
-          <h3 className="flex items-center gap-2 text-[15px] font-semibold">
-            {title}
-            {hasError ? <span className="size-2 rounded-full bg-danger" aria-label={ar.common.errorTitle} /> : null}
-          </h3>
-          {description ? <p className="mt-0.5 text-[13px] text-ink-3">{description}</p> : null}
-        </div>
-        {collapsible ? (
-          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={isOpen} aria-controls={id} className="rounded-md p-1 text-ink-3 hover:bg-surface-2 hover:text-ink">
-            <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} />
-          </button>
-        ) : null}
-      </header>
+      {collapsible ? (
+        // The whole header toggles a collapsible section (one big target, keyboard friendly).
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={isOpen} aria-controls={id} className="flex w-full items-start justify-between gap-3 rounded-xl px-5 py-4 text-start transition-colors hover:bg-surface-2/50">
+          <SectionTitle title={title} description={description} hasError={hasError} />
+          <span className="mt-0.5 rounded-md p-1 text-ink-3">
+            <ChevronDown className={cn("size-4 transition-transform duration-200", isOpen && "rotate-180")} aria-hidden />
+          </span>
+        </button>
+      ) : (
+        <header className="px-5 py-4">
+          <SectionTitle title={title} description={description} hasError={hasError} />
+        </header>
+      )}
       {isOpen ? (
         <div id={id} className="flex flex-col gap-4 border-t border-border px-5 py-4">
           {children}
         </div>
       ) : null}
     </section>
+  );
+}
+
+function SectionTitle({ title, description, hasError }: { title: string; description?: string; hasError: boolean }) {
+  return (
+    <span className="block">
+      <span className="flex items-center gap-2 font-display text-[15px] font-semibold">
+        {title}
+        {hasError ? <span className="size-2 rounded-full bg-danger" aria-label={ar.common.errorTitle} /> : null}
+      </span>
+      {description ? <span className="mt-0.5 block text-[13px] text-ink-3">{description}</span> : null}
+    </span>
   );
 }
 

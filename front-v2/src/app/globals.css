@@ -44,13 +44,15 @@
   --ink: #13261d;
   --ink-2: #4a6156;
   --ink-3: #7e968a;
-  --primary: #3cd69b;
-  --primary-hover: #2cc88b;
-  --primary-ink: #0d2a1e;
+  /* Filled green (buttons, solid badges): deep enough for white text (contrast ≥ 4.5). */
+  --primary: #0b875b;
+  --primary-hover: #0a774f;
+  --primary-ink: #ffffff;
+  /* Bright mint: logo, active marker, highlights (never under small text). */
   --brand: #2fcf91;
   --brand-strong: #0b7a55;
   --brand-soft: #dcf6ea;
-  --brand-ink: #0d2a1e;
+  --brand-ink: #ffffff;
   --accent: #ffc83d;
   --accent-soft: #fff4d1;
   --accent-ink: #6b4d00;
@@ -149,6 +151,67 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Everything clickable shows the hand; disabled things show they are not. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  [role="radio"],
+  [role="switch"],
+  [role="checkbox"],
+  a[href],
+  label[for],
+  summary,
+  select:not(:disabled),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="color"],
+  [cmdk-item] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"],
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Thin, quiet scrollbars everywhere. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ink-3);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+
+/* Horizontal strips (tabs, chips) scroll without showing a bar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @utility tabular {
@@ -174,4 +237,59 @@
   .skeleton {
     animation: none;
   }
+}
+
+/* Calendar (react-day-picker) in the identity colors. Doubled class so it wins over the library sheet. */
+.rdp-root.mk-calendar {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: var(--brand-soft);
+  --rdp-day-height: 38px;
+  --rdp-day-width: 38px;
+  --rdp-day_button-height: 36px;
+  --rdp-day_button-width: 36px;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-selected-border: 0;
+  --rdp-today-color: var(--brand-strong);
+  --rdp-range_middle-background-color: var(--brand-soft);
+  --rdp-range_middle-color: var(--ink);
+  --rdp-range_start-color: var(--primary-ink);
+  --rdp-range_end-color: var(--primary-ink);
+  --rdp-range_start-date-background-color: var(--primary);
+  --rdp-range_end-date-background-color: var(--primary);
+  --rdp-outside-opacity: 0.35;
+  --rdp-nav_button-height: 32px;
+  --rdp-nav_button-width: 32px;
+  --rdp-nav-height: 36px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.mk-calendar .rdp-month_caption {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+}
+.mk-calendar .rdp-weekday {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.mk-calendar .rdp-chevron {
+  fill: var(--ink-2);
+}
+.mk-calendar .rdp-day_button:hover {
+  background: var(--surface-2);
+}
+.mk-calendar .rdp-selected {
+  font-size: inherit;
+}
+.mk-calendar .rdp-selected .rdp-day_button {
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+}
+.mk-calendar .rdp-range_middle .rdp-day_button {
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  border: 0;
 }
