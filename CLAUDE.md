@@ -2,6 +2,8 @@
 
 Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS.md](PROGRESS.md). Small decisions not in the plan: [DECISIONS.md](DECISIONS.md).
 
+**Frontend rebuild in progress (branch `v4`): read [docs/frontend-v2/HANDOFF.md](docs/frontend-v2/HANDOFF.md) first.** New work goes in `front-v2/`; `front/` is frozen (reference only) until the cut-over.
+
 ## Layout
 - `back/` Laravel 13 API only (PHP 8.3). `front/` Next.js 16 (dashboard, builder, public sites). `deploy/` + root compose files for the VPS.
 - Locally: `source tools/env.sh` puts portable PHP 8.3 first on PATH (Windows dev box). MySQL = XAMPP MariaDB (root, no password), DBs `landing` / `landing_test`.

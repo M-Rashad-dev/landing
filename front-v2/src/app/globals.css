@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * «مكسب» design tokens — the ONLY place the dashboard look is defined.
+ * Colors come from the logo: ink navy (the word), orange (the bag), yellow (the shine).
+ * Every component reads these variables, so changing the brand = editing this block.
+ * A dark theme later = one more block under [data-theme="dark"] with the same names.
+ */
+:root {
+  /* Surfaces */
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --surface-2: #f5f3ef;
+  --surface-3: #eeebe5;
+  --border: #e9e5de;
+  --border-strong: #d6d0c5;
+
+  /* Text (ink) */
+  --ink: #1a2130;
+  --ink-2: #545b68;
+  --ink-3: #8a909b;
+  --ink-inverse: #ffffff;
+
+  /* Primary action = ink (white text on it passes contrast) */
+  --primary: #1a2130;
+  --primary-hover: #2b3446;
+  --primary-ink: #ffffff;
+
+  /* Brand orange: logo, active item, highlights. --brand-strong is the readable one for text. */
+  --brand: #f26b1d;
+  --brand-strong: #c2410c;
+  --brand-soft: #fff1e6;
+  --brand-ink: #ffffff;
+
+  /* Yellow accent: only "needs your attention" */
+  --accent: #ffb224;
+  --accent-soft: #fff6dd;
+  --accent-ink: #7a4d00;
+
+  /* States */
+  --success: #12805c;
+  --success-soft: #e6f5ee;
+  --warning: #b45309;
+  --warning-soft: #fdf1e1;
+  --danger: #c42b2b;
+  --danger-soft: #fdecec;
+  --info: #2563eb;
+  --info-soft: #eaf1fe;
+
+  /* Charts: at most 4 series colors */
+  --chart-1: #f26b1d;
+  --chart-2: #1a2130;
+  --chart-3: #ffb224;
+  --chart-4: #8a909b;
+
+  --ring: #f26b1d;
+  --radius: 10px;
+
+  --shadow-sm: 0 1px 2px rgb(26 33 48 / 0.05);
+  --shadow-md: 0 2px 4px rgb(26 33 48 / 0.04), 0 8px 24px rgb(26 33 48 / 0.08);
+  --shadow-lg: 0 4px 8px rgb(26 33 48 / 0.06), 0 24px 56px rgb(26 33 48 / 0.16);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --sidebar-width: 15.5rem;
+  --sidebar-width-collapsed: 4.25rem;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --ease-out: var(--ease-out);
+  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Readex Pro", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 22%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Loading shimmer */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: mk-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes mk-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
