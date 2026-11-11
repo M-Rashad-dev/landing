@@ -14,6 +14,7 @@ export const common = {
   more: "المزيد",
   actions: "إجراءات",
   search: "بحث",
+  searchShort: "بحث...",
   filters: "الفلاتر",
   clearFilters: "مسح الفلاتر",
   all: "الكل",

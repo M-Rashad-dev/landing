@@ -1,13 +1,11 @@
 "use client";
 
-import { Check, ChevronsUpDown, ImagePlus, Minus, Plus, Upload, X } from "lucide-react";
-import { Command } from "cmdk";
+import { ImagePlus, Minus, Plus, Upload, X } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "@/components/ui/badge";
 import { Segmented } from "@/components/ui/tabs";
 import { controlClass, InputGroup, Textarea } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlay";
 import { CURRENCY } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -175,53 +173,6 @@ export function MarkdownEditor({ value, onChange, rows = 8, id }: { value: strin
           <ReactMarkdown>{value || "—"}</ReactMarkdown>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Pick several from a long list with search (products of an offer, categories of a product). */
-export function MultiSelect({ options, value, onChange, placeholder, searchPlaceholder }: { options: Array<{ value: string; label: string }>; value: string[]; onChange: (v: string[]) => void; placeholder: string; searchPlaceholder: string }) {
-  const [open, setOpen] = React.useState(false);
-  const chosen = options.filter((o) => value.includes(o.value));
-  return (
-    <div className="flex flex-col gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button type="button" className={cn(controlClass, "flex h-9 items-center justify-between px-3 text-sm")} aria-expanded={open}>
-            <span className={chosen.length ? "text-ink" : "text-ink-3"}>{chosen.length ? t.selectedCount(chosen.length) : placeholder}</span>
-            <ChevronsUpDown className="size-4 text-ink-3" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-          <Command>
-            <Command.Input placeholder={searchPlaceholder} className="h-10 w-full border-b border-border bg-transparent px-3 text-sm outline-none placeholder:text-ink-3" />
-            <Command.List className="max-h-56 overflow-y-auto p-1">
-              <Command.Empty className="px-3 py-6 text-center text-xs text-ink-3">{ar.common.noResults}</Command.Empty>
-              {options.map((o) => {
-                const on = value.includes(o.value);
-                return (
-                  <Command.Item key={o.value} value={o.label} onSelect={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm data-[selected=true]:bg-surface-2">
-                    <span className={cn("flex size-4 items-center justify-center rounded border", on ? "border-primary bg-primary text-primary-ink" : "border-border-strong")}>{on ? <Check className="size-3" strokeWidth={3} /> : null}</span>
-                    {o.label}
-                  </Command.Item>
-                );
-              })}
-            </Command.List>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {chosen.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {chosen.map((o) => (
-            <span key={o.value} className="inline-flex h-7 items-center gap-1 rounded-md bg-surface-2 ps-2.5 pe-1 text-xs">
-              {o.label}
-              <button type="button" onClick={() => onChange(value.filter((v) => v !== o.value))} className="rounded p-0.5 text-ink-3 hover:text-ink" aria-label={`${ar.common.delete} ${o.label}`}>
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

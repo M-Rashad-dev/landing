@@ -3,10 +3,10 @@
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { DatePicker, DateRangePicker, presetRange, type RangeValue } from "@/components/forms/date-pickers";
-import { ColorInput, FileDrop, MarkdownEditor, MediaTiles, MoneyInput, MultiSelect, PhoneInput, QuantityStepper } from "@/components/forms/inputs";
+import { ColorInput, FileDrop, MarkdownEditor, MediaTiles, MoneyInput, PhoneInput, QuantityStepper } from "@/components/forms/inputs";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox, RadioCards, SwitchRow } from "@/components/ui/choice";
-import { Select } from "@/components/ui/select";
+import { MultiSelect, Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { AddonInput, Input, InputGroup, Textarea } from "@/components/ui/input";
 import { SortableList } from "@/components/data/sortable-list";
@@ -60,13 +60,13 @@ export function InputsSection() {
           <InputGroup id="sc-search" start={<Search />} placeholder={t.searchPlaceholder} />
         </Field>
         <Field label={t.select} htmlFor="sc-select">
-          <Select id="sc-select" placeholder={t.selectPlaceholder} searchPlaceholder={t.selectSearch} value={gov} onValueChange={setGov} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} searchable />
+          <Select id="sc-select" placeholder={t.selectPlaceholder} value={gov} onValueChange={setGov} options={DEMO_GOVERNORATES.map((g) => ({ value: g, label: g }))} searchable />
         </Field>
         <Field label={t.sort} htmlFor="sc-sort">
           <Select id="sc-sort" value={sort} onValueChange={setSort} options={(Object.keys(t.sorts) as Array<keyof typeof t.sorts>).map((k) => ({ value: k, label: t.sorts[k] }))} />
         </Field>
         <Field label={t.multi}>
-          <MultiSelect options={DEMO_CATEGORY_OPTIONS} value={cats} onChange={setCats} placeholder={t.multiPlaceholder} searchPlaceholder={t.multiSearch} />
+          <MultiSelect options={DEMO_CATEGORY_OPTIONS} value={cats} onChange={setCats} placeholder={t.multiPlaceholder} countLabel={t.selectedCount} searchable />
         </Field>
         <Field label={t.disabled} htmlFor="sc-dis">
           <Input id="sc-dis" disabled defaultValue="INV-000123" />

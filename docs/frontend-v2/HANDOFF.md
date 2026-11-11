@@ -67,8 +67,8 @@ front-v2/src/
     brand.ts              اسم المنصة
     navigation.ts         القايمة الجانبية + حالة كل صفحة (ready/soon)
   components/
-    ui/                   الأساسيات: button, badge, input, field, choice (checkbox/switch/radio cards), select (Radix Select + بحث للقوايم الطويلة), panel, tabs (line / pills + Segmented + JumpBar), overlay (dialog/drawer/menu/popover/tooltip), feedback (alert/empty/error/locked/skeleton/toast)
-    forms/                form-layout (FormLayout/FormSection بهيدر بيفتح ويقفل/SaveBar/useUnsavedWarning) + inputs (money, phone, quantity, color, file, media, markdown, multi-select) + date-pickers (DatePicker بوقت أو من غيره، DateRangePicker بفترات جاهزة — react-day-picker)
+    ui/                   الأساسيات: button, badge, input, field, choice (checkbox/switch/radio cards), select (`Select` اختيار واحد + `MultiSelect` بمربعات اختيار، قايمة واحدة الشكل: الحقل بيخضر وهو مفتوح، وبحث فوق من 6 اختيارات، على شكل القايمة اللي المالك بعتها), panel, tabs (line / pills + Segmented + JumpBar), overlay (dialog/drawer/menu/popover/tooltip), feedback (alert/empty/error/locked/skeleton/toast)
+    forms/                form-layout (FormLayout/FormSection بهيدر بيفتح ويقفل/SaveBar/useUnsavedWarning) + inputs (money, phone, quantity, color, file, media, markdown) + date-pickers (DatePicker بوقت أو من غيره، DateRangePicker بفترات جاهزة — react-day-picker)
     data/                 data-table (+ FilterBar, Pagination), stat-card (+ Meter), charts, details (EntityCell, DescriptionList, Timeline, CopyField, Price, Checklist, Steps), sortable-list
     layout/               app-shell, sidebar, command-palette (Ctrl+K), page-header (+ Breadcrumbs)
     domain/               حاجات خاصة بالمنصة (حالات الطلب والفاتورة)
