@@ -1,12 +1,21 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
+import { SessionProvider } from "@/lib/auth/session-context";
 import { getSession } from "@/lib/auth/session";
 import { storeUrl } from "@/lib/auth/store-url";
+import { QueryProvider } from "@/lib/query";
 
 /** Store owner dashboard: a signed-in owner only (the platform admin has /admin). */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (session.user.role === "super_admin") redirect("/admin");
+  const url = storeUrl(session);
 
-  return <AppShell account={{ name: session.user.name, store: session.tenant?.name ?? "", storeUrl: storeUrl(session) }}>{children}</AppShell>;
+  return (
+    <SessionProvider value={{ user: session.user, tenant: session.tenant, plan: session.plan, store_name: session.store_name, storeUrl: url }}>
+      <QueryProvider>
+        <AppShell account={{ name: session.user.name, store: session.tenant?.name ?? "", storeUrl: url }}>{children}</AppShell>
+      </QueryProvider>
+    </SessionProvider>
+  );
 }

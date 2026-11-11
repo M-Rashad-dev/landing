@@ -38,6 +38,10 @@ final class ProductResource extends JsonResource
             'low_stock_threshold' => $this->low_stock_threshold,
             'seo' => $this->seo,
             'category_ids' => $this->whenLoaded('categories', fn () => $this->categories->pluck('id')->all()),
+            'categories' => $this->whenLoaded('categories', fn () => $this->categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->all()),
+            'primary_category_id' => $this->primary_category_id,
+            // Units left: null = not tracked (unlimited); variant mode = the sum of every combination.
+            'stock_total' => $this->stockTotal(),
             'variants' => $this->whenLoaded('variants', fn () => $this->variants->map(fn ($v) => ['id' => $v->id, 'value_ids' => $v->valueIds(), 'stock' => $v->stock, 'sku' => $v->sku])->all()),
             'locked_by_plan' => (bool) $this->locked_by_plan,
             'main_image' => $this->whenLoaded('media', fn () => $this->media->first() ? MediaResource::make($this->media->first())->resolve($request) : null),
@@ -60,5 +64,16 @@ final class ProductResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),
         ];
+    }
+
+    private function stockTotal(): ?int
+    {
+        return match ($this->stock_mode) {
+            Product::STOCK_PRODUCT => (int) $this->stock,
+            Product::STOCK_VARIANT => $this->resource->getAttribute('variants_sum_stock') !== null
+                ? (int) $this->resource->getAttribute('variants_sum_stock')
+                : ($this->resource->relationLoaded('variants') ? (int) $this->variants->sum('stock') : (int) $this->variants()->sum('stock')),
+            default => null,
+        };
     }
 }

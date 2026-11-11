@@ -34,8 +34,8 @@ export const DASHBOARD_NAV: NavGroup[] = [
   {
     label: t.groups.store,
     items: [
-      { href: "/dashboard/catalog/products", label: t.items.products, icon: Package, status: "soon" },
-      { href: "/dashboard/catalog/categories", label: t.items.categories, icon: FolderTree, status: "soon" },
+      { href: "/dashboard/catalog/products", label: t.items.products, icon: Package, status: "ready" },
+      { href: "/dashboard/catalog/categories", label: t.items.categories, icon: FolderTree, status: "ready" },
     ],
   },
   {

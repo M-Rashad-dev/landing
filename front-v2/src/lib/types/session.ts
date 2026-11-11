@@ -41,6 +41,8 @@ export type Session = {
   user: User;
   tenant: Tenant | null;
   primary_host: string | null;
+  /** The name customers see (identity brand name, else the account name); null for the admin. */
+  store_name: string | null;
   /** Null for the platform admin. */
   plan: Entitlements | null;
   public_origin: PublicOrigin;

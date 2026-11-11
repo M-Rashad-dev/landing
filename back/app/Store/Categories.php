@@ -9,6 +9,8 @@ use App\Enums\PlanFeature;
 use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Category;
+use App\Models\Product;
+use App\Support\SeoInput;
 use App\Support\Slugs;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -18,11 +20,11 @@ use Illuminate\Validation\ValidationException;
 /**
  * The category tree: a parent may not be the category itself or one of its descendants,
  * depth is capped (config landing.limits.category_depth), depths are kept on every move,
- * deleting a category moves its children up and only unlinks its products.
+ * deleting a category moves its children up (or deletes them with it) and only unlinks its products.
  */
 final class Categories
 {
-    public function __construct(private readonly Entitlements $entitlements) {}
+    public function __construct(private readonly Entitlements $entitlements, private readonly ProductCategories $productCategories) {}
 
     /** @param array<string, mixed> $data validated CategoryRequest data */
     public function create(array $data): Category
@@ -39,15 +41,30 @@ final class Categories
         return $this->save($category, $data);
     }
 
-    public function delete(Category $category): void
+    /**
+     * Deletes a category. Its sub-categories either move one level up (default) or, with
+     * $withChildren, are deleted with it at every level. Products are never deleted: they only
+     * leave the deleted categories (and take another main category when theirs is gone).
+     */
+    public function delete(Category $category, bool $withChildren = false): void
     {
-        DB::transaction(function () use ($category): void {
-            foreach ($category->children()->get() as $child) {
-                $child->forceFill(['parent_id' => $category->parent_id])->save();
-                $this->refreshDepths($child);
+        DB::transaction(function () use ($category, $withChildren): void {
+            $ids = $withChildren ? $this->withDescendants($category->id) : [$category->id];
+
+            if (! $withChildren) {
+                foreach ($category->children()->get() as $child) {
+                    $child->forceFill(['parent_id' => $category->parent_id])->save();
+                    $this->refreshDepths($child);
+                }
             }
-            $category->products()->detach();
-            $category->delete();
+
+            $productIds = Product::query()->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $ids))->pluck('id')->map(fn ($id) => (int) $id)->all();
+            // Deepest first, so no row is left pointing at a deleted parent.
+            Category::query()->whereIn('id', $ids)->orderByDesc('depth')->get()->each(function (Category $c): void {
+                $c->products()->detach();
+                $c->delete();
+            });
+            $this->productCategories->repair($productIds);
         });
         RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
     }
@@ -121,7 +138,7 @@ final class Categories
                 'description' => array_key_exists('description', $data) ? $data['description'] : $category->description,
                 'media_id' => array_key_exists('media_id', $data) ? $data['media_id'] : $category->media_id,
                 'is_visible' => (bool) ($data['is_visible'] ?? $category->is_visible ?? true),
-                'seo' => array_key_exists('seo', $data) ? (array_filter((array) $data['seo'], fn ($v) => $v !== null && $v !== '') ?: null) : $category->seo,
+                'seo' => array_key_exists('seo', $data) ? SeoInput::clean($data['seo']) : $category->seo,
             ]);
             if (! empty($data['slug'])) {
                 $category->slug = (string) $data['slug'];

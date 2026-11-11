@@ -16,6 +16,7 @@ use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
 use App\Models\Domain;
 use App\Models\User;
+use App\Store\SeoDefaults;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,11 +73,14 @@ final class AuthController extends Controller
         $primaryHost = $user->tenant_id === null
             ? null
             : Tenancy::runAs($user->tenant_id, fn (): ?string => Domain::query()->where('is_primary', true)->value('host'));
+        // The name the store shows its customers (automatic SEO previews in the dashboard).
+        $storeName = $user->tenant_id === null ? null : Tenancy::runAs($user->tenant_id, fn (): string => app(SeoDefaults::class)->storeName());
 
         return $this->ok([
             'user' => UserResource::make($user)->resolve($request),
             'tenant' => $user->tenant ? TenantResource::make($user->tenant)->resolve($request) : null,
             'primary_host' => $primaryHost,
+            'store_name' => $storeName,
             'plan' => $user->tenant === null ? null : PlanPresenter::entitlements(app(Entitlements::class)->for($user->tenant)),
         ]);
     }

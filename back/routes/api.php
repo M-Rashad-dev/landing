@@ -95,7 +95,9 @@ Route::prefix('dashboard')
         Route::apiResource('identities', IdentityController::class);
         Route::post('identities/{identity}/make-default', [IdentityController::class, 'makeDefault']);
 
+        Route::post('products/bulk', [ProductController::class, 'bulk']);
         Route::apiResource('products', ProductController::class);
+        Route::patch('products/{product}/quick', [ProductController::class, 'quick']);
         Route::post('products/{product}/toggle', [ProductController::class, 'toggle']);
         Route::post('products/{product}/duplicate', [ProductController::class, 'duplicate']);
 

@@ -11,8 +11,10 @@ use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
+use App\Store\ProductCategories;
 use App\Store\Stock;
 use App\Support\Money;
+use App\Support\SeoInput;
 use App\Support\Slugs;
 use App\Tenancy\Tenancy;
 use Illuminate\Support\Facades\DB;
@@ -47,8 +49,13 @@ final class SaveProduct
                 $product->forceFill(['slug' => Slugs::unique(Product::query()->withTrashed(), $product->name, $product->id)])->save();
             }
 
-            if (array_key_exists('category_ids', $data)) {
-                $product->categories()->sync(array_map('intval', $data['category_ids'] ?? []));
+            if (array_key_exists('category_ids', $data) || array_key_exists('primary_category_id', $data)) {
+                app(ProductCategories::class)->sync(
+                    $product,
+                    array_key_exists('category_ids', $data) ? array_values(array_map('intval', $data['category_ids'] ?? [])) : null,
+                    isset($data['primary_category_id']) ? (int) $data['primary_category_id'] : null,
+                    array_key_exists('primary_category_id', $data),
+                );
             }
 
             if (array_key_exists('media_ids', $data)) {
@@ -83,8 +90,7 @@ final class SaveProduct
             $product->slug = $data['slug'];
         }
         if (array_key_exists('seo', $data)) {
-            $seo = array_filter((array) ($data['seo'] ?? []), fn ($v) => $v !== null && $v !== '');
-            $product->seo = $seo === [] ? null : $seo;
+            $product->seo = SeoInput::clean($data['seo']);
         }
         if (array_key_exists('stock_mode', $data)) {
             $product->stock_mode = $data['stock_mode'];

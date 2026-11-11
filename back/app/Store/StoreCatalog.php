@@ -24,6 +24,7 @@ final class StoreCatalog
     public function __construct(
         private readonly Categories $categories,
         private readonly PublicPageData $data,
+        private readonly SeoDefaults $seo,
     ) {}
 
     /** @return Builder<Product> */
@@ -155,7 +156,19 @@ final class StoreCatalog
             ->withCount(['products as sellable_count' => fn (Builder $q) => $q->where('in_store', true)->where('is_active', true)->servable()])
             ->pluck('sellable_count', 'id');
 
-        return $this->visibleCategories()->map(fn (Category $c) => [
+        $visible = $this->visibleCategories();
+        $byId = $visible->keyBy('id');
+        $store = $this->seo->storeName();
+        $ancestors = function (Category $c) use ($byId): array {
+            $names = [];
+            for ($p = $byId->get($c->parent_id ?? 0); $p !== null; $p = $byId->get($p->parent_id ?? 0)) {
+                $names[] = $p->name;
+            }
+
+            return $names;
+        };
+
+        return $visible->map(fn (Category $c) => [
             'id' => $c->id,
             'parent_id' => $c->parent_id,
             'depth' => $c->depth,
@@ -164,7 +177,7 @@ final class StoreCatalog
             'description' => $c->description,
             'image' => $this->data->image($c->image),
             'products_count' => (int) ($counts[$c->id] ?? 0),
-            'seo' => $c->seo,
+            'seo' => SeoDefaults::merge($c->seo, $this->seo->category($c, $store, $ancestors($c))),
         ])->values()->all();
     }
 }

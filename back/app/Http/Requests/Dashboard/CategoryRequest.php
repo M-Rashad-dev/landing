@@ -45,6 +45,8 @@ final class CategoryRequest extends FormRequest
             'seo' => ['sometimes', 'nullable', 'array'],
             'seo.title' => ['nullable', 'string', 'max:70'],
             'seo.description' => ['nullable', 'string', 'max:170'],
+            'seo.keywords' => ['nullable', 'array', 'max:10'],
+            'seo.keywords.*' => ['nullable', 'string', 'max:40'],
         ];
     }
 }

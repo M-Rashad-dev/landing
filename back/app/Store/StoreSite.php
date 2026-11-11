@@ -31,6 +31,7 @@ final class StoreSite
         private readonly PublicSite $site,
         private readonly Shipping $shipping,
         private readonly Entitlements $entitlements,
+        private readonly SeoDefaults $seo,
     ) {}
 
     /** The live store of the tenant, or null (then "/" stays the landing home). */
@@ -152,7 +153,8 @@ final class StoreSite
         }
 
         $visible = $this->catalog->visibleCategories()->keyBy('id');
-        $category = $product->categories->first(fn ($c) => $visible->has($c->id));
+        // The main category first (when visible), else the first visible one.
+        $category = $visible->has($product->primary_category_id ?? 0) ? $visible->get($product->primary_category_id) : $product->categories->first(fn ($c) => $visible->has($c->id));
         $trail = [];
         for ($c = $category === null ? null : $visible->get($category->id); $c !== null; $c = $c->parent_id === null ? null : $visible->get($c->parent_id)) {
             array_unshift($trail, ['name' => $c->name, 'slug' => $c->slug]);
@@ -162,7 +164,7 @@ final class StoreSite
             'product' => $this->data->product($product),
             'offers' => $this->data->offers($product, now()),
             'breadcrumb' => $trail,
-            'seo' => $product->seo,
+            'seo' => SeoDefaults::merge($product->seo, $this->seo->product($product, $this->seo->storeName())),
             'related' => $this->catalog->related($product),
             'low_stock_threshold' => $product->low_stock_threshold,
         ];

@@ -10,6 +10,7 @@ use App\Support\Money;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $stock
  * @property int|null $low_stock_threshold
  * @property array<string, mixed>|null $seo
+ * @property int|null $primary_category_id
  */
 class Product extends Model
 {
@@ -81,6 +83,12 @@ class Product extends Model
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** The main category among its categories (breadcrumb, SEO). @return BelongsTo<Category, $this> */
+    public function primaryCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'primary_category_id');
     }
 
     /** @return HasMany<ProductVariant, $this> */

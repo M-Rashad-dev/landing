@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Media;
 use App\Rules\TenantExists;
 use App\Store\Categories;
+use App\Store\SeoDefaults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,11 +23,20 @@ final class CategoryController extends Controller
 
     public function __construct(private readonly Categories $categories) {}
 
-    public function index(): JsonResponse
+    public function index(SeoDefaults $seo): JsonResponse
     {
         $tree = $this->categories->tree();
+        $byId = $tree->keyBy('id');
+        $store = $seo->storeName();
 
-        return $this->ok($tree->map(fn (Category $c) => $this->row($c))->values()->all());
+        return $this->ok($tree->map(function (Category $c) use ($byId, $seo, $store) {
+            $ancestors = [];
+            for ($p = $byId->get($c->parent_id ?? 0); $p !== null; $p = $byId->get($p->parent_id ?? 0)) {
+                $ancestors[] = $p->name;
+            }
+
+            return [...$this->row($c), 'seo_defaults' => $seo->category($c, $store, $ancestors)];
+        })->values()->all());
     }
 
     public function store(CategoryRequest $request): JsonResponse
@@ -39,9 +49,11 @@ final class CategoryController extends Controller
         return $this->ok($this->row($this->categories->update($category, $request->validated())->load('image')));
     }
 
-    public function destroy(Category $category): Response
+    /** ?children=lift (default: sub-categories move one level up) | delete (deleted with it, every level). */
+    public function destroy(Request $request, Category $category): Response
     {
-        $this->categories->delete($category);
+        $data = $request->validate(['children' => ['nullable', 'string', 'in:lift,delete']]);
+        $this->categories->delete($category, ($data['children'] ?? 'lift') === 'delete');
 
         return $this->noContent();
     }

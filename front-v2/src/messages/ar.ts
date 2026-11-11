@@ -4,10 +4,12 @@
  * screens always import `ar` from here, never the section files directly.
  */
 import { auth } from "./ar/auth";
+import { catalog } from "./ar/catalog";
 import { common } from "./ar/common";
 import { domain } from "./ar/domain";
+import { media } from "./ar/media";
 import { nav } from "./ar/nav";
 import { showcase } from "./ar/showcase";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog } as const;
