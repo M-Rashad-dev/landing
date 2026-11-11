@@ -3,10 +3,9 @@
 
 /*
  * «مكسب» design tokens — the ONLY place the dashboard look is defined.
- * Every component reads these variables. A palette = one complete, coordinated set of them:
- * tinted neutrals, one brand hue, one rare accent, and state colors tuned to sit with them.
- * Palettes apply to <html data-palette="…"> or to any element (side-by-side previews).
- * When the owner picks one, it becomes :root and the others are deleted.
+ * Every component reads these variables: tinted neutrals, one brand hue, one attention accent,
+ * and state colors tuned to sit with them. Identity «نعناع» (owner choice 2026-11-11, temporary
+ * until the owner's own brand and logo): changing the brand = editing the blocks below only.
  */
 :root {
   --radius: 10px;
@@ -35,8 +34,7 @@
 }
 
 /* «نعناع» Mint — fresh and lively: mint green with a sunny yellow, on a white with a hint of green. */
-:root,
-[data-palette="naana"] {
+:root {
   --bg: #f5fbf8;
   --surface: #ffffff;
   --surface-2: #ecf7f1;
@@ -65,70 +63,6 @@
   --logo-2: #3cd69b;
   --logo-3: #12a06e;
   --shadow-rgb: 19 38 29;
-}
-
-/* «مشمش» Apricot — warm and friendly: peach with sunshine yellow, on a soft cream. */
-[data-palette="mishmish"] {
-  --bg: #fff9f4;
-  --surface: #ffffff;
-  --surface-2: #fff1e6;
-  --surface-3: #fce3d1;
-  --border: #f6e4d6;
-  --border-strong: #eacbb3;
-  --ink: #2b1b14;
-  --ink-2: #6e5546;
-  --ink-3: #a88b78;
-  --primary: #ff8a5c;
-  --primary-hover: #ff7a47;
-  --primary-ink: #2b1b14;
-  --brand: #ff8a5c;
-  --brand-strong: #c24a1c;
-  --brand-soft: #ffe6da;
-  --brand-ink: #2b1b14;
-  --accent: #ffd166;
-  --accent-soft: #fff5d6;
-  --accent-ink: #6e5000;
-  --chart-1: #ff8a5c;
-  --chart-2: #3a9ad9;
-  --chart-3: #ffd166;
-  --chart-4: #a88b78;
-  --ring: #ff8a5c;
-  --logo-1: #ffc08a;
-  --logo-2: #ff8a5c;
-  --logo-3: #e5622e;
-  --shadow-rgb: 43 27 20;
-}
-
-/* «ليمون» Lemon — sunny and bold: lemon yellow with tangerine and sky, on a warm white. */
-[data-palette="lamoon"] {
-  --bg: #fffdf5;
-  --surface: #ffffff;
-  --surface-2: #fff8dc;
-  --surface-3: #fcefc0;
-  --border: #f3eacb;
-  --border-strong: #e4d6a5;
-  --ink: #22201a;
-  --ink-2: #5f5a49;
-  --ink-3: #9a937c;
-  --primary: #ffd23f;
-  --primary-hover: #ffc61a;
-  --primary-ink: #22201a;
-  --brand: #ffd23f;
-  --brand-strong: #8a6500;
-  --brand-soft: #fff4c7;
-  --brand-ink: #22201a;
-  --accent: #ff8f5a;
-  --accent-soft: #ffe9de;
-  --accent-ink: #8a3412;
-  --chart-1: #f2b705;
-  --chart-2: #2d9cdb;
-  --chart-3: #ff8f5a;
-  --chart-4: #9a937c;
-  --ring: #f2b705;
-  --logo-1: #ffe27a;
-  --logo-2: #ffd23f;
-  --logo-3: #e0a800;
-  --shadow-rgb: 34 32 26;
 }
 
 @theme inline {
