@@ -8,6 +8,7 @@ import "@fontsource/readex-pro/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { BRAND } from "@/config/brand";
+import { PALETTE_BOOT_SCRIPT } from "@/config/palettes";
 
 export const metadata: Metadata = {
   title: { default: BRAND.name, template: `%s | ${BRAND.name}` },
@@ -19,7 +20,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* Palette under review, applied before paint (no flash). */}
+        <script dangerouslySetInnerHTML={{ __html: PALETTE_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

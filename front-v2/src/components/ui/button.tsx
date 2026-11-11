@@ -8,16 +8,16 @@ import { cn } from "@/lib/utils";
  * secondary = tinted · outline · ghost · danger · danger-ghost · link
  */
 export const buttonVariants = cva(
-  "inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-[background-color,color,border-color,box-shadow] duration-150 disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:shrink-0",
+  "inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-[background-color,color,border-color,box-shadow,filter] duration-150 disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         primary: "bg-primary text-primary-ink hover:bg-primary-hover",
-        brand: "bg-brand-strong text-brand-ink hover:bg-[#a8380a]",
+        brand: "bg-brand-strong text-brand-ink hover:brightness-90",
         secondary: "bg-surface-2 text-ink hover:bg-surface-3",
         outline: "border border-border-strong bg-surface text-ink hover:bg-surface-2",
         ghost: "text-ink-2 hover:bg-surface-2 hover:text-ink",
-        danger: "bg-danger text-white hover:bg-[#a82222]",
+        danger: "bg-danger text-white hover:brightness-90",
         "danger-ghost": "text-danger hover:bg-danger-soft",
         link: "h-auto px-0 text-brand-strong underline-offset-4 hover:underline",
       },

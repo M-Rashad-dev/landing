@@ -2,6 +2,7 @@
 
 import { PageHeader } from "@/components/layout/page-header";
 import { ar } from "@/messages/ar";
+import { PalettePicker } from "./palette-picker";
 import { BadgesSection, ButtonsSection } from "./sections/buttons";
 import { DetailsSection } from "./sections/details";
 import { FeedbackSection } from "./sections/feedback";
@@ -14,7 +15,7 @@ import { LayoutSection, PlatformSection } from "./sections/platform";
 import { ChartsSection, StatsSection } from "./sections/stats-charts";
 import { TableSection } from "./sections/table";
 
-const ORDER = ["foundations", "buttons", "badges", "inputs", "forms", "stats", "charts", "table", "details", "navigation", "overlays", "feedback", "layout", "platform"] as const;
+const ORDER = ["palettes", "foundations", "buttons", "badges", "inputs", "forms", "stats", "charts", "table", "details", "navigation", "overlays", "feedback", "layout", "platform"] as const;
 
 /** /dashboard/components — the living catalog every screen is built from. */
 export function ShowcasePage() {
@@ -26,13 +27,14 @@ export function ShowcasePage() {
           {ORDER.map((id) => (
             <li key={id}>
               <a href={`#${id}`} className="inline-flex h-8 items-center whitespace-nowrap rounded-md border border-border bg-surface px-3 text-[13px] text-ink-2 transition-colors hover:border-border-strong hover:text-ink">
-                {ar.showcase.sections[id].title}
+                {id === "palettes" ? ar.showcase.palettes.title : ar.showcase.sections[id].title}
               </a>
             </li>
           ))}
         </ul>
       </nav>
       <div className="flex flex-col gap-10 pb-24">
+        <PalettePicker />
         <FoundationsSection />
         <ButtonsSection />
         <BadgesSection />
