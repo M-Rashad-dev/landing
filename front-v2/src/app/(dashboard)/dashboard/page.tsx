@@ -1,6 +1,14 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { HomePage } from "@/features/home/home-page";
+import { ar } from "@/messages/ar";
 
-/** The home is locked until its part is built: open the components page meanwhile. */
-export default function DashboardHome() {
-  redirect("/dashboard/components");
+export const metadata: Metadata = { title: ar.home.title };
+
+export default function Page() {
+  return (
+    <Suspense>
+      <HomePage />
+    </Suspense>
+  );
 }

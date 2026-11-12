@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
+use App\Http\Controllers\Api\V1\Dashboard\HomeController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
 use App\Http\Controllers\Api\V1\Dashboard\IntegrationController;
 use App\Http\Controllers\Api\V1\Dashboard\InvoiceController;
@@ -142,6 +143,7 @@ Route::prefix('dashboard')
         Route::post('pages/{page}/set-home', [PageController::class, 'setHome']);
 
         Route::get('overview', OverviewController::class);
+        Route::get('home', HomeController::class);
         Route::get('analytics', AnalyticsController::class);
 
         Route::get('ab-tests', [AbTestController::class, 'index']);

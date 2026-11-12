@@ -33,7 +33,7 @@ export type NavItem = { href: string; label: string; icon: LucideIcon; status: N
 export type NavGroup = { label?: string; items: NavItem[] };
 
 export const DASHBOARD_NAV: NavGroup[] = [
-  { items: [{ href: "/dashboard", label: t.items.home, icon: Home, status: "soon", exact: true }] },
+  { items: [{ href: "/dashboard", label: t.items.home, icon: Home, status: "ready", exact: true }] },
   {
     label: t.groups.sales,
     items: [
