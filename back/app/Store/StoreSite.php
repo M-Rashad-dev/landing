@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace App\Store;
 
-use App\Billing\Entitlements;
-use App\Enums\PlanFeature;
 use App\Models\Identity;
-use App\Models\LandingPage;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\StorePage;
@@ -15,12 +12,14 @@ use App\Models\Tenant;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
+use App\Store\Design\AsasDesign;
+use App\Store\Design\StoreDesigner;
 use Illuminate\Support\Collection;
 
 /**
- * The store as visitors get it (runs inside the store's tenant context): is it live, its
- * theme, identity, menus with resolved links, categories, the published home with the data
- * its store sections need, shipping and tracking.
+ * The store as visitors get it (runs inside the store's tenant context): is it live, its theme
+ * with the published design and what its sections show, menus with resolved links, categories,
+ * shipping and tracking.
  */
 final class StoreSite
 {
@@ -30,85 +29,50 @@ final class StoreSite
         private readonly PublicPageData $data,
         private readonly PublicSite $site,
         private readonly Shipping $shipping,
-        private readonly Entitlements $entitlements,
         private readonly SeoDefaults $seo,
+        private readonly StoreDesigner $designer,
     ) {}
 
     /** The live store of the tenant, or null (then "/" stays the landing home). */
     public function live(Tenant $tenant): ?Store
     {
-        $store = Store::query()->with('homePage')->first();
+        $store = Store::query()->first();
 
-        return $store !== null && $this->setup->isLive($tenant, $store) && $store->homePage?->isPublished() === true ? $store : null;
+        return $this->setup->isLive($tenant, $store) ? $store : null;
     }
 
     /** @return array<string, mixed> */
     public function config(Store $store, string $primaryHost): array
     {
-        $home = $store->homePage;
-        $identity = $this->identity($home);
+        $design = $store->design()?->published ?? AsasDesign::defaults();
+        $identity = Identity::query()->where('is_default', true)->first() ?? Identity::query()->first();
         $categories = $this->catalog->categoryRows();
         $pages = StorePage::query()->where('is_published', true)->orderBy('position')->orderBy('id')->get(['id', 'title', 'slug']);
-        $content = $home?->published_content ?? ['version' => 1, 'sections' => []];
-        unset($content['theme_key']);
-        $tracking = $home === null ? null : $this->site->tracking($home, $identity);
+        $name = $this->seo->storeName();
 
         return [
             'theme_key' => $store->theme_key,
-            'settings' => $store->resolvedSettings(),
-            'identity' => $identity === null ? null : $this->data->identity($identity),
+            'design' => $design,
+            'data' => $this->designer->data($design),
+            'store_name' => $name,
             'menus' => [
                 'header' => $this->menu($store->menus['header'] ?? [], $categories, $pages),
                 'footer' => $this->menu($store->menus['footer'] ?? [], $categories, $pages),
             ],
             'categories' => $categories,
             'pages' => $pages->map(fn (StorePage $p) => ['title' => $p->title, 'slug' => $p->slug])->all(),
-            'home' => [
-                'id' => $home?->id,
-                'content' => $content,
-                'media' => (object) $this->data->media($content),
-                'data' => $this->sectionData($content),
-            ],
             'seo' => [
-                'title' => $store->seo['title'] ?? $identity?->seo_title ?? $identity?->brand_name ?? '',
+                'title' => $store->seo['title'] ?? $name,
                 'description' => $store->seo['description'] ?? $identity?->seo_description ?? '',
                 'canonical' => PublicSite::url($primaryHost),
-                'site_name' => $identity?->brand_name,
+                'site_name' => $name,
             ],
-            'tracking' => $tracking,
+            'tracking' => $this->site->tracking(null, $identity),
             'shipping' => $this->shipping->publicConfig(now()),
-            'branding' => ! $this->entitlements->allows(PlanFeature::RemoveBranding),
+            // «صنع بواسطة مكسب» always shows for now (owner: removable later on Max).
+            'branding' => true,
             'primary_host' => $primaryHost,
         ];
-    }
-
-    /**
-     * Data the store sections of a content need: products of product grids (by section id)
-     * and the categories of category grids.
-     *
-     * @param  array<string, mixed>  $content
-     * @return array{products: array<string, list<array<string, mixed>>>}
-     */
-    public function sectionData(array $content): array
-    {
-        $products = [];
-        foreach ($content['sections'] ?? [] as $section) {
-            if (($section['type'] ?? null) === 'product_grid' && ($section['visible'] ?? true)) {
-                $products[(string) $section['id']] = $this->catalog->forSection((array) ($section['props'] ?? []));
-            }
-        }
-
-        return ['products' => (object) $products];
-    }
-
-    public function identity(?LandingPage $home): ?Identity
-    {
-        $identity = $home?->identity;
-        if ($identity !== null && ! $identity->trashed()) {
-            return $identity;
-        }
-
-        return Identity::query()->where('is_default', true)->first() ?? Identity::query()->first();
     }
 
     /**

@@ -9,7 +9,7 @@ use App\Rules\TenantExists;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Store settings: on / off, theme, display settings, header / footer menus, SEO. */
+/** Store settings: on / off, theme, header / footer menus, SEO (the look is in the theme design). */
 final class StoreRequest extends FormRequest
 {
     public const MENU_TYPES = ['home', 'all_products', 'category', 'product', 'page', 'landing', 'url'];
@@ -32,11 +32,6 @@ final class StoreRequest extends FormRequest
         return [
             'is_enabled' => ['sometimes', 'boolean'],
             'theme_key' => ['sometimes', 'string', 'max:40'],
-            'settings' => ['sometimes', 'array'],
-            'settings.announcement' => ['nullable', 'string', 'max:200'],
-            'settings.products_per_page' => ['sometimes', 'integer', 'between:8,60'],
-            'settings.show_whatsapp' => ['sometimes', 'boolean'],
-            'settings.show_out_of_stock' => ['sometimes', 'boolean'],
             'menus' => ['sometimes', 'array'],
             'menus.header' => ['present_with:menus', 'array', 'max:12'],
             'menus.footer' => ['present_with:menus', 'array', 'max:20'],
@@ -55,9 +50,6 @@ final class StoreRequest extends FormRequest
     public function cleaned(): array
     {
         $data = $this->validated();
-        if (isset($data['settings']['announcement'])) {
-            $data['settings']['announcement'] = trim(strip_tags((string) $data['settings']['announcement'])) ?: null;
-        }
         if (isset($data['menus'])) {
             $clean = function (array $item, bool $withChildren) use (&$clean): array {
                 $row = [

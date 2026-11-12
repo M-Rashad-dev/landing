@@ -9,7 +9,6 @@ use App\Actions\Pages\PageLifecycle;
 use App\Actions\Pages\PublishPage;
 use App\Actions\Pages\SavePageContent;
 use App\Actions\Pages\SyncPageMedia;
-use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\PageRequest;
 use App\Http\Requests\Dashboard\SavePageContentRequest;
@@ -17,11 +16,8 @@ use App\Http\Resources\PageDetailResource;
 use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
-use App\Models\Product;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
-use App\Store\StoreCatalog;
-use App\Store\StoreSite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -103,23 +99,7 @@ final class PageController extends Controller
             'offers' => $data->offers($page->product, now()),
             'media' => (object) $data->media($page->draft_content),
             'shipping' => $shipping->publicConfig(now()),
-            // A store home previews its sections with the real catalog.
-            'store' => $page->isStoreHome() ? $this->storePreview($page) : null,
         ]);
-    }
-
-    /** @return array<string, mixed> */
-    private function storePreview(LandingPage $page): array
-    {
-        $catalog = app(StoreCatalog::class);
-        $sample = $catalog->sellable()->with(['media', 'variants', 'options', 'categories:id'])->orderByDesc('id')->limit(48)->get()
-            ->map(fn (Product $p) => [...$catalog->card($p), 'category_ids' => $p->categories->pluck('id')->all()])->all();
-
-        return [
-            'categories' => $catalog->categoryRows(),
-            'products' => app(StoreSite::class)->sectionData((array) $page->draft_content)['products'],
-            'sample' => $sample,
-        ];
     }
 
     public function saveContent(SavePageContentRequest $request, LandingPage $page, SavePageContent $action): JsonResponse
@@ -141,7 +121,6 @@ final class PageController extends Controller
 
     public function duplicate(Request $request, LandingPage $page, PageLifecycle $lifecycle): JsonResponse
     {
-        $this->notStoreHome($page);
         $copy = $lifecycle->duplicate($page, $request->user()?->getAuthIdentifier());
 
         return $this->created(PageDetailResource::make($copy->load(self::RELATIONS))->resolve($request));
@@ -149,24 +128,14 @@ final class PageController extends Controller
 
     public function setHome(LandingPage $page, PageLifecycle $lifecycle): JsonResponse
     {
-        $this->notStoreHome($page);
 
         return $this->ok(PageDetailResource::make($lifecycle->setHome($page)->load(self::RELATIONS)));
     }
 
     public function destroy(LandingPage $page, PageLifecycle $lifecycle): Response
     {
-        $this->notStoreHome($page);
         $lifecycle->delete($page);
 
         return $this->noContent();
-    }
-
-    /** The store home lives in «المتجر»: it is not copied, deleted or made the landing home. */
-    private function notStoreHome(LandingPage $page): void
-    {
-        if ($page->isStoreHome()) {
-            throw new ApiException(422, 'store_home', __('pages.store_home_locked'));
-        }
     }
 }

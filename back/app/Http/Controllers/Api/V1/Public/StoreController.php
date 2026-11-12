@@ -62,7 +62,8 @@ final class StoreController extends Controller
         ]);
 
         return $this->inStore($request, function (Store $store) use ($data) {
-            $page = $this->catalog->search([...$data, 'in_stock' => filter_var($data['in_stock'] ?? false, FILTER_VALIDATE_BOOLEAN)], (int) $store->resolvedSettings()['products_per_page']);
+            $perPage = (int) ($store->design()?->published['settings']['general']['products_per_page'] ?? 24);
+            $page = $this->catalog->search([...$data, 'in_stock' => filter_var($data['in_stock'] ?? false, FILTER_VALIDATE_BOOLEAN)], $perPage);
 
             return $this->ok(
                 $page->getCollection()->map(fn ($p) => $this->catalog->card($p))->values()->all(),
@@ -87,7 +88,7 @@ final class StoreController extends Controller
 
     public function formToken(Request $request, FormToken $tokens): JsonResponse
     {
-        return $this->inStore($request, fn (Store $store) => $this->noStore($this->ok(['token' => $tokens->issue((int) $store->home_page_id)])));
+        return $this->inStore($request, fn (Store $store) => $this->noStore($this->ok(['token' => $tokens->issue(self::formSubject($store))])));
     }
 
     public function quote(Request $request, PriceCalculator $calculator, CreateStoreOrder $orders): JsonResponse
@@ -137,7 +138,7 @@ final class StoreController extends Controller
 
         return $this->inStore($request, function (Store $store) use ($data, $leads, $phones, $tokens, $orders, $calculator, $entitlements) {
             $phone = $phones->normalize($data['phone']);
-            if ($phone !== null && $tokens->isValid($data['form_token'], (int) $store->home_page_id) && $entitlements->allows(PlanFeature::AbandonedLeads)) {
+            if ($phone !== null && $tokens->isValid($data['form_token'], self::formSubject($store)) && $entitlements->allows(PlanFeature::AbandonedLeads)) {
                 try {
                     $quote = $calculator->quoteCart($orders->lines($data['items']), now());
                     $leads->captureCart($phone, ['name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'governorate' => $data['governorate'] ?? null, 'ip' => $data['ip'] ?? null], [
@@ -243,5 +244,11 @@ final class StoreController extends Controller
     private function noStore(JsonResponse $response): JsonResponse
     {
         return $response->header('Cache-Control', 'no-store, private');
+    }
+
+    /** The signed form token of a store checkout is bound to the store (pages use their id). */
+    public static function formSubject(Store $store): string
+    {
+        return 'store:'.$store->id;
     }
 }

@@ -11,6 +11,7 @@ use App\Actions\Orders\LinkCustomer;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
+use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
@@ -57,7 +58,7 @@ final class CreateStoreOrder
     {
         $tenantId = (int) Tenancy::id();
 
-        if (trim((string) ($input['website'] ?? '')) !== '' || ! $this->tokens->isValid($input['form_token'] ?? null, (int) $store->home_page_id)) {
+        if (trim((string) ($input['website'] ?? '')) !== '' || ! $this->tokens->isValid($input['form_token'] ?? null, PublicStoreController::formSubject($store))) {
             throw $this->rejected();
         }
 

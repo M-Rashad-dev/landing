@@ -120,12 +120,6 @@ return [
         'video', 'before_after', 'size_chart', 'comparison', 'countdown', 'sticky_cta',
     ],
 
-    // Sections the store home may use (store blocks + the ones that need no product).
-    'store_home_types' => [
-        'banner_slider', 'category_grid', 'product_grid', 'promo_banner',
-        'hero', 'gallery', 'features', 'testimonials', 'faq', 'video', 'before_after', 'comparison', 'countdown',
-    ],
-
     'components' => [
         'singleton' => ['header', 'footer'],
         'pinned' => ['header' => 'top', 'footer' => 'bottom'],
@@ -146,10 +140,6 @@ return [
             'comparison' => 3,
             'countdown' => 3,
             'sticky_cta' => 1,
-            'banner_slider' => 2,
-            'category_grid' => 3,
-            'product_grid' => 6,
-            'promo_banner' => 5,
         ],
     ],
 

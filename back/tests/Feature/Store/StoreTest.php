@@ -9,7 +9,6 @@ use App\Models\Category;
 use App\Models\DiscountCode;
 use App\Models\Domain;
 use App\Models\Identity;
-use App\Models\LandingPage;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
@@ -41,12 +40,11 @@ function storeSection(string $type, array $props = []): array
     return ['id' => (string) Str::uuid(), 'type' => $type, 'variant' => 'grid', 'visible' => true, 'props' => $props];
 }
 
-/** Sets up a live store (enabled, home published) through the API. */
+/** Sets up a live store (prepared, design published, enabled) through the API. */
 function liveStore(): Store
 {
-    test()->postJson('/api/v1/dashboard/store/setup', ['content' => ['version' => 1, 'sections' => [storeSection('product_grid', ['source' => 'newest', 'limit' => 4])]]])->assertOk();
-    $home = test()->getJson('/api/v1/dashboard/store')->json('data.home.id');
-    test()->postJson("/api/v1/dashboard/pages/{$home}/publish")->assertOk();
+    test()->postJson('/api/v1/dashboard/store/setup')->assertOk();
+    test()->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
     test()->putJson('/api/v1/dashboard/store', ['is_enabled' => true])->assertOk()->assertJsonPath('data.live', true);
 
     return Store::query()->withoutGlobalScopes()->latest('id')->firstOrFail();
@@ -67,7 +65,7 @@ function checkout(Store $store, array $items, array $extra = [])
     return storePost('store/orders', array_merge([
         'items' => $items,
         'customer' => ['name' => 'سارة محمد', 'phone' => '01012345678', 'governorate' => 'القاهرة', 'address' => 'شارع 9'],
-        'form_token' => app(FormToken::class)->issue((int) $store->home_page_id, time() - 10),
+        'form_token' => app(FormToken::class)->issue('store:'.$store->id, time() - 10),
     ], $extra));
 }
 
@@ -81,34 +79,28 @@ it('keeps the store to plans with the store feature', function () {
     $this->getJson('/api/v1/dashboard/store')->assertOk()->assertJsonPath('data.exists', false);
 });
 
-it('creates the store with its home page in the builder, kept out of the landing pages', function () {
+it('creates the store with the starter design of «أساس», live only once published and switched on', function () {
     storeOwner();
 
-    $this->postJson('/api/v1/dashboard/store/setup', ['content' => ['version' => 1, 'sections' => [storeSection('category_grid'), storeSection('hero')]]])
-        ->assertOk()->assertJsonPath('data.theme_key', 'rewaq')->assertJsonPath('data.home.status', 'draft')->assertJsonPath('data.live', false);
-
-    $home = LandingPage::query()->withoutGlobalScopes()->where('kind', 'store_home')->firstOrFail();
-    expect($home->draft_content['sections'])->toHaveCount(2);
+    $this->postJson('/api/v1/dashboard/store/setup')
+        ->assertOk()->assertJsonPath('data.theme_key', 'asas')->assertJsonPath('data.design.published_at', null)->assertJsonPath('data.live', false)
+        ->assertJsonPath('data.themes.0.key', 'asas')->assertJsonPath('data.themes.0.active', true);
     $this->getJson('/api/v1/dashboard/pages')->assertJsonCount(0, 'data');
-    $this->postJson("/api/v1/dashboard/pages/{$home->id}/duplicate")->assertStatus(422)->assertJsonPath('code', 'store_home');
-    $this->deleteJson("/api/v1/dashboard/pages/{$home->id}")->assertStatus(422);
 
-    // Store sections only on the store home; product sections refused there.
-    $this->putJson("/api/v1/dashboard/pages/{$home->id}/content", ['version' => 1, 'content' => ['version' => 1, 'sections' => [storeSection('order_form')]]])
-        ->assertStatus(422);
-    $this->putJson("/api/v1/dashboard/pages/{$home->id}/content", ['version' => 1, 'content' => ['version' => 1, 'sections' => [storeSection('product_grid')]], 'theme_key' => 'malak'])
-        ->assertStatus(422)->assertJsonValidationErrors('theme_key');
+    $this->putJson('/api/v1/dashboard/store', ['is_enabled' => true])->assertOk()->assertJsonPath('data.live', false);
+    $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
+    $this->getJson('/api/v1/dashboard/store')->assertJsonPath('data.live', true)->assertJsonPath('data.design.has_unpublished_changes', false);
 });
 
-it('validates store settings and menus', function () {
+it('validates store menus and the theme', function () {
     storeOwner();
     $this->postJson('/api/v1/dashboard/store/setup')->assertOk();
 
-    $this->putJson('/api/v1/dashboard/store', ['settings' => ['products_per_page' => 500], 'menus' => ['header' => [['type' => 'url', 'label' => 'x', 'url' => 'javascript:alert(1)']], 'footer' => []]])
-        ->assertStatus(422)->assertJsonValidationErrors(['settings.products_per_page', 'menus.header.0.url']);
+    $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'url', 'label' => 'x', 'url' => 'javascript:alert(1)']], 'footer' => []]])
+        ->assertStatus(422)->assertJsonValidationErrors(['menus.header.0.url']);
     $this->putJson('/api/v1/dashboard/store', ['theme_key' => 'malak'])->assertStatus(422);
-    $this->putJson('/api/v1/dashboard/store', ['settings' => ['announcement' => '<b>شحن مجاني</b>'], 'menus' => ['header' => [['type' => 'all_products', 'label' => 'كل المنتجات']], 'footer' => []]])
-        ->assertOk()->assertJsonPath('data.settings.announcement', 'شحن مجاني')->assertJsonPath('data.menus.header.0.type', 'all_products');
+    $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'all_products', 'label' => '<b>كل المنتجات</b>']], 'footer' => []]])
+        ->assertOk()->assertJsonPath('data.menus.header.0.label', 'كل المنتجات');
 });
 
 it('keeps categories a tree without cycles and within the depth', function () {
@@ -182,8 +174,10 @@ it('serves a live store: config, catalog filters, product page, pages; not befor
     liveStore();
 
     storePublic('resolve-host')->assertJsonPath('data.store_live', true);
-    storePublic('store')->assertOk()->assertJsonPath('data.theme_key', 'rewaq')->assertJsonPath('data.categories.0.slug', 'shirts')
-        ->assertJsonPath('data.categories.0.products_count', 2)->assertJsonCount(2, 'data.home.data.products.'.asTenant($owner, fn () => Store::query()->first()->homePage->published_content['sections'][0]['id']));
+    $listId = asTenant($owner, fn () => collect(Store::query()->first()->design()->published['sections'])->firstWhere('type', 'products')['id']);
+    storePublic('store')->assertOk()->assertJsonPath('data.theme_key', 'asas')->assertJsonPath('data.categories.0.slug', 'shirts')
+        ->assertJsonPath('data.categories.0.products_count', 2)->assertJsonCount(2, 'data.data.products.'.$listId)
+        ->assertJsonPath('data.design.settings.colors.primary', '#0b875b')->assertJsonPath('data.branding', true);
     storePublic('store/products')->assertJsonCount(2, 'data')->assertJsonPath('meta.total', 2);
     storePublic('store/products', ['category' => 'shirts', 'sort' => 'price_asc'])->assertJsonPath('data.0.slug', 'red')->assertJsonPath('data.0.available', false);
     storePublic('store/products', ['in_stock' => 1])->assertJsonCount(1, 'data')->assertJsonPath('data.0.slug', 'blue');
@@ -276,7 +270,7 @@ it('records abandoned checkouts and store traffic', function () {
     $product = asTenant($owner, fn () => Product::factory()->create(['slug' => 'p', 'price' => '100.00']));
     $store = liveStore();
 
-    storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'form_token' => app(FormToken::class)->issue((int) $store->home_page_id, time() - 10)])->assertStatus(202);
+    storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'form_token' => app(FormToken::class)->issue('store:'.$store->id, time() - 10)])->assertStatus(202);
     $lead = AbandonedLead::query()->withoutGlobalScopes()->firstOrFail();
     expect($lead->source)->toBe('store')->and($lead->cart['items'][0]['quantity'])->toBe(2);
     $this->getJson('/api/v1/dashboard/leads')->assertOk()->assertJsonPath('data.0.source', 'store')->assertJsonPath('data.0.cart.items.0.quantity', 2)->assertJsonPath('data.0.cart.total', 200);
@@ -290,30 +284,6 @@ it('records abandoned checkouts and store traffic', function () {
         ->assertJsonPath('data.totals.views', 2)->assertJsonPath('data.totals.add_to_cart', 1)->assertJsonPath('data.totals.orders', 1)
         ->assertJsonPath('data.top_products.0.units', 1);
     expect($lead->fresh()->status->value)->toBe('converted');
-});
-
-it('previews the store home in the builder with the real catalog', function () {
-    $owner = storeOwner();
-    asTenant($owner, function () {
-        $c = Category::query()->create(['name' => 'أحذية', 'slug' => 'shoes', 'depth' => 0]);
-        Product::factory()->create(['slug' => 'p1', 'name' => 'حذاء'])->categories()->attach($c);
-        Product::factory()->create(['slug' => 'p2', 'in_store' => false]);
-    });
-    $this->postJson('/api/v1/dashboard/store/setup', ['content' => ['version' => 1, 'sections' => [storeSection('product_grid', ['source' => 'newest', 'limit' => 4])]]])->assertOk();
-    $home = $this->getJson('/api/v1/dashboard/store')->json('data.home.id');
-
-    $this->getJson("/api/v1/dashboard/pages/{$home}")->assertOk()->assertJsonPath('data.kind', 'store_home');
-    $this->getJson("/api/v1/dashboard/pages/{$home}/preview")->assertOk()
-        ->assertJsonPath('data.store.categories.0.slug', 'shoes')
-        ->assertJsonPath('data.store.categories.0.products_count', 1)
-        ->assertJsonCount(1, 'data.store.sample')
-        ->assertJsonPath('data.store.sample.0.category_ids', fn ($ids) => count($ids) === 1);
-
-    // A landing page previews without store data; another store's home is not reachable.
-    $landing = asTenant($owner, fn () => LandingPage::factory()->create()->id);
-    $this->getJson("/api/v1/dashboard/pages/{$landing}/preview")->assertOk()->assertJsonPath('data.store', null);
-    Sanctum::actingAs(User::factory()->for(Tenant::factory()->onPlan('pro')->create())->create()->fresh(['tenant']));
-    $this->getJson("/api/v1/dashboard/pages/{$home}/preview")->assertNotFound();
 });
 
 it('keeps abandoned carts by token, moves them to checkout, and converts them with the order', function () {
@@ -335,7 +305,7 @@ it('keeps abandoned carts by token, moves them to checkout, and converts them wi
     storePost('store/carts', ['cart_token' => $token, 'items' => [['product_id' => $product->id, 'quantity' => 2]]])->assertStatus(202);
 
     // Reaching checkout with a phone: followed up as a checkout, not a cart.
-    storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'cart_token' => $token, 'form_token' => app(FormToken::class)->issue((int) $store->home_page_id, time() - 10)])->assertStatus(202);
+    storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'cart_token' => $token, 'form_token' => app(FormToken::class)->issue('store:'.$store->id, time() - 10)])->assertStatus(202);
     expect(AbandonedLead::query()->withoutGlobalScopes()->pluck('source')->all())->toBe(['store']);
 
     // A cart with no phone converts through its token.

@@ -60,8 +60,7 @@ final class PageContentSanitizer
             throw ValidationException::withMessages(["{$root}.sections" => [__('pages.too_many_sections', ['max' => $limits['sections_per_page']])]]);
         }
 
-        // Landing pages: product sections; the store home: store sections (no product-bound ones).
-        $types = $kind === LandingPage::KIND_STORE_HOME ? config('landing.store_home_types') : config('landing.component_types');
+        $types = config('landing.component_types');
         $maxPerType = config('landing.components.max_per_type');
         $counts = [];
         $ids = [];

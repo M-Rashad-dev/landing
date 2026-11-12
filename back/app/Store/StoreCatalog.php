@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Store;
 
+use App\Enums\PromotionTarget;
 use App\Models\Category;
 use App\Models\Media;
+use App\Models\Offer;
 use App\Models\Product;
 use App\Services\PublicPageData;
 use App\Support\Money;
@@ -75,27 +77,45 @@ final class StoreCatalog
     }
 
     /**
-     * Products of a store-home product grid section.
+     * Products of a home «قائمة منتجات»: the latest, the ones on offer (a lower price than the
+     * old one, or covered by an active offer), or a category with the ones under it.
      *
-     * @param  array<string, mixed>  $props
      * @return list<array<string, mixed>>
      */
-    public function forSection(array $props): array
+    public function forSection(string $source, ?int $categoryId, int $limit): array
     {
-        $limit = max(1, min(24, (int) ($props['limit'] ?? 8)));
-        $source = (string) ($props['source'] ?? 'newest');
         $query = $this->sellable()->with(['media', 'variants', 'options']);
 
-        if ($source === 'category' && ! empty($props['category_id'])) {
-            $ids = $this->categories->withDescendants((int) $props['category_id']);
+        if ($source === 'category') {
+            $ids = $categoryId === null ? [0] : $this->categories->withDescendants($categoryId);
             $query->whereHas('categories', fn (Builder $q) => $q->whereIn('categories.id', $ids));
-        } elseif ($source === 'featured') {
-            $query->where('is_featured', true);
-        } elseif ($source === 'best_sellers') {
-            $query->withSum('orderItems as sold', 'quantity')->orderByDesc('sold');
+        } elseif ($source === 'offers') {
+            $this->onOffer($query);
         }
 
-        return $query->orderByDesc('id')->limit($limit)->get()->map(fn (Product $p) => $this->card($p))->all();
+        return $query->orderByDesc('id')->limit(max(1, min(32, $limit)))->get()->map(fn (Product $p) => $this->card($p))->all();
+    }
+
+    /** @param Builder<Product> $query */
+    public function onOffer(Builder $query): void
+    {
+        $offers = Offer::query()->activeAt(now())->servable()->with(['products:id', 'categories:id'])->get();
+        if ($offers->contains(fn (Offer $o) => $o->applies_to === PromotionTarget::All)) {
+            return;
+        }
+        $productIds = $offers->flatMap(fn (Offer $o) => $o->applies_to === PromotionTarget::Products ? $o->products->pluck('id') : [])->unique()->values()->all();
+        $categoryIds = [];
+        foreach ($offers as $offer) {
+            if ($offer->applies_to === PromotionTarget::Categories) {
+                foreach ($offer->categories as $category) {
+                    array_push($categoryIds, ...$this->categories->withDescendants($category->id));
+                }
+            }
+        }
+
+        $query->where(fn (Builder $w) => $w->whereColumn('compare_at_price', '>', 'price')
+            ->orWhereIn('id', $productIds === [] ? [0] : $productIds)
+            ->orWhereHas('categories', fn (Builder $c) => $c->whereIn('categories.id', $categoryIds === [] ? [0] : array_values(array_unique($categoryIds)))));
     }
 
     /** @return list<array<string, mixed>> related products (same categories), for a product page */

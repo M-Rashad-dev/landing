@@ -240,10 +240,10 @@ final class PublicSite
      *
      * @return array<string, string|null>
      */
-    public function tracking(LandingPage $page, ?Identity $identity): array
+    public function tracking(?LandingPage $page, ?Identity $identity): array
     {
         $base = $identity?->resolvedTracking() ?? array_fill_keys(Identity::TRACKING_KEYS, null);
-        $override = is_array($page->tracking_override) ? $page->tracking_override : [];
+        $override = is_array($page?->tracking_override) ? $page->tracking_override : [];
 
         foreach (Identity::TRACKING_KEYS as $key) {
             $value = $override[$key] ?? null;

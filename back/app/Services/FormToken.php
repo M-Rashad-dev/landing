@@ -14,14 +14,14 @@ final class FormToken
 
     public const MAX_AGE_SECONDS = 7200;
 
-    public function issue(int $pageId, ?int $now = null): string
+    public function issue(int|string $pageId, ?int $now = null): string
     {
         $timestamp = $now ?? time();
 
         return $timestamp.'.'.$this->sign($pageId, $timestamp);
     }
 
-    public function isValid(?string $token, int $pageId, ?int $now = null): bool
+    public function isValid(?string $token, int|string $pageId, ?int $now = null): bool
     {
         if ($token === null || preg_match('/^(\d{9,12})\.([a-f0-9]{64})$/', $token, $m) !== 1) {
             return false;
@@ -35,7 +35,7 @@ final class FormToken
             && hash_equals($this->sign($pageId, $timestamp), $m[2]);
     }
 
-    private function sign(int $pageId, int $timestamp): string
+    private function sign(int|string $pageId, int $timestamp): string
     {
         return hash_hmac('sha256', $pageId.'|'.$timestamp, (string) config('app.key'));
     }

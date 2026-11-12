@@ -11,33 +11,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * The tenant's online store (one per tenant). When enabled (and the plan has "store"), its
- * home owns "/" of every store host and landing pages stay on /{slug}.
+ * published design owns "/" of every store host and landing pages stay on /{slug}.
  *
  * @property int $id
  * @property int $tenant_id
  * @property bool $is_enabled
- * @property string $theme_key
- * @property int|null $home_page_id
+ * @property string $theme_key the active theme (its design is in store_designs)
  * @property array{header?: list<array<string, mixed>>, footer?: list<array<string, mixed>>}|null $menus
- * @property array<string, mixed>|null $settings
  * @property array<string, mixed>|null $seo
  */
 class Store extends Model
 {
     use BelongsToTenant;
 
-    public const DEFAULT_SETTINGS = [
-        'announcement' => null,
-        'products_per_page' => 24,
-        'show_whatsapp' => true,
-        'show_out_of_stock' => true,
-    ];
-
-    protected $fillable = ['is_enabled', 'theme_key', 'home_page_id', 'menus', 'settings', 'seo'];
+    protected $fillable = ['is_enabled', 'theme_key', 'menus', 'seo'];
 
     protected function casts(): array
     {
-        return ['is_enabled' => 'boolean', 'menus' => 'array', 'settings' => 'array', 'seo' => 'array'];
+        return ['is_enabled' => 'boolean', 'menus' => 'array', 'seo' => 'array'];
     }
 
     protected static function booted(): void
@@ -46,16 +37,10 @@ class Store extends Model
         static::saved(fn (Store $store) => RevalidateTenantHosts::dispatch($store->tenant_id)->afterCommit());
     }
 
-    /** @return array<string, mixed> */
-    public function resolvedSettings(): array
+    /** The design of the active theme (null until the store is prepared). */
+    public function design(): ?StoreDesign
     {
-        return array_merge(self::DEFAULT_SETTINGS, array_intersect_key($this->settings ?? [], self::DEFAULT_SETTINGS));
-    }
-
-    /** @return BelongsTo<LandingPage, $this> */
-    public function homePage(): BelongsTo
-    {
-        return $this->belongsTo(LandingPage::class, 'home_page_id');
+        return StoreDesign::query()->where('theme_key', $this->theme_key)->first();
     }
 
     /** @return BelongsTo<Theme, $this> */

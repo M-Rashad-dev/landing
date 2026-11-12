@@ -62,14 +62,6 @@ class LandingPage extends Model
 
     public const KIND_LANDING = 'landing';
 
-    /** The store home: built in the Builder with store sections, served at "/" of the store. */
-    public const KIND_STORE_HOME = 'store_home';
-
-    public function isStoreHome(): bool
-    {
-        return $this->kind === self::KIND_STORE_HOME;
-    }
-
     /** @param Builder<LandingPage> $query */
     public function scopeLandings(Builder $query): void
     {

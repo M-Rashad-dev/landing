@@ -222,7 +222,7 @@ final class HomeController extends Controller
     private function setupSteps(Entitlements $entitlements, StoreSetup $setup): array
     {
         $tenant = Tenant::query()->findOrFail((int) Tenancy::id());
-        $store = Store::query()->with('homePage')->first();
+        $store = Store::query()->first();
         $hasStore = $entitlements->allows(PlanFeature::Store);
 
         $steps = [
@@ -230,7 +230,7 @@ final class HomeController extends Controller
             ['key' => 'shipping', 'done' => (bool) ShippingSetting::query()->value('enabled') && ShippingCompany::query()->where('is_active', true)->exists(), 'optional' => false],
         ];
         if ($hasStore) {
-            $steps[] = ['key' => 'store', 'done' => $store !== null && $setup->isLive($tenant, $store) && $store->homePage?->isPublished() === true, 'optional' => false];
+            $steps[] = ['key' => 'store', 'done' => $setup->isLive($tenant, $store), 'optional' => false];
         }
         $steps[] = ['key' => 'domain', 'done' => Domain::query()->where('type', DomainType::Custom)->exists(), 'optional' => true];
 

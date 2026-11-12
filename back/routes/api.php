@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
+use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
@@ -123,6 +124,9 @@ Route::prefix('dashboard')
         Route::get('store', [StoreController::class, 'show']);
         Route::post('store/setup', [StoreController::class, 'setup']);
         Route::put('store', [StoreController::class, 'update']);
+        Route::get('store/design', [StoreDesignController::class, 'show']);
+        Route::put('store/design', [StoreDesignController::class, 'update']);
+        Route::post('store/design/publish', [StoreDesignController::class, 'publish']);
         Route::get('categories', [CategoryController::class, 'index']);
         Route::post('categories', [CategoryController::class, 'store']);
         Route::put('categories/order', [CategoryController::class, 'reorder']);
