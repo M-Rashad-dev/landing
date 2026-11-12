@@ -13,7 +13,8 @@ use Illuminate\Http\Request;
 
 /**
  * Dashboard order filters shared by the list, the export and the counters:
- * status, q (name / phone / order number), page_id, product_id, from/to (Cairo dates), duplicate, sort.
+ * status (one or several, comma separated), q (name / phone / order number), page_id, product_id, customer_id,
+ * source (store / landing), governorate, shipping_company_id, from/to (Cairo dates), duplicate, sort.
  */
 final class OrderFilters
 {
@@ -22,9 +23,9 @@ final class OrderFilters
     {
         $query = Order::query();
 
-        $status = (string) $request->query('status', '');
-        if ($withStatus && in_array($status, OrderStatus::values(), true)) {
-            $query->where('status', $status);
+        $statuses = array_values(array_intersect(explode(',', (string) $request->query('status', '')), OrderStatus::values()));
+        if ($withStatus && $statuses !== []) {
+            $query->whereIn('status', $statuses);
         }
 
         $q = trim((string) $request->query('q', ''));
@@ -44,7 +45,19 @@ final class OrderFilters
             });
         }
 
-        foreach (['page_id' => 'landing_page_id', 'product_id' => 'product_id'] as $param => $column) {
+        $source = (string) $request->query('source', '');
+        if ($source === 'store') {
+            $query->where('source', 'store');
+        } elseif ($source === 'landing') {
+            $query->where('source', '!=', 'store');
+        }
+
+        $governorate = (string) $request->query('governorate', '');
+        if ($governorate !== '' && in_array($governorate, (array) config('landing.governorates'), true)) {
+            $query->where('governorate', $governorate);
+        }
+
+        foreach (['page_id' => 'landing_page_id', 'product_id' => 'product_id', 'customer_id' => 'customer_id', 'shipping_company_id' => 'shipping_company_id'] as $param => $column) {
             $id = $request->query($param);
             if (is_string($id) && ctype_digit($id)) {
                 $query->where($column, (int) $id);

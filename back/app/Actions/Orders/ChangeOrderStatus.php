@@ -25,7 +25,7 @@ final class ChangeOrderStatus
 {
     public function __construct(private readonly WebhookDispatcher $webhooks, private readonly Stock $stock) {}
 
-    /** @param array{block_phone?: bool, block_ip?: bool} $options */
+    /** @param array{block_phone?: bool, block_ip?: bool, tracking_number?: string|null} $options */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
     {
         $from = $order->status;
@@ -40,6 +40,11 @@ final class ChangeOrderStatus
 
             // A scheduled callback only matters while the order is new.
             $locked->forceFill(['status' => $to, 'status_changed_at' => now(), 'follow_up_at' => $to === OrderStatus::New ? $locked->follow_up_at : null])->save();
+            // Shipping can carry the company's tracking number.
+            $tracking = $options['tracking_number'] ?? null;
+            if ($to === OrderStatus::Shipped && $tracking !== null && $tracking !== '') {
+                $locked->forceFill(['tracking_number' => mb_substr($tracking, 0, 60)])->save();
+            }
             $locked->logs()->create([
                 'from_status' => $from,
                 'to_status' => $to,

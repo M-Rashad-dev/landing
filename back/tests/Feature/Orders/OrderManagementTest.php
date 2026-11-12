@@ -41,8 +41,9 @@ function setStatus(Order $order, string $status, array $extra = []): TestRespons
 it('follows the transition table', function () {
     $allowed = [
         'new' => ['confirmed', 'cancelled', 'fake'],
-        'confirmed' => ['delivered', 'cancelled', 'damaged', 'fake'],
-        'delivered' => ['returned'],
+        'confirmed' => ['shipped', 'delivered', 'cancelled', 'damaged', 'fake'],
+        'shipped' => ['delivered', 'returned', 'damaged', 'cancelled'],
+        'delivered' => ['returned', 'damaged'],
         'cancelled' => ['new'],
         'fake' => ['new'],
         'returned' => [],

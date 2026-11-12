@@ -14,7 +14,7 @@ final class UpdateOrderRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $merge = [];
-        foreach (['customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note'] as $key) {
+        foreach (['customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note', 'tracking_number'] as $key) {
             if ($this->has($key) && is_string($this->input($key))) {
                 $value = trim(strip_tags($this->input($key)));
                 $merge[$key] = $value === '' ? null : $value;
@@ -35,6 +35,7 @@ final class UpdateOrderRequest extends FormRequest
             'address' => ['sometimes', 'nullable', 'string', 'max:300'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
             'internal_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'tracking_number' => ['sometimes', 'nullable', 'string', 'max:60'],
         ];
     }
 

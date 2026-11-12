@@ -110,6 +110,7 @@ final class StoreController extends Controller
     {
         $data = $request->validate($this->cartRules() + [
             'customer' => ['required', 'array'],
+            'cart_token' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{16,64}$/'],
             'code' => ['nullable', 'string', 'max:30'],
             'shipping_company_id' => ['nullable', 'integer', 'min:1'],
             'form_token' => ['nullable', 'string', 'max:100'],
@@ -130,6 +131,7 @@ final class StoreController extends Controller
             'name' => ['nullable', 'string', 'max:80'],
             'governorate' => ['nullable', 'string', 'max:60'],
             'form_token' => ['required', 'string', 'max:100'],
+            'cart_token' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{16,64}$/'],
             'ip' => ['nullable', 'ip'],
         ]);
 
@@ -141,9 +143,46 @@ final class StoreController extends Controller
                     $leads->captureCart($phone, ['name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'governorate' => $data['governorate'] ?? null, 'ip' => $data['ip'] ?? null], [
                         'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity], $quote->lines),
                         'total' => round($quote->total / 100, 2),
-                    ]);
+                    ], $data['cart_token'] ?? null);
                 } catch (ValidationException) {
                     // A cart that cannot be priced any more is not worth a follow-up.
+                }
+            }
+
+            return $this->noStore(new JsonResponse(null, 202));
+        });
+    }
+
+    /**
+     * The visitor's cart changed (sent by the storefront, debounced): kept as an abandoned cart
+     * until it is ordered. Always 202; stored only with the plan feature. Empty items remove it.
+     */
+    public function cart(Request $request, CaptureLead $leads, PhoneNormalizer $phones, CreateStoreOrder $orders, PriceCalculator $calculator, Entitlements $entitlements): JsonResponse
+    {
+        $data = $request->validate([
+            'host' => ['required', 'string', 'max:253'],
+            'cart_token' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{16,64}$/'],
+            'items' => ['present', 'array', 'max:'.PriceCalculator::MAX_CART_LINES],
+            'items.*.product_id' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'integer', 'between:1,'.PriceCalculator::MAX_QUANTITY],
+            'items.*.options' => ['nullable', 'array', 'max:20'],
+            'items.*.options.*' => ['nullable', 'integer'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'name' => ['nullable', 'string', 'max:80'],
+            'ip' => ['nullable', 'ip'],
+        ]);
+
+        return $this->inStore($request, function () use ($data, $leads, $phones, $orders, $calculator, $entitlements) {
+            if ($entitlements->allows(PlanFeature::AbandonedLeads)) {
+                $details = ['phone' => $phones->normalize($data['phone'] ?? null), 'name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'ip' => $data['ip'] ?? null];
+                try {
+                    $lines = $data['items'] === [] ? [] : $calculator->quoteCart($orders->lines($data['items']), now())->lines;
+                    $leads->abandonedCart($data['cart_token'], $details, [
+                        'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity], $lines),
+                        'total' => round(array_sum(array_map(fn ($l) => $l->afterOffer, $lines)) / 100, 2),
+                    ]);
+                } catch (ValidationException) {
+                    // Items that left the store or ran out: nothing to follow up.
                 }
             }
 

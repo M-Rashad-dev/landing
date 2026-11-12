@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\CustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityController;
@@ -158,6 +159,11 @@ Route::prefix('dashboard')
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
 
+        Route::get('customers', [CustomerController::class, 'index']);
+        Route::get('customers/{customer}', [CustomerController::class, 'show']);
+        Route::patch('customers/{customer}', [CustomerController::class, 'update']);
+        Route::post('customers/{customer}/block', [CustomerController::class, 'block']);
+
         Route::get('leads', [LeadController::class, 'index']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
@@ -222,6 +228,7 @@ Route::prefix('public')
         Route::post('store/quote', [PublicStoreController::class, 'quote'])->middleware('throttle:public-quote');
         Route::post('store/orders', [PublicStoreController::class, 'order'])->middleware('throttle:public-order-attempts');
         Route::post('store/leads', [PublicStoreController::class, 'lead'])->middleware('throttle:public-leads');
+        Route::post('store/carts', [PublicStoreController::class, 'cart'])->middleware('throttle:public-leads');
         Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
     });
 

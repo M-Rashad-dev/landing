@@ -213,7 +213,7 @@ final class DemoSeeder extends Seeder
     private function orders(LandingPage $page, Product $product, string $host, int $userId): void
     {
         $product->load('options.values');
-        $statuses = [OrderStatus::New, OrderStatus::Confirmed, OrderStatus::Delivered, OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Fake, OrderStatus::Cancelled, OrderStatus::Damaged];
+        $statuses = [OrderStatus::New, OrderStatus::Confirmed, OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Fake, OrderStatus::Cancelled, OrderStatus::Damaged];
         $tokens = app(FormToken::class);
 
         for ($i = 0; $i < 24; $i++) {
@@ -244,8 +244,9 @@ final class DemoSeeder extends Seeder
             $status = $i < 4 ? OrderStatus::New : $statuses[$i % count($statuses)];
             if ($status !== OrderStatus::New) {
                 $path = match ($status) {
-                    OrderStatus::Delivered, OrderStatus::Damaged => [OrderStatus::Confirmed],
-                    OrderStatus::Returned => [OrderStatus::Confirmed, OrderStatus::Delivered],
+                    OrderStatus::Shipped, OrderStatus::Damaged => [OrderStatus::Confirmed],
+                    OrderStatus::Delivered => [OrderStatus::Confirmed, OrderStatus::Shipped],
+                    OrderStatus::Returned => [OrderStatus::Confirmed, OrderStatus::Shipped, OrderStatus::Delivered],
                     default => [],
                 };
                 foreach ([...$path, $status] as $step) {

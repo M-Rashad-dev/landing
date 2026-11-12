@@ -69,7 +69,7 @@ final class TrackController extends Controller
         $history = [];
         foreach ($order->logs as $log) {
             /** @var OrderStatusLog $log */
-            $stage = $log->to_status->customerStage();
+            $stage = self::legacyStage($log->to_status->customerStage());
             if (($history[array_key_last($history) ?? -1]['stage'] ?? null) !== $stage) {
                 $history[] = ['stage' => $stage, 'at' => $log->created_at->toIso8601ZuluString()];
             }
@@ -77,7 +77,7 @@ final class TrackController extends Controller
 
         return $this->ok([
             'order_number' => $order->order_number,
-            'stage' => $order->status->customerStage(),
+            'stage' => self::legacyStage($order->status->customerStage()),
             'created_at' => $order->created_at->toIso8601ZuluString(),
             'items' => $order->items->map(fn (OrderItem $item) => [
                 'name' => $item->product_name,
@@ -88,5 +88,11 @@ final class TrackController extends Controller
             'governorate' => $order->governorate,
             'history' => $history,
         ])->header('Cache-Control', 'no-store, private');
+    }
+
+    /** The current storefront shows three steps (received, confirmed, delivered): shipped reads as confirmed there. */
+    private static function legacyStage(string $stage): string
+    {
+        return $stage === 'shipped' ? 'confirmed' : $stage;
     }
 }

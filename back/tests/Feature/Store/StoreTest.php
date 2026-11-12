@@ -315,3 +315,35 @@ it('previews the store home in the builder with the real catalog', function () {
     Sanctum::actingAs(User::factory()->for(Tenant::factory()->onPlan('pro')->create())->create()->fresh(['tenant']));
     $this->getJson("/api/v1/dashboard/pages/{$home}/preview")->assertNotFound();
 });
+
+it('keeps abandoned carts by token, moves them to checkout, and converts them with the order', function () {
+    $owner = storeOwner();
+    $product = asTenant($owner, fn () => Product::factory()->create(['slug' => 'p', 'price' => '100.00']));
+    $store = liveStore();
+    $token = 'cart_'.str_repeat('a', 20);
+
+    storePost('store/carts', ['cart_token' => $token, 'items' => [['product_id' => $product->id, 'quantity' => 1]]])->assertStatus(202);
+    storePost('store/carts', ['cart_token' => $token, 'items' => [['product_id' => $product->id, 'quantity' => 3]]])->assertStatus(202);
+    $lead = AbandonedLead::query()->withoutGlobalScopes()->where('source', 'cart')->firstOrFail();
+    expect($lead->customer_phone)->toBeNull()->and($lead->quantity)->toBe(3)->and($lead->cart['total'])->toBe(300);
+    $this->getJson('/api/v1/dashboard/leads?source=cart')->assertJsonCount(1, 'data')->assertJsonPath('meta.sources.cart', 1);
+    storePost('store/carts', ['cart_token' => 'bad token', 'items' => []])->assertStatus(422)->assertJsonValidationErrors(['cart_token']);
+
+    // An emptied cart is gone; a refilled one comes back.
+    storePost('store/carts', ['cart_token' => $token, 'items' => []])->assertStatus(202);
+    expect(AbandonedLead::query()->withoutGlobalScopes()->count())->toBe(0);
+    storePost('store/carts', ['cart_token' => $token, 'items' => [['product_id' => $product->id, 'quantity' => 2]]])->assertStatus(202);
+
+    // Reaching checkout with a phone: followed up as a checkout, not a cart.
+    storePost('store/leads', ['items' => [['product_id' => $product->id, 'quantity' => 2]], 'phone' => '01012345678', 'cart_token' => $token, 'form_token' => app(FormToken::class)->issue((int) $store->home_page_id, time() - 10)])->assertStatus(202);
+    expect(AbandonedLead::query()->withoutGlobalScopes()->pluck('source')->all())->toBe(['store']);
+
+    // A cart with no phone converts through its token.
+    $other = 'cart_'.str_repeat('b', 20);
+    storePost('store/carts', ['cart_token' => $other, 'items' => [['product_id' => $product->id, 'quantity' => 1]]])->assertStatus(202);
+    checkout($store, [['product_id' => $product->id, 'quantity' => 1]], ['cart_token' => $other, 'customer' => ['name' => 'منى', 'phone' => '01155555555', 'governorate' => 'القاهرة', 'address' => 'x']])->assertCreated();
+    expect(AbandonedLead::query()->withoutGlobalScopes()->where('cart_token', $other)->value('status')->value)->toBe('converted');
+
+    // The order made its customer.
+    $this->getJson('/api/v1/dashboard/customers?q=01155555555')->assertJsonCount(1, 'data')->assertJsonPath('data.0.orders_count', 1);
+});

@@ -48,6 +48,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $shipping_company_name
  * @property string|null $shipping_offer_name
  * @property string $shipping_discount
+ * @property string|null $tracking_number
+ * @property int|null $customer_id
  * @property string $total
  * @property string $currency
  * @property bool $is_duplicate_suspect
@@ -66,7 +68,7 @@ class Order extends Model
         'order_number', 'landing_page_id', 'source', 'ab_test_id', 'product_id', 'status', 'status_changed_at',
         'customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
         'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
-        'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'shipping_company_id', 'shipping_company_name', 'shipping_offer_name', 'shipping_discount', 'total', 'currency',
+        'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'shipping_company_id', 'shipping_company_name', 'shipping_offer_name', 'shipping_discount', 'tracking_number', 'customer_id', 'total', 'currency',
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
     ];
 
@@ -117,6 +119,12 @@ class Order extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(LandingPage::class, 'landing_page_id')->withTrashed();
+    }
+
+    /** @return BelongsTo<Customer, $this> */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /** @return BelongsTo<Product, $this> */

@@ -39,6 +39,7 @@ final class OrderDetailResource extends OrderResource
                 'company' => $this->shipping_company_name === null ? null : ['id' => $this->shipping_company_id, 'name' => $this->shipping_company_name],
                 'offer' => $this->shipping_offer_name,
                 'discount' => $money((string) $this->shipping_discount),
+                'tracking_number' => $this->tracking_number,
             ],
             'items' => $this->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,

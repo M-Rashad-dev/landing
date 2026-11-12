@@ -66,8 +66,13 @@ final class CaptureLead
      * @param  array{name?: string|null, governorate?: string|null, ip?: string|null}  $details
      * @param  array{items: list<array{product_id: int, name: string, quantity: int}>, total: float}  $cart
      */
-    public function captureCart(string $phone, array $details, array $cart): void
+    public function captureCart(string $phone, array $details, array $cart, ?string $cartToken = null): void
     {
+        // The cart reached checkout: it is followed up as a checkout from now on.
+        if ($cartToken !== null) {
+            AbandonedLead::query()->where('source', 'cart')->where('cart_token', $cartToken)->where('status', LeadStatus::Open)->delete();
+        }
+
         if (BlockedCustomer::isBlocked($phone, $details['ip'] ?? null)) {
             return;
         }
@@ -97,11 +102,54 @@ final class CaptureLead
         $this->webhooks->lead($lead);
     }
 
-    /** The phone ordered: its open / contacted leads become converted. */
-    public function converted(Order $order): void
+    /**
+     * A store cart left before checkout (items added, nothing ordered): one open row per cart token.
+     * The phone is known only when the visitor gave it (or, later, is signed in). An empty cart removes the row.
+     *
+     * @param  array{phone?: string|null, name?: string|null, ip?: string|null}  $details
+     * @param  array{items: list<array{product_id: int, name: string, quantity: int}>, total: float}  $cart
+     */
+    public function abandonedCart(string $token, array $details, array $cart): void
+    {
+        $open = AbandonedLead::query()->where('source', 'cart')->where('cart_token', $token)->where('status', LeadStatus::Open)->first();
+        if ($cart['items'] === []) {
+            $open?->delete();
+
+            return;
+        }
+        $phone = $details['phone'] ?? null;
+        if (BlockedCustomer::isBlocked($phone ?? '', $details['ip'] ?? null)) {
+            return;
+        }
+
+        $values = array_filter([
+            'customer_phone' => $phone,
+            'customer_name' => $details['name'] ?? null,
+            'ip_address' => $details['ip'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '') + [
+            'cart' => $cart,
+            'quantity' => max(1, min(65535, array_sum(array_column($cart['items'], 'quantity')))),
+            'product_id' => $cart['items'][0]['product_id'] ?? null,
+            'last_seen_at' => now(),
+        ];
+
+        if ($open !== null) {
+            $open->fill($values)->save();
+
+            return;
+        }
+        // A cart that already became an order (same token) is not abandoned.
+        if (AbandonedLead::query()->where('cart_token', $token)->where('status', LeadStatus::Converted)->exists()) {
+            return;
+        }
+        AbandonedLead::query()->create($values + ['source' => 'cart', 'cart_token' => $token, 'status' => LeadStatus::Open]);
+    }
+
+    /** The phone ordered (or its cart did): its open / contacted leads become converted. */
+    public function converted(Order $order, ?string $cartToken = null): void
     {
         AbandonedLead::query()
-            ->where('customer_phone', $order->customer_phone)
+            ->where(fn ($q) => $q->where('customer_phone', $order->customer_phone)->when($cartToken !== null, fn ($w) => $w->orWhere('cart_token', $cartToken)))
             ->whereIn('status', [LeadStatus::Open, LeadStatus::Contacted])
             ->update(['status' => LeadStatus::Converted, 'order_id' => $order->id, 'updated_at' => now()]);
     }

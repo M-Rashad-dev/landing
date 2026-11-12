@@ -49,6 +49,7 @@ final class CreateOrder
         private readonly RecordPageEvent $events,
         private readonly WebhookDispatcher $webhooks,
         private readonly Stock $stock,
+        private readonly LinkCustomer $customers,
     ) {}
 
     /**
@@ -194,6 +195,7 @@ final class CreateOrder
             }
 
             $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
+            $this->customers->handle($order);
 
             if ($quote->code !== null) {
                 DiscountCodeRedemption::query()->create([

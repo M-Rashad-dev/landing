@@ -15,7 +15,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $landing_page_id
  * @property int|null $product_id
  * @property string|null $customer_name
- * @property string $customer_phone
+ * @property string|null $customer_phone
+ * @property string $source landing (page form) · store (checkout) · cart
+ * @property string|null $cart_token
  * @property string|null $governorate
  * @property int $quantity
  * @property LeadStatus $status
@@ -28,7 +30,7 @@ class AbandonedLead extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['source', 'cart', 'landing_page_id', 'product_id', 'customer_name', 'customer_phone', 'governorate', 'quantity', 'status', 'order_id', 'contacted_at', 'last_seen_at', 'ip_address'];
+    protected $fillable = ['source', 'cart', 'cart_token', 'landing_page_id', 'product_id', 'customer_name', 'customer_phone', 'governorate', 'quantity', 'status', 'order_id', 'contacted_at', 'last_seen_at', 'ip_address'];
 
     protected function casts(): array
     {

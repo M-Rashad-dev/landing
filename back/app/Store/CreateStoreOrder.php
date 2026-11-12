@@ -6,6 +6,7 @@ namespace App\Store;
 
 use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
+use App\Actions\Orders\LinkCustomer;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
@@ -43,6 +44,7 @@ final class CreateStoreOrder
         private readonly Stock $stock,
         private readonly CaptureLead $leads,
         private readonly WebhookDispatcher $webhooks,
+        private readonly LinkCustomer $customers,
     ) {}
 
     /**
@@ -139,6 +141,7 @@ final class CreateStoreOrder
             $this->stock->take($order, $take);
 
             $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
+            $this->customers->handle($order);
 
             if ($quote->code !== null) {
                 DiscountCodeRedemption::query()->create(['discount_code_id' => $quote->code->id, 'order_id' => $order->id, 'phone' => $phone, 'amount' => Money::toDecimal($quote->codeDiscount + ($quote->delivery->byCode ? $quote->delivery->discount() : 0))]);
@@ -152,7 +155,7 @@ final class CreateStoreOrder
             RateLimiter::hit($ipKey, CreateOrder::LIMIT_WINDOW_SECONDS);
         }
         RateLimiter::hit($phoneKey, CreateOrder::LIMIT_WINDOW_SECONDS);
-        $this->leads->converted($order);
+        $this->leads->converted($order, isset($input['cart_token']) && is_string($input['cart_token']) ? $input['cart_token'] : null);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
 
         return ['order_number' => $order->order_number, 'total' => (float) $order->total];

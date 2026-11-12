@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Orders\ChangeOrderStatus;
+use App\Actions\Orders\LinkCustomer;
 use App\Actions\Orders\RecordOrderContact;
 use App\Enums\BlockType;
 use App\Enums\ContactResult;
@@ -137,10 +138,11 @@ final class OrderController extends Controller
         ]);
     }
 
-    public function update(UpdateOrderRequest $request, Order $order, WebhookDispatcher $webhooks): JsonResponse
+    public function update(UpdateOrderRequest $request, Order $order, WebhookDispatcher $webhooks, LinkCustomer $customers): JsonResponse
     {
         $values = $request->values();
-        $customerKeys = array_diff(array_keys($values), ['internal_note']);
+        // The merchant's own fields stay editable in every status.
+        $customerKeys = array_diff(array_keys($values), ['internal_note', 'tracking_number']);
 
         if ($customerKeys !== [] && ! $order->status->allowsCustomerEdits()) {
             throw new ApiException(422, 'edit_not_allowed', __('orders.edit_not_allowed', ['status' => $order->status->label()]));
@@ -148,6 +150,7 @@ final class OrderController extends Controller
 
         $order->fill($values)->save();
         if ($customerKeys !== []) {
+            $customers->handle($order);
             $webhooks->order(WebhookEvent::OrderUpdated, $order);
         }
 
@@ -161,11 +164,13 @@ final class OrderController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
             'block_phone' => ['sometimes', 'boolean'],
             'block_ip' => ['sometimes', 'boolean'],
+            'tracking_number' => ['nullable', 'string', 'max:60'],
         ]);
 
         $action->handle($order, OrderStatus::from($data['status']), $data['note'] ?? null, $request->user()?->getAuthIdentifier(), [
             'block_phone' => (bool) ($data['block_phone'] ?? false),
             'block_ip' => (bool) ($data['block_ip'] ?? false),
+            'tracking_number' => isset($data['tracking_number']) ? trim(strip_tags($data['tracking_number'])) : null,
         ]);
 
         return $this->show($order->refresh());

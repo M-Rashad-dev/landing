@@ -24,6 +24,7 @@ class OrderResource extends JsonResource
             'order_number' => $this->order_number,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'customer_id' => $this->customer_id,
             'customer_name' => $this->customer_name,
             'customer_phone' => $this->customer_phone,
             'governorate' => $this->governorate,
@@ -31,6 +32,8 @@ class OrderResource extends JsonResource
             'page' => $this->whenLoaded('page', fn () => $this->page === null ? null : ['id' => $this->page->id, 'title' => $this->page->title, 'slug' => $this->page->slug]),
             'quantity' => $this->quantity,
             'source' => $this->source,
+            'shipping_company' => $this->shipping_company_name,
+            'tracking_number' => $this->tracking_number,
             // Store orders: "تيشيرت + 2 منتج تاني" in lists.
             'items_summary' => $this->whenLoaded('items', fn () => [
                 'first' => $this->items->firstWhere('is_gift', false)?->product_name,

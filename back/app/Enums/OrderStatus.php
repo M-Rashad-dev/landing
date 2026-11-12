@@ -9,6 +9,8 @@ enum OrderStatus: string
 {
     case New = 'new';
     case Confirmed = 'confirmed';
+    /** Handed to the shipping company (optional step between confirmed and delivered). */
+    case Shipped = 'shipped';
     case Delivered = 'delivered';
     case Returned = 'returned';
     case Damaged = 'damaged';
@@ -20,6 +22,7 @@ enum OrderStatus: string
         return match ($this) {
             self::New => 'جديد',
             self::Confirmed => 'مؤكد',
+            self::Shipped => 'تم الشحن',
             self::Delivered => 'تم التسليم',
             self::Returned => 'مسترجع',
             self::Damaged => 'هالك',
@@ -37,6 +40,7 @@ enum OrderStatus: string
         return match ($this) {
             self::New => 'received',
             self::Confirmed => 'confirmed',
+            self::Shipped => 'shipped',
             self::Delivered => 'delivered',
             self::Returned, self::Damaged => 'returned',
             self::Fake, self::Cancelled => 'cancelled',
@@ -48,8 +52,10 @@ enum OrderStatus: string
     {
         return match ($this) {
             self::New => [self::Confirmed, self::Cancelled, self::Fake],
-            self::Confirmed => [self::Delivered, self::Cancelled, self::Damaged, self::Fake],
-            self::Delivered => [self::Returned],
+            self::Confirmed => [self::Shipped, self::Delivered, self::Cancelled, self::Damaged, self::Fake],
+            // Refused at the door → returned; lost or broken on the way → damaged; called off → cancelled.
+            self::Shipped => [self::Delivered, self::Returned, self::Damaged, self::Cancelled],
+            self::Delivered => [self::Returned, self::Damaged],
             self::Cancelled, self::Fake => [self::New],
             self::Returned, self::Damaged => [],
         };
