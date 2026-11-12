@@ -265,3 +265,17 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **A custom domain stays optional** everywhere (setup steps, store page).
   - **Platform invoices exist for the merchant once a receipt is sent**: the list hides invoices with no payment (leftovers of the old flow); a bill reads «قيد المراجعة» / «مقبولة» / «مرفوضة» (with Maksab's reason) / «مسترجعة». After a rejection the invoice reopens for the platform's invoice window and another receipt can be sent on it. Receipts go through the browser image compression like every upload.
 
+- **Store themes, phase 1: «أساس» and the Builder (Nov 2026, owner)**:
+  - **Clean start**: the old store themes (rewaq, diwan) and the store home as a landing page (`store_home`) are gone, with their purchases. Every store uses «أساس» (`asas`, free, kind `store`). `stores.settings` and `stores.home_page_id` are dropped.
+  - **One design per store per theme** (`store_designs`: draft, published, version). Switching themes later keeps each theme's design. The Builder autosaves the draft; a save carries the version it started from and a stale one gets 409 `design_changed` (another tab or person saved first). Publishing copies the draft.
+  - **The store is live** when it is switched on, the plan has the store, the theme is publishable and the design has been published once.
+  - **Only the home page is customizable** in «أساس». The other store pages take their look from the theme settings (colors, font, size, logo, header, footer, products per page, show out of stock).
+  - **Sections**: banner (one image, or a slider with several; no separate mobile image), product list (latest / on offer / a category; 4, 8, 12, 16, 24 or 32; grid of 2–5 columns or a slider; title, short description, «عرض الكل» to the full page of that source), store features, customer reviews. At most 20 sections.
+  - **«على عرض»** = products with a compare-at price above the price, or covered by an active product offer (all products, chosen products, or categories with their sub-categories).
+  - **Reviews**: manual (name, stars, text) or automatic. **Automatic shows 3 fixed reviews for now** (`lang/ar/design.php`); they must be replaced by the store's real reviews before launch (phase 3).
+  - **Header menu = the store's categories only** (two levels). Custom menus are for paid themes.
+  - **Footer always shows «صنع بواسطة مكسب»**, not removable for now (removable on the Max plan later).
+  - **Default colors = the platform's mint** (#0b875b with #ffc83d), plus 5 ready palettes.
+  - **Paid themes** show «قريبًا» on the theme page; the theme store comes later.
+  - **Landing page themes (malak, celia, layali) stay for now**: the landing builder and its tests still use them. They go when landing pages are rebuilt in front-v2.
+  - **Old front (frozen)**: its store home editor and store themes no longer match the API.

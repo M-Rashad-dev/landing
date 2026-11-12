@@ -1,0 +1,73 @@
+/*
+ * «أساس»: the store theme. Every value comes from the merchant's theme settings through
+ * CSS variables on .as-root (colors, font, size scale). The layout reacts to the width of
+ * the store itself (container queries), so the Builder previews phone and desktop exactly.
+ */
+.as-root {
+  container-type: inline-size;
+  background: var(--as-bg);
+  color: var(--as-text);
+  font-family: var(--as-font), "IBM Plex Sans Arabic", system-ui, sans-serif;
+  line-height: 1.6;
+  --as-muted: color-mix(in srgb, var(--as-text) 62%, var(--as-bg));
+  --as-line: color-mix(in srgb, var(--as-text) 12%, var(--as-bg));
+  --as-soft: color-mix(in srgb, var(--as-primary) 8%, var(--as-bg));
+  --as-card: color-mix(in srgb, var(--as-text) 3%, var(--as-bg));
+}
+
+.as-root * {
+  border-color: var(--as-line);
+}
+
+.as-xs { font-size: calc(var(--as-fs) * 0.75rem); }
+.as-sm { font-size: calc(var(--as-fs) * 0.875rem); }
+.as-base { font-size: calc(var(--as-fs) * 1rem); }
+.as-lg { font-size: calc(var(--as-fs) * 1.125rem); }
+.as-xl { font-size: calc(var(--as-fs) * 1.3rem); }
+.as-2xl { font-size: calc(var(--as-fs) * 1.6rem); }
+.as-3xl { font-size: calc(var(--as-fs) * 2.1rem); }
+
+.as-hero-title { font-size: calc(var(--as-fs) * 1.5rem); line-height: 1.25; }
+.as-hero-text { font-size: calc(var(--as-fs) * 0.875rem); }
+@container (min-width: 48rem) {
+  .as-hero-title { font-size: calc(var(--as-fs) * 2.2rem); }
+  .as-hero-text { font-size: calc(var(--as-fs) * 1.05rem); }
+}
+
+.as-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  background: var(--as-primary);
+  color: var(--as-on-primary);
+  font-weight: 700;
+  padding: 0.6em 1.2em;
+  transition: filter 0.15s ease;
+}
+.as-btn:hover { filter: brightness(0.92); }
+
+.as-muted { color: var(--as-muted); }
+.as-primary { color: var(--as-primary); }
+
+.as-scroll {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.as-scroll::-webkit-scrollbar { display: none; }
+.as-scroll > * { scroll-snap-align: start; }
+
+/* Builder: the selected section is outlined. */
+.as-selectable { position: relative; cursor: pointer; }
+.as-selectable:hover::after,
+.as-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  outline: 2px dashed var(--primary, #0b875b);
+  outline-offset: -2px;
+  z-index: 5;
+}
+.as-selected::after { outline-style: solid; }

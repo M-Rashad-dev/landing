@@ -6,6 +6,7 @@
 import { auth } from "./ar/auth";
 import { catalog } from "./ar/catalog";
 import { common } from "./ar/common";
+import { design } from "./ar/design";
 import { domain } from "./ar/domain";
 import { home } from "./ar/home";
 import { media } from "./ar/media";
@@ -15,6 +16,7 @@ import { promotions } from "./ar/promotions";
 import { settings } from "./ar/settings";
 import { shipping } from "./ar/shipping";
 import { showcase } from "./ar/showcase";
+import { storefront } from "./ar/storefront";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design } as const;

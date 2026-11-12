@@ -55,7 +55,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
   {
     label: t.groups.design,
     items: [
-      { href: "/dashboard/design/theme", label: t.items.themeHome, icon: Palette, status: "soon" },
+      { href: "/dashboard/design/theme", label: t.items.themeHome, icon: Palette, status: "ready" },
       { href: "/dashboard/design/menus", label: t.items.menus, icon: ListTree, status: "soon" },
       { href: "/dashboard/design/pages", label: t.items.storePages, icon: FileText, status: "soon" },
       { href: "/dashboard/design/identity", label: t.items.identity, icon: LayoutTemplate, status: "soon" },

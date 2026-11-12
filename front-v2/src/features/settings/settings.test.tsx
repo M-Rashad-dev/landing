@@ -70,12 +70,12 @@ describe("ReceiptForm", () => {
 describe("StorePage", () => {
   it("lists what stops the store and offers the fix, with cash on delivery the only live payment", async () => {
     fetchMock.mockResolvedValue(
-      Response.json({ data: { exists: true, is_enabled: false, live: false, theme_key: "rewaq", home: { id: 5, status: "draft", published_at: null, has_unpublished_changes: true }, settings: { announcement: null, products_per_page: 24, show_whatsapp: true, show_out_of_stock: true }, counts: { products: 3, categories: 1 } } }),
+      Response.json({ data: { exists: true, is_enabled: false, live: false, theme_key: "asas", design: { published_at: null, has_unpublished_changes: true, updated_at: null }, themes: [{ key: "asas", name: "أساس", short_description: null, active: true, free: true }], counts: { products: 3, categories: 1 } } }),
     );
     wrap(<StorePage />);
     expect(await screen.findByText(ar.settings.store.reasons.home)).toBeInTheDocument();
     expect(screen.getByText(ar.settings.store.reasons.enabled)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: ar.settings.store.publishHome })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: ar.settings.store.publishHome })).toHaveAttribute("href", "/dashboard/design/builder");
     expect(screen.getAllByText(ar.settings.store.soon)).toHaveLength(5);
     expect(screen.getAllByText(ar.settings.store.active)).toHaveLength(1);
   });

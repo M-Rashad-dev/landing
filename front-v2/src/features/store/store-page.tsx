@@ -13,7 +13,6 @@ import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "@/components/ui/panel";
-import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/errors";
 import { usePlanFeature, useSession } from "@/lib/auth/session-context";
@@ -22,7 +21,6 @@ import { ar } from "@/messages/ar";
 
 const t = ar.settings.store;
 
-export type StoreSettings = { announcement: string | null; products_per_page: number; show_whatsapp: boolean; show_out_of_stock: boolean };
 export type StoreState =
   | { exists: false; live: false }
   | {
@@ -30,8 +28,8 @@ export type StoreState =
       is_enabled: boolean;
       live: boolean;
       theme_key: string;
-      home: { id: number; status: "draft" | "published"; published_at: string | null; has_unpublished_changes: boolean } | null;
-      settings: StoreSettings;
+      design: { published_at: string | null; has_unpublished_changes: boolean; updated_at: string | null } | null;
+      themes: Array<{ key: string; name: string; short_description: string | null; active: boolean; free: boolean }>;
       counts: { products: number; categories: number };
     };
 
@@ -67,7 +65,6 @@ export function StorePage() {
           <div className="flex flex-col gap-4">
             <Status store={query.data} allowed={allowed} />
             <General />
-            {query.data.exists ? <Display store={query.data} /> : null}
           </div>
           <Payments />
         </div>
@@ -100,7 +97,7 @@ function Status({ store, allowed }: { store: StoreState; allowed: boolean }) {
     }
   }
 
-  const homePublished = store.exists && store.home?.status === "published";
+  const designPublished = store.exists && Boolean(store.design?.published_at);
   const enabled = store.exists && store.is_enabled;
   // What still stops the store, in the order to fix it.
   const missing: Array<{ key: keyof typeof t.reasons; action?: React.ReactNode }> = [];
@@ -123,17 +120,17 @@ function Status({ store, allowed }: { store: StoreState; allowed: boolean }) {
       ),
     });
   else {
-    if (!homePublished && store.home)
+    if (!designPublished)
       missing.push({
         key: "home",
         action: (
-          <Button size="sm" loading={busy === "publish"} onClick={() => void run("publish", () => api(`/dashboard/pages/${store.home!.id}/publish`, { method: "POST" }), t.published)}>
-            {t.publishHome}
+          <Button asChild size="sm">
+            <Link href="/dashboard/design/builder">{t.publishHome}</Link>
           </Button>
         ),
       });
     if (!enabled) missing.push({ key: "enabled" });
-    if (enabled && homePublished && !store.live) missing.push({ key: "theme" });
+    if (enabled && designPublished && !store.live) missing.push({ key: "theme" });
   }
 
   async function copy() {
@@ -248,59 +245,6 @@ function General() {
       {dirty ? (
         <PanelFooter>
           <Button loading={busy} disabled={name.trim().length < 2} onClick={() => void save()}>
-            {ar.common.save}
-          </Button>
-        </PanelFooter>
-      ) : null}
-    </Panel>
-  );
-}
-
-function Display({ store }: { store: Extract<StoreState, { exists: true }> }) {
-  const client = useQueryClient();
-  const [values, setValues] = React.useState<StoreSettings>(store.settings);
-  const [busy, setBusy] = React.useState(false);
-  const dirty = JSON.stringify(values) !== JSON.stringify(store.settings);
-
-  async function save() {
-    setBusy(true);
-    try {
-      await api("/dashboard/store", { method: "PUT", body: { settings: { ...values, announcement: values.announcement?.trim() || null } } });
-      toast.success(t.saved);
-      await client.invalidateQueries({ queryKey: ["store"] });
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Panel>
-      <PanelHeader title={t.display} />
-      <PanelBody className="flex flex-col gap-3">
-        <Field label={t.announcement} htmlFor="store-announcement" hint={t.announcementHint}>
-          <Input id="store-announcement" maxLength={200} value={values.announcement ?? ""} onChange={(e) => setValues({ ...values, announcement: e.target.value })} />
-        </Field>
-        <Field label={t.perPage} htmlFor="store-per-page">
-          <Select
-            id="store-per-page"
-            value={String(values.products_per_page)}
-            onValueChange={(v) => setValues({ ...values, products_per_page: Number(v) })}
-            options={[12, 16, 24, 32, 48].map((n) => ({ value: String(n), label: String(n) }))}
-            searchable={false}
-            className="sm:w-40"
-          />
-        </Field>
-        <SwitchRow title={t.showWhatsapp} description={t.showWhatsappHint} checked={values.show_whatsapp} onCheckedChange={(v) => setValues({ ...values, show_whatsapp: v })} />
-        <SwitchRow title={t.showOutOfStock} description={t.showOutOfStockHint} checked={values.show_out_of_stock} onCheckedChange={(v) => setValues({ ...values, show_out_of_stock: v })} />
-      </PanelBody>
-      {dirty ? (
-        <PanelFooter>
-          <Button variant="outline" onClick={() => setValues(store.settings)}>
-            {ar.common.cancel}
-          </Button>
-          <Button loading={busy} onClick={() => void save()}>
             {ar.common.save}
           </Button>
         </PanelFooter>

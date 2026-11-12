@@ -1,0 +1,28 @@
+/** What customers read on a store («أساس» and the themes after it). */
+export const storefront = {
+  search: "ابحث عن منتج...",
+  cart: "السلة",
+  menu: "القائمة",
+  close: "إغلاق",
+  allProducts: "كل المنتجات",
+  home: "الرئيسية",
+  viewAll: "عرض الكل",
+  addToCart: "أضف للسلة",
+  chooseOptions: "اختار",
+  outOfStock: "نفد",
+  off: (n: number) => `خصم ${n}%`,
+  previous: "السابق",
+  next: "التالي",
+  slide: (n: number) => `صورة ${n}`,
+  stars: (n: number) => `${n} من 5 نجوم`,
+  footer: { about: "عن المتجر", pages: "معلومات", contact: "تواصل معنا", follow: "تابعنا", rights: (name: string, year: number) => `© ${year} ${name}. كل الحقوق محفوظة.` },
+  madeBy: "صنع بواسطة",
+  platform: "مكسب",
+  whatsapp: "كلّمنا على واتساب",
+  social: { facebook: "فيسبوك", instagram: "إنستجرام", tiktok: "تيك توك", x: "إكس", youtube: "يوتيوب", snapchat: "سناب شات" },
+  empty: {
+    banner: "ضيف صورة للبنر",
+    products: "مفيش منتجات هنا لسه",
+    reviews: "ضيف أول رأي",
+  },
+} as const;

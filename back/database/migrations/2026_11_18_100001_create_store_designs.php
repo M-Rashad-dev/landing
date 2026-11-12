@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Billing\Themes\ThemeCatalog;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,8 @@ return new class extends Migration
 
         DB::table('theme_purchases')->whereIn('theme_key', ['rewaq', 'diwan'])->delete();
         DB::table('themes')->whereIn('key', ['rewaq', 'diwan'])->delete();
+        // The theme list is cached: drop it so «أساس» shows at once.
+        ThemeCatalog::flush();
     }
 
     public function down(): void
