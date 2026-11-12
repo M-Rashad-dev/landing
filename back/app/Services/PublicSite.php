@@ -189,7 +189,7 @@ final class PublicSite
             'media' => (object) $this->data->media($content),
             'seo' => $this->seo($page, $identity, $primaryHost),
             'tracking' => $this->tracking($page, $identity),
-            'shipping' => $this->shipping->publicConfig(),
+            'shipping' => $this->shipping->publicConfig(now()),
             // "Made with …" badge unless the plan removes it.
             'branding' => ! app(Entitlements::class)->allows(PlanFeature::RemoveBranding),
         ];

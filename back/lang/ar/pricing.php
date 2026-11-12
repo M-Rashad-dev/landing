@@ -15,5 +15,7 @@ return [
     'code_phone_limit' => 'تم استخدام هذا الكود بالحد الأقصى لهذا الرقم.',
     'code_minimum' => 'الحد الأدنى للطلب لاستخدام الكود :amount ج.م.',
     'code_not_stackable' => 'الكود لا يعمل مع العروض الحالية.',
+    'code_first_order' => 'الكود ده لأول طلب بس.',
+    'code_min_quantity' => 'الكود ده محتاج :quantity قطعة على الأقل.',
     'offer_needs_quantity' => 'العرض ده محتاج :quantity قطعة على الأقل.',
 ];

@@ -13,6 +13,8 @@ import {
   Settings,
   ShoppingBag,
   Tag,
+  TicketPercent,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { ar } from "@/messages/ar";
@@ -36,6 +38,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/catalog/products", label: t.items.products, icon: Package, status: "ready" },
       { href: "/dashboard/catalog/categories", label: t.items.categories, icon: FolderTree, status: "ready" },
+      { href: "/dashboard/shipping", label: t.items.shipping, icon: Truck, status: "ready" },
     ],
   },
   {
@@ -50,7 +53,8 @@ export const DASHBOARD_NAV: NavGroup[] = [
   {
     label: t.groups.marketing,
     items: [
-      { href: "/dashboard/marketing/offers", label: t.items.offers, icon: Tag, status: "soon" },
+      { href: "/dashboard/marketing/offers", label: t.items.offers, icon: Tag, status: "ready" },
+      { href: "/dashboard/marketing/coupons", label: t.items.coupons, icon: TicketPercent, status: "ready" },
       { href: "/dashboard/marketing/upsells", label: t.items.upsells, icon: Gift, status: "soon" },
       { href: "/dashboard/marketing/landings", label: t.items.landings, icon: Megaphone, status: "soon" },
     ],

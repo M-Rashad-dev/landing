@@ -15,18 +15,20 @@ final class SaveOffer
 {
     /**
      * @param  array<string, mixed>  $data
-     * @param  list<int>  $productIds
+     * @param  list<int>  $productIds  when it covers products
+     * @param  list<int>  $categoryIds  when it covers categories
      */
-    public function handle(array $data, array $productIds, ?Offer $offer = null): Offer
+    public function handle(array $data, array $productIds, array $categoryIds, ?Offer $offer = null): Offer
     {
         if ($offer === null) {
             app(Entitlements::class)->ensureCanAdd(PlanLimit::Offers);
         }
 
-        $offer = DB::transaction(function () use ($data, $productIds, $offer): Offer {
+        $offer = DB::transaction(function () use ($data, $productIds, $categoryIds, $offer): Offer {
             $offer ??= new Offer;
             $offer->fill($data)->save();
             $offer->products()->syncWithPivotValues($productIds, ['tenant_id' => (int) Tenancy::id()]);
+            $offer->categories()->sync($categoryIds);
 
             return $offer;
         });

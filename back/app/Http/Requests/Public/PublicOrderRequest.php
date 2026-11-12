@@ -29,6 +29,7 @@ final class PublicOrderRequest extends FormRequest
             'utm' => ['nullable', 'array'],
             'ab' => ['nullable', 'integer', 'min:1'],
             'offer_id' => ['nullable', 'integer', 'min:0'],
+            'shipping_company_id' => ['nullable', 'integer', 'min:1'],
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'idempotency_key' => ['nullable', 'uuid'],

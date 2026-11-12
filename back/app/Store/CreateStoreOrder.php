@@ -78,10 +78,11 @@ final class CreateStoreOrder
         $lines = $this->lines((array) $input['items']);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $governorate = $customer['governorate'] ?? null;
-        $this->quoteOrFail($lines, $code, $phone, false, $governorate);
+        $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
+        $this->quoteOrFail($lines, $code, $phone, false, $governorate, $companyId);
 
-        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $customer, $ip, $input, $tenantId): Order {
-            $quote = $this->quoteOrFail($lines, $code, $phone, true, $governorate);
+        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId): Order {
+            $quote = $this->quoteOrFail($lines, $code, $phone, true, $governorate, $companyId);
 
             $order = Order::query()->create([
                 'order_number' => $this->nextNumber($tenantId),
@@ -101,7 +102,11 @@ final class CreateStoreOrder
                 'discount_code_id' => $quote->code?->id,
                 'discount_code' => $quote->code?->code,
                 'code_discount' => Money::toDecimal($quote->codeDiscount),
-                'shipping_fee' => Money::toDecimal($quote->shipping ?? 0),
+                'shipping_fee' => Money::toDecimal($quote->delivery->fee ?? 0),
+                'shipping_company_id' => $quote->delivery->company['id'] ?? null,
+                'shipping_company_name' => $quote->delivery->company['name'] ?? null,
+                'shipping_offer_name' => $quote->delivery->offer['name'] ?? ($quote->delivery->byCode ? $quote->code?->code : null),
+                'shipping_discount' => Money::toDecimal($quote->delivery->discount()),
                 'total' => Money::toDecimal($quote->total),
                 'currency' => 'EGP',
                 'is_duplicate_suspect' => Order::query()->where('customer_phone', $phone)->where('created_at', '>=', now()->subHours((int) config('landing.duplicate_order_window_hours', 24)))
@@ -136,7 +141,7 @@ final class CreateStoreOrder
             $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
 
             if ($quote->code !== null) {
-                DiscountCodeRedemption::query()->create(['discount_code_id' => $quote->code->id, 'order_id' => $order->id, 'phone' => $phone, 'amount' => Money::toDecimal($quote->codeDiscount)]);
+                DiscountCodeRedemption::query()->create(['discount_code_id' => $quote->code->id, 'order_id' => $order->id, 'phone' => $phone, 'amount' => Money::toDecimal($quote->codeDiscount + ($quote->delivery->byCode ? $quote->delivery->discount() : 0))]);
                 DiscountCode::query()->whereKey($quote->code->id)->increment('used_count');
             }
 
@@ -184,11 +189,14 @@ final class CreateStoreOrder
     }
 
     /** @param list<array{product: Product, quantity: int, options: array<int|string, int|string|null>}> $lines */
-    private function quoteOrFail(array $lines, ?string $code, string $phone, bool $lock, ?string $governorate): CartQuote
+    private function quoteOrFail(array $lines, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $companyId = null): CartQuote
     {
-        $quote = $this->calculator->quoteCart($lines, now(), $code, $phone, $lock, $governorate);
-        if (! $quote->shippingAvailable) {
+        $quote = $this->calculator->quoteCart($lines, now(), $code, $phone, $lock, $governorate, $companyId);
+        if (! $quote->delivery->available) {
             throw ValidationException::withMessages(['customer.governorate' => [__('orders.shipping_unavailable')]]);
+        }
+        if ($quote->delivery->companyMismatch) {
+            throw ValidationException::withMessages(['shipping_company_id' => [__('orders.shipping_company_unavailable')]]);
         }
         if ($code !== null && $quote->codeError !== null) {
             throw ValidationException::withMessages(['code' => [$quote->codeError]]);

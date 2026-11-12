@@ -210,7 +210,7 @@ it('prices a cart: options, offers per product, a code on eligible lines, shippi
         $a = Product::factory()->withOption('المقاس', ['M' => '0', 'XL' => '50'])->create(['slug' => 'a', 'price' => '100.00']);
         $b = Product::factory()->create(['slug' => 'b', 'price' => '200.00']);
         Offer::factory()->create(['type' => 'percentage', 'value' => 10, 'is_active' => true])->products()->attach($b, ['tenant_id' => $b->tenant_id]);
-        DiscountCode::factory()->create(['code' => 'A20', 'type' => 'fixed', 'value' => 20, 'stackable_with_offers' => true])->products()->attach($a, ['tenant_id' => $a->tenant_id]);
+        DiscountCode::factory()->create(['code' => 'A20', 'type' => 'fixed', 'applies_to' => 'products', 'value' => 20, 'stackable_with_offers' => true])->products()->attach($a, ['tenant_id' => $a->tenant_id]);
 
         return [$a, $b];
     });

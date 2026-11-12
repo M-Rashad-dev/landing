@@ -112,6 +112,7 @@ final class PriceMath
         $discount = match ($type) {
             DiscountType::Percentage => Money::mulDivRound($afterOffer, $value, 10000),
             DiscountType::Fixed => min($value, $afterOffer),
+            DiscountType::FreeShipping => 0,
         };
 
         if ($type === DiscountType::Percentage && $maxDiscount !== null) {

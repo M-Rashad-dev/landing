@@ -13,15 +13,20 @@ use App\Actions\Pages\PublishPage;
 use App\Actions\Products\SaveProduct;
 use App\Actions\Promotions\SaveDiscountCode;
 use App\Actions\Promotions\SaveOffer;
+use App\Actions\Shipping\SaveShippingCompany;
+use App\Actions\Shipping\SaveShippingOffer;
 use App\Billing\SubscriptionManager;
 use App\Billing\Themes\ThemeAccess;
 use App\Enums\DiscountType;
 use App\Enums\OfferType;
 use App\Enums\OrderStatus;
+use App\Enums\PromotionTarget;
+use App\Enums\ShippingBenefit;
 use App\Enums\UserRole;
 use App\Models\LandingPage;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ShippingSetting;
 use App\Models\User;
 use App\Services\FormToken;
 use App\Tenancy\Tenancy;
@@ -129,17 +134,44 @@ final class DemoSeeder extends Seeder
             'is_active' => true,
             'badge_text' => 'الأكثر طلبًا',
             'priority' => 1,
-        ], [$product->id]);
+        ], [$product->id], []);
 
         app(SaveDiscountCode::class)->handle([
             'code' => 'WELCOME10',
             'type' => DiscountType::Percentage,
+            'applies_to' => PromotionTarget::Products,
             'value' => '10.00',
             'max_discount' => '150.00',
             'usage_limit' => 100,
             'stackable_with_offers' => false,
             'is_active' => true,
-        ], [$product->id]);
+        ], [$product->id], []);
+
+        // Delivery: two companies (one serves Cairo and Giza only) and free shipping for two pieces.
+        $companies = app(SaveShippingCompany::class);
+        $bosta = $companies->handle(['name' => 'بوسطة', 'media_id' => null, 'delivery_days_min' => 2, 'delivery_days_max' => 4, 'default_fee' => '60.00', 'is_active' => true], [
+            ['governorate' => 'أسوان', 'fee' => '90.00', 'is_available' => true],
+            ['governorate' => 'شمال سيناء', 'fee' => null, 'is_available' => false],
+        ]);
+        $local = array_map(
+            fn (string $g) => ['governorate' => $g, 'fee' => null, 'is_available' => false],
+            array_values(array_diff((array) config('landing.governorates'), ['القاهرة', 'الجيزة'])),
+        );
+        $companies->handle(['name' => 'مندوب المتجر', 'media_id' => null, 'delivery_days_min' => 1, 'delivery_days_max' => 1, 'default_fee' => '40.00', 'is_active' => true], $local);
+        ShippingSetting::query()->updateOrCreate([], ['enabled' => true]);
+        app(SaveShippingOffer::class)->handle([
+            'name' => 'اشترِ قطعتين والشحن مجاني',
+            'benefit' => ShippingBenefit::Free,
+            'value' => null,
+            'min_quantity' => 2,
+            'min_total' => null,
+            'applies_to' => PromotionTarget::Products,
+            'governorates' => null,
+            'company_ids' => [$bosta->id],
+            'starts_at' => null,
+            'ends_at' => null,
+            'is_active' => true,
+        ], [$product->id], []);
 
         $malak = $this->page('عرض الساعة الذكية', 'smart-watch', 'malak', $product, $userId);
         $this->page('الساعة الذكية (تصميم سيليا)', 'smart-watch-celia', 'celia', $product, $userId);

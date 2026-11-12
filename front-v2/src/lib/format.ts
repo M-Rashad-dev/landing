@@ -49,3 +49,13 @@ export function formatPhone(e164: string | null | undefined): string {
   if (!e164) return "—";
   return e164.startsWith("+20") ? `0${e164.slice(3)}` : e164;
 }
+
+/** ISO (UTC) → "2026-11-20T14:30" in Cairo time, the value the date-time picker edits (the back end reads it as Cairo time). */
+export function isoToCairoInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: CAIRO, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour") === "24" ? "00" : get("hour")}:${get("minute")}`;
+}

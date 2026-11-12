@@ -11,7 +11,8 @@ use App\Models\LandingPage;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\ShippingRate;
+use App\Models\ShippingCompany;
+use App\Models\ShippingOffer;
 use App\Models\ShippingSetting;
 use App\Models\Tenant;
 use App\Models\Upsell;
@@ -338,9 +339,11 @@ it('accepts only a valid client IP', function () {
 
 it('adds the delivery fee for the governorate, free above the threshold, and refuses closed governorates', function () {
     asTenant($this->tenant, function () {
-        ShippingSetting::query()->create(['enabled' => true, 'default_fee' => '50.00', 'free_over' => '1000.00']);
-        ShippingRate::query()->create(['governorate' => 'أسوان', 'fee' => '90.00', 'is_available' => true]);
-        ShippingRate::query()->create(['governorate' => 'شمال سيناء', 'fee' => null, 'is_available' => false]);
+        ShippingSetting::query()->create(['enabled' => true]);
+        $company = ShippingCompany::query()->create(['name' => 'بوسطة', 'default_fee' => '50.00']);
+        $company->rates()->create(['governorate' => 'أسوان', 'fee' => '90.00', 'is_available' => true]);
+        $company->rates()->create(['governorate' => 'شمال سيناء', 'fee' => null, 'is_available' => false]);
+        ShippingOffer::query()->create(['name' => 'شحن مجاني فوق 1000', 'benefit' => 'free', 'min_total' => '1000.00', 'applies_to' => 'all']);
     });
     $quote = fn (array $extra) => $this->postJson('/api/v1/public/quote', array_merge(['host' => SHOP, 'slug' => 'offer', 'quantity' => 1, 'options' => optionValue('M')], $extra), internalHeaders());
 
@@ -354,7 +357,8 @@ it('adds the delivery fee for the governorate, free above the threshold, and ref
     // The order stores the fee inside the total.
     placeOrder(['quantity' => 1, 'options' => optionValue('M'), 'customer' => ['governorate' => 'أسوان']])->assertCreated()->assertJsonPath('data.total', 390);
     $order = asTenant($this->tenant, fn () => Order::query()->latest('id')->first());
-    expect((string) $order->shipping_fee)->toBe('90.00')->and((string) $order->total)->toBe('390.00');
+    expect((string) $order->shipping_fee)->toBe('90.00')->and((string) $order->total)->toBe('390.00')
+        ->and($order->shipping_company_name)->toBe('بوسطة')->and($order->shipping_offer_name)->toBeNull();
 
     placeOrder(['customer' => ['phone' => '01022223333', 'governorate' => 'شمال سيناء'], 'ip' => '41.9.9.1'])->assertStatus(422)->assertJsonValidationErrors(['customer.governorate']);
 
@@ -364,6 +368,44 @@ it('adds the delivery fee for the governorate, free above the threshold, and ref
         ->assertJsonPath('data.shipping.fees.أسوان', 90)
         ->assertJsonPath('data.shipping.unavailable', ['شمال سيناء'])
         ->assertJsonPath('data.shipping.free_over', 1000);
+});
+
+it('lets the customer choose the company, keeps the choice and the shipping offer on the order', function () {
+    [$fast, $cheap] = asTenant($this->tenant, function () {
+        ShippingSetting::query()->create(['enabled' => true]);
+        $fast = ShippingCompany::query()->create(['name' => 'سريع', 'default_fee' => '80.00', 'delivery_days_min' => 1, 'delivery_days_max' => 2, 'position' => 0]);
+        $cheap = ShippingCompany::query()->create(['name' => 'اقتصادي', 'default_fee' => '40.00', 'position' => 1]);
+        $cheap->rates()->create(['governorate' => 'أسوان', 'fee' => null, 'is_available' => false]);
+        // Two pieces of this product → the fast company costs 30.
+        $offer = ShippingOffer::query()->create(['name' => 'قطعتين والسريع بـ 30', 'benefit' => 'flat', 'value' => '30.00', 'min_quantity' => 2, 'applies_to' => 'products', 'company_ids' => [$fast->id]]);
+        $offer->products()->attach($this->product->id);
+
+        return [$fast, $cheap];
+    });
+    $quote = fn (array $extra) => $this->postJson('/api/v1/public/quote', array_merge(['host' => SHOP, 'slug' => 'offer', 'quantity' => 1, 'options' => optionValue('M'), 'governorate' => 'القاهرة'], $extra), internalHeaders());
+
+    // Not chosen → the cheapest; both listed with their fees and days.
+    $quote([])->assertOk()->assertJsonPath('data.shipping', 40)->assertJsonPath('data.shipping_company.name', 'اقتصادي')
+        ->assertJsonCount(2, 'data.shipping_options')->assertJsonPath('data.shipping_options.0.days_max', 2);
+    $quote(['shipping_company_id' => $fast->id])->assertJsonPath('data.shipping', 80);
+    // The offer makes the fast one 30 for two pieces, and the cheapest wins on its own.
+    $quote(['quantity' => 2])->assertJsonPath('data.shipping', 30)->assertJsonPath('data.shipping_original', 80)
+        ->assertJsonPath('data.shipping_offer.name', 'قطعتين والسريع بـ 30')->assertJsonPath('data.shipping_company.id', $fast->id);
+    // Aswan: only the fast company.
+    $quote(['governorate' => 'أسوان'])->assertJsonCount(1, 'data.shipping_options')->assertJsonPath('data.shipping', 80);
+
+    placeOrder(['shipping_company_id' => $cheap->id, 'customer' => ['governorate' => 'أسوان']])->assertStatus(422)->assertJsonValidationErrors(['shipping_company_id']);
+    placeOrder(['quantity' => 2, 'shipping_company_id' => $fast->id])->assertCreated()->assertJsonPath('data.total', 730);
+    $order = asTenant($this->tenant, fn () => Order::query()->latest('id')->first());
+    expect($order->shipping_company_id)->toBe($fast->id)->and($order->shipping_company_name)->toBe('سريع')
+        ->and($order->shipping_offer_name)->toBe('قطعتين والسريع بـ 30')->and((string) $order->shipping_discount)->toBe('50.00')
+        ->and((string) $order->shipping_fee)->toBe('30.00');
+
+    $this->getJson('/api/v1/public/pages?host='.SHOP.'&slug=offer', internalHeaders())
+        ->assertJsonPath('data.shipping.fees.القاهرة', 40)
+        ->assertJsonPath('data.shipping.fees.أسوان', 80)
+        ->assertJsonCount(2, 'data.shipping.companies')
+        ->assertJsonPath('data.shipping.offers.0.min_quantity', 2);
 });
 
 it('charges nothing for delivery while shipping is off', function () {

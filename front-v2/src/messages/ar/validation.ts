@@ -6,6 +6,10 @@ export const validation = {
   min: (n: number) => `لازم ${n} حروف على الأقل`,
   max: (n: number) => `أقصى حاجة ${n} حرف`,
   passwordMin: "كلمة المرور لازم تكون 8 حروف على الأقل",
+  between: (min: number, max: number) => `اكتب رقم من ${min} لـ ${max}`,
+  positive: "اكتب مبلغ أكبر من صفر",
+  pickOne: "اختار واحد على الأقل",
+  wholeNumber: "اكتب رقم صحيح",
 } as const;
 
 export const errors = {

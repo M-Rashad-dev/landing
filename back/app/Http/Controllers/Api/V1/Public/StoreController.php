@@ -96,10 +96,11 @@ final class StoreController extends Controller
             'code' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
             'governorate' => ['nullable', 'string', 'max:60'],
+            'shipping_company_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         return $this->inStore($request, function () use ($data, $calculator, $orders) {
-            $quote = $calculator->quoteCart($orders->lines($data['items']), now(), $data['code'] ?? null, $data['phone'] ?? null, false, $data['governorate'] ?? null);
+            $quote = $calculator->quoteCart($orders->lines($data['items']), now(), $data['code'] ?? null, $data['phone'] ?? null, false, $data['governorate'] ?? null, isset($data['shipping_company_id']) ? (int) $data['shipping_company_id'] : null);
 
             return $this->noStore($this->ok($quote->toArray()));
         });
@@ -110,6 +111,7 @@ final class StoreController extends Controller
         $data = $request->validate($this->cartRules() + [
             'customer' => ['required', 'array'],
             'code' => ['nullable', 'string', 'max:30'],
+            'shipping_company_id' => ['nullable', 'integer', 'min:1'],
             'form_token' => ['nullable', 'string', 'max:100'],
             'website' => ['nullable', 'string', 'max:200'],
             'utm' => ['nullable', 'array'],

@@ -100,14 +100,15 @@ final class CreateOrder
         $options = (array) ($input['options'] ?? []);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $offerId = OrderForm::chosenOffer($props, $input['offer_id'] ?? null);
+        $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
 
         // 6. Quote again (an invalid code fails the order on the "code" field).
         $governorate = $customer['governorate'] ?? null;
-        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId);
+        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId, $companyId);
 
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId) {
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId) {
             // 7. Lock the code row and re-check its limits.
-            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId);
+            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId, $companyId);
 
             // 8. Sequential number per tenant.
             $number = $this->nextNumber($tenantId);
@@ -146,7 +147,11 @@ final class CreateOrder
                 'discount_code_id' => $quote->code?->id,
                 'discount_code' => $quote->code?->code,
                 'code_discount' => Money::toDecimal($quote->codeDiscount),
-                'shipping_fee' => Money::toDecimal($quote->shipping ?? 0),
+                'shipping_fee' => Money::toDecimal($quote->delivery->fee ?? 0),
+                'shipping_company_id' => $quote->delivery->company['id'] ?? null,
+                'shipping_company_name' => $quote->delivery->company['name'] ?? null,
+                'shipping_offer_name' => $quote->delivery->offer['name'] ?? ($quote->delivery->byCode ? $quote->code?->code : null),
+                'shipping_discount' => Money::toDecimal($quote->delivery->discount()),
                 'total' => Money::toDecimal($quote->total),
                 'currency' => 'EGP',
                 'is_duplicate_suspect' => $duplicate,
@@ -195,7 +200,7 @@ final class CreateOrder
                     'discount_code_id' => $quote->code->id,
                     'order_id' => $order->id,
                     'phone' => $phone,
-                    'amount' => Money::toDecimal($quote->codeDiscount),
+                    'amount' => Money::toDecimal($quote->codeDiscount + ($quote->delivery->byCode ? $quote->delivery->discount() : 0)),
                 ]);
                 DiscountCode::query()->whereKey($quote->code->id)->increment('used_count');
             }
@@ -219,12 +224,15 @@ final class CreateOrder
      *
      * @throws ValidationException
      */
-    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $offerId = null): Quote
+    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $offerId = null, ?int $companyId = null): Quote
     {
-        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate, $offerId);
+        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate, $offerId, $companyId);
 
-        if (! $quote->shippingAvailable) {
+        if (! $quote->delivery->available) {
             throw ValidationException::withMessages(['customer.governorate' => [__('orders.shipping_unavailable')]]);
+        }
+        if ($quote->delivery->companyMismatch) {
+            throw ValidationException::withMessages(['shipping_company_id' => [__('orders.shipping_company_unavailable')]]);
         }
 
         if ($code !== null && $quote->codeError !== null) {

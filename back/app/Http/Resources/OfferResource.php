@@ -21,6 +21,7 @@ final class OfferResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'type' => $this->type->value,
+            'applies_to' => $this->applies_to->value,
             'value' => match ($this->type) {
                 OfferType::Percentage => intdiv($this->valueCents(), 100),
                 OfferType::Fixed => Money::toFloat($this->valueCents()),
@@ -45,6 +46,8 @@ final class OfferResource extends JsonResource
                 'price' => Money::toFloat($product->priceCents()),
             ])->values()->all()),
             'product_ids' => $this->whenLoaded('products', fn () => $this->products->pluck('id')->all()),
+            'categories' => $this->whenLoaded('categories', fn () => $this->categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values()->all()),
+            'category_ids' => $this->whenLoaded('categories', fn () => $this->categories->pluck('id')->all()),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),
         ];

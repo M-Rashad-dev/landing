@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Pricing;
 
+use App\Enums\DiscountType;
 use App\Enums\OfferType;
+use App\Enums\OrderStatus;
+use App\Enums\PromotionTarget;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Offer;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Store\Stock;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,6 +35,7 @@ final class PriceCalculator
     public function __construct(
         private readonly Shipping $shipping = new Shipping,
         private readonly Stock $stock = new Stock,
+        private readonly CategoryAncestry $ancestry = new CategoryAncestry,
     ) {}
 
     /**
@@ -49,6 +53,7 @@ final class PriceCalculator
         bool $lockCode = false,
         ?string $governorate = null,
         ?int $offerId = null,
+        ?int $shippingCompanyId = null,
     ): Quote {
         if ($quantity < self::MIN_QUANTITY || $quantity > self::MAX_QUANTITY) {
             throw ValidationException::withMessages([
@@ -64,29 +69,15 @@ final class PriceCalculator
         $this->ensureStock($product, $selected, $quantity, 'quantity');
         $baseSubtotal = $unitPrice * $quantity;
 
-        [$offer, $afterOffer, $gift, $offerError] = $this->applyOffer($product, $now, $baseSubtotal, $quantity, $productPrice, $deltaSum, $offerId);
+        $categories = $this->ancestry->forProducts([$product])[$product->id] ?? [];
+        [$offer, $afterOffer, $gift, $offerError] = $this->applyOffer($product, $categories, $now, $baseSubtotal, $quantity, $productPrice, $deltaSum, $offerId);
         $offerDiscount = $baseSubtotal - $afterOffer;
 
-        $discountCode = null;
-        $codeDiscount = 0;
-        $codeError = null;
-
-        $code = $code === null ? '' : DiscountCode::normalizeCode($code);
-        if ($code !== '') {
-            [$discountCode, $codeError] = $this->checkCode($code, [$product->id], $now, $phone, $afterOffer, $offer !== null, $lockCode);
-
-            if ($discountCode !== null) {
-                $codeDiscount = PriceMath::codeDiscount(
-                    $discountCode->type,
-                    $discountCode->valueCents(),
-                    $discountCode->maxDiscountCents(),
-                    $afterOffer,
-                );
-            }
-        }
+        $basket = new Basket([['product_id' => $product->id, 'categories' => $categories, 'quantity' => $quantity, 'total' => $afterOffer, 'offer' => $offer !== null]]);
+        [$discountCode, $codeDiscount, $codeError] = $this->applyCode($code, $basket, $now, $phone, $lockCode);
 
         $itemsTotal = max(0, $afterOffer - $codeDiscount);
-        $shipping = $this->shipping->quote($governorate, $itemsTotal);
+        $shipping = $this->shipping->quote($governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
 
         return new Quote(
             unitPrice: $unitPrice,
@@ -98,11 +89,9 @@ final class PriceCalculator
             code: $discountCode,
             codeDiscount: $codeDiscount,
             codeError: $codeError,
-            total: $itemsTotal + ($shipping['fee'] ?? 0),
+            total: $itemsTotal + ($shipping->fee ?? 0),
             selectedValues: $selected,
-            shipping: $shipping['fee'],
-            shippingFree: $shipping['free'],
-            shippingAvailable: $shipping['available'],
+            delivery: $shipping,
             gift: $gift,
             offerError: $offerError,
         );
@@ -115,7 +104,7 @@ final class PriceCalculator
      *
      * @param  list<array{product: Product, quantity: int, options: array<int|string, int|string|null>}>  $lines
      */
-    public function quoteCart(array $lines, CarbonInterface $now, ?string $code = null, ?string $phone = null, bool $lockCode = false, ?string $governorate = null): CartQuote
+    public function quoteCart(array $lines, CarbonInterface $now, ?string $code = null, ?string $phone = null, bool $lockCode = false, ?string $governorate = null, ?int $shippingCompanyId = null): CartQuote
     {
         if ($lines === [] || count($lines) > self::MAX_CART_LINES) {
             throw ValidationException::withMessages(['items' => [__('store.cart_size', ['max' => self::MAX_CART_LINES])]]);
@@ -123,6 +112,7 @@ final class PriceCalculator
 
         $priced = [];
         $errors = [];
+        $ancestry = $this->ancestry->forProducts(array_map(fn (array $l) => $l['product'], $lines));
         foreach (array_values($lines) as $i => $line) {
             $product = $line['product'];
             $quantity = $line['quantity'];
@@ -143,7 +133,7 @@ final class PriceCalculator
             $productPrice = $product->priceCents();
             $unit = max(0, $productPrice + $deltaSum);
             $base = $unit * $quantity;
-            [$offer, $afterOffer, $gift] = $this->applyOffer($product, $now, $base, $quantity, $productPrice, $deltaSum, null);
+            [$offer, $afterOffer, $gift] = $this->applyOffer($product, $ancestry[$product->id] ?? [], $now, $base, $quantity, $productPrice, $deltaSum, null);
 
             $priced[] = new CartLine($product, $quantity, $unit, $base, $offer, $base - $afterOffer, $afterOffer, $selected, $gift);
         }
@@ -153,31 +143,17 @@ final class PriceCalculator
         }
 
         $subtotal = array_sum(array_map(fn (CartLine $l) => $l->afterOffer, $priced));
-
-        $discountCode = null;
-        $codeDiscount = 0;
-        $codeError = null;
-        $code = $code === null ? '' : DiscountCode::normalizeCode($code);
-        if ($code !== '') {
-            $restricted = DB::table('discount_code_products')
-                ->join('discount_codes', 'discount_codes.id', '=', 'discount_code_products.discount_code_id')
-                ->where('discount_codes.code', $code)
-                ->where('discount_codes.tenant_id', $priced[0]->product->tenant_id)
-                ->pluck('discount_code_products.product_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-            $eligible = array_values(array_filter($priced, fn (CartLine $l) => $restricted === [] || in_array($l->product->id, $restricted, true)));
-            $eligibleTotal = array_sum(array_map(fn (CartLine $l) => $l->afterOffer, $eligible));
-            $ids = $eligible === [] ? [0] : array_map(fn (CartLine $l) => $l->product->id, $eligible);
-
-            [$discountCode, $codeError] = $this->checkCode($code, $ids, $now, $phone, $eligibleTotal, collect($eligible)->contains(fn (CartLine $l) => $l->offer !== null), $lockCode);
-            if ($discountCode !== null) {
-                $codeDiscount = PriceMath::codeDiscount($discountCode->type, $discountCode->valueCents(), $discountCode->maxDiscountCents(), $eligibleTotal);
-            }
-        }
+        $basket = new Basket(array_map(fn (CartLine $l) => [
+            'product_id' => $l->product->id,
+            'categories' => $ancestry[$l->product->id] ?? [],
+            'quantity' => $l->quantity,
+            'total' => $l->afterOffer,
+            'offer' => $l->offer !== null,
+        ], $priced));
+        [$discountCode, $codeDiscount, $codeError] = $this->applyCode($code, $basket, $now, $phone, $lockCode);
 
         $itemsTotal = max(0, $subtotal - $codeDiscount);
-        $shipping = $this->shipping->quote($governorate, $itemsTotal);
+        $shipping = $this->shipping->quote($governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
 
         return new CartQuote(
             lines: $priced,
@@ -185,11 +161,30 @@ final class PriceCalculator
             code: $discountCode,
             codeDiscount: $codeDiscount,
             codeError: $codeError,
-            shipping: $shipping['fee'],
-            shippingFree: $shipping['free'],
-            shippingAvailable: $shipping['available'],
-            total: $itemsTotal + ($shipping['fee'] ?? 0),
+            delivery: $shipping,
+            total: $itemsTotal + ($shipping->fee ?? 0),
         );
+    }
+
+    /**
+     * The code on the items it covers: [code or null, discount in cents, error or null].
+     * A free-shipping code takes nothing off the products (the delivery fee becomes zero).
+     *
+     * @return array{0: DiscountCode|null, 1: int, 2: string|null}
+     */
+    private function applyCode(?string $code, Basket $basket, CarbonInterface $now, ?string $phone, bool $lock): array
+    {
+        $code = $code === null ? '' : DiscountCode::normalizeCode($code);
+        if ($code === '') {
+            return [null, 0, null];
+        }
+
+        [$discountCode, $error, $covered] = $this->checkCode($code, $basket, $now, $phone, $lock);
+        if ($discountCode === null || $covered === null) {
+            return [null, 0, $error];
+        }
+
+        return [$discountCode, PriceMath::codeDiscount($discountCode->type, $discountCode->valueCents(), $discountCode->maxDiscountCents(), $covered->total()), null];
     }
 
     /** @param list<array{option_id: int, option: string, value_id: int, value: string, price_delta: int}> $selected */
@@ -264,9 +259,10 @@ final class PriceCalculator
      * 0 = the customer chose no offer; a positive id = the customer's choice, applied only when it
      * is active for this product and the quantity qualifies (otherwise no offer and a reason).
      *
+     * @param  list<int>  $categoryIds  the product's categories with their ancestors
      * @return array{0: array{id: int, name: string, type: OfferType}|null, 1: int, 2: array{product_id: int, name: string, price: int}|null, 3: string|null}
      */
-    private function applyOffer(Product $product, CarbonInterface $now, int $baseSubtotal, int $quantity, int $productPrice, int $deltaSum, ?int $offerId): array
+    private function applyOffer(Product $product, array $categoryIds, CarbonInterface $now, int $baseSubtotal, int $quantity, int $productPrice, int $deltaSum, ?int $offerId): array
     {
         if ($offerId === 0) {
             return [null, $baseSubtotal, null, null];
@@ -275,7 +271,7 @@ final class PriceCalculator
         $offers = Offer::query()
             ->activeAt($now)
             ->servable()
-            ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
+            ->forProduct($product->id, $categoryIds)
             ->when($offerId !== null, fn ($q) => $q->whereKey($offerId))
             ->with(['giftProduct' => fn ($q) => $q->with('options')])
             ->get();
@@ -335,12 +331,11 @@ final class PriceCalculator
     }
 
     /**
-     * Checks a..g of section 7.1 in order and returns the first failure message.
+     * Checks a..g of section 7.1 in order (plus first order and pieces) and returns the first failure.
      *
-     * @param  list<int>  $productIds  the products the code would discount
-     * @return array{0: DiscountCode|null, 1: string|null}
+     * @return array{0: DiscountCode|null, 1: string|null, 2: Basket|null} the code, the error, the items it covers
      */
-    private function checkCode(string $code, array $productIds, CarbonInterface $now, ?string $phone, int $afterOffer, bool $offerApplied, bool $lock): array
+    private function checkCode(string $code, Basket $basket, CarbonInterface $now, ?string $phone, bool $lock): array
     {
         // A code locked by a downgrade answers like an unknown code.
         $query = DiscountCode::query()->where('code', $code)->servable();
@@ -351,52 +346,67 @@ final class PriceCalculator
 
         // a. exists and active
         if ($discountCode === null || ! $discountCode->is_active) {
-            return [null, __('pricing.code_invalid')];
+            return [null, __('pricing.code_invalid'), null];
         }
 
         // b. inside its window (both bounds inclusive)
         if ($discountCode->starts_at !== null && $now->lessThan($discountCode->starts_at)) {
-            return [null, __('pricing.code_not_started')];
+            return [null, __('pricing.code_not_started'), null];
         }
         if ($discountCode->ends_at !== null && $now->greaterThan($discountCode->ends_at)) {
-            return [null, __('pricing.code_expired')];
+            return [null, __('pricing.code_expired'), null];
         }
 
-        // c. applies to the product(s) (no rows = every product)
-        $restricted = DB::table('discount_code_products')->where('discount_code_id', $discountCode->id);
-        if ($restricted->exists() && ! (clone $restricted)->whereIn('product_id', $productIds)->exists()) {
-            return [null, __('pricing.code_wrong_product')];
+        // c. covers at least one of the products (all / products / categories and the ones under them)
+        $covered = $basket->covered(
+            $discountCode->applies_to,
+            $discountCode->applies_to === PromotionTarget::Products ? $discountCode->products()->pluck('products.id')->map(fn ($id) => (int) $id)->all() : [],
+            $discountCode->applies_to === PromotionTarget::Categories ? $discountCode->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all() : [],
+        );
+        if ($covered->isEmpty()) {
+            return [null, __('pricing.code_wrong_product'), null];
         }
 
         // d. total usage limit
         if ($discountCode->usage_limit !== null && $discountCode->used_count >= $discountCode->usage_limit) {
-            return [null, __('pricing.code_used_up')];
+            return [null, __('pricing.code_used_up'), null];
         }
 
-        // e. per-phone limit (unreleased uses of the same number)
-        if ($phone !== null && $phone !== '' && $discountCode->usage_limit_per_phone !== null) {
-            $uses = DiscountCodeRedemption::query()
-                ->where('discount_code_id', $discountCode->id)
-                ->where('phone', $phone)
-                ->whereNull('released_at')
-                ->count();
+        if ($phone !== null && $phone !== '') {
+            // e. per-phone limit (unreleased uses of the same number)
+            if ($discountCode->usage_limit_per_phone !== null) {
+                $uses = DiscountCodeRedemption::query()
+                    ->where('discount_code_id', $discountCode->id)
+                    ->where('phone', $phone)
+                    ->whereNull('released_at')
+                    ->count();
 
-            if ($uses >= $discountCode->usage_limit_per_phone) {
-                return [null, __('pricing.code_phone_limit')];
+                if ($uses >= $discountCode->usage_limit_per_phone) {
+                    return [null, __('pricing.code_phone_limit'), null];
+                }
+            }
+
+            // First order only: the number has no earlier real order.
+            if ($discountCode->first_order_only && Order::query()->where('customer_phone', $phone)
+                ->whereNotIn('status', [OrderStatus::Fake->value, OrderStatus::Cancelled->value])->exists()) {
+                return [null, __('pricing.code_first_order'), null];
             }
         }
 
-        // f. minimum order total (after the offer)
+        // f. minimum total (after the offers) and pieces of the covered products
         $minimum = $discountCode->minOrderTotalCents();
-        if ($minimum !== null && $afterOffer < $minimum) {
-            return [null, __('pricing.code_minimum', ['amount' => number_format($minimum / 100, $minimum % 100 === 0 ? 0 : 2)])];
+        if ($minimum !== null && $covered->total() < $minimum) {
+            return [null, __('pricing.code_minimum', ['amount' => number_format($minimum / 100, $minimum % 100 === 0 ? 0 : 2)]), null];
+        }
+        if ($discountCode->min_quantity !== null && $covered->quantity() < $discountCode->min_quantity) {
+            return [null, __('pricing.code_min_quantity', ['quantity' => $discountCode->min_quantity]), null];
         }
 
         // g. stacking with offers
-        if ($offerApplied && ! $discountCode->stackable_with_offers) {
-            return [null, __('pricing.code_not_stackable')];
+        if ($covered->hasOffer() && ! $discountCode->stackable_with_offers) {
+            return [null, __('pricing.code_not_stackable'), null];
         }
 
-        return [$discountCode, null];
+        return [$discountCode, null, $covered];
     }
 }

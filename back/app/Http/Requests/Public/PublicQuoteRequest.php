@@ -21,6 +21,7 @@ final class PublicQuoteRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'governorate' => ['nullable', 'string', 'max:60'],
             'offer_id' => ['nullable', 'integer', 'min:0'],
+            'shipping_company_id' => ['nullable', 'integer', 'min:1'],
             'ip' => ['nullable', 'ip'],
         ];
     }

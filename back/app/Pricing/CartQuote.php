@@ -7,7 +7,7 @@ namespace App\Pricing;
 use App\Models\DiscountCode;
 use App\Support\Money;
 
-/** A priced store cart: lines after their offers, the code on eligible lines, shipping (cents). */
+/** A priced store cart: lines after their offers, the code on the lines it covers, shipping (cents). */
 final readonly class CartQuote
 {
     /** @param list<CartLine> $lines */
@@ -17,9 +17,7 @@ final readonly class CartQuote
         public ?DiscountCode $code,
         public int $codeDiscount,
         public ?string $codeError,
-        public ?int $shipping,
-        public bool $shippingFree,
-        public bool $shippingAvailable,
+        public ShippingQuote $delivery,
         public int $total,
     ) {}
 
@@ -49,9 +47,7 @@ final readonly class CartQuote
             'code' => $this->code?->code,
             'code_discount' => Money::toFloat($this->codeDiscount),
             'code_error' => $this->codeError,
-            'shipping' => $this->shipping === null ? null : Money::toFloat($this->shipping),
-            'shipping_free' => $this->shippingFree,
-            'shipping_available' => $this->shippingAvailable,
+            ...$this->delivery->toArray(),
             'total' => Money::toFloat($this->total),
         ];
     }

@@ -43,6 +43,11 @@ use Illuminate\Support\Carbon;
  * @property int|null $discount_code_id
  * @property string|null $discount_code
  * @property string $code_discount
+ * @property string $shipping_fee
+ * @property int|null $shipping_company_id
+ * @property string|null $shipping_company_name
+ * @property string|null $shipping_offer_name
+ * @property string $shipping_discount
  * @property string $total
  * @property string $currency
  * @property bool $is_duplicate_suspect
@@ -61,7 +66,7 @@ class Order extends Model
         'order_number', 'landing_page_id', 'source', 'ab_test_id', 'product_id', 'status', 'status_changed_at',
         'customer_name', 'customer_phone', 'customer_phone2', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
         'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
-        'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'total', 'currency',
+        'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'shipping_company_id', 'shipping_company_name', 'shipping_offer_name', 'shipping_discount', 'total', 'currency',
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
     ];
 
@@ -82,6 +87,7 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'offer_discount' => 'decimal:2',
             'shipping_fee' => 'decimal:2',
+            'shipping_discount' => 'decimal:2',
             'code_discount' => 'decimal:2',
             'total' => 'decimal:2',
             'is_duplicate_suspect' => 'boolean',

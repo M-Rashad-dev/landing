@@ -76,7 +76,7 @@ final class StoreSite
                 'site_name' => $identity?->brand_name,
             ],
             'tracking' => $tracking,
-            'shipping' => $this->shipping->publicConfig(),
+            'shipping' => $this->shipping->publicConfig(now()),
             'branding' => ! $this->entitlements->allows(PlanFeature::RemoveBranding),
             'primary_host' => $primaryHost,
         ];

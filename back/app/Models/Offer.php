@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\OfferType;
 use App\Enums\PromotionStatus;
+use App\Enums\PromotionTarget;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LockableByPlan;
 use App\Support\Money;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $name
  * @property OfferType $type
+ * @property PromotionTarget $applies_to
  * @property string|null $value
  * @property int|null $bundle_quantity
  * @property string|null $bundle_price
@@ -40,12 +42,13 @@ class Offer extends Model
     /** @use HasFactory<OfferFactory> */
     use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
-    protected $fillable = ['name', 'type', 'value', 'bundle_quantity', 'bundle_price', 'starts_at', 'ends_at', 'is_active', 'badge_text', 'priority', 'min_quantity', 'free_quantity', 'gift_product_id'];
+    protected $fillable = ['name', 'type', 'applies_to', 'value', 'bundle_quantity', 'bundle_price', 'starts_at', 'ends_at', 'is_active', 'badge_text', 'priority', 'min_quantity', 'free_quantity', 'gift_product_id'];
 
     protected function casts(): array
     {
         return [
             'type' => OfferType::class,
+            'applies_to' => PromotionTarget::class,
             'value' => 'decimal:2',
             'bundle_quantity' => 'integer',
             'bundle_price' => 'decimal:2',
@@ -78,6 +81,26 @@ class Offer extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'offer_products')->withTimestamps();
+    }
+
+    /** @return BelongsToMany<Category, $this> */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'offer_categories');
+    }
+
+    /**
+     * Offers covering a product: every product, the product itself, or one of its categories
+     * (or a category above them).
+     *
+     * @param  Builder<Offer>  $query
+     * @param  list<int>  $categoryIds  the product's categories with their ancestors
+     */
+    public function scopeForProduct(Builder $query, int $productId, array $categoryIds): void
+    {
+        $query->where(fn (Builder $q) => $q->where('applies_to', PromotionTarget::All->value)
+            ->orWhere(fn (Builder $p) => $p->where('applies_to', PromotionTarget::Products->value)->whereHas('products', fn ($x) => $x->where('products.id', $productId)))
+            ->orWhere(fn (Builder $c) => $c->where('applies_to', PromotionTarget::Categories->value)->whereHas('categories', fn ($x) => $x->whereIn('categories.id', $categoryIds === [] ? [0] : $categoryIds))));
     }
 
     /**

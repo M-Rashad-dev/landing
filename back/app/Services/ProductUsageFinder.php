@@ -21,10 +21,11 @@ final class ProductUsageFinder
             ->all();
     }
 
-    /** Remove the product from offers and discount codes. */
+    /** Remove the product from offers, discount codes and shipping offers. */
     public function unlinkPromotions(Product $product): void
     {
         DB::table('offer_products')->where('tenant_id', $product->tenant_id)->where('product_id', $product->id)->delete();
         DB::table('discount_code_products')->where('tenant_id', $product->tenant_id)->where('product_id', $product->id)->delete();
+        $product->shippingOffers()->detach();
     }
 }

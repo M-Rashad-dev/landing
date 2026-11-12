@@ -193,7 +193,7 @@ it('returns the first failing code rule with an arabic message', function (strin
         'inactive' => $code(['is_active' => false]),
         'not started' => $code(['starts_at' => $this->now->addMinute()]),
         'expired' => $code(['ends_at' => $this->now->subMinute()]),
-        'other product' => $code()->products()->attach(Product::factory()->create()->id, ['tenant_id' => $this->tenant->id]),
+        'other product' => $code(['applies_to' => 'products'])->products()->attach(Product::factory()->create()->id, ['tenant_id' => $this->tenant->id]),
         'used up' => $code(['usage_limit' => 2, 'used_count' => 2]),
         'phone limit' => DiscountCodeRedemption::create([
             'discount_code_id' => $code(['usage_limit_per_phone' => 1])->id,

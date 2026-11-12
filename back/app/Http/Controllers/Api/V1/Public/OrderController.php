@@ -56,7 +56,7 @@ final class OrderController extends Controller
             // The product always comes from the page, never from the visitor.
             $offerId = OrderForm::chosenOffer(OrderForm::section($page->published_content), $data['offer_id'] ?? null);
 
-            return $calculator->quote($product, (int) $data['quantity'], (array) ($data['options'] ?? []), now(), $data['code'] ?? null, $phones->normalize($data['phone'] ?? null), governorate: $data['governorate'] ?? null, offerId: $offerId);
+            return $calculator->quote($product, (int) $data['quantity'], (array) ($data['options'] ?? []), now(), $data['code'] ?? null, $phones->normalize($data['phone'] ?? null), governorate: $data['governorate'] ?? null, offerId: $offerId, shippingCompanyId: isset($data['shipping_company_id']) ? (int) $data['shipping_company_id'] : null);
         });
 
         return $this->ok($quote->toArray());

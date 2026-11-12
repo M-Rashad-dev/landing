@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests\Dashboard;
 
 use App\Enums\OfferType;
+use App\Enums\PromotionTarget;
 use App\Http\Requests\ApiRequest;
+use App\Http\Requests\Dashboard\Concerns\TargetsProducts;
 use App\Models\Product;
 use App\Rules\CairoDateTime;
 use App\Rules\TenantExists;
@@ -16,6 +18,13 @@ use Illuminate\Validation\Validator;
 /** Section 7.2 offer rules. */
 final class OfferRequest extends ApiRequest
 {
+    use TargetsProducts;
+
+    protected function defaultTarget(): PromotionTarget
+    {
+        return PromotionTarget::Products;
+    }
+
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -62,8 +71,7 @@ final class OfferRequest extends ApiRequest
             'is_active' => ['sometimes', 'boolean'],
             'badge_text' => ['nullable', 'string', 'max:40'],
             'priority' => ['sometimes', 'integer', 'between:0,1000'],
-            'product_ids' => ['required', 'array', 'min:1', 'max:100'],
-            'product_ids.*' => ['integer', 'distinct', TenantExists::table('products')->ignoreTrashed()],
+            ...$this->targetRules(),
         ];
     }
 
@@ -80,12 +88,14 @@ final class OfferRequest extends ApiRequest
                 $validator->errors()->add('ends_at', __('promotions.ends_after_starts'));
             }
 
-            $products = Product::query()->whereIn('id', (array) $this->input('product_ids'))->get(['id', 'name', 'price']);
+            // The cheapest covered product decides (a discount or a bundle must stay below its price).
+            $cheapest = in_array($this->input('type'), [OfferType::Fixed->value, OfferType::Bundle->value], true)
+                ? $this->coveredProducts()->orderBy('price')->first(['id', 'name', 'price'])
+                : null;
 
             if ($this->input('type') === OfferType::Fixed->value) {
                 $value = Money::toCents((string) $this->input('value'));
-                $cheapest = $products->min(fn (Product $p) => $p->priceCents());
-                if ($cheapest !== null && $value >= $cheapest) {
+                if ($cheapest !== null && $value >= $cheapest->priceCents()) {
                     $validator->errors()->add('value', __('promotions.fixed_below_price'));
                 }
             }
@@ -104,12 +114,8 @@ final class OfferRequest extends ApiRequest
             if ($this->input('type') === OfferType::Bundle->value) {
                 $bundlePrice = Money::toCents((string) $this->input('bundle_price'));
                 $quantity = (int) $this->input('bundle_quantity');
-                foreach ($products as $product) {
-                    if ($bundlePrice >= $product->priceCents() * $quantity) {
-                        $validator->errors()->add('bundle_price', __('promotions.bundle_not_profitable', ['product' => $product->name]));
-
-                        break;
-                    }
+                if ($cheapest !== null && $bundlePrice >= $cheapest->priceCents() * $quantity) {
+                    $validator->errors()->add('bundle_price', __('promotions.bundle_not_profitable', ['product' => $cheapest->name]));
                 }
             }
         });
@@ -123,6 +129,7 @@ final class OfferRequest extends ApiRequest
         return [
             'name' => $this->validated('name'),
             'type' => $type,
+            'applies_to' => $this->target(),
             'value' => match ($type) {
                 OfferType::Percentage => Money::toDecimal(((int) $this->validated('value')) * 100),
                 OfferType::Fixed => Money::toDecimal(Money::toCents((string) $this->validated('value'))),
@@ -139,11 +146,5 @@ final class OfferRequest extends ApiRequest
             'free_quantity' => $type === OfferType::BuyGet ? (int) $this->validated('free_quantity') : null,
             'gift_product_id' => $type === OfferType::Gift ? (int) $this->validated('gift_product_id') : null,
         ];
-    }
-
-    /** @return list<int> */
-    public function productIds(): array
-    {
-        return array_values(array_map('intval', (array) $this->validated('product_ids')));
     }
 }

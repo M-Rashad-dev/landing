@@ -85,6 +85,12 @@ class Product extends Model
         return $this->belongsToMany(Category::class)->orderBy('position')->orderBy('id');
     }
 
+    /** @return BelongsToMany<ShippingOffer, $this> */
+    public function shippingOffers(): BelongsToMany
+    {
+        return $this->belongsToMany(ShippingOffer::class, 'shipping_offer_products');
+    }
+
     /** The main category among its categories (breadcrumb, SEO). @return BelongsTo<Category, $this> */
     public function primaryCategory(): BelongsTo
     {

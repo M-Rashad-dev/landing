@@ -15,18 +15,20 @@ final class SaveDiscountCode
 {
     /**
      * @param  array<string, mixed>  $data
-     * @param  list<int>  $productIds  empty = every product
+     * @param  list<int>  $productIds  when it covers products
+     * @param  list<int>  $categoryIds  when it covers categories
      */
-    public function handle(array $data, array $productIds, ?DiscountCode $code = null): DiscountCode
+    public function handle(array $data, array $productIds, array $categoryIds, ?DiscountCode $code = null): DiscountCode
     {
         if ($code === null) {
             app(Entitlements::class)->ensureCanAdd(PlanLimit::DiscountCodes);
         }
 
-        $code = DB::transaction(function () use ($data, $productIds, $code): DiscountCode {
+        $code = DB::transaction(function () use ($data, $productIds, $categoryIds, $code): DiscountCode {
             $code ??= new DiscountCode;
             $code->fill($data)->save();
             $code->products()->syncWithPivotValues($productIds, ['tenant_id' => (int) Tenancy::id()]);
+            $code->categories()->sync($categoryIds);
 
             return $code;
         });

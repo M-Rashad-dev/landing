@@ -22,11 +22,13 @@ final class DiscountCodeController extends Controller
 {
     use FiltersPromotionStatus;
 
+    private const WITH = ['products', 'categories:id,name'];
+
     public function index(Request $request): JsonResponse
     {
         $search = DiscountCode::normalizeCode((string) $request->query('q', ''));
         $query = DiscountCode::query()
-            ->with('products')
+            ->with(self::WITH)
             ->when($search !== '', fn ($q) => $q->where('code', 'like', '%'.addcslashes($search, '%_\\').'%'))
             ->latest('id');
         $this->filterStatus($query, $request->query('status'));
@@ -36,21 +38,21 @@ final class DiscountCodeController extends Controller
 
     public function store(DiscountCodeRequest $request, SaveDiscountCode $action): JsonResponse
     {
-        $code = $action->handle($request->codeData(), $request->productIds());
+        $code = $action->handle($request->codeData(), $request->productIds(), $request->categoryIds());
 
-        return $this->created(DiscountCodeResource::make($code->load('products'))->resolve($request));
+        return $this->created(DiscountCodeResource::make($code->load(self::WITH))->resolve($request));
     }
 
     public function show(DiscountCode $discountCode): JsonResponse
     {
-        return $this->ok(DiscountCodeResource::make($discountCode->load('products')));
+        return $this->ok(DiscountCodeResource::make($discountCode->load(self::WITH)));
     }
 
     public function update(DiscountCodeRequest $request, DiscountCode $discountCode, SaveDiscountCode $action): JsonResponse
     {
-        $code = $action->handle($request->codeData(), $request->productIds(), $discountCode);
+        $code = $action->handle($request->codeData(), $request->productIds(), $request->categoryIds(), $discountCode);
 
-        return $this->ok(DiscountCodeResource::make($code->load('products')));
+        return $this->ok(DiscountCodeResource::make($code->load(self::WITH)));
     }
 
     public function destroy(DiscountCode $discountCode, DeleteDiscountCode $action): Response
@@ -65,7 +67,7 @@ final class DiscountCodeController extends Controller
         $discountCode->update(['is_active' => ! $discountCode->is_active]);
         RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
 
-        return $this->ok(DiscountCodeResource::make($discountCode->load('products')));
+        return $this->ok(DiscountCodeResource::make($discountCode->load(self::WITH)));
     }
 
     public function redemptions(Request $request, DiscountCode $discountCode): JsonResponse

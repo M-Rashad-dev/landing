@@ -102,7 +102,7 @@ final class PageController extends Controller
             'product' => $data->product($page->product),
             'offers' => $data->offers($page->product, now()),
             'media' => (object) $data->media($page->draft_content),
-            'shipping' => $shipping->publicConfig(),
+            'shipping' => $shipping->publicConfig(now()),
             // A store home previews its sections with the real catalog.
             'store' => $page->isStoreHome() ? $this->storePreview($page) : null,
         ]);

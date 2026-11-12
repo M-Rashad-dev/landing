@@ -8,12 +8,15 @@ enum DiscountType: string
 {
     case Percentage = 'percentage';
     case Fixed = 'fixed';
+    /** No discount on the products: the delivery fee becomes zero. */
+    case FreeShipping = 'free_shipping';
 
     public function label(): string
     {
         return match ($this) {
             self::Percentage => 'نسبة',
             self::Fixed => 'مبلغ ثابت',
+            self::FreeShipping => 'شحن مجاني',
         };
     }
 

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\DiscountType;
 use App\Enums\PromotionStatus;
+use App\Enums\PromotionTarget;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LockableByPlan;
 use App\Support\Money;
@@ -22,9 +23,12 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $code
  * @property DiscountType $type
+ * @property PromotionTarget $applies_to
  * @property string $value
  * @property string|null $max_discount
  * @property string|null $min_order_total
+ * @property int|null $min_quantity
+ * @property bool $first_order_only
  * @property Carbon|null $starts_at
  * @property Carbon|null $ends_at
  * @property int|null $usage_limit
@@ -39,14 +43,17 @@ class DiscountCode extends Model
     use BelongsToTenant, HasFactory, LockableByPlan, SoftDeletes;
 
     protected $fillable = [
-        'code', 'type', 'value', 'max_discount', 'min_order_total', 'starts_at', 'ends_at',
-        'usage_limit', 'usage_limit_per_phone', 'stackable_with_offers', 'is_active',
+        'code', 'type', 'applies_to', 'value', 'max_discount', 'min_order_total', 'min_quantity', 'starts_at', 'ends_at',
+        'usage_limit', 'usage_limit_per_phone', 'first_order_only', 'stackable_with_offers', 'is_active',
     ];
 
     protected function casts(): array
     {
         return [
             'type' => DiscountType::class,
+            'applies_to' => PromotionTarget::class,
+            'min_quantity' => 'integer',
+            'first_order_only' => 'boolean',
             'value' => 'decimal:2',
             'max_discount' => 'decimal:2',
             'min_order_total' => 'decimal:2',
@@ -74,6 +81,12 @@ class DiscountCode extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'discount_code_products')->withTimestamps();
+    }
+
+    /** @return BelongsToMany<Category, $this> */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'discount_code_categories');
     }
 
     /** @return HasMany<DiscountCodeRedemption, $this> */

@@ -10,6 +10,7 @@ use App\Models\Identity;
 use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
+use App\Pricing\CategoryAncestry;
 use App\Support\ContentMedia;
 use App\Support\Money;
 use Carbon\CarbonInterface;
@@ -20,6 +21,8 @@ use Carbon\CarbonInterface;
  */
 final class PublicPageData
 {
+    public function __construct(private readonly CategoryAncestry $ancestry = new CategoryAncestry) {}
+
     /** @return array<string, mixed> */
     public function identity(Identity $identity): array
     {
@@ -70,7 +73,7 @@ final class PublicPageData
 
         return Offer::query()
             ->servable()
-            ->whereHas('products', fn ($q) => $q->where('products.id', $product->id))
+            ->forProduct($product->id, $this->ancestry->forProducts([$product])[$product->id] ?? [])
             ->where(fn ($q) => $q->where(fn ($active) => $active->activeAt($now))->orWhere(fn ($soon) => $soon->upcomingAt($now)))
             ->with('giftProduct')
             ->orderByDesc('priority')

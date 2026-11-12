@@ -28,7 +28,9 @@ use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
+use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
@@ -171,6 +173,11 @@ Route::prefix('dashboard')
 
         Route::get('shipping', [ShippingController::class, 'show']);
         Route::put('shipping', [ShippingController::class, 'update']);
+        Route::put('shipping-companies/order', [ShippingCompanyController::class, 'reorder']);
+        Route::apiResource('shipping-companies', ShippingCompanyController::class)->except('index');
+        Route::post('shipping-companies/{shipping_company}/toggle', [ShippingCompanyController::class, 'toggle']);
+        Route::apiResource('shipping-offers', ShippingOfferController::class);
+        Route::post('shipping-offers/{shipping_offer}/toggle', [ShippingOfferController::class, 'toggle']);
 
         Route::get('domains', [DomainController::class, 'index']);
         Route::put('domains/subdomain', [DomainController::class, 'updateSubdomain']);
