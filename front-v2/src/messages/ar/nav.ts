@@ -11,6 +11,8 @@ export const nav = {
   items: {
     home: "الرئيسية",
     orders: "الطلبات",
+    abandoned: "الطلبات المتروكة",
+    customers: "العملاء",
     products: "المنتجات",
     categories: "التصنيفات",
     themeHome: "الثيم والرئيسية",

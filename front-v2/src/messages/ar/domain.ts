@@ -3,8 +3,9 @@ export const domain = {
   orderStatus: {
     new: "جديد",
     confirmed: "مؤكد",
+    shipped: "تم الشحن",
     delivered: "تم التسليم",
-    returned: "مرتجع",
+    returned: "مسترجع",
     damaged: "تالف",
     fake: "وهمي",
     cancelled: "ملغي",

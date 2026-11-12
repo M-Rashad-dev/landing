@@ -9,9 +9,10 @@ import { common } from "./ar/common";
 import { domain } from "./ar/domain";
 import { media } from "./ar/media";
 import { nav } from "./ar/nav";
+import { orders } from "./ar/orders";
 import { promotions } from "./ar/promotions";
 import { shipping } from "./ar/shipping";
 import { showcase } from "./ar/showcase";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders } as const;

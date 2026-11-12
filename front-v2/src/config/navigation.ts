@@ -12,9 +12,11 @@ import {
   Palette,
   Settings,
   ShoppingBag,
+  ShoppingCart,
   Tag,
   TicketPercent,
   Truck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { ar } from "@/messages/ar";
@@ -32,7 +34,14 @@ export type NavGroup = { label?: string; items: NavItem[] };
 
 export const DASHBOARD_NAV: NavGroup[] = [
   { items: [{ href: "/dashboard", label: t.items.home, icon: Home, status: "soon", exact: true }] },
-  { label: t.groups.sales, items: [{ href: "/dashboard/orders", label: t.items.orders, icon: ShoppingBag, status: "soon" }] },
+  {
+    label: t.groups.sales,
+    items: [
+      { href: "/dashboard/orders", label: t.items.orders, icon: ShoppingBag, status: "ready" },
+      { href: "/dashboard/abandoned", label: t.items.abandoned, icon: ShoppingCart, status: "ready" },
+      { href: "/dashboard/customers", label: t.items.customers, icon: Users, status: "ready" },
+    ],
+  },
   {
     label: t.groups.store,
     items: [

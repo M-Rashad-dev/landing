@@ -17,7 +17,7 @@ const columns: Column<Row>[] = [
 describe("navigation", () => {
   it("opens only the parts already built", () => {
     const all = [...DASHBOARD_NAV.flatMap((g) => g.items), ...DASHBOARD_FOOTER_NAV];
-    expect(all.filter((i) => i.status === "ready").map((i) => i.href)).toEqual(["/dashboard/catalog/products", "/dashboard/catalog/categories", "/dashboard/shipping", "/dashboard/marketing/offers", "/dashboard/marketing/coupons", "/dashboard/components"]);
+    expect(all.filter((i) => i.status === "ready").map((i) => i.href)).toEqual(["/dashboard/orders", "/dashboard/abandoned", "/dashboard/customers", "/dashboard/catalog/products", "/dashboard/catalog/categories", "/dashboard/shipping", "/dashboard/marketing/offers", "/dashboard/marketing/coupons", "/dashboard/components"]);
     expect(isActive("/dashboard/components", { href: "/dashboard/components" })).toBe(true);
     expect(isActive("/dashboard/x", { href: "/dashboard", exact: true })).toBe(false);
   });

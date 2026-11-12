@@ -56,7 +56,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
     <ShellContext.Provider value={shell}>
     <TooltipProvider>
       <div className="flex min-h-dvh">
-        <aside className={cn("sticky top-0 hidden h-dvh shrink-0 transition-[width] duration-200 lg:block", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")}>
+        <aside className={cn("sticky top-0 hidden h-dvh shrink-0 transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")}>
           <Sidebar collapsed={collapsed} onToggle={toggle} />
         </aside>
 
@@ -72,7 +72,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
         </DialogPrimitive.Root>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-bg/90 px-4 backdrop-blur sm:px-6">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-bg/90 px-4 backdrop-blur sm:px-6 print:hidden">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label={ar.nav.openMenu}>
               <MenuIcon />
             </Button>
