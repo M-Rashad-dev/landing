@@ -15,12 +15,13 @@ use Illuminate\Database\Eloquent\Model;
  * @property BlockType $type
  * @property string $value
  * @property string|null $reason
+ * @property string|null $rule null = blocked by the merchant, else App\Actions\Orders\AutoBlock's rule
  */
 class BlockedCustomer extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['type', 'value', 'reason'];
+    protected $fillable = ['type', 'value', 'reason', 'rule'];
 
     protected function casts(): array
     {

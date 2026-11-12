@@ -9,6 +9,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\BlockedCustomer;
+use App\Models\Customer;
 use App\Services\PhoneNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,16 @@ final class BlockedCustomerController extends Controller
         $type = (string) $request->query('type', '');
         if (in_array($type, ['phone', 'ip'], true)) {
             $query->where('type', $type);
+        }
+        if ($request->query('by') === 'auto') {
+            $query->whereNotNull('rule');
+        } elseif ($request->query('by') === 'merchant') {
+            $query->whereNull('rule');
+        }
+        $q = trim((string) $request->query('q', ''));
+        if ($q !== '') {
+            $digits = ltrim((string) preg_replace('/\D+/', '', $q), '0');
+            $query->where(fn ($w) => $w->where('value', 'like', '%'.addcslashes($digits !== '' ? $digits : $q, '%_\\').'%')->orWhere('reason', 'like', '%'.addcslashes($q, '%_\\').'%'));
         }
 
         $page = $query->paginate($this->perPage($request));
@@ -67,6 +78,10 @@ final class BlockedCustomerController extends Controller
 
     public function destroy(BlockedCustomer $blockedCustomer): Response
     {
+        // Lifting an automatic block: the rules leave this customer alone from now on.
+        if ($blockedCustomer->type === BlockType::Phone && $blockedCustomer->rule !== null) {
+            Customer::query()->where('phone', $blockedCustomer->value)->update(['block_exempt' => true]);
+        }
         $blockedCustomer->delete();
 
         return $this->noContent();
@@ -80,6 +95,8 @@ final class BlockedCustomerController extends Controller
             'type' => $blocked->type->value,
             'value' => $blocked->value,
             'reason' => $blocked->reason,
+            'rule' => $blocked->rule,
+            'customer_id' => $blocked->type === BlockType::Phone ? Customer::query()->where('phone', $blocked->value)->value('id') : null,
             'created_at' => $blocked->created_at?->toIso8601ZuluString(),
         ];
     }

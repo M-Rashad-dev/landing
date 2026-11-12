@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $city
  * @property string|null $address
  * @property string|null $note
+ * @property bool $block_exempt the merchant lifted an automatic block: never blocked automatically again
  * @property Carbon|null $first_order_at
  * @property Carbon|null $last_order_at
  */
@@ -27,11 +28,11 @@ class Customer extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['phone', 'name', 'governorate', 'city', 'address', 'note', 'first_order_at', 'last_order_at'];
+    protected $fillable = ['phone', 'name', 'governorate', 'city', 'address', 'note', 'block_exempt', 'first_order_at', 'last_order_at'];
 
     protected function casts(): array
     {
-        return ['first_order_at' => 'datetime', 'last_order_at' => 'datetime'];
+        return ['first_order_at' => 'datetime', 'last_order_at' => 'datetime', 'block_exempt' => 'boolean'];
     }
 
     /** @return HasMany<Order, $this> */

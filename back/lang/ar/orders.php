@@ -32,4 +32,7 @@ return [
     'upsell_closed' => 'العرض ده مبقاش متاح.',
     'upsell_product_options' => 'اختار منتج مالوش اختيارات إجبارية (المقاس أو اللون)، لأن العرض بيتضاف بضغطة واحدة.',
     'upsell_same_product' => 'المنتج المعروض لازم يكون مختلف عن منتج الطلب.',
+    'auto_block_per_day' => 'حظر تلقائي: :count طلبات في يوم واحد.',
+    'auto_block_same_in_row' => 'حظر تلقائي: نفس الطلب :count مرات ورا بعض.',
+    'auto_block_returns' => 'حظر تلقائي: :returned طلبات مرتجعة من :total.',
 ];

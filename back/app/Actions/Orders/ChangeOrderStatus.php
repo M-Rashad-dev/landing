@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ChangeOrderStatus
 {
-    public function __construct(private readonly WebhookDispatcher $webhooks, private readonly Stock $stock) {}
+    public function __construct(private readonly WebhookDispatcher $webhooks, private readonly Stock $stock, private readonly AutoBlock $autoBlock) {}
 
     /** @param array{block_phone?: bool, block_ip?: bool, tracking_number?: string|null} $options */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
@@ -73,6 +73,9 @@ final class ChangeOrderStatus
             return $locked;
         });
 
+        if ($to === OrderStatus::Returned) {
+            $this->autoBlock->afterReturn($changed);
+        }
         $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
 
         return $changed;

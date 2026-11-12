@@ -78,3 +78,45 @@ describe("StatusDialog", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ ids: [1, 2], status: "delivered" });
   });
 });
+
+describe("ConfirmQueue", () => {
+  it("confirms the current order with the C key", async () => {
+    const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
+    const { SessionProvider } = await import("@/lib/auth/session-context");
+    const { ConfirmQueue } = await import("./confirm-queue");
+    const row = { id: 9, order_number: 1050, status: "new", customer_name: "منى", customer_phone: "+201012345678", total: 300, follow_up_at: null };
+    const detail = {
+      ...row,
+      status_label: "جديد",
+      source: "store",
+      page: null,
+      created_at: "2026-11-12T10:00:00Z",
+      customer_phone2: null,
+      governorate: "القاهرة",
+      city: null,
+      address: "شارع 9",
+      notes: null,
+      contact_attempts: 0,
+      is_duplicate_suspect: false,
+      items: [{ id: 1, product_id: 1, product_name: "ساعة", is_upsell: false, is_gift: false, unit_price: 300, quantity: 1, options: [], offer_name: null, offer_discount: 0, line_total: 300 }],
+      customer_history: { total: 0, counts: {}, bad_ratio: 0, phone_blocked: false, ip_blocked: false, orders: [] },
+    };
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("confirmation-queue")) return Response.json({ data: [row], meta: { due: 1, later: 0 } });
+      if (init?.method === "POST") return Response.json({ data: { ...detail, status: "confirmed" } });
+      return Response.json({ data: detail });
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <SessionProvider value={{ user: null, tenant: null, plan: null, store_name: "نعناع", storeUrl: null } as never}>
+          <ConfirmQueue />
+        </SessionProvider>
+      </QueryClientProvider>,
+    );
+    await screen.findByText(ar.orders.queue.confirm);
+    fireEvent.keyDown(window, { key: "c" });
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u, i]) => String(u).endsWith("/orders/9/status") && i?.method === "POST")).toBe(true));
+    const post = fetchMock.mock.calls.find(([u, i]) => String(u).endsWith("/orders/9/status") && i?.method === "POST")!;
+    expect(JSON.parse(post[1].body)).toEqual({ status: "confirmed" });
+  });
+});

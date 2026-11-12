@@ -1,12 +1,14 @@
 "use client";
 
 import { Ban, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { DataTable, FilterBar, Pagination, type Column } from "@/components/data/data-table";
 import { EntityCell } from "@/components/data/details";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/feedback";
 import { Select } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,6 +97,14 @@ export function CustomersPage() {
       <PageHeader
         title={t.title}
         description={t.description}
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/dashboard/customers/blocked">
+              <Ban />
+              {ar.orders.blocked.open}
+            </Link>
+          </Button>
+        }
         tabs={
           <Tabs value={filters.segment} onValueChange={(v) => setUrl({ segment: v === "all" ? null : v, page: null })}>
             <TabsList>

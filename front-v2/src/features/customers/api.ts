@@ -25,6 +25,8 @@ export type CustomerRow = {
 
 export type CustomerDetail = CustomerRow & {
   note: string | null;
+  block: { reason: string | null; rule: string | null; created_at: string | null } | null;
+  block_exempt: boolean;
   city: string | null;
   address: string | null;
   first_order_at: string | null;

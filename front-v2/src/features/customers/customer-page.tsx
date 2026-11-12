@@ -73,7 +73,11 @@ export function CustomerPage({ id }: { id: number }) {
             ) : null}
           </span>
         }
-        description={c.first_order_at ? d.since(formatDateTime(c.first_order_at).slice(0, 10)) : undefined}
+        description={
+          [c.first_order_at ? d.since(formatDateTime(c.first_order_at).slice(0, 10)) : null, c.block?.rule ? d.autoBlocked(c.block.reason ?? "") : null, c.block_exempt ? d.exempt : null]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        }
         actions={
           <>
             <Button asChild variant="outline">

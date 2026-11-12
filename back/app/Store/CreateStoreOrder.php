@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Store;
 
+use App\Actions\Orders\AutoBlock;
 use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Orders\LinkCustomer;
@@ -45,6 +46,7 @@ final class CreateStoreOrder
         private readonly CaptureLead $leads,
         private readonly WebhookDispatcher $webhooks,
         private readonly LinkCustomer $customers,
+        private readonly AutoBlock $autoBlock,
     ) {}
 
     /**
@@ -156,6 +158,7 @@ final class CreateStoreOrder
         }
         RateLimiter::hit($phoneKey, CreateOrder::LIMIT_WINDOW_SECONDS);
         $this->leads->converted($order, isset($input['cart_token']) && is_string($input['cart_token']) ? $input['cart_token'] : null);
+        $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
 
         return ['order_number' => $order->order_number, 'total' => (float) $order->total];

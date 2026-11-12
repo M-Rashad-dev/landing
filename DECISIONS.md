@@ -249,3 +249,10 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **Storefront customer accounts are later (with the new storefront, F6)**: phone + OTP; both WhatsApp and SMS senders, the super admin switches which one is live. They attach to the same `customers` row, so the customer sees every order and its tracking without typing numbers.
   - **Abandoned**: three kinds in one page: page order forms (`landing`), checkout reached with a phone but not confirmed (`store`), carts (`cart`, by a browser cart token, the phone may be unknown; `POST public/store/carts`, debounced by the storefront; an emptied cart is removed, a cart that reaches checkout is followed up as a checkout, the order converts it). The current storefront (old front, frozen) does not send carts yet: the new storefront will. Customer online payment is not part of this (COD only).
 
+- **Automatic blocking (Nov 2026, owner rules; `config/landing.php` → `auto_block`, `App\Actions\Orders\AutoBlock`)**: per source, counting the phone's orders from that source only.
+  - Landing pages: the same order 3 times in a row (same products, within 24 h), or 5 orders in one Cairo day, or at least 3 returned orders that are more than 75 % of its orders.
+  - Store: the same order 3 times in a row, or 6 orders in a day, or at least 5 returned orders that are more than 75 %.
+  - "Same order" = same products, whatever the quantities or their order in the cart. Returns count the «مسترجع» status only (refused at the door or sent back); cancelled orders are left out of the total. Example: 4 returned of 20 → no block.
+  - The order that meets a rule is kept (it may be real); the phone is blocked for the next ones (`blocked_customers.rule` says which rule, the reason is written in Arabic).
+  - Lifting an automatic block marks the customer `block_exempt`: the rules never block them again. Blocking them again by hand clears that.
+

@@ -85,6 +85,18 @@ return [
 
     'duplicate_order_window_hours' => 24,
 
+    /*
+     * Automatic phone blocking (owner rules, Nov 2026), per where the order came from:
+     * same_in_row = that many identical orders in a row (same products, within window_hours);
+     * per_day = that many orders in one Cairo day; returns = at least returns_min returned
+     * orders that are more than returns_ratio % of the phone's orders (not counting cancelled).
+     */
+    'auto_block' => [
+        'window_hours' => 24,
+        'landing' => ['same_in_row' => 3, 'per_day' => 5, 'returns_min' => 3, 'returns_ratio' => 75],
+        'store' => ['same_in_row' => 3, 'per_day' => 6, 'returns_min' => 5, 'returns_ratio' => 75],
+    ],
+
     'order_number_start' => 1001,
 
     'fonts' => ['cairo', 'tajawal', 'almarai', 'ibm_plex_arabic', 'noto_kufi', 'readex_pro'],

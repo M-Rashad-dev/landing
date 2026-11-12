@@ -73,8 +73,12 @@ final class CustomerController extends Controller
         $customer = $this->withStats(Customer::query())->whereKey($customer->id)->firstOrFail();
         $byStatus = $customer->orders()->selectRaw('status, count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
 
+        $block = BlockedCustomer::query()->where('type', BlockType::Phone)->where('value', $customer->phone)->first();
+
         return $this->ok([
-            ...$this->row($customer, $this->blockedPhones([$customer->phone]) !== []),
+            ...$this->row($customer, $block !== null),
+            'block' => $block === null ? null : ['reason' => $block->reason, 'rule' => $block->rule, 'created_at' => $block->created_at?->toIso8601ZuluString()],
+            'block_exempt' => $customer->block_exempt,
             'note' => $customer->note,
             'city' => $customer->city,
             'address' => $customer->address,
@@ -107,8 +111,14 @@ final class CustomerController extends Controller
                 ['type' => BlockType::Phone, 'value' => $customer->phone],
                 ['reason' => isset($data['reason']) ? trim(strip_tags($data['reason'])) : null],
             );
+            $customer->update(['block_exempt' => false]);
         } else {
-            BlockedCustomer::query()->where('type', BlockType::Phone)->where('value', $customer->phone)->delete();
+            $block = BlockedCustomer::query()->where('type', BlockType::Phone)->where('value', $customer->phone)->first();
+            // Lifting an automatic block is the merchant's call: the rules leave this customer alone from now on.
+            if ($block !== null && $block->rule !== null) {
+                $customer->update(['block_exempt' => true]);
+            }
+            $block?->delete();
         }
 
         return $this->show($customer);

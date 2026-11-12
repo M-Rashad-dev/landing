@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, ShoppingBag } from "lucide-react";
+import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, ShoppingBag } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { DataTable, FilterBar, Pagination, type Column } from "@/components/data/data-table";
@@ -33,6 +34,7 @@ import {
   type OrderStatus,
   type OrderTab,
 } from "./api";
+import { useConfirmQueue } from "./confirm-queue";
 import { OrderQuickView } from "./order-quick-view";
 import { StatusDialog } from "./status-dialog";
 
@@ -57,6 +59,7 @@ export function OrdersPage() {
   };
   const query = useOrders(filters);
   const stats = useOrderStats(filters);
+  const queue = useConfirmQueue();
   const shipping = useShipping();
   const refresh = useRefreshOrders();
   const [selected, setSelected] = React.useState<Array<string | number>>([]);
@@ -223,10 +226,18 @@ export function OrdersPage() {
         title={t.title}
         description={t.description}
         actions={
-          <Button variant="outline" onClick={() => void onExport()} loading={exporting}>
-            <Download />
-            {exporting ? t.exporting : t.export}
-          </Button>
+          <>
+            <Button asChild>
+              <Link href="/dashboard/orders/confirm">
+                <PhoneCall />
+                {t.queue.open(queue.data?.meta.due ?? 0)}
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={() => void onExport()} loading={exporting}>
+              <Download />
+              {exporting ? t.exporting : t.export}
+            </Button>
+          </>
         }
         tabs={
           <Tabs value={filters.tab} onValueChange={(v) => set({ tab: v === "all" ? null : v })}>

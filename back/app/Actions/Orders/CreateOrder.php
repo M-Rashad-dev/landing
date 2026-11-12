@@ -50,6 +50,7 @@ final class CreateOrder
         private readonly WebhookDispatcher $webhooks,
         private readonly Stock $stock,
         private readonly LinkCustomer $customers,
+        private readonly AutoBlock $autoBlock,
     ) {}
 
     /**
@@ -215,6 +216,7 @@ final class CreateOrder
         }
         RateLimiter::hit($phoneKey, self::LIMIT_WINDOW_SECONDS);
         $this->leads->converted($order);
+        $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
 
         // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
