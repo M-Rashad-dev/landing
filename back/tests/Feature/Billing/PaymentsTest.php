@@ -313,3 +313,14 @@ it('counts money waiting for the admin on the overview', function () {
 
     $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.pending_payments', 1)->assertJsonPath('data.refund_requests', 0);
 });
+
+it('lists only invoices that have a receipt (or were paid / refunded)', function () {
+    $owner = payOwner('basic');
+    $id = buyPlan('pro')->assertCreated()->json('data.id');
+    // A leftover invoice from the old flow: opened, never paid, cancelled.
+    $leftover = Invoice::query()->withoutGlobalScopes()->whereKey($id)->firstOrFail()->replicate(['number']);
+    $leftover->forceFill(['number' => 'INV-LEFT', 'status' => 'cancelled'])->save();
+
+    $this->getJson('/api/v1/dashboard/billing/invoices')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $id)->assertJsonPath('data.0.status', 'pending_review');
+    expect($owner->tenant_id)->toBe($leftover->tenant_id);
+});

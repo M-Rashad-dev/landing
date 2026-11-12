@@ -11,6 +11,7 @@ use App\Billing\Payments\PaymentGateways;
 use App\Billing\Payments\ReceiptStore;
 use App\Billing\Payments\Refunds;
 use App\Billing\PlatformSettings;
+use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\CheckoutRequest;
@@ -40,7 +41,12 @@ final class InvoiceController extends Controller
 
     public function index(Request $request, Refunds $refunds): JsonResponse
     {
-        $page = Invoice::query()->with('payments.method:key,name')->orderByDesc('id')->paginate($this->perPage($request));
+        // A bill exists for the merchant once a receipt was sent (or it was paid / refunded).
+        $page = Invoice::query()
+            ->where(fn ($q) => $q->whereHas('payments')->orWhereIn('status', [InvoiceStatus::Paid->value, InvoiceStatus::Refunded->value]))
+            ->with('payments.method:key,name')
+            ->orderByDesc('id')
+            ->paginate($this->perPage($request));
 
         return $this->paginated($page, InvoiceResource::class, [
             'refundable_invoice_id' => $refunds->refundableInvoice($this->tenant($request))?->id,

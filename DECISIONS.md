@@ -258,3 +258,10 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
 
 - **Home (Nov 2026)**: `GET dashboard/home?from&to` (Cairo days, default the last 30, at most 366), compared with the same number of days just before. Sales = orders that are not cancelled or fake; «المبيعات المستلمة» = delivered; confirmation rate = confirmed or later out of the orders already called (still-new left out); delivery / return rate = out of orders that reached an end on delivery (delivered, returned, damaged). Rates compare in points; no comparison when the previous period had no orders. «محتاج منك دلوقتي» is not tied to the period (to confirm now, shipped more than 7 days ago, open abandoned with a phone, out / low stock, promotions ending within 3 days). Setup steps: product, shipping (on with an active company), store live (plans with the store); **a custom domain is optional** and never blocks «جاهز». The old `overview` endpoint stays for the old front.
 
+- **Store settings and «الإعدادات» (Nov 2026, owner)**:
+  - **No currency setting** (Egyptian pounds only).
+  - **Store payment methods**: cash on delivery is the only one that works; cards, wallets (Vodafone Cash…), InstaPay, bank transfer and instalments are shown locked with «قريبًا» (display only, nothing stored) until online payment is built.
+  - The store page shows what still stops the store (plan without store → upgrade, store not prepared → prepare, home not published → publish it with its default content, switched off → switch) and fixes each in place.
+  - **A custom domain stays optional** everywhere (setup steps, store page).
+  - **Platform invoices exist for the merchant once a receipt is sent**: the list hides invoices with no payment (leftovers of the old flow); a bill reads «قيد المراجعة» / «مقبولة» / «مرفوضة» (with Maksab's reason) / «مسترجعة». After a rejection the invoice reopens for the platform's invoice window and another receipt can be sent on it. Receipts go through the browser image compression like every upload.
+

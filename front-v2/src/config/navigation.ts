@@ -11,6 +11,7 @@ import {
   Package,
   Palette,
   Settings,
+  Store,
   ShoppingBag,
   ShoppingCart,
   Tag,
@@ -48,6 +49,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/catalog/products", label: t.items.products, icon: Package, status: "ready" },
       { href: "/dashboard/catalog/categories", label: t.items.categories, icon: FolderTree, status: "ready" },
       { href: "/dashboard/shipping", label: t.items.shipping, icon: Truck, status: "ready" },
+      { href: "/dashboard/store", label: t.items.storeSettings, icon: Store, status: "ready" },
     ],
   },
   {
@@ -73,7 +75,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
 
 /** Pinned at the bottom of the sidebar. */
 export const DASHBOARD_FOOTER_NAV: NavItem[] = [
-  { href: "/dashboard/settings", label: t.items.settings, icon: Settings, status: "soon" },
+  { href: "/dashboard/settings", label: t.items.settings, icon: Settings, status: "ready" },
   { href: "/dashboard/components", label: t.items.components, icon: Blocks, status: "ready" },
 ];
 

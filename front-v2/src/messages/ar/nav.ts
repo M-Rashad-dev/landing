@@ -22,6 +22,7 @@ export const nav = {
     offers: "العروض",
     coupons: "كوبونات الخصم",
     shipping: "الشحن",
+    storeSettings: "إعدادات المتجر",
     upsells: "عروض ما بعد الطلب",
     landings: "صفحات الهبوط",
     analytics: "التحليلات",

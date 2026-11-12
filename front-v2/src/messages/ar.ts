@@ -12,8 +12,9 @@ import { media } from "./ar/media";
 import { nav } from "./ar/nav";
 import { orders } from "./ar/orders";
 import { promotions } from "./ar/promotions";
+import { settings } from "./ar/settings";
 import { shipping } from "./ar/shipping";
 import { showcase } from "./ar/showcase";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings } as const;

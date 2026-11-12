@@ -46,8 +46,8 @@ type Home = {
 const SETUP_LINKS: Record<SetupKey, string> = {
   product: "/dashboard/catalog/products/new",
   shipping: "/dashboard/shipping",
-  store: "/dashboard/design/theme",
-  domain: "/dashboard/settings",
+  store: "/dashboard/store",
+  domain: "/dashboard/settings/domains",
 };
 const READY = new Set([...DASHBOARD_NAV.flatMap((g) => g.items), ...DASHBOARD_FOOTER_NAV].filter((i) => i.status === "ready").map((i) => i.href));
 const ready = (href: string) => READY.has(href) || [...READY].some((h) => h !== "/dashboard" && href.startsWith(`${h}/`));
