@@ -132,8 +132,10 @@ function Editor({ initial }: { initial: DesignPayload }) {
   function select(id: Edit) {
     setSelected(id);
     if (id && id !== "look" && id !== "general") {
-      const el = frame.current?.querySelector(id === "header" ? "header" : id === "footer" ? "footer" : `#section-${CSS.escape(id)}`);
-      el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      const box = frame.current;
+      const el = box?.querySelector(id === "header" ? "header" : id === "footer" ? "footer" : `#section-${CSS.escape(id)}`);
+      // Scroll the preview only: scrollIntoView would also move the page around it.
+      if (box && el) box.scrollTo?.({ top: el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop, behavior: "smooth" });
     }
   }
 

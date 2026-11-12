@@ -114,6 +114,11 @@ export function Header() {
   );
 }
 
+/** wa.me wants the number in international form: Egyptian 01… becomes 201…. */
+function whatsappLink(number: string): string {
+  return `https://wa.me/${number.replace(/\D/g, "").replace(/^0/, "20")}`;
+}
+
 /** About, pages, contact and social, then the copyright and «صنع بواسطة مكسب» (always shown for now). */
 export function Footer() {
   const { settings, data, storeName } = useTheme();
@@ -121,11 +126,13 @@ export function Footer() {
   const socials = SOCIALS.filter((s) => f.social[s]);
   const contact = [
     f.phone ? { icon: Phone, label: f.phone, href: `tel:${f.phone.replace(/\s+/g, "")}`, ltr: true } : null,
-    f.whatsapp ? { icon: MessageCircle, label: f.whatsapp, href: `https://wa.me/${f.whatsapp.replace(/\D/g, "").replace(/^0/, "20")}`, ltr: true } : null,
+    f.whatsapp ? { icon: MessageCircle, label: f.whatsapp, href: whatsappLink(f.whatsapp), ltr: true } : null,
     f.email ? { icon: Mail, label: f.email, href: `mailto:${f.email}`, ltr: true } : null,
     f.address ? { icon: MapPin, label: f.address, href: null, ltr: false } : null,
   ].filter(Boolean) as Array<{ icon: typeof Phone; label: string; href: string | null; ltr: boolean }>;
   const pages = f.show_pages ? data.pages : [];
+  // The floating WhatsApp button sits at the bottom end: keep «صنع بواسطة مكسب» clear of it.
+  const floating = settings.general.whatsapp_button && Boolean(f.whatsapp);
 
   return (
     <footer className="mt-10 border-t bg-(--as-card)">
@@ -178,7 +185,7 @@ export function Footer() {
         ) : null}
       </div>
       <div className="border-t">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 @3xl:flex-row @3xl:px-6">
+        <div className={cn("mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 @3xl:flex-row @3xl:px-6", floating && "@3xl:pe-24")}>
           <p className="as-xs as-muted">{t.footer.rights(storeName, new Date().getFullYear())}</p>
           <span className="as-xs inline-flex items-center gap-1.5 rounded-full border bg-(--as-bg) px-3 py-1.5 font-semibold shadow-sm">
             {t.madeBy}
@@ -195,10 +202,11 @@ export function WhatsappButton() {
   const number = settings.footer.whatsapp;
   if (!settings.general.whatsapp_button || !number) return null;
   return (
-    <div className="pointer-events-none sticky bottom-4 z-40 flex justify-end px-4">
+    // A zero-height sticky line: the button floats over the page without adding space under the footer.
+    <div className="pointer-events-none sticky bottom-0 z-40 h-0">
       <StoreLink
-        href={`https://wa.me/${number.replace(/\D/g, "").replace(/^0/, "20")}`}
-        className="pointer-events-auto flex size-13 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg"
+        href={whatsappLink(number)}
+        className="pointer-events-auto absolute end-4 bottom-4 flex size-13 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg"
         aria-label={t.whatsapp}
       >
         <MessageCircle className="size-6" />
