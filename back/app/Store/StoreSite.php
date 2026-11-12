@@ -41,6 +41,18 @@ final class StoreSite
         return $this->setup->isLive($tenant, $store) ? $store : null;
     }
 
+    /** «إظهار المنتجات اللي خلصت» of the published design (on by default). */
+    public static function showsOutOfStock(Store $store): bool
+    {
+        return (bool) ($store->design()?->published['settings']['general']['show_out_of_stock'] ?? true);
+    }
+
+    /** Products per page of the store lists (published design). */
+    public static function perPage(Store $store): int
+    {
+        return (int) ($store->design()?->published['settings']['general']['products_per_page'] ?? 24);
+    }
+
     /** @return array<string, mixed> */
     public function config(Store $store, string $primaryHost): array
     {
@@ -109,7 +121,7 @@ final class StoreSite
     }
 
     /** A sellable product by slug with what its page needs. @return array<string, mixed>|null */
-    public function product(string $slug): ?array
+    public function product(Store $store, string $slug): ?array
     {
         $product = $this->catalog->sellable()->with(['options.values', 'media', 'variants', 'categories'])->where('slug', $slug)->first();
         if (! $product instanceof Product) {
@@ -129,7 +141,7 @@ final class StoreSite
             'offers' => $this->data->offers($product, now()),
             'breadcrumb' => $trail,
             'seo' => SeoDefaults::merge($product->seo, $this->seo->product($product, $this->seo->storeName())),
-            'related' => $this->catalog->related($product),
+            'related' => $this->catalog->related($product, ! self::showsOutOfStock($store)),
             'low_stock_threshold' => $product->low_stock_threshold,
         ];
     }

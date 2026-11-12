@@ -36,12 +36,16 @@ final class StoreCatalog
     }
 
     /**
-     * @param  array{category?: string|null, q?: string|null, sort?: string|null, min?: int|float|null, max?: int|float|null, in_stock?: bool|null, page?: int|null}  $filters
+     * @param  array{category?: string|null, q?: string|null, sort?: string|null, min?: int|float|null, max?: int|float|null, in_stock?: bool|null, offers?: bool|null, page?: int|null}  $filters
      * @return LengthAwarePaginator<int, Product>
      */
     public function search(array $filters, int $perPage): LengthAwarePaginator
     {
         $query = $this->sellable()->with(['media', 'variants', 'options']);
+
+        if (($filters['offers'] ?? false) === true) {
+            $this->onOffer($query);
+        }
 
         if (! empty($filters['category'])) {
             $category = $this->visibleCategories()->firstWhere('slug', $filters['category']);
@@ -59,10 +63,7 @@ final class StoreCatalog
             $query->where('price', '<=', Money::toDecimal(Money::toCents((string) $filters['max'])));
         }
         if (($filters['in_stock'] ?? false) === true) {
-            $query->where(fn (Builder $q) => $q
-                ->where('stock_mode', Product::STOCK_UNLIMITED)
-                ->orWhere(fn (Builder $p) => $p->where('stock_mode', Product::STOCK_PRODUCT)->where('stock', '>', 0))
-                ->orWhere(fn (Builder $v) => $v->where('stock_mode', Product::STOCK_VARIANT)->whereHas('variants', fn (Builder $r) => $r->where('stock', '>', 0))));
+            $this->inStock($query);
         }
 
         match ($filters['sort'] ?? 'newest') {
@@ -82,9 +83,12 @@ final class StoreCatalog
      *
      * @return list<array<string, mixed>>
      */
-    public function forSection(string $source, ?int $categoryId, int $limit): array
+    public function forSection(string $source, ?int $categoryId, int $limit, bool $inStockOnly = false): array
     {
         $query = $this->sellable()->with(['media', 'variants', 'options']);
+        if ($inStockOnly) {
+            $this->inStock($query);
+        }
 
         if ($source === 'category') {
             $ids = $categoryId === null ? [0] : $this->categories->withDescendants($categoryId);
@@ -94,6 +98,19 @@ final class StoreCatalog
         }
 
         return $query->orderByDesc('id')->limit(max(1, min(32, $limit)))->get()->map(fn (Product $p) => $this->card($p))->all();
+    }
+
+    /**
+     * Products a customer can buy now: unlimited, units left, or a combination with units left.
+     *
+     * @param  Builder<Product>  $query
+     */
+    public function inStock(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->where('stock_mode', Product::STOCK_UNLIMITED)
+            ->orWhere(fn (Builder $p) => $p->where('stock_mode', Product::STOCK_PRODUCT)->where('stock', '>', 0))
+            ->orWhere(fn (Builder $v) => $v->where('stock_mode', Product::STOCK_VARIANT)->whereHas('variants', fn (Builder $r) => $r->where('stock', '>', 0))));
     }
 
     /** @param Builder<Product> $query */
@@ -119,10 +136,13 @@ final class StoreCatalog
     }
 
     /** @return list<array<string, mixed>> related products (same categories), for a product page */
-    public function related(Product $product, int $limit = 8): array
+    public function related(Product $product, bool $inStockOnly = false, int $limit = 8): array
     {
         $ids = $product->categories->pluck('id')->all();
         $query = $this->sellable()->with(['media', 'variants', 'options'])->whereKeyNot($product->id);
+        if ($inStockOnly) {
+            $this->inStock($query);
+        }
         if ($ids !== []) {
             $query->whereHas('categories', fn (Builder $q) => $q->whereIn('categories.id', $ids));
         }

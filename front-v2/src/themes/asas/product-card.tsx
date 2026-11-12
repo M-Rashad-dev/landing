@@ -2,17 +2,30 @@
 
 import { ImageOff, ShoppingBag } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { addToCart } from "@/lib/store/cart";
+import { sendStoreEvent } from "@/lib/store/events";
+import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
 import { StoreLink, useTheme } from "./context";
+import { useShop } from "./shop";
 import { pick, type ProductCard as Card } from "./types";
 
 const t = ar.storefront;
 
 export function ProductCard({ product }: { product: Card }) {
-  const { settings } = useTheme();
+  const { mode } = useTheme();
+  const shop = useShop();
   const href = `/products/${encodeURIComponent(product.slug)}`;
   const image = pick(product.image?.urls, "medium");
-  if (!product.available && !settings.general.show_out_of_stock) return null;
+  // Nothing to choose: the card adds to the cart itself; otherwise it opens the product.
+  const direct = mode === "live" && shop !== null && product.available && !product.needs_options;
+
+  const add = () => {
+    if (!addToCart({ product_id: product.id, quantity: 1, options: {}, name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "" })) return;
+    sendStoreEvent("add_to_cart");
+    track("AddToCart", { content_ids: [product.id], content_name: product.name, value: product.price, num_items: 1 });
+    shop?.openCart();
+  };
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border bg-(--as-card)">
@@ -38,10 +51,17 @@ export function ProductCard({ product }: { product: Card }) {
           <span className="as-base font-bold as-primary">{formatMoney(product.price)}</span>
           {product.compare_at_price && product.compare_at_price > product.price ? <span className="as-xs as-muted line-through">{formatMoney(product.compare_at_price)}</span> : null}
         </p>
-        <StoreLink href={href} className="as-btn as-sm mt-1 w-full" aria-disabled={!product.available || undefined}>
-          <ShoppingBag className="size-4" aria-hidden />
-          {product.needs_options ? t.chooseOptions : t.addToCart}
-        </StoreLink>
+        {direct ? (
+          <button type="button" onClick={add} className="as-btn as-sm mt-1 w-full">
+            <ShoppingBag className="size-4" aria-hidden />
+            {t.addToCart}
+          </button>
+        ) : (
+          <StoreLink href={href} className="as-btn as-sm mt-1 w-full" aria-disabled={!product.available || undefined}>
+            <ShoppingBag className="size-4" aria-hidden />
+            {product.available ? (product.needs_options ? t.chooseOptions : t.addToCart) : t.outOfStock}
+          </StoreLink>
+        )}
       </div>
     </article>
   );

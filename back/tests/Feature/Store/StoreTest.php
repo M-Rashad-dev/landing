@@ -189,6 +189,40 @@ it('serves a live store: config, catalog filters, product page, pages; not befor
     storePublic('sitemap')->assertOk()->assertJsonFragment(['slug' => 'products/blue'])->assertJsonFragment(['slug' => 'categories/shirts']);
 });
 
+it('lists the products on offer, and hides sold-out products everywhere when the store says so', function () {
+    $owner = storeOwner();
+    asTenant($owner, function () {
+        $bags = Category::query()->create(['name' => 'شنط', 'slug' => 'bags', 'depth' => 0]);
+        $sale = Product::factory()->create(['slug' => 'sale', 'price' => '80.00', 'compare_at_price' => '100.00']);
+        $soldOut = Product::factory()->create(['slug' => 'sold-out', 'price' => '50.00', 'compare_at_price' => '90.00', 'stock_mode' => 'product', 'stock' => 0]);
+        $plain = Product::factory()->create(['slug' => 'plain', 'price' => '120.00']);
+        foreach ([$sale, $soldOut, $plain] as $p) {
+            $p->categories()->attach($bags);
+        }
+    });
+    liveStore();
+
+    $slugs = fn ($res) => array_column($res->json('data'), 'slug');
+    expect($slugs(storePublic('store/products', ['offers' => 1])))->toEqualCanonicalizing(['sale', 'sold-out'])
+        ->and($slugs(storePublic('store/products')))->toHaveCount(3);
+
+    // «إظهار المنتجات اللي خلصت» off, then published.
+    $design = $this->getJson('/api/v1/dashboard/store/design')->json('data');
+    $design['draft']['settings']['general']['show_out_of_stock'] = false;
+    $this->putJson('/api/v1/dashboard/store/design', ['draft' => $design['draft'], 'version' => $design['version']])->assertOk();
+    $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
+
+    expect($slugs(storePublic('store/products', ['offers' => 1])))->toBe(['sale'])
+        ->and($slugs(storePublic('store/products')))->not->toContain('sold-out');
+    $listId = collect($design['draft']['sections'])->firstWhere('type', 'products')['id'];
+    expect(array_column(storePublic('store')->json("data.data.products.{$listId}"), 'slug'))->not->toContain('sold-out');
+    $product = storePublic('store/products/plain')->assertOk();
+    expect(array_column($product->json('data.related'), 'slug'))->toBe(['sale']);
+    // The page of a sold-out product still opens (a shared link keeps working).
+    storePublic('store/products/sold-out')->assertOk()->assertJsonPath('data.product.available', false);
+    storePublic('store/products', ['offers' => 'maybe'])->assertStatus(422);
+});
+
 it('stops serving the store when the plan loses the store feature', function () {
     $owner = storeOwner();
     liveStore();

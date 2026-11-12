@@ -279,3 +279,12 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **Paid themes** show «قريبًا» on the theme page; the theme store comes later.
   - **Landing page themes (malak, celia, layali) stay for now**: the landing builder and its tests still use them. They go when landing pages are rebuilt in front-v2.
   - **Old front (frozen)**: its store home editor and store themes no longer match the API.
+
+- **Store pages, theme phase 2 (Nov 2026)**: the storefront runs from front-v2 on the store's own host (`proxy.ts` rewrites it to `app/sites/[host]`; app pages 404 there, store pages 404 on the app host). Landing pages on store hosts come back with the landing rebuild.
+  - **Pages**: home (the published sections), all products + search (`/products?q=`), «العروض» (`/offers`), category (with its sub-categories), product, cart, checkout, «طلبك وصل» (`/checkout/done`), order tracking (`/track`), store pages (`/pages/{slug}`), 404, paused store, sitemap and robots. Every page takes its look from the theme settings.
+  - **«العروض»** = the same rule as the home list: a lower price than the old one, or covered by an active product offer (`GET public/store/products?offers=1`).
+  - **«إظهار المنتجات اللي خلصت» off** now hides sold-out products from every list (all products, offers, categories, home lists, related); a sold-out product's own page still opens, marked «المنتج خلص», so shared links keep working.
+  - **Cart** in the browser (localStorage), with a drawer after «أضف للسلة»; a card adds directly when the product has nothing to choose. Prices always come from the server quote. The store gets the cart (abandoned carts) only when it really changes, debounced.
+  - **Checkout**: name, phone, governorate, city (optional), address, notes; one shipping company is chosen automatically, a list appears when there are several; a discount code; cash on delivery only. A typed phone sends the abandoned-checkout lead once. The order carries the cart token so the abandoned cart converts. The customer's form uses the browser's own select for the governorate (best on phones; the dashboard rule against native selects is for the dashboard).
+  - **Tracking** shows four steps (received, confirmed, shipped, delivered), or returned / cancelled, with the carrier and the tracking number. The «shipped reads as confirmed» mapping for the old storefront is gone.
+  - **The merchant's pixels** (Meta, TikTok, GA4, GTM, Snapchat) load on every store page: ViewContent, AddToCart, InitiateCheckout, Purchase.

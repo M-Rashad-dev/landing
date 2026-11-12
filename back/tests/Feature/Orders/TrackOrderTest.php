@@ -59,6 +59,19 @@ it('never shows internal states to the customer', function () {
     track()->assertOk()->assertJsonPath('data.stage', 'returned');
 });
 
+it('shows a shipped order with its carrier and tracking number', function () {
+    asTenant($this->tenant, function () {
+        $this->order->forceFill(['status' => OrderStatus::Shipped, 'shipping_company_name' => 'بوسطة', 'tracking_number' => 'BX-7781'])->save();
+        $this->order->logs()->create(['from_status' => OrderStatus::New, 'to_status' => OrderStatus::Shipped]);
+    });
+
+    track()->assertOk()
+        ->assertJsonPath('data.stage', 'shipped')
+        ->assertJsonPath('data.history.1.stage', 'shipped')
+        ->assertJsonPath('data.shipping_company', 'بوسطة')
+        ->assertJsonPath('data.tracking_number', 'BX-7781');
+});
+
 it('slows down guessing: 10 lookups per minute per visitor', function () {
     for ($i = 0; $i < 10; $i++) {
         track(['phone' => '0109999999'.$i]);

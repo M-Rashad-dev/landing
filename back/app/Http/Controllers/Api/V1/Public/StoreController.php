@@ -58,12 +58,17 @@ final class StoreController extends Controller
             'min' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'max' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'in_stock' => ['nullable', 'boolean'],
+            'offers' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ]);
 
         return $this->inStore($request, function (Store $store) use ($data) {
-            $perPage = (int) ($store->design()?->published['settings']['general']['products_per_page'] ?? 24);
-            $page = $this->catalog->search([...$data, 'in_stock' => filter_var($data['in_stock'] ?? false, FILTER_VALIDATE_BOOLEAN)], $perPage);
+            $page = $this->catalog->search([
+                ...$data,
+                // A store that hides sold-out products never lists them.
+                'in_stock' => filter_var($data['in_stock'] ?? false, FILTER_VALIDATE_BOOLEAN) || ! StoreSite::showsOutOfStock($store),
+                'offers' => filter_var($data['offers'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ], StoreSite::perPage($store));
 
             return $this->ok(
                 $page->getCollection()->map(fn ($p) => $this->catalog->card($p))->values()->all(),
@@ -74,7 +79,7 @@ final class StoreController extends Controller
 
     public function product(Request $request, string $slug): JsonResponse
     {
-        return $this->inStore($request, fn () => $this->ok($this->store->product(mb_strtolower($slug)) ?? throw new ApiException(404, 'not_found', __('landing.not_found'))));
+        return $this->inStore($request, fn (Store $store) => $this->ok($this->store->product($store, mb_strtolower($slug)) ?? throw new ApiException(404, 'not_found', __('landing.not_found'))));
     }
 
     public function page(Request $request, string $slug): JsonResponse

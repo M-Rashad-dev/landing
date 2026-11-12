@@ -2,6 +2,7 @@
 
 import { Mail, MapPin, Menu, MessageCircle, Phone, Search, ShoppingBag, X } from "lucide-react";
 import * as React from "react";
+import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { StoreLink, useTheme } from "./context";
@@ -21,6 +22,22 @@ function Logo() {
       ) : (
         <span className="as-lg truncate font-extrabold">{storeName}</span>
       )}
+    </StoreLink>
+  );
+}
+
+/** The cart icon with how many pieces are in it (live store only). */
+function CartButton() {
+  const { mode } = useTheme();
+  const count = cartCount(useCart());
+  return (
+    <StoreLink href="/cart" className="relative flex size-10 items-center justify-center rounded-full hover:bg-(--as-soft)" aria-label={count && mode === "live" ? `${t.cart} (${count})` : t.cart}>
+      <ShoppingBag className="size-5" />
+      {count && mode === "live" ? (
+        <span className="as-xs absolute -end-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-(--as-primary) px-1 font-bold text-(--as-on-primary)" aria-hidden>
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
     </StoreLink>
   );
 }
@@ -76,9 +93,7 @@ export function Header() {
                 <Search className="size-5" />
               </StoreLink>
             ) : null}
-            <StoreLink href="/cart" className="relative flex size-10 items-center justify-center rounded-full hover:bg-(--as-soft)" aria-label={t.cart}>
-              <ShoppingBag className="size-5" />
-            </StoreLink>
+            <CartButton />
           </div>
         </div>
       </div>
@@ -150,20 +165,23 @@ export function Footer() {
             </div>
           ) : null}
         </div>
-        {pages.length ? (
-          <div>
-            <p className="as-sm mb-3 font-bold">{t.footer.pages}</p>
-            <ul className="flex flex-col gap-2">
-              {pages.map((p) => (
-                <li key={p.slug}>
-                  <StoreLink href={`/pages/${encodeURIComponent(p.slug)}`} className="as-sm as-muted hover:underline">
-                    {p.title}
-                  </StoreLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <div>
+          <p className="as-sm mb-3 font-bold">{t.footer.pages}</p>
+          <ul className="flex flex-col gap-2">
+            <li>
+              <StoreLink href="/track" className="as-sm as-muted hover:underline">
+                {t.footer.track}
+              </StoreLink>
+            </li>
+            {pages.map((p) => (
+              <li key={p.slug}>
+                <StoreLink href={`/pages/${encodeURIComponent(p.slug)}`} className="as-sm as-muted hover:underline">
+                  {p.title}
+                </StoreLink>
+              </li>
+            ))}
+          </ul>
+        </div>
         {contact.length ? (
           <div>
             <p className="as-sm mb-3 font-bold">{t.footer.contact}</p>

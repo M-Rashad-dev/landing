@@ -71,3 +71,16 @@
   z-index: 5;
 }
 .as-selected::after { outline-style: solid; }
+
+/* Merchant text written in Markdown (product description, store pages). */
+.as-prose { line-height: 1.8; }
+.as-prose > * + * { margin-top: 0.75em; }
+.as-prose h1, .as-prose h2, .as-prose h3 { font-weight: 800; line-height: 1.4; }
+.as-prose h1 { font-size: 1.5em; }
+.as-prose h2 { font-size: 1.3em; }
+.as-prose h3 { font-size: 1.12em; }
+.as-prose ul { list-style: disc; padding-inline-start: 1.4em; }
+.as-prose ol { list-style: decimal; padding-inline-start: 1.4em; }
+.as-prose a { color: var(--as-primary); text-decoration: underline; }
+.as-prose blockquote { border-inline-start: 3px solid var(--as-line); padding-inline-start: 0.9em; color: var(--as-muted); }
+.as-prose img { max-width: 100%; border-radius: 0.6rem; }

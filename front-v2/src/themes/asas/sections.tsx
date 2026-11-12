@@ -5,15 +5,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { StoreLink, useTheme } from "./context";
+import { Container } from "./parts";
 import { FEATURE_ICONS } from "./icons";
 import { ProductCard } from "./product-card";
 import { pick, type BannerProps, type FeaturesProps, type ProductsProps, type TestimonialsProps } from "./types";
 
 const t = ar.storefront;
 
-function Container({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 @3xl:px-6", className)}>{children}</div>;
-}
 
 /* ---------- بنر ---------- */
 

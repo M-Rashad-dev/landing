@@ -88,7 +88,7 @@ final class StoreDesigner
             $id = (string) $section['id'];
             $props = $section['props'];
             if ($section['type'] === 'products') {
-                $products[$id] = $this->catalog->forSection((string) $props['source'], $props['category_id'] ?? null, (int) $props['limit']);
+                $products[$id] = $this->catalog->forSection((string) $props['source'], $props['category_id'] ?? null, (int) $props['limit'], ! ($design['settings']['general']['show_out_of_stock'] ?? true));
                 $viewAll[$id] = match ($props['source']) {
                     'offers' => '/offers',
                     'category' => ($c = $bySlug->get($props['category_id'])) ? '/categories/'.rawurlencode((string) $c['slug']) : null,
