@@ -115,9 +115,16 @@ export function JumpBar({ items, className, label }: { items: Array<{ id: string
     return () => observer.disconnect();
   }, [items]);
 
-  // Keep the active chip in view when the page scrolls.
+  // Keep the active chip in view when the page scrolls: move the chip row sideways only.
+  // (scrollIntoView would also scroll the page back up to the bar when it is off screen.)
   React.useEffect(() => {
-    listRef.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(active)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const list = listRef.current;
+    const chip = list?.querySelector<HTMLElement>(`[data-id="${CSS.escape(active)}"]`);
+    if (!list || !chip) return;
+    const listBox = list.getBoundingClientRect();
+    const chipBox = chip.getBoundingClientRect();
+    if (chipBox.left < listBox.left) list.scrollBy?.({ left: chipBox.left - listBox.left - 8, behavior: "smooth" });
+    else if (chipBox.right > listBox.right) list.scrollBy?.({ left: chipBox.right - listBox.right + 8, behavior: "smooth" });
   }, [active]);
 
   return (

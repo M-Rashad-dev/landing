@@ -18,9 +18,9 @@ import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink } from "../context";
+import { StoreLink, useHydrated } from "../context";
 import { Breadcrumb, Container, Empty, FormField, inputClass } from "../parts";
-import { CartLines, useHydrated } from "./cart";
+import { CartLines } from "./cart";
 
 const t = ar.storefront.checkout;
 const ta = ar.storefront.checkoutAccount;
@@ -32,16 +32,21 @@ const schema = z.object({
   city: z.string().trim().max(100),
   address: z.string().trim().min(5, t.errors.address).max(300, t.errors.address),
   notes: z.string().trim().max(500),
+  email: z
+    .string()
+    .trim()
+    .max(191, t.errors.email)
+    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), t.errors.email),
   website: z.string().max(200),
 });
 type Values = z.infer<typeof schema>;
-const FIELDS = ["name", "phone", "governorate", "city", "address", "notes"] as const;
+const FIELDS = ["name", "phone", "email", "governorate", "city", "address", "notes"] as const;
 
 export function CheckoutView({ config }: { config: StoreConfig }) {
   const cart = useCart();
   const hydrated = useHydrated();
   const router = useRouter();
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", phone: "", governorate: "", city: "", address: "", notes: "", website: "" }, mode: "onTouched" });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", phone: "", email: "", governorate: "", city: "", address: "", notes: "", website: "" }, mode: "onTouched" });
   const { register, handleSubmit, setError, formState, control } = form;
   const governorate = useWatch({ control, name: "governorate" });
   const phone = normalizePhone(useWatch({ control, name: "phone" }));
@@ -87,6 +92,7 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
     if (!me || filled.current) return;
     filled.current = true;
     form.setValue("phone", formatPhoneLocal(me.phone));
+    if (me.email && !form.getValues("email")) form.setValue("email", me.email);
     if (me.name && !form.getValues("name")) form.setValue("name", me.name);
     if (preferred) fillAddress(preferred, true);
   }, [me, form, fillAddress, preferred]);
@@ -141,7 +147,7 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           items: cartPayload(cart),
-          customer: { name: values.name, phone: values.phone, governorate: values.governorate, city: values.city || null, address: values.address, notes: values.notes || null },
+          customer: { name: values.name, phone: values.phone, governorate: values.governorate, city: values.city || null, address: values.address, notes: values.notes || null, email: values.email || null },
           code,
           shipping_company_id: shippingOn ? (companyId ?? quote.quote?.shipping_company?.id ?? null) : null,
           form_token: token,
@@ -260,6 +266,9 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
                 <input id="co-city" autoComplete="address-level2" maxLength={100} className={inputClass} {...register("city")} {...aria("city")} />
               </FormField>
             </div>
+            <FormField id="co-email" label={t.email} hint={t.emailHint} error={err("email")} optional>
+              <input id="co-email" type="email" inputMode="email" autoComplete="email" dir="ltr" maxLength={191} className={cn(inputClass, "text-end")} {...register("email")} {...aria("email")} />
+            </FormField>
             <FormField id="co-address" label={t.address} hint={t.addressHint} error={err("address")}>
               <input id="co-address" autoComplete="street-address" maxLength={300} className={inputClass} {...register("address")} {...aria("address")} />
             </FormField>

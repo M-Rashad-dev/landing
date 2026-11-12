@@ -52,7 +52,7 @@ export function ImageGallery({ value, onChange, max = 10 }: { value: MediaItem[]
 function Tile({ item, main, onRemove }: { item: MediaItem; main: boolean; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   return (
-    <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn("group relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-2", isDragging && "z-10 shadow-lg")}>
+    <li ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition }} className={cn("group relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-2", isDragging && "z-10 shadow-lg")}>
       <button type="button" className="block size-full cursor-grab active:cursor-grabbing" aria-label={t.handle} {...attributes} {...listeners}>
         {/* eslint-disable-next-line @next/next/no-img-element -- media thumbnail */}
         <img src={item.urls.thumb} alt="" className="size-full object-cover" draggable={false} />

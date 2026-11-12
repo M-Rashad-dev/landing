@@ -25,6 +25,7 @@ final class OrderDetailResource extends OrderResource
 
         return array_merge(parent::toArray($request), [
             'customer_phone2' => $this->customer_phone2,
+            'customer_email' => $this->customer_email,
             'city' => $this->city,
             'address' => $this->address,
             'notes' => $this->notes,

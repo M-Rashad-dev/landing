@@ -12,7 +12,7 @@ type Method = "GET" | "POST" | "PUT" | "DELETE";
 /** The calls a store customer may make, and the body keys each one takes. */
 const ROUTES: Array<{ method: Method; pattern: RegExp; keys: readonly string[] }> = [
   { method: "GET", pattern: /^$/, keys: [] },
-  { method: "PUT", pattern: /^$/, keys: ["name"] },
+  { method: "PUT", pattern: /^$/, keys: ["name", "email"] },
   { method: "POST", pattern: /^code$/, keys: ["phone"] },
   { method: "POST", pattern: /^verify$/, keys: ["phone", "code"] },
   { method: "POST", pattern: /^sign-out$/, keys: [] },
@@ -21,6 +21,7 @@ const ROUTES: Array<{ method: Method; pattern: RegExp; keys: readonly string[] }
   { method: "POST", pattern: /^addresses$/, keys: ["name", "governorate", "city", "address", "is_default"] },
   { method: "PUT", pattern: /^addresses\/\d{1,12}$/, keys: ["name", "governorate", "city", "address", "is_default"] },
   { method: "DELETE", pattern: /^addresses\/\d{1,12}$/, keys: [] },
+  { method: "GET", pattern: /^reviews$/, keys: [] },
   { method: "PUT", pattern: /^reviews$/, keys: ["product_id", "rating", "text"] },
 ];
 
@@ -40,8 +41,11 @@ async function handle(request: Request, context: Ctx, method: Method): Promise<N
 
   if (method === "GET") {
     const query = new URLSearchParams({ host });
-    const page = new URL(request.url).searchParams.get("page");
-    if (page && /^\d{1,4}$/.test(page)) query.set("page", page);
+    const search = new URL(request.url).searchParams;
+    for (const key of ["page", "product_id"]) {
+      const value = search.get(key);
+      if (value && /^\d{1,12}$/.test(value)) query.set(key, value);
+    }
     const response = await relayPublic(`${target}?${query.toString()}`, { headers: customerHeaders(request) });
     // A token that no longer works (expired, signed out elsewhere) leaves the browser too.
     if (response.status === 401) clearCustomerCookie(response, secure);

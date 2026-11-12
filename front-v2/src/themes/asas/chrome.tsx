@@ -5,7 +5,7 @@ import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "./context";
+import { StoreLink, useHydrated, useTheme } from "./context";
 import { SocialIcon } from "./icons";
 import { pick, SOCIALS } from "./types";
 
@@ -30,9 +30,18 @@ function Logo() {
 function CartButton() {
   const { mode } = useTheme();
   const count = cartCount(useCart());
+  // A short bounce each time something is added (not when the saved cart is first read).
+  const hydrated = useHydrated();
+  const [seen, setSeen] = React.useState<number | null>(null);
+  const [bump, setBump] = React.useState(0);
+  if (hydrated && seen !== count) {
+    if (seen !== null && count > seen) setBump(bump + 1);
+    setSeen(count);
+  }
+
   return (
     <StoreLink href="/cart" className="relative flex size-10 items-center justify-center rounded-full hover:bg-(--as-soft)" aria-label={count && mode === "live" ? `${t.cart} (${count})` : t.cart}>
-      <ShoppingBag className="size-5" />
+      <ShoppingBag key={bump} className={cn("size-5", bump > 0 && "as-bump")} />
       {count && mode === "live" ? (
         <span className="as-xs absolute -end-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-(--as-primary) px-1 font-bold text-(--as-on-primary)" aria-hidden>
           {count > 99 ? "99+" : count}

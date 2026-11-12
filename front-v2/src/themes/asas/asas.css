@@ -84,3 +84,13 @@
 .as-prose a { color: var(--as-primary); text-decoration: underline; }
 .as-prose blockquote { border-inline-start: 3px solid var(--as-line); padding-inline-start: 0.9em; color: var(--as-muted); }
 .as-prose img { max-width: 100%; border-radius: 0.6rem; }
+
+/* The cart icon after «أضف للسلة». */
+@keyframes as-bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35) rotate(-8deg); }
+  60% { transform: scale(0.92) rotate(4deg); }
+  100% { transform: scale(1); }
+}
+.as-bump { animation: as-bump 0.55s ease-out; }
+@media (prefers-reduced-motion: reduce) { .as-bump { animation: none; } }

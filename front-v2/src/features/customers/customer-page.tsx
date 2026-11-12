@@ -142,6 +142,18 @@ export function CustomerPage({ id }: { id: number }) {
                     label: ar.orders.detail.phone,
                     value: <span dir="ltr">{formatPhone(c.phone)}</span>,
                   },
+                  ...(c.email
+                    ? [
+                        {
+                          label: ar.orders.detail.email,
+                          value: (
+                            <a href={`mailto:${c.email}`} dir="ltr" className="text-brand-strong hover:underline">
+                              {c.email}
+                            </a>
+                          ),
+                        },
+                      ]
+                    : []),
                   {
                     label: d.address,
                     value: [c.governorate, c.city, c.address].filter(Boolean).join("، "),

@@ -29,6 +29,7 @@ export type CustomerDetail = CustomerRow & {
   block_exempt: boolean;
   city: string | null;
   address: string | null;
+  email: string | null;
   first_order_at: string | null;
   counts: Record<OrderStatus, number>;
   average_order: number;

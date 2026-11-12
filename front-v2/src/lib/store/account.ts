@@ -7,7 +7,7 @@ import type { TrackStage } from "./types";
 /* ---------- Types (back end: StoreAccountController, CustomerOrders, ProductReview) ---------- */
 
 export type Address = { id: number; name: string; governorate: string; city: string | null; address: string; is_default: boolean };
-export type Profile = { name: string | null; phone: string; addresses: Address[] };
+export type Profile = { name: string | null; email: string | null; phone: string; addresses: Address[] };
 export type AddressInput = { name: string; governorate: string; city: string | null; address: string; is_default?: boolean };
 
 export type OrderRow = { order_number: number; created_at: string; stage: TrackStage; total: number; items_count: number; products: string[] };
@@ -64,6 +64,7 @@ export const accountKeys = {
   me: ["store-account"] as const,
   orders: (page: number) => ["store-account", "orders", page] as const,
   order: (number: number) => ["store-account", "order", number] as const,
+  myReview: (productId: number) => ["store-account", "review", productId] as const,
 };
 
 /** The signed-in customer, or null when nobody is signed in on this store. */
@@ -101,10 +102,19 @@ export function useMyOrder(number: number) {
 export const sendCode = async (phone: string) => (await call<{ channel: string; expires_in: number; resend_in: number; code: string | null }>("/code", { method: "POST", body: { phone } })).data;
 export const verifyCode = async (phone: string, code: string) => (await call<{ customer: Profile }>("/verify", { method: "POST", body: { phone, code } })).data;
 export const signOut = () => call<void>("/sign-out", { method: "POST", body: {} });
-export const updateName = async (name: string) => (await call<Profile>("", { method: "PUT", body: { name } })).data;
+export const updateProfile = async (name: string, email: string | null) => (await call<Profile>("", { method: "PUT", body: { name, email } })).data;
 export const saveAddress = async (input: AddressInput, id?: number) => (await call<Address>(id ? `/addresses/${id}` : "/addresses", { method: id ? "PUT" : "POST", body: input })).data;
 export const deleteAddress = (id: number) => call<void>(`/addresses/${id}`, { method: "DELETE" });
 export const writeReview = async (input: { product_id: number; rating: number; text: string | null }) => (await call<{ rating: number; text: string | null }>("/reviews", { method: "PUT", body: input })).data;
+
+/** Can I review this product (a delivered order has it), and my review if I wrote one. */
+export function useMyReview(productId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: accountKeys.myReview(productId),
+    queryFn: async () => (await call<{ can_review: boolean; review: { rating: number; text: string | null } | null }>(`/reviews?product_id=${productId}`)).data,
+    enabled,
+  });
+}
 
 export async function fetchReviews(slug: string, page: number): Promise<ReviewsPage> {
   const response = await fetch(`/api/public/store/reviews?slug=${encodeURIComponent(slug)}&page=${page}`, { headers: { Accept: "application/json" } });

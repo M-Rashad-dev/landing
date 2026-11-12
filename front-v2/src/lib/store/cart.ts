@@ -25,6 +25,8 @@ export type CartItem = {
   price: number;
   /** "المقاس: XL، اللون: أحمر" */
   options_label: string;
+  /** Units in stock when added (null: no limit); the server checks again at checkout. */
+  max?: number | null;
 };
 
 export type Cart = { items: CartItem[] };
@@ -101,22 +103,39 @@ export function cartCount(cart: Cart): number {
   return cart.items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-/** Adds (or merges into the same line). False when the cart is full. */
-export function addToCart(item: CartItem): boolean {
+/** The most of a line a customer can take: the stock when known, never above the line limit. */
+export function lineLimit(item: Pick<CartItem, "max">): number {
+  return item.max === null || item.max === undefined ? MAX_LINE_QUANTITY : Math.max(0, Math.min(MAX_LINE_QUANTITY, item.max));
+}
+
+/** How many of this product (with these options) the cart has. */
+export function quantityInCart(cart: Cart, item: Pick<CartItem, "product_id" | "options">): number {
+  const key = lineKey(item);
+  return cart.items.find((i) => lineKey(i) === key)?.quantity ?? 0;
+}
+
+/**
+ * Adds, or adds to the same line (never a second line for the same choice), up to the stock.
+ * "max": nothing more fits (the line is at the stock); "full": no room for another line.
+ */
+export function addToCart(item: CartItem): "added" | "max" | "full" {
   const cart = read();
   const key = lineKey(item);
+  const limit = lineLimit(item);
   const existing = cart.items.find((i) => lineKey(i) === key);
   if (existing) {
-    write({ items: cart.items.map((i) => (lineKey(i) === key ? { ...i, ...item, quantity: Math.min(MAX_LINE_QUANTITY, i.quantity + item.quantity) } : i)) });
-    return true;
+    if (existing.quantity >= limit) return "max";
+    write({ items: cart.items.map((i) => (lineKey(i) === key ? { ...i, ...item, quantity: Math.min(limit, i.quantity + item.quantity) } : i)) });
+    return "added";
   }
-  if (cart.items.length >= MAX_CART_LINES) return false;
-  write({ items: [...cart.items, { ...item, quantity: Math.min(MAX_LINE_QUANTITY, Math.max(1, item.quantity)) }] });
-  return true;
+  if (limit < 1) return "max";
+  if (cart.items.length >= MAX_CART_LINES) return "full";
+  write({ items: [...cart.items, { ...item, quantity: Math.min(limit, Math.max(1, item.quantity)) }] });
+  return "added";
 }
 
 export function setQuantity(key: string, quantity: number): void {
-  write({ items: read().items.map((i) => (lineKey(i) === key ? { ...i, quantity: Math.min(MAX_LINE_QUANTITY, Math.max(1, quantity)) } : i)) });
+  write({ items: read().items.map((i) => (lineKey(i) === key ? { ...i, quantity: Math.min(lineLimit(i), Math.max(1, quantity)) } : i)) });
 }
 
 export function removeFromCart(key: string): void {

@@ -295,3 +295,9 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **Signing in is optional**: guests still order. A signed-in customer orders on their own phone (it cannot be changed in the checkout), their details and default address fill in by themselves (never over what they already typed), and a new address can be saved (at most 10, one default).
   - **«طلباتي»** shows every order on the phone, guest orders before the account included, with the customer stages, the carrier and tracking number.
   - **Product reviews**: only a customer with a delivered order that has the product can review it; one review per product (writing again edits it); published at once; the merchant hides or shows them in «التقييمات». Visitors see the first name and an initial («سارة م.») with «اشترى المنتج». Cards and product pages show the average and count; the product page lists them with a bar per star count.
+
+- **Storefront fixes after the owner's review (Nov 2026)**:
+  - **No cart drawer**: «أضف للسلة» stays on the page; the cart icon bounces and the button reads «اتضاف للسلة (n)». More clicks add to the same line, never past the stock (product stock on cards, the chosen combination on the product page); then «دي أقصى كمية متاحة». The cart page stepper has the same limit; the server still checks at checkout.
+  - **Optional email** at checkout and on «بياناتي» (`orders.customer_email`, `customers.email`): order news and the store's offers; shown to the merchant on the order and the customer. Landing page forms keep it off (`OrderForm::STORE_FIELDS` turns it on for the store only).
+  - **Signing out and deleting an address ask first** (a themed confirm box).
+  - **Reviews from the product page** too (`GET public/store/account/reviews?product_id` says if the customer can); the reviews list and its summary are read fresh on every visit, so a new review shows without a hard refresh (the product page itself stays cached for a minute).

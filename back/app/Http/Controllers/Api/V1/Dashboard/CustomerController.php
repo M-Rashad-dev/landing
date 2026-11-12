@@ -80,6 +80,7 @@ final class CustomerController extends Controller
             'block' => $block === null ? null : ['reason' => $block->reason, 'rule' => $block->rule, 'created_at' => $block->created_at?->toIso8601ZuluString()],
             'block_exempt' => $customer->block_exempt,
             'note' => $customer->note,
+            'email' => $customer->email,
             'city' => $customer->city,
             'address' => $customer->address,
             'first_order_at' => $customer->first_order_at?->toIso8601ZuluString(),

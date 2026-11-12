@@ -254,6 +254,7 @@ Route::prefix('public')
             Route::post('store/account/addresses', [StoreAccountController::class, 'storeAddress']);
             Route::put('store/account/addresses/{address}', [StoreAccountController::class, 'updateAddress'])->whereNumber('address');
             Route::delete('store/account/addresses/{address}', [StoreAccountController::class, 'destroyAddress'])->whereNumber('address');
+            Route::get('store/account/reviews', [StoreAccountController::class, 'myReview']);
             Route::put('store/account/reviews', [StoreAccountController::class, 'review']);
         });
     });

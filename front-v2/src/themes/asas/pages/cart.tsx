@@ -3,23 +3,15 @@
 import { Gift, ImageOff, ShoppingBag, Trash2 } from "lucide-react";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
-import { lineKey, removeFromCart, setQuantity, useCart, type Cart } from "@/lib/store/cart";
+import { lineKey, lineLimit, removeFromCart, setQuantity, useCart, type Cart } from "@/lib/store/cart";
 import type { QuoteState } from "@/lib/store/quote";
 import { useCartQuote } from "@/lib/store/quote";
 import { ar } from "@/messages/ar";
-import { StoreLink } from "../context";
+import { StoreLink, useHydrated } from "../context";
 import { Breadcrumb, Container, Empty, QuantityStepper } from "../parts";
 
 const t = ar.storefront.cartPage;
 
-/** True once the browser's cart has been read (the server never knows it). */
-export function useHydrated(): boolean {
-  return React.useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
-}
 
 export function CartView() {
   const cart = useCart();
@@ -99,7 +91,7 @@ export function CartLines({ cart, quote, editable = true }: { cart: Cart; quote:
                 </p>
               ) : null}
               <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-                {editable ? <QuantityStepper small value={item.quantity} onChange={(q) => setQuantity(key, q)} /> : <span className="as-sm as-muted">× {item.quantity}</span>}
+                {editable ? <QuantityStepper small value={item.quantity} max={lineLimit(item)} onChange={(q) => setQuantity(key, q)} /> : <span className="as-sm as-muted">× {item.quantity}</span>}
                 <span className="flex items-baseline gap-2">
                   {line && line.offer_discount > 0 ? <span className="as-xs as-muted line-through">{formatMoney(line.subtotal)}</span> : null}
                   <span className="as-base font-bold">{formatMoney(line ? line.total : item.price * item.quantity)}</span>

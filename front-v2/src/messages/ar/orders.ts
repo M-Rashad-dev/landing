@@ -76,6 +76,7 @@ export const orders = {
     name: "الاسم",
     phone: "الموبايل",
     phone2: "موبايل تاني",
+    email: "البريد الإلكتروني",
     governorate: "المحافظة",
     city: "المدينة / المنطقة",
     address: "العنوان",

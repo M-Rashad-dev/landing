@@ -21,6 +21,7 @@ final class LinkCustomer
 
         $customer->fill(array_filter([
             'name' => $order->customer_name,
+            'email' => $order->customer_email,
             'governorate' => $order->governorate,
             'city' => $order->city,
             'address' => $order->address,

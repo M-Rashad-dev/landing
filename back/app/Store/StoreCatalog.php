@@ -184,6 +184,8 @@ final class StoreCatalog
             'is_featured' => $p->is_featured,
             // A card can be added to the cart directly when nothing must be chosen.
             'needs_options' => $p->options->contains(fn ($o) => $o->is_required),
+            // Units in stock for a card that adds to the cart directly (null: no limit, or per option).
+            'max_quantity' => $p->stock_mode === Product::STOCK_PRODUCT ? max(0, (int) $p->stock) : null,
             'rating' => (int) ($p->getAttribute('rating_count') ?? 0) > 0
                 ? ['average' => round((float) $p->getAttribute('rating_average'), 1), 'count' => (int) $p->getAttribute('rating_count')]
                 : null,

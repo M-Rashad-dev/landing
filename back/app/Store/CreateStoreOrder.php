@@ -76,7 +76,7 @@ final class CreateStoreOrder
         if ($account !== null) {
             $fields['phone'] = $account->phone;
         }
-        $clean = $this->form->validate([], $fields, []);
+        $clean = $this->form->validate(['fields' => OrderForm::STORE_FIELDS], $fields, []);
         $customer = $clean['customer'];
         $phone = (string) $customer['phone'];
         $phoneKey = "orders:phone:{$tenantId}:{$phone}";
@@ -104,6 +104,7 @@ final class CreateStoreOrder
                 'customer_name' => $customer['name'],
                 'customer_phone' => $phone,
                 'customer_phone2' => $customer['phone2'] ?? null,
+                'customer_email' => $customer['email'] ?? null,
                 'governorate' => $governorate,
                 'city' => $customer['city'] ?? null,
                 'address' => $customer['address'] ?? null,

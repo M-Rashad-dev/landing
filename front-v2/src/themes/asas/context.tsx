@@ -45,3 +45,12 @@ export function StoreLink({ href, className, children, ...rest }: { href: string
     </a>
   );
 }
+
+/** True once the browser's own data (cart, sign-in) can be read; false while the server page hydrates. */
+export function useHydrated(): boolean {
+  return React.useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}

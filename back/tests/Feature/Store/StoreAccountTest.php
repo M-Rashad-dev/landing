@@ -77,7 +77,9 @@ it('signs a customer in with a one-time code on the same customers row', functio
     // The code works once.
     accountCall('POST', 'account/verify', ['phone' => '01012345678', 'code' => $code])->assertStatus(422);
 
-    accountCall('PUT', 'account', ['name' => 'سارة أحمد'], $token)->assertOk()->assertJsonPath('data.name', 'سارة أحمد');
+    accountCall('PUT', 'account', ['name' => 'سارة أحمد', 'email' => ' Sara@Example.COM '], $token)->assertOk()->assertJsonPath('data.name', 'سارة أحمد')->assertJsonPath('data.email', 'sara@example.com');
+    accountCall('PUT', 'account', ['name' => 'سارة أحمد', 'email' => 'not-an-email'], $token)->assertStatus(422)->assertJsonValidationErrors('email');
+    accountCall('PUT', 'account', ['name' => 'سارة أحمد', 'email' => null], $token)->assertOk()->assertJsonPath('data.email', null);
     accountCall('POST', 'account/sign-out', token: $token)->assertNoContent();
     accountCall('GET', 'account', token: $token)->assertUnauthorized()->assertJsonPath('code', 'signed_out');
 });
@@ -140,7 +142,7 @@ it('lists my orders with their stages, and orders placed while signed in go on m
     accountCall('POST', 'orders', [
         'items' => [['product_id' => $product->id, 'quantity' => 2]],
         // Another phone in the form: the signed-in phone wins.
-        'customer' => ['name' => 'سارة', 'phone' => '01199999999', 'governorate' => 'الجيزة', 'address' => '12 شارع الهرم'],
+        'customer' => ['name' => 'سارة', 'phone' => '01199999999', 'email' => 'Sara@Mail.com', 'governorate' => 'الجيزة', 'address' => '12 شارع الهرم'],
         'form_token' => app(FormToken::class)->issue('store:'.$store->id, time() - 10),
         'save_address' => true,
     ], $token)->assertCreated();
@@ -152,7 +154,10 @@ it('lists my orders with their stages, and orders placed while signed in go on m
     accountCall('GET', "account/orders/{$number}", token: $token)->assertOk()
         ->assertJsonPath('data.stage', 'received')->assertJsonPath('data.items.0.name', 'ساعة')
         ->assertJsonPath('data.items.0.can_review', false)->assertJsonPath('data.history.0.stage', 'received');
-    accountCall('GET', 'account', token: $token)->assertJsonPath('data.addresses.0.address', '12 شارع الهرم')->assertJsonPath('data.addresses.0.is_default', true);
+    accountCall('GET', 'account', token: $token)->assertJsonPath('data.addresses.0.address', '12 شارع الهرم')->assertJsonPath('data.addresses.0.is_default', true)
+        // The checkout email lands on the order and the customer.
+        ->assertJsonPath('data.email', 'sara@mail.com');
+    expect(asTenant($tenant, fn () => Order::query()->latest('id')->value('customer_email')))->toBe('sara@mail.com');
     accountCall('GET', 'account/orders/999999', token: $token)->assertNotFound();
     accountCall('GET', 'account/orders')->assertUnauthorized();
 });
@@ -189,6 +194,7 @@ it('lets only customers who received a product review it; reviews show at once a
     });
 
     // Not delivered yet.
+    accountCall('GET', 'account/reviews', ['product_id' => $watch->id], $token)->assertOk()->assertJsonPath('data.can_review', false)->assertJsonPath('data.review', null);
     accountCall('PUT', 'account/reviews', ['product_id' => $watch->id, 'rating' => 5, 'text' => 'حلوة'], $token)->assertStatus(422)->assertJsonValidationErrors('product_id');
     asTenant($tenant, fn () => $order->forceFill(['status' => OrderStatus::Delivered])->save());
     accountCall('GET', "account/orders/{$order->order_number}", token: $token)->assertJsonPath('data.items.0.can_review', true);
@@ -198,6 +204,8 @@ it('lets only customers who received a product review it; reviews show at once a
     accountCall('PUT', 'account/reviews', ['product_id' => $watch->id, 'rating' => 5, 'text' => 'جميلة جدًا والتغليف ممتاز'], $token)->assertOk();
     expect(asTenant($tenant, fn () => ProductReview::query()->count()))->toBe(1);
     accountCall('PUT', 'account/reviews', ['product_id' => $other->id, 'rating' => 5], $token)->assertStatus(422);
+    accountCall('GET', 'account/reviews', ['product_id' => $watch->id], $token)->assertJsonPath('data.can_review', true)->assertJsonPath('data.review.rating', 5);
+    accountCall('GET', 'account/reviews', ['product_id' => $watch->id])->assertUnauthorized();
     accountCall('PUT', 'account/reviews', ['product_id' => $watch->id, 'rating' => 9], $token)->assertStatus(422)->assertJsonValidationErrors('rating');
 
     // Public: the review, the summary, the card, the product page, and the home section.

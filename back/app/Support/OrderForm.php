@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class OrderForm
 {
-    public const BUILT_IN = ['name', 'phone', 'phone2', 'governorate', 'city', 'address', 'notes'];
+    public const BUILT_IN = ['name', 'phone', 'phone2', 'email', 'governorate', 'city', 'address', 'notes'];
 
     public const LOCKED = ['name', 'phone'];
 
@@ -27,11 +27,15 @@ final class OrderForm
         'name' => ['enabled' => true, 'required' => true],
         'phone' => ['enabled' => true, 'required' => true],
         'phone2' => ['enabled' => false, 'required' => false],
+        'email' => ['enabled' => false, 'required' => false],
         'governorate' => ['enabled' => true, 'required' => true],
         'city' => ['enabled' => true, 'required' => false],
         'address' => ['enabled' => true, 'required' => true],
         'notes' => ['enabled' => true, 'required' => false],
     ];
+
+    /** The store checkout: the default fields plus an optional email (order news and offers). */
+    public const STORE_FIELDS = ['email' => ['enabled' => true, 'required' => false]] + self::DEFAULT_FIELDS;
 
     private const CUSTOM_TYPES = ['text', 'textarea', 'number', 'select', 'radio', 'checkbox', 'date'];
 
@@ -107,6 +111,7 @@ final class OrderForm
             $rules["customer.{$key}"] = array_merge([$required ? 'required' : 'nullable', 'string'], match ($key) {
                 'name' => ['min:2', 'max:80'],
                 'phone', 'phone2' => ['max:30'],
+                'email' => ['max:191', 'email:rfc'],
                 'governorate' => [Rule::in(config('landing.governorates'))],
                 'city' => ['max:100'],
                 'address' => ['max:300'],
@@ -158,6 +163,9 @@ final class OrderForm
 
         $clean = $data['customer'];
         $clean['phone'] = $this->phones->normalize($clean['phone']);
+        if (($clean['email'] ?? null) !== null) {
+            $clean['email'] = mb_strtolower($clean['email']);
+        }
         if (($clean['phone2'] ?? null) !== null) {
             $clean['phone2'] = $this->phones->normalize($clean['phone2']);
         }

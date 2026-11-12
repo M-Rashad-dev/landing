@@ -13,12 +13,11 @@ import {
   saveAddress,
   sendCode,
   signOut,
-  updateName,
+  updateProfile,
   useAccount,
   useMyOrder,
   useMyOrders,
   verifyCode,
-  writeReview,
   type Address,
   type OrderDetail,
 } from "@/lib/store/account";
@@ -27,8 +26,9 @@ import type { TrackStage } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { StoreLink } from "../context";
-import { Breadcrumb, Container, Empty, FormField, inputClass, StarInput, Stars } from "../parts";
+import { Breadcrumb, ConfirmDialog, Container, Empty, FormField, inputClass, Stars } from "../parts";
 import { pick } from "../types";
+import { ReviewForm } from "./review-form";
 
 const t = ar.storefront.account;
 const STAGES = ar.storefront.track.stages;
@@ -193,6 +193,7 @@ export function AccountView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [tab, setTab] = React.useState<Tab>("orders");
+  const [confirmLeave, setConfirmLeave] = React.useState(false);
 
   if (!account.data) return <Container className="min-h-[50vh] py-8">{account.isError ? <p className="as-sm text-red-600">{t.failed}</p> : <div className="h-40 animate-pulse rounded-2xl bg-(--as-soft)" />}</Container>;
   const me = account.data;
@@ -214,7 +215,7 @@ export function AccountView() {
             {formatPhoneLocal(me.phone)}
           </p>
         </div>
-        <button type="button" onClick={leave} className="as-sm flex items-center gap-1.5 rounded-lg border px-3 py-2 font-semibold hover:bg-(--as-soft)">
+        <button type="button" onClick={() => setConfirmLeave(true)} className="as-sm flex items-center gap-1.5 rounded-lg border px-3 py-2 font-semibold hover:bg-(--as-soft)">
           <LogOut className="size-4" aria-hidden />
           {t.signOut}
         </button>
@@ -226,7 +227,8 @@ export function AccountView() {
           </button>
         ))}
       </div>
-      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} phone={me.phone} />}
+      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} email={me.email ?? ""} phone={me.phone} />}
+      {confirmLeave ? <ConfirmDialog title={t.signOutTitle} text={t.signOutText} confirmLabel={t.signOut} onConfirm={() => void leave()} onCancel={() => setConfirmLeave(false)} /> : null}
     </Container>
   );
 }
@@ -296,6 +298,7 @@ function OrdersList() {
 function AddressBook({ addresses }: { addresses: Address[] }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = React.useState<Address | "new" | null>(null);
+  const [removing, setRemoving] = React.useState<Address | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: accountKeys.me });
 
   if (editing) {
@@ -328,11 +331,7 @@ function AddressBook({ addresses }: { addresses: Address[] }) {
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  if (!window.confirm(t.deleteConfirm)) return;
-                  await deleteAddress(a.id).catch(() => undefined);
-                  void refresh();
-                }}
+                onClick={() => setRemoving(a)}
                 className="flex items-center gap-1 font-semibold text-red-600 hover:underline"
               >
                 <Trash2 className="size-3.5" aria-hidden />
@@ -342,6 +341,20 @@ function AddressBook({ addresses }: { addresses: Address[] }) {
           </li>
         ))}
       </ul>
+      {removing ? (
+        <ConfirmDialog
+          title={t.deleteTitle}
+          text={[removing.address, removing.city, removing.governorate].filter(Boolean).join("، ")}
+          confirmLabel={t.delete}
+          danger
+          onConfirm={async () => {
+            await deleteAddress(removing.id).catch(() => undefined);
+            setRemoving(null);
+            void refresh();
+          }}
+          onCancel={() => setRemoving(null)}
+        />
+      ) : null}
       {addresses.length < 10 ? (
         <button type="button" onClick={() => setEditing("new")} className="as-sm flex items-center gap-1.5 self-start rounded-lg border px-4 py-2 font-semibold hover:bg-(--as-soft)">
           <Plus className="size-4" aria-hidden />
@@ -415,35 +428,43 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
   );
 }
 
-function ProfileForm({ name, phone }: { name: string; phone: string }) {
+function ProfileForm({ name, email, phone }: { name: string; email: string; phone: string }) {
   const queryClient = useQueryClient();
-  const [value, setValue] = React.useState(name);
-  const [state, setState] = React.useState<{ kind: "idle" | "busy" | "saved" } | { kind: "error"; message: string }>({ kind: "idle" });
+  const [values, setValues] = React.useState({ name, email });
+  const [errors, setErrors] = React.useState<{ name?: string; email?: string; form?: string }>({});
+  const [state, setState] = React.useState<"idle" | "busy" | "saved">("idle");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setState({ kind: "busy" });
+    setState("busy");
+    setErrors({});
     try {
-      queryClient.setQueryData(accountKeys.me, await updateName(value));
-      setState({ kind: "saved" });
+      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null));
+      setState("saved");
     } catch (err) {
-      setState({ kind: "error", message: isApiError(err) && err.errors.name?.[0] ? err.errors.name[0] : errorMessage(err) });
+      setState("idle");
+      if (isApiError(err) && (err.errors.name || err.errors.email)) setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0] });
+      else setErrors({ form: errorMessage(err) });
     }
   };
 
   return (
     <form onSubmit={submit} noValidate className="flex max-w-md flex-col gap-4">
-      <FormField id="pf-name" label={t.name} error={state.kind === "error" ? state.message : null}>
-        <input id="pf-name" maxLength={80} value={value} onChange={(e) => setValue(e.target.value)} className={inputClass} />
+      <FormField id="pf-name" label={t.name} error={errors.name}>
+        <input id="pf-name" maxLength={80} value={values.name} onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))} className={inputClass} />
+      </FormField>
+      <FormField id="pf-email" label={t.email} hint={t.emailHint} error={errors.email} optional>
+        <input id="pf-email" type="email" dir="ltr" autoComplete="email" maxLength={191} value={values.email} onChange={(e) => setValues((v) => ({ ...v, email: e.target.value }))} className={cn(inputClass, "text-end")} />
       </FormField>
       <FormField id="pf-phone" label={t.phone} hint={t.phoneFixed}>
         <input id="pf-phone" dir="ltr" value={formatPhoneLocal(phone)} readOnly className={cn(inputClass, "text-end opacity-70")} />
       </FormField>
+      {errors.form ? <p className="as-sm text-red-600">{errors.form}</p> : null}
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={state.kind === "busy"} className="as-btn as-sm h-10 disabled:opacity-60">
+        <button type="submit" disabled={state === "busy"} className="as-btn as-sm h-10 disabled:opacity-60">
           {t.save}
         </button>
-        {state.kind === "saved" ? <span className="as-sm font-semibold as-primary">{t.saved}</span> : null}
+        {state === "saved" ? <span className="as-sm font-semibold as-primary">{t.saved}</span> : null}
       </div>
     </form>
   );
@@ -483,7 +504,7 @@ export function MyOrderView({ number }: { number: number }) {
       <Progress order={o} />
       <ul className="flex flex-col divide-y rounded-2xl border">
         {o.items.map((item, i) => (
-          <OrderItemRow key={`${item.product_id}-${i}`} item={item} orderNumber={o.order_number} />
+          <OrderItemRow key={`${item.product_id}-${i}`} item={item} />
         ))}
       </ul>
       <div className="grid gap-4 @3xl:grid-cols-2">
@@ -539,30 +560,10 @@ function Progress({ order }: { order: OrderDetail }) {
   );
 }
 
-function OrderItemRow({ item, orderNumber }: { item: OrderDetail["items"][number]; orderNumber: number }) {
-  const queryClient = useQueryClient();
+function OrderItemRow({ item }: { item: OrderDetail["items"][number] }) {
   const [open, setOpen] = React.useState(false);
-  const [rating, setRating] = React.useState(item.review?.rating ?? 0);
-  const [text, setText] = React.useState(item.review?.text ?? "");
-  const [state, setState] = React.useState<{ kind: "idle" | "busy" | "saved" } | { kind: "error"; message: string }>({ kind: "idle" });
+  const [saved, setSaved] = React.useState(false);
   const image = pick(item.image, "thumb");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating < 1) {
-      setState({ kind: "error", message: t.pickStars });
-      return;
-    }
-    setState({ kind: "busy" });
-    try {
-      await writeReview({ product_id: item.product_id!, rating, text: text.trim() || null });
-      setState({ kind: "saved" });
-      setOpen(false);
-      void queryClient.invalidateQueries({ queryKey: accountKeys.order(orderNumber) });
-    } catch (err) {
-      setState({ kind: "error", message: errorMessage(err) });
-    }
-  };
 
   return (
     <li className="flex flex-col gap-3 p-4">
@@ -601,27 +602,17 @@ function OrderItemRow({ item, orderNumber }: { item: OrderDetail["items"][number
           {item.review ? t.editReview : t.rate}
         </button>
       ) : null}
-      {state.kind === "saved" && !open ? <p className="as-xs font-semibold as-primary">{t.reviewSaved}</p> : null}
-      {open ? (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-3 rounded-xl bg-(--as-card) p-3">
-          <StarInput value={rating} onChange={setRating} label={t.pickStars} />
-          <FormField id={`rv-${item.product_id}`} label={t.reviewText} optional>
-            <textarea id={`rv-${item.product_id}`} rows={3} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} placeholder={t.reviewPlaceholder} className={cn(inputClass, "h-auto py-2")} />
-          </FormField>
-          {state.kind === "error" ? (
-            <p className="as-xs font-semibold text-red-600" role="alert">
-              {state.message}
-            </p>
-          ) : null}
-          <div className="flex gap-2">
-            <button type="submit" disabled={state.kind === "busy"} className="as-btn as-sm h-9 disabled:opacity-60">
-              {t.reviewSave}
-            </button>
-            <button type="button" onClick={() => setOpen(false)} className="as-sm h-9 rounded-lg border px-3 font-semibold">
-              {t.cancel}
-            </button>
-          </div>
-        </form>
+      {saved && !open ? <p className="as-xs font-semibold as-primary">{t.reviewSaved}</p> : null}
+      {open && item.product_id !== null ? (
+        <ReviewForm
+          productId={item.product_id}
+          initial={item.review}
+          onSaved={() => {
+            setOpen(false);
+            setSaved(true);
+          }}
+          onCancel={() => setOpen(false)}
+        />
       ) : null}
     </li>
   );

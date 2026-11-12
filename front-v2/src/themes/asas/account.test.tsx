@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addToCart } from "@/lib/store/cart";
 import type { StoreConfig } from "@/lib/store/types";
 import { ar } from "@/messages/ar";
-import { SignInView } from "./pages/account";
+import { AccountView, SignInView } from "./pages/account";
+import { ProductReviewsSection } from "./pages/reviews";
 import { CheckoutView } from "./pages/checkout";
 import { AsasRoot } from "./root";
 import type { Design, DesignData } from "./types";
@@ -142,5 +143,71 @@ describe("checkout signed in", () => {
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.checkout.submit }));
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/checkout/done?order=77&total=300"));
     expect(calls.find((c) => c.url.endsWith("/orders"))!.body).toMatchObject({ save_address: true, customer: { name: "سارة", governorate: "القاهرة", address: "5 شارع النيل، الدور 2" } });
+  });
+});
+
+describe("account", () => {
+  const profile = { name: "سارة", email: null, phone: "+201012345678", addresses: [] };
+  const noOrders = () => Response.json({ data: [], meta: { current_page: 1, last_page: 1, total: 0 } });
+
+  it("asks before signing out", async () => {
+    stub({ "/account/sign-out": () => new Response(null, { status: 204 }), "/account/orders": noOrders, "/store/account": () => Response.json({ data: profile }) });
+    inTheme(<AccountView />);
+    fireEvent.click(await screen.findByRole("button", { name: ar.storefront.account.signOut }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(ar.storefront.account.signOutTitle);
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.account.cancel }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(calls.some((c) => c.url.includes("/sign-out"))).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.account.signOut }));
+    const buttons = screen.getAllByRole("button", { name: ar.storefront.account.signOut });
+    fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(calls.some((c) => c.url.includes("/sign-out") && c.method === "POST")).toBe(true);
+  });
+
+  it("saves an optional email on my details", async () => {
+    stub({ "/account/orders": noOrders, "/store/account": () => Response.json({ data: profile }) });
+    inTheme(<AccountView />);
+    fireEvent.click(await screen.findByRole("tab", { name: ar.storefront.account.tabs.profile }));
+    fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.account.email)), { target: { value: "sara@mail.com" } });
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.account.save }));
+    await screen.findByText(ar.storefront.account.saved);
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ name: "سارة", email: "sara@mail.com" });
+  });
+});
+
+describe("reviews on the product page", () => {
+  const empty = { data: [], meta: { current_page: 1, last_page: 1, summary: { average: 0, count: 0, stars: {} } } };
+
+  it("asks a visitor to sign in to review", async () => {
+    stub({ "/store/reviews": () => Response.json(empty), "/store/account": () => Response.json({ code: "signed_out" }, { status: 401 }) });
+    inTheme(<ProductReviewsSection productId={7} slug="shirt" summary={{ average: 0, count: 0, stars: {} }} />);
+    expect(await screen.findByRole("link", { name: ar.storefront.reviews.signIn })).toHaveAttribute("href", "/account/login?next=%2Fproducts%2Fshirt%23reviews");
+  });
+
+  it("lets a customer who received it review from the product page, and shows the fresh list", async () => {
+    let written = false;
+    const review = { id: 1, name: "سارة م.", rating: 4, text: "حلو", verified: true, created_at: "2026-11-12T10:00:00Z" };
+    stub({
+      "/store/reviews": () => Response.json(written ? { data: [review], meta: { current_page: 1, last_page: 1, summary: { average: 4, count: 1, stars: { "4": 1 } } } } : empty),
+      "/account/reviews": () => {
+        if (calls[calls.length - 1].method === "PUT") {
+          written = true;
+          return Response.json({ data: { rating: 4, text: "حلو" } });
+        }
+        return Response.json({ data: { can_review: true, review: written ? { rating: 4, text: "حلو" } : null } });
+      },
+      "/store/account": () => Response.json({ data: { name: "سارة", email: null, phone: "+201012345678", addresses: [] } }),
+    });
+    inTheme(<ProductReviewsSection productId={7} slug="shirt" summary={{ average: 0, count: 0, stars: {} }} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: ar.storefront.reviews.rate }));
+    fireEvent.click(screen.getByRole("radio", { name: ar.storefront.account.star(4) }));
+    fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.account.reviewText)), { target: { value: "حلو" } });
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.account.reviewSave }));
+
+    expect(await screen.findByText("سارة م.")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ product_id: 7, rating: 4, text: "حلو" });
   });
 });

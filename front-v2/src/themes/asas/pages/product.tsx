@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
-import { addToCart, MAX_LINE_QUANTITY } from "@/lib/store/cart";
+import { addToCart, MAX_LINE_QUANTITY, quantityInCart, useCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
 import { activeOffers, offerLabel, unitPriceAfter } from "@/lib/store/offers";
 import type { ProductOption, ProductPage } from "@/lib/store/types";
@@ -15,7 +15,6 @@ import { ar } from "@/messages/ar";
 import { useTheme } from "../context";
 import { Breadcrumb, Container, QuantityStepper, Stars } from "../parts";
 import { ProductCard } from "../product-card";
-import { useShop } from "../shop";
 import { pick } from "../types";
 import { ProductReviewsSection } from "./reviews";
 
@@ -48,7 +47,6 @@ export function unitsLeft(page: ProductPage, chosen: Record<number, number>): nu
 export function ProductView({ page }: { page: ProductPage }) {
   const { product, offers, breadcrumb, related } = page;
   const { settings } = useTheme();
-  const shop = useShop();
   const router = useRouter();
   const [chosen, setChosen] = React.useState<Record<number, number>>(() => {
     // An option with a single value is chosen already.
@@ -59,7 +57,6 @@ export function ProductView({ page }: { page: ProductPage }) {
   const [quantity, setQuantity] = React.useState(1);
   const [image, setImage] = React.useState(0);
   const [message, setMessage] = React.useState<string | null>(null);
-  const [added, setAdded] = React.useState(false);
 
   React.useEffect(() => {
     sendStoreEvent("product_view", String(product.id));
@@ -76,6 +73,10 @@ export function ProductView({ page }: { page: ProductPage }) {
   const left = unitsLeft(page, chosen);
   const soldOut = left === 0;
   const max = Math.max(1, Math.min(MAX_LINE_QUANTITY, left ?? MAX_LINE_QUANTITY));
+  // What this choice already has in the cart, and how many more fit (the stock is the limit).
+  const options = Object.fromEntries(Object.entries(chosen).map(([k, v]) => [k, v]));
+  const inCart = quantityInCart(useCart(), { product_id: product.id, options });
+  const room = Math.max(1, max - inCart);
   const low = left !== null && left > 0 && page.low_stock_threshold !== null && left <= page.low_stock_threshold;
   const images = product.images;
   const current = images[Math.min(image, images.length - 1)];
@@ -95,7 +96,7 @@ export function ProductView({ page }: { page: ProductPage }) {
     setMessage(null);
   };
 
-  const add = (then: "drawer" | "checkout") => {
+  const add = (then: "cart" | "checkout") => {
     if (missing.length) {
       setMessage(t.pickAll);
       document.getElementById(`opt-${missing[0].id}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
@@ -109,18 +110,19 @@ export function ProductView({ page }: { page: ProductPage }) {
       })
       .filter(Boolean)
       .join("، ");
-    const options = Object.fromEntries(Object.entries(chosen).map(([k, v]) => [k, v]));
-    const ok = addToCart({ product_id: product.id, quantity: Math.min(quantity, max), options, name: product.name, slug: product.slug, image: pick(images[0]?.urls, "thumb"), price, options_label: label });
-    if (!ok) {
+    const result = addToCart({ product_id: product.id, quantity: Math.min(quantity, room), options, name: product.name, slug: product.slug, image: pick(images[0]?.urls, "thumb"), price, options_label: label, max: left });
+    if (result === "full") {
       setMessage(t.cartFull);
       return;
     }
-    sendStoreEvent("add_to_cart");
-    track("AddToCart", { content_ids: [product.id], content_name: product.name, value: price * quantity, num_items: quantity });
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 2000);
+    if (result === "added") {
+      sendStoreEvent("add_to_cart");
+      track("AddToCart", { content_ids: [product.id], content_name: product.name, value: price * quantity, num_items: quantity });
+      setQuantity(1);
+    }
+    // Already at the stock: «اشتري دلوقتي» still goes on to the checkout.
     if (then === "checkout") router.push("/checkout");
-    else shop?.openCart();
+    else if (result === "max") setMessage(t.maxReached(inCart));
   };
 
   return (
@@ -263,10 +265,10 @@ export function ProductView({ page }: { page: ProductPage }) {
 
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <QuantityStepper value={Math.min(quantity, max)} onChange={setQuantity} max={max} />
-              <button type="button" onClick={() => add("drawer")} disabled={soldOut} className="as-btn as-base h-11 flex-1 disabled:cursor-not-allowed disabled:opacity-50">
-                {added ? <Check className="size-5" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
-                {added ? t.added : ar.storefront.addToCart}
+              <QuantityStepper value={Math.min(quantity, room)} onChange={setQuantity} max={room} />
+              <button type="button" onClick={() => add("cart")} disabled={soldOut} className="as-btn as-base h-11 flex-1 disabled:cursor-not-allowed disabled:opacity-50" aria-live="polite">
+                {inCart > 0 ? <Check className="size-5" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
+                {inCart > 0 ? t.inCart(inCart) : ar.storefront.addToCart}
               </button>
             </div>
             <button
@@ -307,7 +309,7 @@ export function ProductView({ page }: { page: ProductPage }) {
         </div>
       </div>
 
-      <ProductReviewsSection slug={product.slug} summary={page.rating} />
+      <ProductReviewsSection productId={product.id} slug={product.slug} summary={page.rating} />
 
       {related.length ? (
         <section className="flex flex-col gap-4 border-t pt-8">

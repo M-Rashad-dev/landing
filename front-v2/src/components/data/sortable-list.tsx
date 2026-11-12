@@ -43,7 +43,7 @@ function SortableRow({ id, depth, children }: { id: string; depth: number; child
   return (
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, paddingInlineStart: `${0.5 + depth * 1.5}rem` }}
+      style={{ transform: CSS.Translate.toString(transform), transition, paddingInlineStart: `${0.5 + depth * 1.5}rem` }}
       className={cn("flex items-center gap-2 bg-surface py-2.5 pe-3", isDragging && "relative z-10 shadow-md")}
     >
       <button type="button" className="cursor-grab rounded p-1 text-ink-3 hover:bg-surface-2 hover:text-ink active:cursor-grabbing" aria-label={ar.showcase.sortable.handle} {...attributes} {...listeners}>

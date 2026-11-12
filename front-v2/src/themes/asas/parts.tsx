@@ -112,3 +112,32 @@ export function StarInput({ value, onChange, label }: { value: number; onChange:
     </div>
   );
 }
+
+/** A themed "are you sure?" box (sign out, delete). Esc or the backdrop cancels. */
+export function ConfirmDialog({ title, text, confirmLabel, danger = false, busy = false, onConfirm, onCancel }: { title: string; text?: string; confirmLabel: string; danger?: boolean; busy?: boolean; onConfirm: () => void; onCancel: () => void }) {
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="as-confirm-title">
+      <button type="button" className="absolute inset-0 bg-black/40" onClick={onCancel} aria-label={t.close} />
+      <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-(--as-bg) p-5 shadow-2xl">
+        <p id="as-confirm-title" className="as-lg font-extrabold">
+          {title}
+        </p>
+        {text ? <p className="as-sm as-muted">{text}</p> : null}
+        <div className="mt-2 flex gap-2">
+          <button type="button" onClick={onConfirm} disabled={busy} className={cn("as-btn as-sm h-10 flex-1 disabled:opacity-60", danger && "bg-red-600! text-white!")} autoFocus>
+            {confirmLabel}
+          </button>
+          <button type="button" onClick={onCancel} className="as-sm h-10 flex-1 rounded-lg border font-semibold hover:bg-(--as-soft)">
+            {ar.storefront.account.cancel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

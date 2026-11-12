@@ -79,10 +79,14 @@ final class StoreAccountController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'min:2', 'max:80']]);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:80'],
+            'email' => ['nullable', 'string', 'max:191', 'email:rfc'],
+        ]);
 
         return $this->signedIn($request, function (Customer $customer) use ($data) {
-            $customer->forceFill(['name' => trim(strip_tags($data['name']))])->save();
+            $email = trim((string) ($data['email'] ?? ''));
+            $customer->forceFill(['name' => trim(strip_tags($data['name'])), 'email' => $email === '' ? null : mb_strtolower($email)])->save();
 
             return $this->ok($this->profile($customer));
         });
@@ -186,6 +190,22 @@ final class StoreAccountController extends Controller
         });
     }
 
+    /** Can the signed-in customer review this product (a delivered order has it), and their review if any. */
+    public function myReview(Request $request): JsonResponse
+    {
+        $data = $request->validate(['product_id' => ['required', 'integer', 'min:1']]);
+
+        return $this->signedIn($request, function (Customer $customer) use ($data) {
+            $productId = (int) $data['product_id'];
+            $review = $customer->reviews()->where('product_id', $productId)->first();
+
+            return $this->ok([
+                'can_review' => $this->reviews->deliveredOrderId($customer, $productId) !== null,
+                'review' => $review === null ? null : ['rating' => $review->rating, 'text' => $review->text],
+            ]);
+        });
+    }
+
     /** The visible reviews of a product (newest first) with its summary. */
     public function productReviews(Request $request, StoreCatalog $catalog, string $slug): JsonResponse
     {
@@ -218,6 +238,7 @@ final class StoreAccountController extends Controller
     {
         return [
             'name' => $customer->name,
+            'email' => $customer->email,
             'phone' => $customer->phone,
             'addresses' => $customer->addresses()->orderByDesc('is_default')->orderBy('id')->get()->map(fn (CustomerAddress $a) => $a->toPublic())->all(),
         ];

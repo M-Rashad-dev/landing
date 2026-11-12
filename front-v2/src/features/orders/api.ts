@@ -65,6 +65,7 @@ export type OrderItem = {
 
 export type OrderDetail = OrderRow & {
   customer_phone2: string | null;
+  customer_email: string | null;
   city: string | null;
   address: string | null;
   notes: string | null;

@@ -1,35 +1,41 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { BadgeCheck, Loader2, MessageSquareText } from "lucide-react";
-import { fetchReviews, type ReviewSummary } from "@/lib/store/account";
+import { BadgeCheck, Loader2, MessageSquareText, Star } from "lucide-react";
+import * as React from "react";
+import { fetchReviews, useAccount, useMyReview, type ReviewSummary } from "@/lib/store/account";
 import { formatDateTime } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { StoreLink } from "../context";
 import { Stars } from "../parts";
+import { ReviewForm } from "./review-form";
 
 const t = ar.storefront.reviews;
 
-/** «تقييمات العملاء» on a product: the summary with a bar per star count, then the reviews. */
-export function ProductReviewsSection({ slug, summary }: { slug: string; summary: ReviewSummary }) {
+/**
+ * «تقييمات العملاء» on a product: the summary with a bar per star count, the reviews, and writing
+ * one. Read fresh from the store each visit (the product page itself is cached for a minute), so a
+ * new review shows at once; the page's own numbers are only the first paint.
+ */
+export function ProductReviewsSection({ productId, slug, summary: initial }: { productId: number; slug: string; summary: ReviewSummary }) {
   const query = useInfiniteQuery({
     queryKey: ["store-reviews", slug],
     queryFn: ({ pageParam }) => fetchReviews(slug, pageParam),
     initialPageParam: 1,
     getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
-    enabled: summary.count > 0,
+    staleTime: 0,
   });
   const reviews = query.data?.pages.flatMap((p) => p.data) ?? [];
+  const summary = query.data?.pages[0]?.meta.summary ?? initial;
 
   return (
     <section id="reviews" className="flex scroll-mt-24 flex-col gap-5 border-t pt-8">
       <h2 className="as-xl font-extrabold">{t.title}</h2>
+      <WriteReview productId={productId} slug={slug} />
       {summary.count === 0 ? (
         <div className="flex items-center gap-3 rounded-xl bg-(--as-card) p-4">
           <MessageSquareText className="size-6 shrink-0 as-muted" aria-hidden />
-          <div>
-            <p className="as-sm font-bold">{t.empty}</p>
-            <p className="as-xs as-muted">{t.emptyHint}</p>
-          </div>
+          <p className="as-sm font-bold">{t.empty}</p>
         </div>
       ) : (
         <div className="grid gap-6 @3xl:grid-cols-[16rem_1fr]">
@@ -85,5 +91,56 @@ export function ProductReviewsSection({ slug, summary }: { slug: string; summary
         </div>
       )}
     </section>
+  );
+}
+
+/** Reviewing from the product page: signed in with a delivered order that has it, else the reason why not. */
+function WriteReview({ productId, slug }: { productId: number; slug: string }) {
+  const account = useAccount();
+  const signedIn = Boolean(account.data);
+  const mine = useMyReview(productId, signedIn);
+  const [open, setOpen] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  if (account.isPending) return null;
+  if (!signedIn) {
+    return (
+      <p className="as-sm flex flex-wrap items-center gap-x-2 rounded-xl bg-(--as-soft) px-4 py-3">
+        <span>{t.signInToRate}</span>
+        <StoreLink href={`/account/login?next=${encodeURIComponent(`/products/${slug}#reviews`)}`} className="font-bold as-primary hover:underline">
+          {t.signIn}
+        </StoreLink>
+      </p>
+    );
+  }
+  if (!mine.data) return null;
+  if (!mine.data.can_review) return <p className="as-sm as-muted rounded-xl bg-(--as-card) px-4 py-3">{t.notYet}</p>;
+
+  if (open) {
+    return (
+      <ReviewForm
+        productId={productId}
+        initial={mine.data.review}
+        onSaved={() => {
+          setOpen(false);
+          setSaved(true);
+        }}
+        onCancel={() => setOpen(false)}
+      />
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      {mine.data.review ? (
+        <span className="as-sm flex items-center gap-2">
+          {t.yours}: <Stars value={mine.data.review.rating} size="size-4" />
+        </span>
+      ) : null}
+      <button type="button" onClick={() => setOpen(true)} className="as-sm flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-semibold hover:bg-(--as-soft)">
+        <Star className="size-4" aria-hidden />
+        {mine.data.review ? t.edit : t.rate}
+      </button>
+      {saved ? <span className="as-xs font-semibold as-primary">{ar.storefront.account.reviewSaved}</span> : null}
+    </div>
   );
 }

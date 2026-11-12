@@ -1,8 +1,9 @@
 "use client";
 
-import { ImageOff, ShoppingBag } from "lucide-react";
+import { Check, ImageOff, ShoppingBag } from "lucide-react";
+import * as React from "react";
 import { formatMoney } from "@/lib/format";
-import { addToCart } from "@/lib/store/cart";
+import { addToCart, quantityInCart, useCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
@@ -21,11 +22,18 @@ export function ProductCard({ product }: { product: Card }) {
   // Nothing to choose: the card adds to the cart itself; otherwise it opens the product.
   const direct = mode === "live" && shop !== null && product.available && !product.needs_options;
 
+  const inCart = quantityInCart(useCart(), { product_id: product.id, options: {} });
+  const [note, setNote] = React.useState<string | null>(null);
+
   const add = () => {
-    if (!addToCart({ product_id: product.id, quantity: 1, options: {}, name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "" })) return;
+    const result = addToCart({ product_id: product.id, quantity: 1, options: {}, name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
+    if (result !== "added") {
+      setNote(result === "max" ? t.product.maxReached(inCart) : t.product.cartFull);
+      return;
+    }
+    setNote(null);
     sendStoreEvent("add_to_cart");
     track("AddToCart", { content_ids: [product.id], content_name: product.name, value: product.price, num_items: 1 });
-    shop?.openCart();
   };
 
   return (
@@ -59,10 +67,17 @@ export function ProductCard({ product }: { product: Card }) {
           {product.compare_at_price && product.compare_at_price > product.price ? <span className="as-xs as-muted line-through">{formatMoney(product.compare_at_price)}</span> : null}
         </p>
         {direct ? (
-          <button type="button" onClick={add} className="as-btn as-sm mt-1 w-full">
-            <ShoppingBag className="size-4" aria-hidden />
-            {t.addToCart}
-          </button>
+          <>
+            <button type="button" onClick={add} className="as-btn as-sm mt-1 w-full" aria-live="polite">
+              {inCart > 0 ? <Check className="size-4" aria-hidden /> : <ShoppingBag className="size-4" aria-hidden />}
+              {inCart > 0 ? t.product.inCart(inCart) : t.addToCart}
+            </button>
+            {note ? (
+              <p className="as-xs text-center font-semibold text-red-600" role="alert">
+                {note}
+              </p>
+            ) : null}
+          </>
         ) : (
           <StoreLink href={href} className="as-btn as-sm mt-1 w-full" aria-disabled={!product.available || undefined}>
             <ShoppingBag className="size-4" aria-hidden />

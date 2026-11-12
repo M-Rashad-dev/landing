@@ -188,7 +188,7 @@ function Row({ category, ...props }: RowActions & { category: Category }) {
   }
 
   return (
-    <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn("border-b border-border last:border-b-0", isDragging && "relative z-10 bg-surface shadow-lg")}>
+    <li ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition }} className={cn("border-b border-border last:border-b-0", isDragging && "relative z-10 bg-surface shadow-lg")}>
       <div className="flex items-center gap-2 py-2 pe-3" style={{ paddingInlineStart: `${0.5 + category.depth * 1.75}rem` }}>
         <button type="button" className="cursor-grab rounded p-1 text-ink-3 hover:bg-surface-2 hover:text-ink active:cursor-grabbing" aria-label={ar.media.handle} {...attributes} {...listeners}>
           <GripVertical className="size-4" />

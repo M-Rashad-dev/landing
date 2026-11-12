@@ -226,6 +226,18 @@ function CustomerCard({ order, onEdit }: { order: OrderDetail; onEdit: () => voi
                   },
                 ]
               : []),
+            ...(order.customer_email
+              ? [
+                  {
+                    label: d.email,
+                    value: (
+                      <a href={`mailto:${order.customer_email}`} dir="ltr" className="text-brand-strong hover:underline">
+                        {order.customer_email}
+                      </a>
+                    ),
+                  },
+                ]
+              : []),
             {
               label: d.governorate,
               value: [order.governorate, order.city].filter(Boolean).join(" · "),

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addToCart, clearCart, lineKey, MAX_CART_LINES, parseCart } from "@/lib/store/cart";
+import { addToCart, clearCart, lineKey, MAX_CART_LINES, parseCart, setQuantity } from "@/lib/store/cart";
 import { offerLabel, unitPriceAfter } from "@/lib/store/offers";
 import type { ProductOffer, ProductPage, StoreConfig } from "@/lib/store/types";
 import { jsonLdString } from "@/lib/public/seo";
@@ -110,7 +110,19 @@ describe("cart", () => {
       clearCart();
       for (let i = 1; i <= MAX_CART_LINES; i++) addToCart(item(i));
     });
-    expect(addToCart(item(999))).toBe(false);
+    expect(addToCart(item(999))).toBe("full");
+  });
+
+  it("never goes past the stock: more clicks add to the same line up to it", () => {
+    act(() => {
+      expect(addToCart({ ...item(5), max: 2 })).toBe("added");
+      expect(addToCart({ ...item(5), max: 2 })).toBe("added");
+      expect(addToCart({ ...item(5), max: 2 })).toBe("max");
+    });
+    expect(parseCart(window.localStorage.getItem("as_cart_v1")).items).toEqual([{ ...item(5), max: 2, quantity: 2 }]);
+    act(() => setQuantity(lineKey(item(5)), 9));
+    expect(parseCart(window.localStorage.getItem("as_cart_v1")).items[0].quantity).toBe(2);
+    expect(addToCart({ ...item(6), max: 0 })).toBe("max");
   });
 
   it("ignores a damaged or tampered cart", () => {
@@ -179,7 +191,12 @@ describe("product page", () => {
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.addToCart }));
 
     const cart = parseCart(window.localStorage.getItem("as_cart_v1"));
-    expect(cart.items).toEqual([{ product_id: 7, quantity: 2, options: { "1": 11, "2": 21 }, name: "قميص", slug: "shirt", image: null, price: 300, options_label: "المقاس: M، اللون: أحمر" }]);
+    expect(cart.items).toEqual([{ product_id: 7, quantity: 2, options: { "1": 11, "2": 21 }, name: "قميص", slug: "shirt", image: null, price: 300, options_label: "المقاس: M، اللون: أحمر", max: 3 }]);
+    // The button says it is in the cart; the stock (3) is the limit.
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.product.inCart(2) }));
+    expect(screen.getByRole("button", { name: ar.storefront.product.inCart(3) })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.product.inCart(3) }));
+    expect(screen.getByRole("alert")).toHaveTextContent(ar.storefront.product.maxReached(3));
   });
 
   it("goes straight to checkout with «اشتري دلوقتي»", () => {
@@ -213,6 +230,7 @@ describe("checkout", () => {
     fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.phone)), { target: { value: "01012345678" } });
     fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.governorate)), { target: { value: "القاهرة" } });
     fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.address)), { target: { value: "15 شارع النيل، الدور 3" } });
+    fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.email)), { target: { value: "sara@mail.com" } });
   };
 
   it("sends the order with the token and the cart, then clears the cart and thanks the customer", async () => {
@@ -227,7 +245,7 @@ describe("checkout", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/checkout/done?order=1042&total=350"));
     const order = calls.find((c) => c.url.endsWith("/orders"))!.body!;
-    expect(order).toMatchObject({ items: [{ product_id: 7, quantity: 1, options: {} }], customer: { name: "سارة", phone: "01012345678", governorate: "القاهرة", address: "15 شارع النيل، الدور 3", city: null }, form_token: "tok-1", shipping_company_id: 3, website: "" });
+    expect(order).toMatchObject({ items: [{ product_id: 7, quantity: 1, options: {} }], customer: { name: "سارة", phone: "01012345678", governorate: "القاهرة", address: "15 شارع النيل، الدور 3", city: null, email: "sara@mail.com" }, form_token: "tok-1", shipping_company_id: 3, website: "" });
     expect(parseCart(window.localStorage.getItem("as_cart_v1")).items).toHaveLength(0);
   });
 
@@ -242,6 +260,11 @@ describe("checkout", () => {
     expect(calls.some((c) => c.url.endsWith("/orders"))).toBe(false);
 
     fill();
+    // The email is optional, but a wrong one is caught.
+    fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.email)), { target: { value: "sara@" } });
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.checkout.submit }));
+    expect(await screen.findByText(ar.storefront.checkout.errors.email)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(new RegExp(ar.storefront.checkout.email)), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.checkout.submit }));
     expect(await screen.findByText("العنوان قصير")).toBeInTheDocument();
     expect(screen.getByText("الكمية المتاحة 0")).toBeInTheDocument();
