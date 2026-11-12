@@ -13,10 +13,11 @@ import { media } from "./ar/media";
 import { nav } from "./ar/nav";
 import { orders } from "./ar/orders";
 import { promotions } from "./ar/promotions";
+import { reviews } from "./ar/reviews";
 import { settings } from "./ar/settings";
 import { shipping } from "./ar/shipping";
 import { showcase } from "./ar/showcase";
 import { storefront } from "./ar/storefront";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews } as const;

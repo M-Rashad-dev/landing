@@ -13,10 +13,11 @@ import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { useTheme } from "../context";
-import { Breadcrumb, Container, QuantityStepper } from "../parts";
+import { Breadcrumb, Container, QuantityStepper, Stars } from "../parts";
 import { ProductCard } from "../product-card";
 import { useShop } from "../shop";
 import { pick } from "../types";
+import { ProductReviewsSection } from "./reviews";
 
 const t = ar.storefront.product;
 
@@ -163,6 +164,14 @@ export function ProductView({ page }: { page: ProductPage }) {
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <h1 className="as-2xl font-extrabold">{product.name}</h1>
+            {page.rating.count > 0 ? (
+              <a href="#reviews" className="as-xs as-muted flex w-fit items-center gap-1.5 hover:underline">
+                <Stars value={page.rating.average} label={ar.storefront.reviews.outOf(page.rating.average)} />
+                <span>
+                  {page.rating.average} · {ar.storefront.reviews.count(page.rating.count)}
+                </span>
+              </a>
+            ) : null}
             {product.short_description ? <p className="as-sm as-muted">{product.short_description}</p> : null}
             <p className="flex flex-wrap items-baseline gap-3">
               <span className="as-2xl font-extrabold as-primary">{formatMoney(offerPrice ?? price)}</span>
@@ -297,6 +306,8 @@ export function ProductView({ page }: { page: ProductPage }) {
           ) : null}
         </div>
       </div>
+
+      <ProductReviewsSection slug={product.slug} summary={page.rating} />
 
       {related.length ? (
         <section className="flex flex-col gap-4 border-t pt-8">

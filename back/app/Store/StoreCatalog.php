@@ -41,7 +41,7 @@ final class StoreCatalog
      */
     public function search(array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = $this->sellable()->with(['media', 'variants', 'options']);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']));
 
         if (($filters['offers'] ?? false) === true) {
             $this->onOffer($query);
@@ -85,7 +85,7 @@ final class StoreCatalog
      */
     public function forSection(string $source, ?int $categoryId, int $limit, bool $inStockOnly = false): array
     {
-        $query = $this->sellable()->with(['media', 'variants', 'options']);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']));
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -98,6 +98,19 @@ final class StoreCatalog
         }
 
         return $query->orderByDesc('id')->limit(max(1, min(32, $limit)))->get()->map(fn (Product $p) => $this->card($p))->all();
+    }
+
+    /**
+     * The average and number of visible reviews on each product of the list.
+     *
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    private function withRatings(Builder $query): Builder
+    {
+        $visible = fn (Builder $q) => $q->where('is_hidden', false);
+
+        return $query->withAvg(['reviews as rating_average' => $visible], 'rating')->withCount(['reviews as rating_count' => $visible]);
     }
 
     /**
@@ -139,7 +152,7 @@ final class StoreCatalog
     public function related(Product $product, bool $inStockOnly = false, int $limit = 8): array
     {
         $ids = $product->categories->pluck('id')->all();
-        $query = $this->sellable()->with(['media', 'variants', 'options'])->whereKeyNot($product->id);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']))->whereKeyNot($product->id);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -171,6 +184,9 @@ final class StoreCatalog
             'is_featured' => $p->is_featured,
             // A card can be added to the cart directly when nothing must be chosen.
             'needs_options' => $p->options->contains(fn ($o) => $o->is_required),
+            'rating' => (int) ($p->getAttribute('rating_count') ?? 0) > 0
+                ? ['average' => round((float) $p->getAttribute('rating_average'), 1), 'count' => (int) $p->getAttribute('rating_count')]
+                : null,
         ];
     }
 

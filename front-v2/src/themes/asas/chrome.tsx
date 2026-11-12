@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, MapPin, Menu, MessageCircle, Phone, Search, ShoppingBag, X } from "lucide-react";
+import { Mail, MapPin, Menu, MessageCircle, Phone, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
@@ -93,6 +93,9 @@ export function Header() {
                 <Search className="size-5" />
               </StoreLink>
             ) : null}
+            <StoreLink href="/account" className="flex size-10 items-center justify-center rounded-full hover:bg-(--as-soft)" aria-label={t.account.title}>
+              <UserRound className="size-5" />
+            </StoreLink>
             <CartButton />
           </div>
         </div>

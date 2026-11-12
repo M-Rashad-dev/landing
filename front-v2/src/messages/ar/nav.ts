@@ -13,6 +13,7 @@ export const nav = {
     orders: "الطلبات",
     abandoned: "الطلبات المتروكة",
     customers: "العملاء",
+    reviews: "التقييمات",
     products: "المنتجات",
     categories: "التصنيفات",
     themeHome: "الثيم والرئيسية",

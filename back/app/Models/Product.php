@@ -119,6 +119,12 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasMany<ProductReview, $this> */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
     public function tracksStock(): bool
     {
         return $this->stock_mode === self::STOCK_PRODUCT || $this->stock_mode === self::STOCK_VARIANT;

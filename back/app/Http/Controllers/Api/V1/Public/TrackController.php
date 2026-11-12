@@ -10,10 +10,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Identity;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\OrderStatusLog;
 use App\Services\PhoneNormalizer;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
+use App\Store\Accounts\CustomerOrders;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
@@ -66,15 +66,6 @@ final class TrackController extends Controller
             throw new ApiException(404, 'order_not_found', __('orders.track_not_found'));
         }
 
-        $history = [];
-        foreach ($order->logs as $log) {
-            /** @var OrderStatusLog $log */
-            $stage = $log->to_status->customerStage();
-            if (($history[array_key_last($history) ?? -1]['stage'] ?? null) !== $stage) {
-                $history[] = ['stage' => $stage, 'at' => $log->created_at->toIso8601ZuluString()];
-            }
-        }
-
         return $this->ok([
             'order_number' => $order->order_number,
             'stage' => $order->status->customerStage(),
@@ -88,7 +79,7 @@ final class TrackController extends Controller
             'governorate' => $order->governorate,
             'shipping_company' => $order->shipping_company_name,
             'tracking_number' => $order->tracking_number,
-            'history' => $history,
+            'history' => CustomerOrders::history($order),
         ])->header('Cache-Control', 'no-store, private');
     }
 }

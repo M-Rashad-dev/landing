@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Minus, Plus } from "lucide-react";
+import { ChevronLeft, Minus, Plus, Star } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -87,3 +87,28 @@ export function FormField({ id, label, hint, error, optional, children }: { id: 
 }
 
 export const inputClass = "as-base h-11 w-full rounded-lg border bg-(--as-bg) px-3 outline-none focus:border-(--as-primary) focus:ring-2 focus:ring-(--as-primary)/20 aria-invalid:border-red-500";
+
+/** Read-only stars (a half star rounds to the nearest whole one). */
+export function Stars({ value, size = "size-4", label }: { value: number; size?: string; label?: string }) {
+  const full = Math.round(value);
+  return (
+    <span className="inline-flex items-center gap-0.5" role="img" aria-label={label ?? t.stars(full)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} className={cn(size, n <= full ? "fill-(--as-secondary) text-(--as-secondary)" : "text-(--as-line)")} aria-hidden />
+      ))}
+    </span>
+  );
+}
+
+/** Choosing 1 to 5 stars (a radio group, keyboard friendly). */
+export function StarInput({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
+  return (
+    <div className="flex items-center gap-1" role="radiogroup" aria-label={label}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={ar.storefront.account.star(n)} onClick={() => onChange(n)} className="rounded p-0.5">
+          <Star className={cn("size-8 transition", n <= value ? "fill-(--as-secondary) text-(--as-secondary)" : "text-(--as-line) hover:text-(--as-secondary)")} aria-hidden />
+        </button>
+      ))}
+    </div>
+  );
+}

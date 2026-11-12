@@ -190,6 +190,8 @@ final class CustomerController extends Controller
             'bad_count' => (int) $c->bad_count,
             'spent' => Money::toFloat(Money::toCents((string) ($c->spent ?? '0'))),
             'last_order_at' => $c->last_order_at?->toIso8601ZuluString(),
+            // Signed in on the storefront at least once (has an account).
+            'signed_up_at' => $c->signed_up_at?->toIso8601ZuluString(),
             'blocked' => $blocked,
         ];
     }

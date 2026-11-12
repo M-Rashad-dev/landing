@@ -11,8 +11,10 @@ use App\Actions\Orders\LinkCustomer;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
+use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Models\BlockedCustomer;
+use App\Models\Customer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
@@ -52,9 +54,10 @@ final class CreateStoreOrder
 
     /**
      * @param  array<string, mixed>  $input  validated StoreOrderRequest data
+     * @param  Customer|null  $account  the signed-in customer: the order goes on their phone
      * @return array{order_number: int, total: float}
      */
-    public function handle(Store $store, array $input): array
+    public function handle(Store $store, array $input, ?Customer $account = null): array
     {
         $tenantId = (int) Tenancy::id();
 
@@ -69,7 +72,11 @@ final class CreateStoreOrder
         }
 
         // Standard checkout fields (name, phone, governorate, city, address, notes).
-        $clean = $this->form->validate([], (array) ($input['customer'] ?? []), []);
+        $fields = (array) ($input['customer'] ?? []);
+        if ($account !== null) {
+            $fields['phone'] = $account->phone;
+        }
+        $clean = $this->form->validate([], $fields, []);
         $customer = $clean['customer'];
         $phone = (string) $customer['phone'];
         $phoneKey = "orders:phone:{$tenantId}:{$phone}";
@@ -161,6 +168,9 @@ final class CreateStoreOrder
         $this->leads->converted($order, isset($input['cart_token']) && is_string($input['cart_token']) ? $input['cart_token'] : null);
         $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
+        if ($account !== null && ($input['save_address'] ?? false) === true) {
+            $this->saveAddress($account, $order);
+        }
 
         return ['order_number' => $order->order_number, 'total' => (float) $order->total];
     }
@@ -210,6 +220,23 @@ final class CreateStoreOrder
         }
 
         return $quote;
+    }
+
+    /** «احفظ العنوان ده»: kept for the next checkout, unless it is already saved or the list is full. */
+    private function saveAddress(Customer $account, Order $order): void
+    {
+        $count = $account->addresses()->count();
+        if ($order->governorate === null || $order->address === null || $count >= StoreAccountController::MAX_ADDRESSES
+            || $account->addresses()->where('governorate', $order->governorate)->where('address', $order->address)->exists()) {
+            return;
+        }
+        $account->addresses()->create([
+            'name' => $order->customer_name,
+            'governorate' => $order->governorate,
+            'city' => $order->city,
+            'address' => $order->address,
+            'is_default' => $count === 0,
+        ]);
     }
 
     private function nextNumber(int $tenantId): int

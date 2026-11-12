@@ -13,16 +13,6 @@ return [
     ],
     'testimonials_title' => 'آراء عملائنا',
 
-    /*
-     * Owner decision (Nov 2026): «تلقائي» shows these three until the store has real reviews
-     * (customer accounts, phase 3). MUST be replaced by real reviews before launch.
-     */
-    'auto_reviews' => [
-        ['name' => 'سارة محمد', 'rating' => 5, 'text' => 'الطلب وصل بسرعة والمنتج زي الصور بالظبط. أكيد هطلب تاني.'],
-        ['name' => 'أحمد علي', 'rating' => 5, 'text' => 'تعامل محترم وخدمة عملاء بترد بسرعة. شكرًا ليكم.'],
-        ['name' => 'منى حسن', 'rating' => 4, 'text' => 'الجودة حلوة والسعر مناسب، والتغليف كان ممتاز.'],
-    ],
-
     'changed' => 'التصميم اتعدّل من مكان تاني. حمّل الصفحة تاني علشان متضيعش تعديلات.',
     'needs_store' => 'جهّز المتجر الأول.',
     'theme_not_owned' => 'الثيم ده مش من ثيماتك.',

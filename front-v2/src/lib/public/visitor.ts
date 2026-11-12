@@ -27,9 +27,9 @@ export async function visitorBody(request: Request): Promise<Record<string, unkn
 }
 
 /** Calls a public endpoint (internal key, no dashboard token) and relays Laravel's answer, never cached. */
-export async function relayPublic(path: string, init: { method?: "GET" | "POST"; body?: unknown } = {}): Promise<NextResponse> {
+export async function relayPublic(path: string, init: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; headers?: Record<string, string> } = {}): Promise<NextResponse> {
   try {
-    const response = await laravelFetch(path, { auth: false, internal: true, method: init.method ?? "GET", body: init.body });
+    const response = await laravelFetch(path, { auth: false, internal: true, method: init.method ?? "GET", body: init.body, headers: init.headers });
     if (response.status === 202 || response.status === 204) return new NextResponse(null, { status: response.status, headers: { "Cache-Control": "no-store" } });
     const json = (await response.json().catch(() => ({}))) as unknown;
     return NextResponse.json(json, { status: response.status, headers: { "Cache-Control": "no-store" } });
@@ -47,4 +47,25 @@ export function pickKeys(body: Record<string, unknown>, keys: readonly string[])
   const out: Record<string, unknown> = {};
   for (const key of keys) if (key in body) out[key] = body[key];
   return out;
+}
+
+/** The store customer's sign-in (httpOnly, this store's host only). */
+export const CUSTOMER_COOKIE = "as_customer";
+const NINETY_DAYS = 60 * 60 * 24 * 90;
+
+export function customerHeaders(request: Request): Record<string, string> {
+  const pair = (request.headers.get("cookie") ?? "")
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${CUSTOMER_COOKIE}=`));
+  const token = pair?.slice(CUSTOMER_COOKIE.length + 1) ?? "";
+  return /^[A-Za-z0-9]{64}$/.test(token) ? { "X-Customer-Token": token } : {};
+}
+
+export function setCustomerCookie(response: NextResponse, token: string, secure: boolean): void {
+  response.cookies.set({ name: CUSTOMER_COOKIE, value: token, httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: NINETY_DAYS });
+}
+
+export function clearCustomerCookie(response: NextResponse, secure: boolean): void {
+  response.cookies.set({ name: CUSTOMER_COOKIE, value: "", httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 0 });
 }

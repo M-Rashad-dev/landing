@@ -1,0 +1,22 @@
+/** «التقييمات»: what customers wrote on the products (dashboard). */
+export const reviews = {
+  title: "التقييمات",
+  description: "تقييمات العملاء اللي استلموا المنتجات. بتتنشر على طول، وتقدر تخفي أي تقييم.",
+  tabs: { all: "الكل", visible: "ظاهرة", hidden: "مخفية" },
+  average: (n: number) => `متوسط التقييم ${n} من 5`,
+  search: "ابحث بالمنتج أو اسم العميل أو الكلام",
+  rating: "النجوم",
+  allRatings: "كل النجوم",
+  stars: (n: number) => (n === 1 ? "نجمة واحدة" : n === 2 ? "نجمتين" : `${n} نجوم`),
+  columns: { product: "المنتج", review: "التقييم", customer: "العميل", date: "التاريخ" },
+  hidden: "مخفي",
+  deletedProduct: "منتج اتمسح",
+  noText: "من غير تعليق",
+  hide: "إخفاء",
+  show: "إظهار",
+  hiddenToast: "التقييم اتخفى من المتجر",
+  shownToast: "التقييم رجع يظهر في المتجر",
+  emptyTitle: "لسه مفيش تقييمات",
+  emptyText: "العميل بيقدر يقيّم المنتج من «طلباتي» في المتجر بعد ما طلبه يوصله.",
+  noResults: "مفيش تقييمات بالشكل ده",
+} as const;

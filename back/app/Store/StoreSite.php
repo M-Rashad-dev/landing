@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
+use App\Store\Accounts\ProductReviews;
 use App\Store\Design\AsasDesign;
 use App\Store\Design\StoreDesigner;
 use Illuminate\Support\Collection;
@@ -31,6 +32,7 @@ final class StoreSite
         private readonly Shipping $shipping,
         private readonly SeoDefaults $seo,
         private readonly StoreDesigner $designer,
+        private readonly ProductReviews $reviews,
     ) {}
 
     /** The live store of the tenant, or null (then "/" stays the landing home). */
@@ -142,6 +144,7 @@ final class StoreSite
             'breadcrumb' => $trail,
             'seo' => SeoDefaults::merge($product->seo, $this->seo->product($product, $this->seo->storeName())),
             'related' => $this->catalog->related($product, ! self::showsOutOfStock($store)),
+            'rating' => $this->reviews->summary($product->id),
             'low_stock_threshold' => $product->low_stock_threshold,
         ];
     }

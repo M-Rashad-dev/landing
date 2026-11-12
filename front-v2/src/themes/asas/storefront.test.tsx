@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addToCart, clearCart, lineKey, MAX_CART_LINES, parseCart } from "@/lib/store/cart";
@@ -44,7 +45,14 @@ const config: StoreConfig = {
   primary_host: "naanaa.com",
 };
 
-const inTheme = (ui: React.ReactNode) => render(<AsasRoot settings={design.settings} data={data} storeName="نعناع" mode="live">{ui}</AsasRoot>);
+const inTheme = (ui: React.ReactNode) =>
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <AsasRoot settings={design.settings} data={data} storeName="نعناع" mode="live">
+        {ui}
+      </AsasRoot>
+    </QueryClientProvider>,
+  );
 
 const shirt: ProductPage = {
   product: {
@@ -70,6 +78,7 @@ const shirt: ProductPage = {
   seo: null,
   related: [],
   low_stock_threshold: 5,
+  rating: { average: 0, count: 0, stars: {} },
 };
 
 beforeEach(() => {
@@ -192,6 +201,7 @@ describe("checkout", () => {
         if (url.endsWith("/form-token")) return Response.json({ data: { token: "tok-1" } });
         if (url.endsWith("/quote")) return Response.json({ data: quote });
         if (url.endsWith("/orders")) return order();
+        if (url.includes("/store/account")) return Response.json({ code: "signed_out" }, { status: 401 });
         return new Response(null, { status: 202 });
       }),
     );

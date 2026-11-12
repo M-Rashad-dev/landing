@@ -11,6 +11,8 @@ use App\Billing\Themes\ThemeAccess;
 use App\Billing\Themes\ThemeCatalog;
 use App\Services\Dns\DnsResolver;
 use App\Services\Dns\NativeDnsResolver;
+use App\Store\Accounts\CodeSender;
+use App\Store\Accounts\ScreenCodeSender;
 use App\Tenancy\Tenancy;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -31,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(ThemeCatalog::class);
         $this->app->scoped(ThemeAccess::class);
         $this->app->bind(DnsResolver::class, NativeDnsResolver::class);
+        // Customer sign-in codes: only the on-screen sender until the owner picks WhatsApp / SMS providers.
+        $this->app->bind(CodeSender::class, ScreenCodeSender::class);
     }
 
     public function boot(): void
@@ -65,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
         $visitor = fn (Request $request): string => (string) ($request->input('ip') ?: $request->ip());
         RateLimiter::for('public-form-token', fn (Request $request) => Limit::perMinute(30)->by('public-form-token:'.$visitor($request)));
         // Tracking: order number + phone guesses are slowed down per visitor IP.
+        RateLimiter::for('public-account-code', fn (Request $request) => Limit::perMinute(10)->by('public-account-code:'.$visitor($request)));
+        RateLimiter::for('public-account', fn (Request $request) => Limit::perMinute(120)->by('public-account:'.$visitor($request)));
         RateLimiter::for('public-track', fn (Request $request) => Limit::perMinute(10)->by('public-track:'.$visitor($request)));
         RateLimiter::for('public-quote', fn (Request $request) => Limit::perMinute(60)->by('public-quote:'.$visitor($request)));
         // Loose guard on attempts; the real 5-per-10-min / 3-per-phone limits count orders (CreateOrder).

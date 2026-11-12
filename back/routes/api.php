@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
+use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
 use Illuminate\Support\Facades\Route;
@@ -165,6 +167,8 @@ Route::prefix('dashboard')
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
 
+        Route::get('reviews', [ReviewController::class, 'index']);
+        Route::patch('reviews/{review}', [ReviewController::class, 'update']);
         Route::get('customers', [CustomerController::class, 'index']);
         Route::get('customers/{customer}', [CustomerController::class, 'show']);
         Route::patch('customers/{customer}', [CustomerController::class, 'update']);
@@ -236,6 +240,22 @@ Route::prefix('public')
         Route::post('store/leads', [PublicStoreController::class, 'lead'])->middleware('throttle:public-leads');
         Route::post('store/carts', [PublicStoreController::class, 'cart'])->middleware('throttle:public-leads');
         Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
+
+        // Storefront customer accounts (phone + one-time code) and product reviews.
+        Route::get('store/products/{slug}/reviews', [StoreAccountController::class, 'productReviews'])->middleware('throttle:public-read');
+        Route::post('store/account/code', [StoreAccountController::class, 'sendCode'])->middleware('throttle:public-account-code');
+        Route::post('store/account/verify', [StoreAccountController::class, 'verify'])->middleware('throttle:public-account-code');
+        Route::middleware('throttle:public-account')->group(function (): void {
+            Route::get('store/account', [StoreAccountController::class, 'show']);
+            Route::put('store/account', [StoreAccountController::class, 'update']);
+            Route::post('store/account/sign-out', [StoreAccountController::class, 'signOut']);
+            Route::get('store/account/orders', [StoreAccountController::class, 'orders']);
+            Route::get('store/account/orders/{number}', [StoreAccountController::class, 'order'])->whereNumber('number');
+            Route::post('store/account/addresses', [StoreAccountController::class, 'storeAddress']);
+            Route::put('store/account/addresses/{address}', [StoreAccountController::class, 'updateAddress'])->whereNumber('address');
+            Route::delete('store/account/addresses/{address}', [StoreAccountController::class, 'destroyAddress'])->whereNumber('address');
+            Route::put('store/account/reviews', [StoreAccountController::class, 'review']);
+        });
     });
 
 Route::prefix('admin')

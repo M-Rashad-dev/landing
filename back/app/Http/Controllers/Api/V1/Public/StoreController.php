@@ -9,21 +9,19 @@ use App\Billing\Entitlements;
 use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
+use App\Http\Controllers\Concerns\ServesLiveStore;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\StorePage;
 use App\Models\StoreStat;
-use App\Models\Tenant;
 use App\Pricing\PriceCalculator;
 use App\Services\FormToken;
 use App\Services\PhoneNormalizer;
-use App\Services\PublicSite;
+use App\Store\Accounts\CustomerAccounts;
 use App\Store\CreateStoreOrder;
 use App\Store\StoreCatalog;
 use App\Store\StoreSite;
 use App\Support\TrafficSource;
-use App\Tenancy\Tenancy;
-use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,10 +34,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class StoreController extends Controller
 {
-    use RespondsWithJson;
+    use RespondsWithJson, ServesLiveStore;
 
     public function __construct(
-        private readonly PublicSite $site,
         private readonly StoreSite $store,
         private readonly StoreCatalog $catalog,
     ) {}
@@ -112,7 +109,7 @@ final class StoreController extends Controller
         });
     }
 
-    public function order(Request $request, CreateStoreOrder $orders): JsonResponse
+    public function order(Request $request, CreateStoreOrder $orders, CustomerAccounts $accounts): JsonResponse
     {
         $data = $request->validate($this->cartRules() + [
             'customer' => ['required', 'array'],
@@ -124,9 +121,16 @@ final class StoreController extends Controller
             'utm' => ['nullable', 'array'],
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
+            'save_address' => ['nullable', 'boolean'],
         ]);
+        $data['save_address'] = filter_var($data['save_address'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-        return $this->inStore($request, fn (Store $store) => $this->noStore($this->created($orders->handle($store, $data))));
+        return $this->inStore($request, function (Store $store) use ($request, $orders, $accounts, $data) {
+            // A signed-in customer orders on their own phone (their «طلباتي»).
+            $account = $accounts->customer($request->header(StoreAccountController::TOKEN_HEADER));
+
+            return $this->noStore($this->created($orders->handle($store, $data, $account)));
+        });
     }
 
     /** Abandoned checkout: always 202 (bots learn nothing); stored only with the plan feature. */
@@ -230,25 +234,6 @@ final class StoreController extends Controller
             'items.*.options' => ['nullable', 'array', 'max:10'],
             'items.*.options.*' => ['nullable', 'integer'],
         ];
-    }
-
-    /** @param Closure(Store, string): JsonResponse $callback */
-    private function inStore(Request $request, Closure $callback): JsonResponse
-    {
-        $domain = $this->site->activeDomainOrFail((string) $request->input('host', $request->query('host', '')));
-        $primary = $this->site->primaryHost($domain->tenant_id) ?? $domain->host;
-
-        return Tenancy::runAs($domain->tenant_id, function () use ($domain, $callback, $primary) {
-            $tenant = $domain->tenant ?? Tenant::query()->findOrFail($domain->tenant_id);
-            $store = $this->store->live($tenant) ?? throw new ApiException(404, 'store_not_live', __('store.store_disabled'));
-
-            return $callback($store, $primary)->header('Cache-Control', 'no-store, private');
-        });
-    }
-
-    private function noStore(JsonResponse $response): JsonResponse
-    {
-        return $response->header('Cache-Control', 'no-store, private');
     }
 
     /** The signed form token of a store checkout is bound to the store (pages use their id). */

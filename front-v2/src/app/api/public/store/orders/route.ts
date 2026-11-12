@@ -1,4 +1,4 @@
-import { badRequest, pickKeys, relayPublic, visitorBody, visitorHost, visitorIp } from "@/lib/public/visitor";
+import { badRequest, customerHeaders, pickKeys, relayPublic, visitorBody, visitorHost, visitorIp } from "@/lib/public/visitor";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +9,12 @@ export async function POST(request: Request) {
   return relayPublic("/public/store/orders", {
     method: "POST",
     body: {
-      ...pickKeys(body, ["items", "customer", "code", "shipping_company_id", "form_token", "website", "utm", "cart_token"]),
+      ...pickKeys(body, ["items", "customer", "code", "shipping_company_id", "form_token", "website", "utm", "cart_token", "save_address"]),
       host: visitorHost(request),
       ip: visitorIp(request),
       user_agent: (request.headers.get("user-agent") ?? "").slice(0, 500),
     },
+    // A signed-in customer orders on their own phone.
+    headers: customerHeaders(request),
   });
 }

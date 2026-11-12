@@ -14,6 +14,7 @@ import {
   Store,
   ShoppingBag,
   ShoppingCart,
+  Star,
   Tag,
   TicketPercent,
   Truck,
@@ -41,6 +42,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/orders", label: t.items.orders, icon: ShoppingBag, status: "ready" },
       { href: "/dashboard/abandoned", label: t.items.abandoned, icon: ShoppingCart, status: "ready" },
       { href: "/dashboard/customers", label: t.items.customers, icon: Users, status: "ready" },
+      { href: "/dashboard/reviews", label: t.items.reviews, icon: Star, status: "ready" },
     ],
   },
   {

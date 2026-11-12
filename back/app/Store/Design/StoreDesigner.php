@@ -11,6 +11,7 @@ use App\Models\Media;
 use App\Models\Store;
 use App\Models\StoreDesign;
 use App\Models\StorePage;
+use App\Store\Accounts\ProductReviews;
 use App\Store\StoreCatalog;
 use App\Tenancy\Tenancy;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ final class StoreDesigner
     public function __construct(
         private readonly AsasDesign $asas,
         private readonly StoreCatalog $catalog,
+        private readonly ProductReviews $reviews,
     ) {}
 
     public function for(Store $store): StoreDesign
@@ -111,8 +113,8 @@ final class StoreDesigner
             // The header menu of «أساس»: the visible categories (custom menus come with paid themes).
             'categories' => array_values(array_map(fn (array $c) => ['id' => $c['id'], 'parent_id' => $c['parent_id'], 'name' => $c['name'], 'slug' => $c['slug']], array_filter($categories, fn (array $c) => $c['depth'] <= 1))),
             'pages' => StorePage::query()->where('is_published', true)->orderBy('position')->orderBy('id')->get(['title', 'slug'])->map(fn (StorePage $p) => ['title' => $p->title, 'slug' => $p->slug])->all(),
-            // Owner decision: fixed reviews for «تلقائي» until real reviews exist (phase 3, before launch).
-            'reviews' => (array) __('design.auto_reviews'),
+            // «آراء العملاء» set to automatic: the latest good reviews customers wrote on products.
+            'reviews' => $this->reviews->forHome(),
         ];
     }
 

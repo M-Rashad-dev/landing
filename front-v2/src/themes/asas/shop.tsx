@@ -3,6 +3,7 @@
 import { ImageOff, X } from "lucide-react";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
+import { QueryProvider } from "@/lib/query";
 import { cartCount, cartPayload, lineKey, useCart } from "@/lib/store/cart";
 import { sendStoreEvent, syncCart } from "@/lib/store/events";
 import type { StoreConfig } from "@/lib/store/types";
@@ -61,6 +62,7 @@ export function AsasShell({ config, children }: { config: StoreConfig; children:
   }, [payload]);
 
   return (
+    <QueryProvider>
     <ShopContext.Provider value={shop}>
       <AsasRoot settings={config.design.settings} data={config.data} storeName={config.store_name} mode="live" className="flex min-h-dvh flex-col">
         <Header />
@@ -71,6 +73,7 @@ export function AsasShell({ config, children }: { config: StoreConfig; children:
       </AsasRoot>
       <TrackingScripts tracking={config.tracking} />
     </ShopContext.Provider>
+    </QueryProvider>
   );
 }
 

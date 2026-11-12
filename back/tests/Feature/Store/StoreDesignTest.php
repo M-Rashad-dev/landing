@@ -50,7 +50,8 @@ it('opens «أساس» with the starter design in the mint colors and the four s
         ->assertJsonPath('data.published_at', null)
         ->assertJsonPath('data.has_unpublished_changes', true);
     expect(array_column($res->json('data.draft.sections'), 'type'))->toBe(['banner', 'products', 'features', 'testimonials'])
-        ->and($res->json('data.data.reviews'))->toHaveCount(3);
+        // «آراء العملاء» automatic shows real reviews only: none yet.
+        ->and($res->json('data.data.reviews'))->toBe([]);
 });
 
 it('saves the draft, shows each product list its products, and publishes', function () {

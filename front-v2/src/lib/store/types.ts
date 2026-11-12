@@ -94,6 +94,7 @@ export type ProductPage = {
   seo: Seo;
   related: ProductCard[];
   low_stock_threshold: number | null;
+  rating: { average: number; count: number; stars: Record<string, number> };
 };
 
 export type ProductList = { data: ProductCard[]; meta: { current_page: number; last_page: number; per_page: number; total: number } };

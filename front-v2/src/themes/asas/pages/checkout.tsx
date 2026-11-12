@@ -1,13 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Banknote, Loader2, ShoppingBag, Truck, X } from "lucide-react";
+import { Banknote, Loader2, ShoppingBag, Truck, UserRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { formatMoney } from "@/lib/format";
-import { normalizePhone } from "@/lib/phone";
+import { formatPhoneLocal, normalizePhone } from "@/lib/phone";
+import { useAccount, type Address } from "@/lib/store/account";
 import { cartPayload, clearCart, useCart } from "@/lib/store/cart";
 import { cartToken, resetCartToken, sendStoreEvent } from "@/lib/store/events";
 import { GOVERNORATES } from "@/lib/store/governorates";
@@ -22,6 +23,7 @@ import { Breadcrumb, Container, Empty, FormField, inputClass } from "../parts";
 import { CartLines, useHydrated } from "./cart";
 
 const t = ar.storefront.checkout;
+const ta = ar.storefront.checkoutAccount;
 
 const schema = z.object({
   name: z.string().trim().min(2, t.errors.name).max(80, t.errors.name),
@@ -52,6 +54,42 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
   const [failure, setFailure] = React.useState<string | null>(null);
   const [lineErrors, setLineErrors] = React.useState<Record<number, string>>({});
   const [placing, setPlacing] = React.useState(false);
+  // Signed in: the details come from the account; "new" = typing a new address.
+  const account = useAccount();
+  const me = account.data ?? null;
+  const [chosenAddress, setChosenAddress] = React.useState<number | "new" | null>(null);
+  const [keepAddress, setKeepAddress] = React.useState(true);
+  const filled = React.useRef(false);
+  const preferred = me ? (me.addresses.find((a) => a.is_default) ?? me.addresses[0] ?? null) : null;
+  // Until the customer picks, the default saved address is the one in use.
+  const addressId = chosenAddress ?? preferred?.id ?? "new";
+
+  /** Puts an address in the form; `onlyEmpty` (the first fill) never replaces what the customer already typed. */
+  const fillAddress = React.useCallback(
+    (address: Address | null, onlyEmpty = false) => {
+      const opts = { shouldValidate: false, shouldDirty: true } as const;
+      const put = (field: "governorate" | "city" | "address" | "name", value: string) => {
+        if (!onlyEmpty || !String(form.getValues(field) ?? "").trim()) form.setValue(field, value, opts);
+      };
+      put("governorate", address?.governorate ?? "");
+      put("city", address?.city ?? "");
+      put("address", address?.address ?? "");
+      if (address?.name) put("name", address.name);
+    },
+    [form],
+  );
+  const pickAddress = (address: Address | null) => {
+    setChosenAddress(address ? address.id : "new");
+    fillAddress(address);
+  };
+
+  React.useEffect(() => {
+    if (!me || filled.current) return;
+    filled.current = true;
+    form.setValue("phone", formatPhoneLocal(me.phone));
+    if (me.name && !form.getValues("name")) form.setValue("name", me.name);
+    if (preferred) fillAddress(preferred, true);
+  }, [me, form, fillAddress, preferred]);
 
   const quote = useCartQuote(cart, { code, governorate: governorate || null, phone, shipping_company_id: companyId });
   const shown: QuoteState = { ...quote, lineErrors: { ...quote.lineErrors, ...lineErrors } };
@@ -110,6 +148,7 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
           website: values.website,
           utm: captureUtm(),
           cart_token: cartToken() || null,
+          save_address: me !== null && addressId === "new" && keepAddress,
         }),
       });
       const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number }; errors?: Record<string, string[]>; message?: string };
@@ -171,14 +210,41 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
 
       <form onSubmit={onSubmit} noValidate className="grid items-start gap-6 @4xl:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-6">
+          {account.isSuccess && !me ? (
+            <p className="as-sm flex flex-wrap items-center gap-x-2 rounded-xl bg-(--as-soft) px-4 py-3">
+              <UserRound className="size-4 as-primary" aria-hidden />
+              <span>{ta.haveAccount}</span>
+              <StoreLink href="/account/login?next=/checkout" className="font-bold as-primary hover:underline">
+                {ta.signIn}
+              </StoreLink>
+            </p>
+          ) : null}
           <section className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5">
             <h2 className="as-lg font-bold">{t.contact}</h2>
+            {me && me.addresses.length ? (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="as-sm mb-2 font-semibold">{ta.savedAddresses}</legend>
+                {me.addresses.map((a) => (
+                  <label key={a.id} className={cn("as-sm flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3", addressId === a.id ? "border-(--as-primary) bg-(--as-soft)" : "hover:border-(--as-primary)/40")}>
+                    <input type="radio" name="saved_address" checked={addressId === a.id} onChange={() => pickAddress(a)} className="mt-1 size-4 accent-(--as-primary)" />
+                    <span className="flex flex-col">
+                      <b>{a.name}</b>
+                      <span className="as-muted">{[a.address, a.city, a.governorate].filter(Boolean).join("، ")}</span>
+                    </span>
+                  </label>
+                ))}
+                <label className={cn("as-sm flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 font-semibold", addressId === "new" ? "border-(--as-primary) bg-(--as-soft)" : "hover:border-(--as-primary)/40")}>
+                  <input type="radio" name="saved_address" checked={addressId === "new"} onChange={() => pickAddress(null)} className="size-4 accent-(--as-primary)" />
+                  {ta.newAddress}
+                </label>
+              </fieldset>
+            ) : null}
             <div className="grid gap-4 @3xl:grid-cols-2">
               <FormField id="co-name" label={t.name} error={err("name")}>
                 <input id="co-name" autoComplete="name" maxLength={80} className={inputClass} {...register("name")} {...aria("name")} />
               </FormField>
-              <FormField id="co-phone" label={t.phone} hint={t.phoneHint} error={err("phone")}>
-                <input id="co-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" maxLength={20} className={cn(inputClass, "text-end")} {...register("phone")} {...aria("phone")} />
+              <FormField id="co-phone" label={t.phone} hint={me ? ta.signedInAs(formatPhoneLocal(me.phone)) : t.phoneHint} error={err("phone")}>
+                <input id="co-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" maxLength={20} readOnly={me !== null} className={cn(inputClass, "text-end", me && "opacity-70")} {...register("phone")} {...aria("phone")} />
               </FormField>
               <FormField id="co-governorate" label={t.governorate} error={err("governorate")}>
                 <select id="co-governorate" className={inputClass} {...register("governorate")} {...aria("governorate")}>
@@ -200,6 +266,12 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
             <FormField id="co-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="co-notes" rows={2} maxLength={500} className={cn(inputClass, "h-auto py-2")} {...register("notes")} />
             </FormField>
+            {me && addressId === "new" ? (
+              <label className="as-sm flex items-center gap-2 font-semibold">
+                <input type="checkbox" checked={keepAddress} onChange={(e) => setKeepAddress(e.target.checked)} className="size-4 accent-(--as-primary)" />
+                {ta.saveAddress}
+              </label>
+            ) : null}
             {/* Honeypot: people never see it, bots fill it. */}
             <input type="text" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -start-[9999px] size-px opacity-0" {...register("website")} />
           </section>

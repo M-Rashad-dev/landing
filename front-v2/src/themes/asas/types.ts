@@ -54,6 +54,8 @@ export type ProductCard = {
   image: { id: number; alt: string | null; width: number | null; height: number | null; urls: Record<string, string> } | null;
   available: boolean;
   needs_options: boolean;
+  /** Visible reviews (null: none yet). */
+  rating?: { average: number; count: number } | null;
 };
 
 export type DesignData = {

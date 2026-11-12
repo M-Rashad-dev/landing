@@ -7,6 +7,7 @@ import { sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
 import { StoreLink, useTheme } from "./context";
+import { Stars } from "./parts";
 import { useShop } from "./shop";
 import { pick, type ProductCard as Card } from "./types";
 
@@ -47,6 +48,12 @@ export function ProductCard({ product }: { product: Card }) {
         <StoreLink href={href} className="as-sm line-clamp-2 font-semibold hover:underline">
           {product.name}
         </StoreLink>
+        {product.rating ? (
+          <p className="as-xs as-muted flex items-center gap-1">
+            <Stars value={product.rating.average} size="size-3.5" label={t.reviews.outOf(product.rating.average)} />
+            <span>({product.rating.count})</span>
+          </p>
+        ) : null}
         <p className="mt-auto flex flex-wrap items-baseline gap-2">
           <span className="as-base font-bold as-primary">{formatMoney(product.price)}</span>
           {product.compare_at_price && product.compare_at_price > product.price ? <span className="as-xs as-muted line-through">{formatMoney(product.compare_at_price)}</span> : null}
