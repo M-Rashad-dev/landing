@@ -1,5 +1,11 @@
 import {
+  BadgeDollarSign,
   BarChart3,
+  CreditCard,
+  History,
+  Layers,
+  ReceiptText,
+  Undo2,
   Blocks,
   FileText,
   FolderTree,
@@ -80,6 +86,41 @@ export const DASHBOARD_FOOTER_NAV: NavItem[] = [
   { href: "/dashboard/settings", label: t.items.settings, icon: Settings, status: "ready" },
   { href: "/dashboard/components", label: t.items.components, icon: Blocks, status: "ready" },
 ];
+
+const a = ar.admin.nav;
+
+/** The platform admin (/admin): parts 2 and 3 open the money and catalog pages. */
+export const ADMIN_NAV: NavGroup[] = [
+  { items: [{ href: "/admin", label: a.items.home, icon: Home, status: "ready", exact: true }] },
+  { label: a.groups.stores, items: [{ href: "/admin/stores", label: a.items.stores, icon: Store, status: "ready" }] },
+  {
+    label: a.groups.money,
+    items: [
+      { href: "/admin/payments", label: a.items.payments, icon: ReceiptText, status: "soon" },
+      { href: "/admin/refunds", label: a.items.refunds, icon: Undo2, status: "soon" },
+      { href: "/admin/payment-methods", label: a.items.methods, icon: CreditCard, status: "soon" },
+    ],
+  },
+  {
+    label: a.groups.catalog,
+    items: [
+      { href: "/admin/plans", label: a.items.plans, icon: BadgeDollarSign, status: "soon" },
+      { href: "/admin/themes", label: a.items.themes, icon: Layers, status: "soon" },
+    ],
+  },
+];
+
+export const ADMIN_FOOTER_NAV: NavItem[] = [
+  { href: "/admin/activity", label: a.items.activity, icon: History, status: "soon" },
+  { href: "/admin/settings", label: a.items.settings, icon: Settings, status: "ready" },
+];
+
+export type NavArea = "dashboard" | "admin";
+
+/** The sidebar of each area (client components pick it by name: icons cannot cross from the server). */
+export function navigationOf(area: NavArea): { groups: NavGroup[]; footer: NavItem[]; home: string } {
+  return area === "admin" ? { groups: ADMIN_NAV, footer: ADMIN_FOOTER_NAV, home: "/admin" } : { groups: DASHBOARD_NAV, footer: DASHBOARD_FOOTER_NAV, home: "/dashboard/components" };
+}
 
 export function isActive(pathname: string, item: Pick<NavItem, "href" | "exact">): boolean {
   return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);

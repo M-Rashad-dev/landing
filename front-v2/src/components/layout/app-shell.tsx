@@ -9,6 +9,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Pop
 import { logout } from "@/lib/auth/logout";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import type { NavArea } from "@/config/navigation";
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
 
@@ -24,7 +25,24 @@ export function useShell() {
 /** Dashboard frame: sidebar (desktop fixed / mobile sheet), top bar, quick search, toasts. */
 export type ShellAccount = { name: string; store: string; /** Public address of the store (null until it has one). */ storeUrl: string | null };
 
-export function AppShell({ children, account }: { children: React.ReactNode; account: ShellAccount }) {
+export function AppShell({
+  children,
+  account,
+  area = "dashboard",
+  badges,
+  notifications,
+  alertCount = 0,
+}: {
+  children: React.ReactNode;
+  account: ShellAccount;
+  area?: NavArea;
+  /** Live counts on sidebar items, by page. */
+  badges?: Record<string, number>;
+  /** What the bell shows (the default: nothing new). */
+  notifications?: React.ReactNode;
+  /** A dot on the bell while something waits. */
+  alertCount?: number;
+}) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -57,7 +75,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
     <TooltipProvider>
       <div className="flex min-h-dvh">
         <aside className={cn("sticky top-0 hidden h-dvh shrink-0 transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")}>
-          <Sidebar collapsed={collapsed} onToggle={toggle} />
+          <Sidebar collapsed={collapsed} onToggle={toggle} area={area} badges={badges} />
         </aside>
 
         <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -66,7 +84,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
             <DialogPrimitive.Content dir="rtl" className="fixed inset-y-0 start-0 z-50 w-[var(--sidebar-width)] lg:hidden data-[state=open]:animate-in data-[state=open]:slide-in-from-right">
               <DialogPrimitive.Title className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Title>
               <DialogPrimitive.Description className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Description>
-              <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} />
+              <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} area={area} badges={badges} />
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
@@ -82,7 +100,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
               className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm text-ink-3 transition-colors hover:border-border-strong"
             >
               <Search className="size-4" aria-hidden />
-              <span className="flex-1 truncate text-start">{ar.nav.quickSearch}</span>
+              <span className="flex-1 truncate text-start">{area === "admin" ? ar.nav.quickSearchPages : ar.nav.quickSearch}</span>
               <Kbd className="hidden sm:inline-flex">Ctrl K</Kbd>
             </button>
             <div className="ms-auto flex items-center gap-1">
@@ -96,13 +114,18 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
               ) : null}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label={ar.nav.notifications}>
+                  <Button variant="ghost" size="icon" aria-label={ar.nav.notifications} className="relative">
                     <Bell />
+                    {alertCount > 0 ? <span className="absolute end-2 top-2 size-2 rounded-full bg-accent ring-2 ring-bg" aria-hidden /> : null}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end">
-                  <p className="text-sm font-semibold">{ar.nav.notifications}</p>
-                  <p className="mt-2 text-[13px] text-ink-3">{ar.nav.noNotifications}</p>
+                  {notifications ?? (
+                    <>
+                      <p className="text-sm font-semibold">{ar.nav.notifications}</p>
+                      <p className="mt-2 text-[13px] text-ink-3">{ar.nav.noNotifications}</p>
+                    </>
+                  )}
                 </PopoverContent>
               </Popover>
               <Menu>
@@ -117,12 +140,16 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
                 </MenuTrigger>
                 <MenuContent>
                   <MenuLabel>{account.store}</MenuLabel>
-                  <MenuItem disabled>
-                    <UserRound />
-                    {ar.nav.account}
-                    <span className="ms-auto text-[11px] text-ink-3">{ar.common.soon}</span>
-                  </MenuItem>
-                  <MenuSeparator />
+                  {area === "dashboard" ? (
+                    <>
+                      <MenuItem disabled>
+                        <UserRound />
+                        {ar.nav.account}
+                        <span className="ms-auto text-[11px] text-ink-3">{ar.common.soon}</span>
+                      </MenuItem>
+                      <MenuSeparator />
+                    </>
+                  ) : null}
                   <MenuItem destructive onSelect={() => void logout()}>
                     <LogOut />
                     {ar.nav.logout}
@@ -134,7 +161,7 @@ export function AppShell({ children, account }: { children: React.ReactNode; acc
           <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
         </div>
       </div>
-      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} area={area} />
     </TooltipProvider>
     </ShellContext.Provider>
   );

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { CountBadge } from "@/components/ui/badge";
 import { Tooltip } from "@/components/ui/overlay";
-import { DASHBOARD_FOOTER_NAV, DASHBOARD_NAV, isActive, type NavItem } from "@/config/navigation";
+import { isActive, navigationOf, type NavArea, type NavItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
@@ -14,13 +14,27 @@ import { ar } from "@/messages/ar";
  * Light sidebar: groups, counts, locked ("soon") pages, collapsible to icons on desktop.
  * The active page gets the orange marker on its start edge.
  */
-export function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {
+export function Sidebar({
+  collapsed,
+  onToggle,
+  onNavigate,
+  area = "dashboard",
+  badges = {},
+}: {
+  collapsed: boolean;
+  onToggle?: () => void;
+  onNavigate?: () => void;
+  area?: NavArea;
+  /** Live counts by page (the admin: receipts waiting). */
+  badges?: Record<string, number>;
+}) {
   const pathname = usePathname();
+  const nav = navigationOf(area);
 
   return (
     <nav aria-label={ar.nav.openMenu} className="flex h-full flex-col border-e border-border bg-surface">
       <div className={cn("flex h-16 shrink-0 items-center border-b border-border", collapsed ? "justify-center px-2" : "justify-between px-4")}>
-        <Link href="/dashboard/components" onClick={onNavigate}>
+        <Link href={nav.home} onClick={onNavigate}>
           <Logo collapsed={collapsed} />
         </Link>
         {onToggle && !collapsed ? (
@@ -31,14 +45,14 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolea
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3">
-        {DASHBOARD_NAV.map((group, i) => (
+        {nav.groups.map((group, i) => (
           <div key={group.label ?? i} className={i > 0 ? "mt-4" : undefined}>
             {group.label && !collapsed ? <p className="mb-1 px-3 text-[11px] font-semibold text-ink-3">{group.label}</p> : null}
             {collapsed && i > 0 ? <hr className="mx-3 mb-2 border-border" /> : null}
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <li key={item.href}>
-                  <NavLink item={item} active={isActive(pathname, item)} collapsed={collapsed} onNavigate={onNavigate} />
+                  <NavLink item={badges[item.href] ? { ...item, badge: badges[item.href] } : item} active={isActive(pathname, item)} collapsed={collapsed} onNavigate={onNavigate} />
                 </li>
               ))}
             </ul>
@@ -48,9 +62,9 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolea
 
       <div className="border-t border-border px-2 py-3">
         <ul className="flex flex-col gap-0.5">
-          {DASHBOARD_FOOTER_NAV.map((item) => (
+          {nav.footer.map((item) => (
             <li key={item.href}>
-              <NavLink item={item} active={isActive(pathname, item)} collapsed={collapsed} onNavigate={onNavigate} />
+              <NavLink item={badges[item.href] ? { ...item, badge: badges[item.href] } : item} active={isActive(pathname, item)} collapsed={collapsed} onNavigate={onNavigate} />
             </li>
           ))}
         </ul>

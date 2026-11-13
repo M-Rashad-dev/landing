@@ -25,6 +25,9 @@ final class PlatformSettings
         // Shown on invoices and the legal pages.
         'support_email' => null,
         'support_whatsapp' => null,
+        // Email alerts to the platform owner (AdminAlerts): where, and which ones.
+        'alert_email' => null,
+        'alert_events' => ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary'],
     ];
 
     /** @var array<string, mixed>|null */

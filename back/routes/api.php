@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AlertController as AdminAlertController;
+use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
@@ -264,6 +266,10 @@ Route::prefix('admin')
     ->middleware(['auth:sanctum', 'super.admin', 'throttle:dashboard'])
     ->group(function (): void {
         Route::get('overview', AdminOverviewController::class);
+        Route::get('alerts', [AdminAlertController::class, 'show']);
+        Route::put('alerts', [AdminAlertController::class, 'update']);
+        Route::post('alerts/test', [AdminAlertController::class, 'test'])->middleware('throttle:6,1');
+        Route::get('audit-logs', [AdminAuditLogController::class, 'index']);
         Route::get('tenants', [AdminTenantController::class, 'index']);
         Route::get('tenants/{tenant}', [AdminTenantController::class, 'show'])->whereNumber('tenant');
         Route::post('tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->whereNumber('tenant');

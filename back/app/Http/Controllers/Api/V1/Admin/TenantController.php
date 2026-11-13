@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Actions\Admin\ManageTenant;
+use App\Billing\PlanCatalog;
 use App\Enums\DomainType;
-use App\Enums\PageStatus;
 use App\Enums\SubscriptionSource;
 use App\Enums\TenantStatus;
 use App\Enums\UserRole;
@@ -15,10 +15,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\DomainResource;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\PlatformStats;
+use App\Services\PublicSite;
+use App\Support\Money;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 /**
@@ -34,12 +38,20 @@ final class TenantController extends Controller
         $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::enum(TenantStatus::class)],
+            'plan' => ['nullable', 'string', 'max:60'],
+            'subscription' => ['nullable', Rule::in(['trial', 'paying', 'gifted', 'expiring', 'expired'])],
+            'sort' => ['nullable', Rule::in(['newest', 'oldest', 'sales', 'orders'])],
         ]);
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', '');
+        $plan = (string) $request->query('plan', '');
+        $subscription = (string) $request->query('subscription', '');
+        $sort = (string) $request->query('sort', 'newest');
 
         $page = Tenancy::withoutTenant(fn () => $this->withSummary(Tenant::query())
             ->when($status !== '', fn (Builder $q) => $q->where('status', $status))
+            ->when($plan !== '', fn (Builder $q) => $q->where('plan_key', $plan)->where('plan_ends_at', '>', now()))
+            ->when($subscription !== '', fn (Builder $q) => $this->subscriptionFilter($q, $subscription))
             ->when($search !== '', function (Builder $q) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
                 $q->where(fn (Builder $w) => $w
@@ -47,7 +59,9 @@ final class TenantController extends Controller
                     ->orWhereHas('users', fn (Builder $u) => $u->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like))
                     ->orWhereHas('domains', fn (Builder $d) => $d->where('host', 'like', $like)));
             })
-            ->orderByDesc('id')
+            ->when($sort === 'sales', fn (Builder $q) => $q->orderByDesc('sales'))
+            ->when($sort === 'orders', fn (Builder $q) => $q->orderByDesc('orders_count'))
+            ->when($sort === 'oldest', fn (Builder $q) => $q->orderBy('id'), fn (Builder $q) => $q->orderByDesc('id'))
             ->paginate($this->perPage($request)));
 
         return $this->ok(
@@ -99,10 +113,24 @@ final class TenantController extends Controller
                 'domains' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
             ])
             ->withCount([
-                'pages',
-                'pages as published_pages_count' => fn (Builder $q) => $q->where('status', PageStatus::Published),
-                'orders',
-            ]);
+                'orders' => fn (Builder $q) => $q->whereNotIn('status', PlatformStats::NOT_SALES),
+                'products',
+                'customers',
+            ])
+            ->withSum(['orders as sales' => fn (Builder $q) => $q->whereNotIn('status', PlatformStats::NOT_SALES)], 'total')
+            ->withMax('orders as last_order_at', 'created_at');
+    }
+
+    /** @param  Builder<Tenant>  $query */
+    private function subscriptionFilter(Builder $query, string $filter): void
+    {
+        match ($filter) {
+            'trial' => $query->where('plan_source', SubscriptionSource::Trial)->where('plan_ends_at', '>', now()),
+            'paying' => $query->where('plan_source', SubscriptionSource::Payment)->where('plan_ends_at', '>', now()),
+            'gifted' => $query->where('plan_source', SubscriptionSource::AdminGrant)->where('plan_ends_at', '>', now()),
+            'expiring' => $query->whereBetween('plan_ends_at', [now(), now()->addDays(7)]),
+            default => $query->where(fn (Builder $q) => $q->whereNull('plan_grace_ends_at')->orWhere('plan_grace_ends_at', '<=', now())),
+        };
     }
 
     /** @return array<string, mixed> */
@@ -120,10 +148,14 @@ final class TenantController extends Controller
             'owner' => $owner ? ['id' => $owner->id, 'name' => $owner->name, 'email' => $owner->email, 'phone' => $owner->phone, 'last_login_at' => $owner->last_login_at?->toIso8601ZuluString()] : null,
             'subdomain' => $subdomain?->host,
             'primary_host' => $primary?->host,
-            'pages_count' => (int) $tenant->getAttribute('pages_count'),
-            'published_pages_count' => (int) $tenant->getAttribute('published_pages_count'),
+            'store_url' => $primary ? PublicSite::url($primary->host) : null,
             'orders_count' => (int) $tenant->getAttribute('orders_count'),
+            'products_count' => (int) $tenant->getAttribute('products_count'),
+            'customers_count' => (int) $tenant->getAttribute('customers_count'),
+            'sales' => Money::toFloat(Money::toCents((string) ($tenant->getAttribute('sales') ?? '0'))),
+            'last_order_at' => ($last = $tenant->getAttribute('last_order_at')) ? Carbon::parse($last, 'UTC')->toIso8601ZuluString() : null,
             'plan_key' => $tenant->plan_key,
+            'plan_name' => $tenant->plan_key === null ? null : (app(PlanCatalog::class)->plan($tenant->plan_key)['name'] ?? $tenant->plan_key),
             'plan_state' => $tenant->accessState()->value,
             'plan_is_trial' => $tenant->plan_source === SubscriptionSource::Trial,
             'plan_ends_at' => $tenant->plan_ends_at?->toIso8601ZuluString(),

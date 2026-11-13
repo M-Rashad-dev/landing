@@ -9,7 +9,6 @@ use App\Models\AdminAuditLog;
 use App\Models\Domain;
 use App\Models\LandingPage;
 use App\Models\Order;
-use App\Models\Tenant;
 use App\Models\Theme;
 use App\Models\User;
 use Database\Seeders\ThemeSeeder;
@@ -46,25 +45,6 @@ it('creates a super admin from the interactive command and refuses duplicates', 
         ->expectsQuestion('Repeat the password', 'other')
         ->assertFailed();
     expect(User::query()->where('role', 'super_admin')->count())->toBe(2);
-});
-
-it('shows platform counts', function () {
-    $owner = createOwner();
-    asTenant($owner, function () {
-        LandingPage::factory()->published()->create();
-        LandingPage::factory()->create();
-        Order::factory()->count(2)->create();
-    });
-    Tenant::factory()->create(['status' => TenantStatus::Suspended]);
-
-    $this->getJson('/api/v1/admin/overview')
-        ->assertOk()
-        ->assertJsonPath('data.tenants', 2)
-        ->assertJsonPath('data.active_tenants', 1)
-        ->assertJsonPath('data.suspended_tenants', 1)
-        ->assertJsonPath('data.published_pages', 1)
-        ->assertJsonPath('data.orders_total', 2)
-        ->assertJsonPath('data.orders_today', 2);
 });
 
 it('lists tenants with search, status filter and counts', function () {

@@ -137,6 +137,26 @@ class Tenant extends Model
         return $this->hasMany(Order::class);
     }
 
+    /**
+     * Tenant-scoped like domains(); counted by the super admin inside Tenancy::withoutTenant().
+     *
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Tenant-scoped like domains(); counted by the super admin inside Tenancy::withoutTenant().
+     *
+     * @return HasMany<Customer, $this>
+     */
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
     /** @return HasOne<Domain, $this> */
     public function primaryDomain(): HasOne
     {

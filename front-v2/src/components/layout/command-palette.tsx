@@ -5,7 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { Lock, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { DASHBOARD_FOOTER_NAV, DASHBOARD_NAV } from "@/config/navigation";
+import { navigationOf, type NavArea } from "@/config/navigation";
 import { ar } from "@/messages/ar";
 
 export type QuickResult = { id: string; group: string; label: string; hint?: string; href: string };
@@ -14,7 +14,7 @@ export type QuickResult = { id: string; group: string; label: string; hint?: str
  * Ctrl+K / ⌘K from anywhere: jump to a page now; orders by number, customers by phone and
  * products by name join through `extraResults` when those parts are built (server search).
  */
-export function CommandPalette({ open, onOpenChange, extraResults = [] }: { open: boolean; onOpenChange: (open: boolean) => void; extraResults?: QuickResult[] }) {
+export function CommandPalette({ open, onOpenChange, extraResults = [], area = "dashboard" }: { open: boolean; onOpenChange: (open: boolean) => void; extraResults?: QuickResult[]; area?: NavArea }) {
   const router = useRouter();
 
   React.useEffect(() => {
@@ -28,7 +28,8 @@ export function CommandPalette({ open, onOpenChange, extraResults = [] }: { open
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onOpenChange]);
 
-  const pages = [...DASHBOARD_NAV.flatMap((g) => g.items), ...DASHBOARD_FOOTER_NAV];
+  const nav = navigationOf(area);
+  const pages = [...nav.groups.flatMap((g) => g.items), ...nav.footer];
   const groups = Array.from(new Set(extraResults.map((r) => r.group)));
 
   function go(href: string) {
@@ -46,7 +47,7 @@ export function CommandPalette({ open, onOpenChange, extraResults = [] }: { open
           <Command label={ar.nav.quickSearchShort} className="flex flex-col">
             <div className="flex items-center gap-2 border-b border-border px-4">
               <Search className="size-4 text-ink-3" aria-hidden />
-              <Command.Input autoFocus placeholder={ar.nav.quickSearch} className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3" />
+              <Command.Input autoFocus placeholder={area === "admin" ? ar.nav.quickSearchPages : ar.nav.quickSearch} className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3" />
             </div>
             <Command.List className="max-h-80 overflow-y-auto p-2">
               <Command.Empty className="px-3 py-8 text-center text-sm text-ink-3">{ar.nav.quickSearchEmpty}</Command.Empty>

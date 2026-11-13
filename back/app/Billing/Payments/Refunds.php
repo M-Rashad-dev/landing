@@ -11,6 +11,7 @@ use App\Exceptions\ApiException;
 use App\Models\Invoice;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\AdminAlerts;
 use App\Tenancy\Tenancy;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +25,7 @@ final class Refunds
     public function __construct(
         private readonly SubscriptionManager $subscriptions,
         private readonly ManageTenant $audit,
+        private readonly AdminAlerts $alerts,
     ) {}
 
     /** The paid invoice that can be refunded now, or null. */
@@ -45,6 +47,7 @@ final class Refunds
     {
         $invoice = $this->refundableInvoice($tenant) ?? throw new ApiException(422, 'refund_not_allowed', __('payments.refund_not_allowed'));
         $invoice->forceFill(['refund_requested_at' => now(), 'refund_reason' => $reason])->save();
+        $this->alerts->refundRequested($invoice);
 
         return $invoice;
     }

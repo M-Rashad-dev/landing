@@ -12,6 +12,7 @@ use App\Exceptions\ApiException;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Services\AdminAlerts;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ final class ManualPayments
         private readonly Invoices $invoices,
         private readonly ManageTenant $audit,
         private readonly PlatformSettings $settings,
+        private readonly AdminAlerts $alerts,
     ) {}
 
     /** Runs in the merchant's tenant context. */
@@ -43,7 +45,7 @@ final class ManualPayments
         $path = $this->receipts->store($receipt, $invoice->tenant_id);
 
         try {
-            return DB::transaction(function () use ($invoice, $method, $senderRef, $path): Payment {
+            $payment = DB::transaction(function () use ($invoice, $method, $senderRef, $path): Payment {
                 $locked = Invoice::query()->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
                 if (! $locked->isPayable()) {
                     throw new ApiException(422, 'invoice_not_open', __('payments.invoice_not_open'));
@@ -67,6 +69,10 @@ final class ManualPayments
 
             throw $e;
         }
+
+        $this->alerts->receiptSubmitted($payment, $invoice);
+
+        return $payment;
     }
 
     /** Super admin. */

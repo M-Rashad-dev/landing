@@ -40,6 +40,7 @@ export const nav = {
   account: "حسابي",
   logout: "تسجيل الخروج",
   quickSearch: "ابحث عن طلب أو عميل أو منتج...",
+  quickSearchPages: "روح لأي صفحة بسرعة...",
   quickSearchShort: "بحث سريع",
   quickSearchEmpty: "مفيش نتايج للبحث ده",
   quickGroups: { pages: "الصفحات", orders: "الطلبات", products: "المنتجات", customers: "العملاء" },

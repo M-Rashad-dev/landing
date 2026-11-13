@@ -14,6 +14,7 @@ use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\AdminAlerts;
 use App\Services\SubdomainGenerator;
 use App\Tenancy\Tenancy;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ final class RegisterTenant
         private readonly SubdomainGenerator $subdomains,
         private readonly IssueToken $issueToken,
         private readonly SubscriptionManager $subscriptions,
+        private readonly AdminAlerts $alerts,
     ) {}
 
     /**
@@ -72,6 +74,7 @@ final class RegisterTenant
 
         // Free trial when the admin has it on; otherwise the dashboard opens on the pricing page.
         $this->subscriptions->startTrial($tenant);
+        $this->alerts->storeRegistered($tenant, $user, $domain->host);
 
         return [
             'user' => $user,

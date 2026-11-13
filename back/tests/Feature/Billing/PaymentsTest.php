@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Billing\BillingPriceCalculator;
+use App\Billing\PlatformSettings;
 use App\Billing\SubscriptionManager;
 use App\Enums\AccessState;
 use App\Enums\BillingPeriod;
+use App\Mail\AdminAlertMail;
 use App\Models\AdminAuditLog;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -14,6 +16,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
@@ -287,7 +290,10 @@ it('refunds a plan asked within 3 days: the period ends at once', function () {
     $id = paidPro($owner);
 
     $this->getJson('/api/v1/dashboard/billing/invoices')->assertJsonPath('meta.refundable_invoice_id', $id);
+    Mail::fake();
+    app(PlatformSettings::class)->save(['alert_email' => 'owner@platform.test', 'alert_events' => ['refund_requested']]);
     $this->postJson('/api/v1/dashboard/billing/refund', ['reason' => 'مش محتاجها'])->assertOk()->assertJsonPath('data.refund_reason', 'مش محتاجها');
+    Mail::assertQueued(AdminAlertMail::class, fn (AdminAlertMail $mail) => $mail->alert === 'refund_requested' && in_array('مش محتاجها', array_column($mail->rows, 'value'), true));
     $this->postJson('/api/v1/dashboard/billing/refund', ['reason' => 'تاني'])->assertStatus(422)->assertJsonPath('code', 'refund_not_allowed');
 
     asAdmin();
@@ -311,7 +317,7 @@ it('counts money waiting for the admin on the overview', function () {
     buyPlan()->assertCreated();
     asAdmin();
 
-    $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.pending_payments', 1)->assertJsonPath('data.refund_requests', 0);
+    $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonPath('data.billing.pending_payments', 1)->assertJsonPath('data.billing.refund_requests', 0);
 });
 
 it('lists only invoices that have a receipt (or were paid / refunded)', function () {
