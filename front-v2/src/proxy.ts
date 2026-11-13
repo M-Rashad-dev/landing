@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AB_TEST_COOKIE } from "@/lib/ab/cookie";
+import { AB_COOKIE_MAX_AGE, matchRoute, pickVariant, routesForHost, VARIANT_COOKIE } from "@/lib/ab/split";
 import { TOKEN_COOKIE } from "@/lib/auth/cookie";
 import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, matchesPrefix, STORE_API_PREFIXES } from "@/lib/host/classify";
 import { requestHost } from "@/lib/http/request";
@@ -9,9 +11,10 @@ import { SITE_PATH_HEADER } from "@/lib/public/host";
  * /auth/me in the layouts.
  * - APP_HOST        → dashboard, admin, sign-in, api
  * - PLATFORM_DOMAIN → the same as the app host for now (the marketing page comes later)
- * - any other host  → that store, rewritten to /sites/{host}{path} (reachable only through this rewrite)
+ * - any other host  → that store, rewritten to /sites/{host}{path} (reachable only through this rewrite);
+ *   a landing page link under an A/B test shows page A or page B, kept per visitor in a cookie
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const config = {
     platformDomain: (process.env.PLATFORM_DOMAIN ?? "localhost").toLowerCase(),
     appHost: (process.env.APP_HOST ?? "app.localhost").toLowerCase(),
@@ -33,7 +36,16 @@ export function proxy(request: NextRequest) {
   url.pathname = `/sites/${encodeURIComponent(host)}${pathname === "/" ? "" : pathname}`;
   const headers = new Headers(request.headers);
   headers.set(SITE_PATH_HEADER, pathname + search);
-  return NextResponse.rewrite(url, { request: { headers } });
+
+  const route = request.method === "GET" ? matchRoute(await routesForHost(host), pathname) : null;
+  if (!route) return NextResponse.rewrite(url, { request: { headers } });
+  const variant = pickVariant(route, request.cookies.get(VARIANT_COOKIE(route.id))?.value);
+  if (variant === "b") url.pathname = `/sites/${encodeURIComponent(host)}/${encodeURIComponent(route.b)}`;
+  const response = NextResponse.rewrite(url, { request: { headers } });
+  const cookie = { path: "/", maxAge: AB_COOKIE_MAX_AGE, sameSite: "lax" as const };
+  response.cookies.set(VARIANT_COOKIE(route.id), variant, cookie);
+  response.cookies.set(AB_TEST_COOKIE, String(route.id), cookie);
+  return response;
 }
 
 function appHost(request: NextRequest, pathname: string, search: string) {

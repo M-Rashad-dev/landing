@@ -55,7 +55,6 @@ final class PageLifecycle
                 'version' => 1,
                 'is_home' => false,
                 'seo_override' => $page->seo_override,
-                'tracking_override' => $page->tracking_override,
                 'created_by' => $userId,
             ]);
 

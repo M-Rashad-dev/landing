@@ -268,7 +268,7 @@ it('duplicates a page as a draft with a free slug', function () {
         ->and($copy['draft_content'])->toBe($page['draft_content']);
 });
 
-it('updates settings, seo and tracking overrides', function () {
+it('updates settings and seo', function () {
     $page = createPage();
     $og = asTenant($this->user, fn () => Media::factory()->create());
 
@@ -278,17 +278,11 @@ it('updates settings, seo and tracking overrides', function () {
         'identity_id' => $this->identity->id,
         'product_id' => null,
         'seo_override' => ['title' => 'عنوان', 'description' => 'وصف', 'og_media_id' => $og->id, 'noindex' => true],
-        'tracking_override' => ['meta_pixel_id' => '1234567890', 'ga4_id' => 'g-abc123'],
     ])->assertOk()
         ->assertJsonPath('data.slug', 'new-slug')
         ->assertJsonPath('data.product_id', null)
         ->assertJsonPath('data.seo_override.noindex', true)
-        ->assertJsonPath('data.tracking_override', ['meta_pixel_id' => '1234567890', 'ga4_id' => 'G-ABC123']);
-
-    $this->putJson("/api/v1/dashboard/pages/{$page['id']}", [
-        'title' => 'x', 'slug' => 'new-slug', 'identity_id' => $this->identity->id,
-        'tracking_override' => ['meta_pixel_id' => '"><script>'],
-    ])->assertStatus(422)->assertJsonValidationErrors('tracking_override.meta_pixel_id');
+        ->assertJsonMissingPath('data.tracking_override');
 });
 
 it('syncs landing_page_media and blocks deleting used media', function () {

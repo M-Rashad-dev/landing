@@ -1,16 +1,19 @@
 "use client";
 
 import { CircleCheck, PauseCircle, SearchX } from "lucide-react";
+import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { UpsellOffer } from "../../upsell-offer";
 import { StoreLink } from "../context";
 import { Breadcrumb, Container } from "../parts";
 
 const t = ar.storefront;
 
 /** After the order: its number, what happens next, and the way to track it. */
-export function OrderDone({ orderNumber, total }: { orderNumber: number | null; total: number | null }) {
+export function OrderDone({ orderNumber, total: initialTotal }: { orderNumber: number | null; total: number | null }) {
+  const [total, setTotal] = React.useState(initialTotal);
   return (
     <Container className="flex justify-center py-12">
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center @3xl:p-8">
@@ -26,6 +29,7 @@ export function OrderDone({ orderNumber, total }: { orderNumber: number | null; 
             <b>{formatMoney(total)}</b>
           </p>
         ) : null}
+        <UpsellOffer orderNumber={orderNumber} onTotal={setTotal} />
         <div className="flex w-full flex-col gap-2">
           <StoreLink href={orderNumber ? `/track?order=${orderNumber}` : "/track"} className="as-btn as-base w-full">
             {t.done.track}

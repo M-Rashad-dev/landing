@@ -15,6 +15,7 @@ use App\Services\PublicSite;
 use App\Store\Accounts\ProductReviews;
 use App\Store\Design\AsasDesign;
 use App\Store\Design\StoreDesigner;
+use App\Support\Pixels;
 use Illuminate\Support\Collection;
 
 /**
@@ -81,7 +82,7 @@ final class StoreSite
                 'canonical' => PublicSite::url($primaryHost),
                 'site_name' => $name,
             ],
-            'tracking' => $this->site->tracking(null, $identity),
+            'tracking' => app(Pixels::class)->forStore($store->tenant_id),
             'shipping' => $this->shipping->publicConfig(now()),
             // «صنع بواسطة مكسب» always shows for now (owner: removable later on Max).
             'branding' => true,

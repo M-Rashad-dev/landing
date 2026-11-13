@@ -26,24 +26,47 @@ const visit = (host: string, path: string, cookie?: string) => {
 const rewrittenTo = (response: Response) => response.headers.get("x-middleware-rewrite");
 
 describe("host routing", () => {
-  it("draws a store host from /sites/{host}, keeping the path for redirects", () => {
-    const response = proxy(visit("shop.example.com", "/products/shirt?x=1"));
+  it("draws a store host from /sites/{host}, keeping the path for redirects", async () => {
+    const response = await proxy(visit("shop.example.com", "/products/shirt?x=1"));
     expect(rewrittenTo(response)).toBe("http://shop.example.com/sites/shop.example.com/products/shirt?x=1");
     expect(response.headers.get("x-middleware-request-x-site-path")).toBe("/products/shirt?x=1");
-    expect(rewrittenTo(proxy(visit("shop.example.com", "/")))).toBe("http://shop.example.com/sites/shop.example.com");
+    expect(rewrittenTo(await proxy(visit("shop.example.com", "/")))).toBe("http://shop.example.com/sites/shop.example.com");
   });
 
-  it("keeps the dashboard and other stores' paths off a store host", () => {
-    expect(rewrittenTo(proxy(visit("shop.example.com", "/dashboard")))).toContain("/__not-found");
-    expect(rewrittenTo(proxy(visit("shop.example.com", "/sites/other.com")))).toContain("/__not-found");
-    expect(rewrittenTo(proxy(visit("shop.example.com", "/api/bff/dashboard/orders")))).toContain("/__not-found");
-    expect(rewrittenTo(proxy(visit("shop.example.com", "/api/public/store/quote")))).toBeNull();
+  it("keeps the dashboard and other stores' paths off a store host", async () => {
+    expect(rewrittenTo(await proxy(visit("shop.example.com", "/dashboard")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("shop.example.com", "/sites/other.com")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("shop.example.com", "/api/bff/dashboard/orders")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("shop.example.com", "/api/public/store/quote")))).toBeNull();
   });
 
-  it("keeps store pages off the app host", () => {
-    expect(rewrittenTo(proxy(visit("app.maksab.test", "/sites/shop.example.com")))).toContain("/__not-found");
-    expect(rewrittenTo(proxy(visit("app.maksab.test", "/products")))).toContain("/__not-found");
-    expect(proxy(visit("app.maksab.test", "/dashboard")).headers.get("location")).toContain("/login?next=%2Fdashboard");
+  it("keeps store pages off the app host", async () => {
+    expect(rewrittenTo(await proxy(visit("app.maksab.test", "/sites/shop.example.com")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("app.maksab.test", "/products")))).toContain("/__not-found");
+    expect((await proxy(visit("app.maksab.test", "/dashboard"))).headers.get("location")).toContain("/login?next=%2Fdashboard");
+  });
+});
+
+describe("A/B tests", () => {
+  const routes = { data: [{ id: 7, entries: ["offer"], a: "offer", b: "offer-b", split_a: 50 }] };
+
+  it("shows page A or B under A's link and keeps the visitor on the same one", async () => {
+    fetchMock.mockResolvedValue(Response.json(routes));
+    const toB = await proxy(visit("ab.example.com", "/offer", "lp_ab_7=b"));
+    expect(rewrittenTo(toB)).toBe("http://ab.example.com/sites/ab.example.com/offer-b");
+    expect(toB.cookies.get("lp_abt")?.value).toBe("7");
+    expect(rewrittenTo(await proxy(visit("ab.example.com", "/offer", "lp_ab_7=a")))).toBe("http://ab.example.com/sites/ab.example.com/offer");
+    // The test list is cached per host, and other links (and the store home) are left alone.
+    expect(rewrittenTo(await proxy(visit("ab.example.com", "/other")))).toBe("http://ab.example.com/sites/ab.example.com/other");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toBe("http://laravel.test/api/v1/public/ab-routes?host=ab.example.com");
+  });
+
+  it("sends everyone to B once B won, and serves the page when Laravel is down", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ data: [{ ...routes.data[0], split_a: 0 }] }));
+    expect(rewrittenTo(await proxy(visit("won.example.com", "/offer", "lp_ab_7=a")))).toBe("http://won.example.com/sites/won.example.com/offer-b");
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+    expect(rewrittenTo(await proxy(visit("down.example.com", "/offer")))).toBe("http://down.example.com/sites/down.example.com/offer");
   });
 });
 

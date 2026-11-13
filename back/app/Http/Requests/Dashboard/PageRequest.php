@@ -10,11 +10,10 @@ use App\Rules\OwnedTheme;
 use App\Rules\PageSlug;
 use App\Rules\TenantExists;
 use App\Rules\TenantUnique;
-use App\Support\TrackingIds;
 use Illuminate\Validation\Rule;
 
 /**
- * POST /pages (create) and PUT /pages/{id} (settings: title, slug, identity, product, SEO, tracking).
+ * POST /pages (create) and PUT /pages/{id} (settings: title, slug, identity, product, SEO).
  */
 final class PageRequest extends ApiRequest
 {
@@ -41,14 +40,6 @@ final class PageRequest extends ApiRequest
             $merge['seo_override'] = $seo;
         }
 
-        $tracking = $this->input('tracking_override');
-        if (is_array($tracking)) {
-            foreach ($tracking as $key => $value) {
-                $tracking[$key] = TrackingIds::normalize((string) $key, $value);
-            }
-            $merge['tracking_override'] = $tracking;
-        }
-
         $this->merge($merge);
     }
 
@@ -59,7 +50,7 @@ final class PageRequest extends ApiRequest
         $page = $this->route('page');
         $creating = $page === null;
 
-        return array_merge([
+        return [
             'title' => ['required', 'string', 'min:1', 'max:120'],
             'slug' => ['required', 'string', new PageSlug, TenantUnique::table('landing_pages', 'slug')->ignore($page?->id)->ignoreTrashed()],
             'theme_key' => $creating
@@ -74,7 +65,7 @@ final class PageRequest extends ApiRequest
             'seo_override.description' => ['nullable', 'string', 'max:170'],
             'seo_override.og_media_id' => ['nullable', 'integer', TenantExists::table('media')],
             'seo_override.noindex' => ['nullable', 'boolean'],
-        ], TrackingIds::rules('tracking_override'));
+        ];
     }
 
     /** @return array<string, mixed>|null */
@@ -93,24 +84,6 @@ final class PageRequest extends ApiRequest
         ];
 
         return array_filter($clean, fn ($v) => $v !== null && $v !== false) === [] ? null : $clean;
-    }
-
-    /** Only keys that are set win over the identity. @return array<string, string>|null */
-    public function trackingOverride(): ?array
-    {
-        $tracking = $this->validated('tracking_override');
-        if (! is_array($tracking)) {
-            return null;
-        }
-
-        $clean = [];
-        foreach (array_merge(array_keys(TrackingIds::PATTERNS), ['conversion_event']) as $key) {
-            if (isset($tracking[$key]) && is_string($tracking[$key]) && $tracking[$key] !== '') {
-                $clean[$key] = $tracking[$key];
-            }
-        }
-
-        return $clean === [] ? null : $clean;
     }
 
     /** @return array<string, string> */

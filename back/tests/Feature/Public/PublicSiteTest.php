@@ -185,18 +185,28 @@ it('uses the primary host for canonical URLs', function () {
     publicGet('pages', ['host' => 'shop.example.com'])->assertOk()->assertJsonPath('data.seo.canonical', 'https://rashad.localhost/');
 });
 
-it('merges tracking with the page override on top and drops malformed ids', function () {
-    $page = publishedPage($this->tenant);
-    asTenant($this->tenant, fn () => $page->update(['tracking_override' => ['meta_pixel_id' => '9999999999', 'tiktok_pixel_id' => 'ABCDEFGHIJ12']]));
-    // A value that bypassed validation (e.g. written by hand) must still never reach the page.
-    asTenant($this->tenant, fn () => $this->identity->forceFill(['tracking' => ['ga4_id' => '"><script>', 'conversion_event' => 'Purchase']])->save());
+it('loads the landing pages pixels on every page, or the store ones when the merchant chose the same, and drops malformed ids', function () {
+    publishedPage($this->tenant);
+    // A value that bypassed validation (written by hand) must still never reach the page.
+    $this->tenant->forceFill(['settings' => ['pixels' => [
+        'store' => ['meta_pixel_id' => '1111111111'],
+        'landing' => ['meta_pixel_id' => '9999999999', 'tiktok_pixel_id' => 'ABCDEFGHIJ12', 'ga4_id' => '"><script>', 'conversion_event' => 'Lead'],
+        'landing_same' => false,
+    ]]])->save();
 
     $tracking = publicGet('pages', ['host' => 'rashad.localhost', 'slug' => 'offer'])->json('data.tracking');
-
     expect($tracking['meta_pixel_id'])->toBe('9999999999')
         ->and($tracking['tiktok_pixel_id'])->toBe('ABCDEFGHIJ12')
         ->and($tracking['ga4_id'])->toBeNull()
-        ->and($tracking['conversion_event'])->toBe('Purchase');
+        ->and($tracking['conversion_event'])->toBe('Lead');
+
+    $settings = $this->tenant->settings;
+    $settings['pixels']['landing_same'] = true;
+    $this->tenant->forceFill(['settings' => $settings])->save();
+    $tracking = publicGet('pages', ['host' => 'rashad.localhost', 'slug' => 'offer'])->json('data.tracking');
+    expect($tracking['meta_pixel_id'])->toBe('1111111111')
+        ->and($tracking['tiktok_pixel_id'])->toBeNull()
+        ->and($tracking['conversion_event'])->toBe('Lead');
 });
 
 it('lists indexable published pages in the sitemap', function () {

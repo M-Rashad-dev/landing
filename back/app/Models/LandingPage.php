@@ -31,7 +31,6 @@ use Illuminate\Support\Carbon;
  * @property bool $is_home
  * @property int|null $home_key
  * @property array<string, mixed>|null $seo_override
- * @property array<string, mixed>|null $tracking_override
  */
 class LandingPage extends Model
 {
@@ -42,7 +41,7 @@ class LandingPage extends Model
 
     protected $fillable = [
         'kind', 'title', 'slug', 'status', 'theme_key', 'identity_id', 'product_id', 'draft_content', 'published_content',
-        'version', 'published_at', 'is_home', 'home_key', 'seo_override', 'tracking_override', 'created_by',
+        'version', 'published_at', 'is_home', 'home_key', 'seo_override', 'created_by',
     ];
 
     protected function casts(): array
@@ -56,7 +55,6 @@ class LandingPage extends Model
             'is_home' => 'boolean',
             'home_key' => 'integer',
             'seo_override' => 'array',
-            'tracking_override' => 'array',
         ];
     }
 

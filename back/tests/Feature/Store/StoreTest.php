@@ -11,12 +11,14 @@ use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\Offer;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\StorePage;
 use App\Models\Tenant;
+use App\Models\Upsell;
 use App\Models\User;
 use App\Services\FormToken;
 use Illuminate\Support\Str;
@@ -350,4 +352,26 @@ it('keeps abandoned carts by token, moves them to checkout, and converts them wi
 
     // The order made its customer.
     $this->getJson('/api/v1/dashboard/customers?q=01155555555')->assertJsonCount(1, 'data')->assertJsonPath('data.0.orders_count', 1);
+});
+
+it('offers the after-order deal on the store too, for a product in the cart, and adds it in one click', function () {
+    $owner = storeOwner();
+    [$watch, $strap] = asTenant($owner, function () {
+        $watch = Product::factory()->create(['slug' => 'watch', 'price' => '800.00']);
+        $strap = Product::factory()->create(['slug' => 'strap', 'name' => 'حزام إضافي', 'price' => '150.00']);
+        Upsell::query()->create(['name' => 'حزام', 'trigger_product_id' => $watch->id, 'offer_product_id' => $strap->id, 'price' => '99.00', 'headline' => 'ضيف حزام بـ 99', 'is_active' => true, 'priority' => 0]);
+
+        return [$watch, $strap];
+    });
+    $store = liveStore();
+
+    $placed = checkout($store, [['product_id' => $watch->id, 'quantity' => 1]])->assertCreated()->json('data');
+    expect($placed['upsell'])->toMatchArray(['headline' => 'ضيف حزام بـ 99', 'price' => 99]);
+
+    storePost('upsell', ['order_number' => $placed['order_number'], 'upsell_id' => $placed['upsell']['id'], 'token' => $placed['upsell']['token']])
+        ->assertOk()->assertJsonPath('data.total', $placed['total'] + 99);
+    expect(asTenant($owner, fn () => OrderItem::query()->where('product_id', $strap->id)->value('line_total')))->toBe('99.00');
+
+    // The strap already in the cart: nothing to offer.
+    expect(checkout($store, [['product_id' => $watch->id, 'quantity' => 1], ['product_id' => $strap->id, 'quantity' => 1]])->json('data.upsell'))->toBeNull();
 });

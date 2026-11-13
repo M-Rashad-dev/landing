@@ -9,6 +9,8 @@ const TABS = [
   { href: "/dashboard/settings/account", key: "account" },
   { href: "/dashboard/settings/domains", key: "domains" },
   { href: "/dashboard/settings/billing", key: "billing" },
+  { href: "/dashboard/settings/pixels", key: "pixels" },
+  { href: "/dashboard/settings/integrations", key: "integrations" },
 ] as const;
 
 /** «الإعدادات» sub-pages as tabs (links, so each one has its own address). */

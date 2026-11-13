@@ -17,7 +17,6 @@ final class PageDetailResource extends PageResource
             'version' => $this->version,
             'published_theme_key' => $this->published_content['theme_key'] ?? null,
             'seo_override' => $this->seo_override,
-            'tracking_override' => $this->tracking_override,
         ]);
     }
 }

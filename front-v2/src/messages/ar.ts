@@ -11,6 +11,7 @@ import { catalog } from "./ar/catalog";
 import { common } from "./ar/common";
 import { design } from "./ar/design";
 import { domain } from "./ar/domain";
+import { growth } from "./ar/growth";
 import { home } from "./ar/home";
 import { landings } from "./ar/landings";
 import { media } from "./ar/media";
@@ -25,4 +26,4 @@ import { storePages } from "./ar/store-pages";
 import { storefront } from "./ar/storefront";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth } as const;

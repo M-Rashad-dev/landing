@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
+use App\Http\Controllers\Api\V1\Dashboard\PixelController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
@@ -181,6 +182,8 @@ Route::prefix('dashboard')
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
 
+        Route::get('pixels', [PixelController::class, 'show']);
+        Route::put('pixels', [PixelController::class, 'update']);
         Route::get('integrations', [IntegrationController::class, 'index']);
         Route::post('integrations', [IntegrationController::class, 'store']);
         Route::put('integrations/{webhook}', [IntegrationController::class, 'update']);

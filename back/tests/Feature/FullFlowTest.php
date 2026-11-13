@@ -26,7 +26,7 @@ it('runs the whole store flow through the API', function () {
     $host = $register->json('data.domain.host');
     $auth = ['Authorization' => 'Bearer '.$register->json('data.token'), 'Accept' => 'application/json'];
 
-    // Identity (becomes the page identity) with a Meta pixel.
+    // Identity (becomes the page identity).
     $identity = $this->postJson('/api/v1/dashboard/identities', [
         'name' => 'هوية العرض',
         'brand_name' => 'Flow Brand',
@@ -34,8 +34,10 @@ it('runs the whole store flow through the API', function () {
         'font_heading' => 'cairo',
         'font_body' => 'cairo',
         'button_radius' => 'lg',
-        'tracking' => ['meta_pixel_id' => '123456789012345', 'conversion_event' => 'Purchase'],
     ], $auth)->assertCreated()->json('data');
+
+    // One Meta pixel for the store, used by every landing page too.
+    $this->putJson('/api/v1/dashboard/pixels', ['store' => ['meta_pixel_id' => '123456789012345'], 'landing' => ['conversion_event' => 'Purchase'], 'landing_same' => true], $auth)->assertOk();
 
     // Product with a priced option.
     $product = $this->postJson('/api/v1/dashboard/products', [

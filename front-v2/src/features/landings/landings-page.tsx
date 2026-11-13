@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, CopyPlus, ExternalLink, FileText, Megaphone, MoreHorizontal, Paintbrush, Plus, Send, Trash2, Undo2 } from "lucide-react";
+import { Copy, CopyPlus, ExternalLink, FileText, FlaskConical, Megaphone, MoreHorizontal, Paintbrush, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { FilterBar, Pagination } from "@/components/data/data-table";
@@ -56,7 +56,17 @@ export function LandingsPage() {
             {limit !== null && counts ? <span className={full ? "ms-1 font-semibold text-danger" : "ms-1 text-ink-3"}>{full ? t.limitReached : t.limit(counts.all, limit)}</span> : null}
           </>
         }
-        actions={add}
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/marketing/landings/ab-tests">
+                <FlaskConical />
+                {ar.growth.ab.open}
+              </Link>
+            </Button>
+            {add}
+          </>
+        }
         tabs={
           <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v === "all" ? null : v, page: null })}>
             <TabsList>

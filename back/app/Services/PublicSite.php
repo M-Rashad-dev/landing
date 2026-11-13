@@ -17,8 +17,8 @@ use App\Models\Media;
 use App\Models\Tenant;
 use App\Pricing\Shipping;
 use App\Store\Accounts\ProductReviews;
+use App\Support\Pixels;
 use App\Support\PlainText;
-use App\Support\TrackingIds;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -191,7 +191,7 @@ final class PublicSite
             'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
             'store_name' => (string) Tenant::query()->whereKey($page->tenant_id)->value('name'),
             'seo' => $this->seo($page, $identity, $primaryHost),
-            'tracking' => $this->tracking($page, $identity),
+            'tracking' => app(Pixels::class)->forLanding($page->tenant_id),
             'shipping' => $this->shipping->publicConfig(now()),
             // "Made with …" badge unless the plan removes it.
             'branding' => ! app(Entitlements::class)->allows(PlanFeature::RemoveBranding),
@@ -236,35 +236,6 @@ final class PublicSite
             'noindex' => ($override['noindex'] ?? false) === true,
             'site_name' => $identity?->brand_name,
         ];
-    }
-
-    /**
-     * Page override on top of the identity: a non-empty override value wins.
-     *
-     * @return array<string, string|null>
-     */
-    public function tracking(?LandingPage $page, ?Identity $identity): array
-    {
-        $base = $identity?->resolvedTracking() ?? array_fill_keys(Identity::TRACKING_KEYS, null);
-        $override = is_array($page?->tracking_override) ? $page->tracking_override : [];
-
-        foreach (Identity::TRACKING_KEYS as $key) {
-            $value = $override[$key] ?? null;
-            if (is_string($value) && $value !== '') {
-                $base[$key] = $value;
-            }
-        }
-
-        // Defence in depth: only ids in the strict formats reach the page.
-        foreach (TrackingIds::PATTERNS as $key => $pattern) {
-            if ($base[$key] !== null && preg_match($pattern, $base[$key]) !== 1) {
-                $base[$key] = null;
-            }
-        }
-        // Purchase (with the order value) unless the merchant chose Lead: Meta needs it for ROAS and value optimization.
-        $base['conversion_event'] = in_array($base['conversion_event'], TrackingIds::CONVERSION_EVENTS, true) ? $base['conversion_event'] : 'Purchase';
-
-        return $base;
     }
 
     /** Public URL of a page on a host (scheme/port configurable for local development). */

@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import type { Tracking } from "@/lib/tracking/ids";
 import { ar } from "@/messages/ar";
 import type { ProductOffer, ShippingConfig, StoreProduct } from "@/lib/store/types";
 import type { Content, LandingData, PageImage, Section, SectionType } from "@/themes/bidaya/types";
@@ -21,7 +20,6 @@ export type PageDetail = {
   draft_content: Content;
   version: number;
   seo_override: { title?: string | null; description?: string | null; og_media_id?: number | null; noindex?: boolean } | null;
-  tracking_override: Tracking | null;
 };
 
 /** GET /dashboard/pages/{id}/preview: what the page shows besides its content. */
@@ -45,7 +43,7 @@ export function useLandingEditor(id: number) {
 
 export const saveLandingContent = (id: number, content: Content, version: number) => api<PageDetail>(`/dashboard/pages/${id}/content`, { method: "PUT", body: { version, content } });
 export const publishLandingPage = (id: number) => api<PageDetail>(`/dashboard/pages/${id}/publish`, { method: "POST" });
-export const saveLandingSettings = (id: number, body: { title: string; slug: string; identity_id: number; product_id: number | null; seo_override: PageDetail["seo_override"]; tracking_override: Tracking | null }) =>
+export const saveLandingSettings = (id: number, body: { title: string; slug: string; identity_id: number; product_id: number | null; seo_override: PageDetail["seo_override"] }) =>
   api<PageDetail>(`/dashboard/pages/${id}`, { method: "PUT", body });
 
 export function toLandingData(preview: PreviewData): LandingData {

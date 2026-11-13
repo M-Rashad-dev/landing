@@ -10,6 +10,7 @@ import { ar } from "@/messages/ar";
 import { BidayaRoot } from "./context";
 import { BidayaPage } from "./page";
 import type { LandingData } from "./types";
+import { UpsellOffer } from "../upsell-offer";
 import { PLACED_KEY, sendPageEvent, type Placed } from "./use-order";
 
 const t = ar.bidaya.done;
@@ -97,6 +98,7 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
               ) : null}
             </dl>
           ) : null}
+          <UpsellOffer orderNumber={number ?? null} onTotal={(total) => setPlaced((p) => (p ? { ...p, total } : p))} />
           <a href="/track" className="as-btn as-base h-12 w-full">
             <PackageSearch className="size-5" aria-hidden />
             {t.track}

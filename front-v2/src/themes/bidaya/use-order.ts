@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { abTestId } from "@/lib/ab/cookie";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { activeOffers, offerQuantity } from "@/lib/store/offers";
+import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
@@ -46,7 +48,7 @@ export function sendPageEvent(slug: string, type: "view" | "form_start"): void {
   fetch("/api/public/landing/events", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ slug, type, utm_source: utm.source ?? null, referrer: document.referrer || null, device: device() }),
+    body: JSON.stringify({ slug, type, utm_source: utm.source ?? null, referrer: document.referrer || null, device: device(), ab: abTestId() }),
     credentials: "same-origin",
     keepalive: true,
   }).catch(() => undefined);
@@ -240,13 +242,15 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         customer,
         form_token: token.current,
         website: "",
+        ab: abTestId(),
         utm: captureUtm(),
         offer_id: picker ? chosenOffer : null,
         shipping_company_id: company,
         idempotency_key: crypto.randomUUID(),
       });
-      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number }; code?: string; message?: string; errors?: Record<string, string[]> };
+      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; code?: string; message?: string; errors?: Record<string, string[]> };
       if (response.ok && json.data) {
+        saveUpsell(json.data.order_number, json.data.upsell);
         onPlaced({ slug, number: json.data.order_number, total: json.data.total, quantity, product_id: product.id, product_name: product.name });
         return;
       }

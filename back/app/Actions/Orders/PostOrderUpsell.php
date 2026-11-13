@@ -93,18 +93,23 @@ final class PostOrderUpsell
         return $result;
     }
 
-    /** Active offer for the order's product (or any product), the offered product sellable without choices. */
+    /**
+     * Active offer for a product of the order (a landing page order has one, a store order may
+     * have several) or for any product; never a product already in the order, and only one the
+     * customer can take without choosing options.
+     */
     private function candidate(Order $order): ?Upsell
     {
         if (! app(Entitlements::class)->allows(PlanFeature::Upsells)) {
             return null;
         }
+        $products = $order->items()->whereNull('upsell_id')->pluck('product_id')->push($order->product_id)->filter()->unique()->values()->all();
 
         return Upsell::query()
             ->with('offerProduct.options')
             ->where('is_active', true)
-            ->where(fn ($q) => $q->whereNull('trigger_product_id')->orWhere('trigger_product_id', $order->product_id))
-            ->where('offer_product_id', '!=', $order->product_id)
+            ->where(fn ($q) => $q->whereNull('trigger_product_id')->orWhereIn('trigger_product_id', $products === [] ? [0] : $products))
+            ->whereNotIn('offer_product_id', $products === [] ? [0] : $products)
             ->orderByRaw('trigger_product_id is null')
             ->orderByDesc('priority')
             ->orderBy('id')

@@ -107,11 +107,8 @@ final class PageController extends Controller
         if ($request->has('seo_override')) {
             $page->seo_override = $request->seoOverride();
         }
-        if ($request->has('tracking_override')) {
-            $page->tracking_override = $request->trackingOverride();
-        }
 
-        $affectsPublic = $page->isPublished() && $page->isDirty(['slug', 'identity_id', 'product_id', 'seo_override', 'tracking_override', 'title']);
+        $affectsPublic = $page->isPublished() && $page->isDirty(['slug', 'identity_id', 'product_id', 'seo_override', 'title']);
         $page->save();
         $syncMedia->handle($page);
 

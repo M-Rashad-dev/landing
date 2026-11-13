@@ -30,7 +30,7 @@ const content: Content = {
     { id: "form000001", type: "order_form", visible: true, props: { title: "فورم الطلب هنا", subtitle: null, button_label: "تأكيد الطلب", fields, offer_picker: false, show_quantity: true } },
   ],
 };
-const detail = { id: 5, title: "عرض الساعة", slug: "watch", status: "draft", theme_key: "bidaya", identity_id: 1, product_id: 1, has_unpublished_changes: false, published_at: null, draft_content: content, version: 1, seo_override: null, tracking_override: null };
+const detail = { id: 5, title: "عرض الساعة", slug: "watch", status: "draft", theme_key: "bidaya", identity_id: 1, product_id: 1, has_unpublished_changes: false, published_at: null, draft_content: content, version: 1, seo_override: null };
 const preview = {
   page: { id: 5, slug: "watch", title: "عرض الساعة" },
   product: { id: 1, name: "ساعة ذكية", slug: "watch", description: null, short_description: null, price: 850, compare_at_price: null, available: true, stock_mode: "unlimited", stock: null, variant_stock: null, images: [], options: [] },

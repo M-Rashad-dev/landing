@@ -8,6 +8,7 @@ use App\Actions\Orders\AutoBlock;
 use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Orders\LinkCustomer;
+use App\Actions\Orders\PostOrderUpsell;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
@@ -48,6 +49,7 @@ final class CreateStoreOrder
         private readonly Stock $stock,
         private readonly CaptureLead $leads,
         private readonly WebhookDispatcher $webhooks,
+        private readonly PostOrderUpsell $upsells,
         private readonly LinkCustomer $customers,
         private readonly AutoBlock $autoBlock,
     ) {}
@@ -55,7 +57,7 @@ final class CreateStoreOrder
     /**
      * @param  array<string, mixed>  $input  validated StoreOrderRequest data
      * @param  Customer|null  $account  the signed-in customer: the order goes on their phone
-     * @return array{order_number: int, total: float}
+     * @return array{order_number: int, total: float, upsell: array<string, mixed>|null}
      */
     public function handle(Store $store, array $input, ?Customer $account = null): array
     {
@@ -173,7 +175,8 @@ final class CreateStoreOrder
             $this->saveAddress($account, $order);
         }
 
-        return ['order_number' => $order->order_number, 'total' => (float) $order->total];
+        // The post-order offer for the thank-you screen (one click adds it to this order).
+        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];
     }
 
     /**

@@ -17,6 +17,7 @@ import type { CartQuote, StoreConfig } from "@/lib/store/types";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { cn } from "@/lib/utils";
+import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { ar } from "@/messages/ar";
 import { StoreLink, useHydrated } from "../context";
 import { Breadcrumb, Container, Empty, FormField, inputClass } from "../parts";
@@ -157,11 +158,12 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
           save_address: me !== null && addressId === "new" && keepAddress,
         }),
       });
-      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number }; errors?: Record<string, string[]>; message?: string };
+      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; errors?: Record<string, string[]>; message?: string };
       if (response.ok && json.data) {
         track("Purchase", { content_ids: cart.items.map((i) => i.product_id), value: json.data.total, num_items: cart.items.reduce((s, i) => s + i.quantity, 0), transaction_id: json.data.order_number });
         clearCart();
         resetCartToken();
+        saveUpsell(json.data.order_number, json.data.upsell);
         router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}`);
         return;
       }
