@@ -3,13 +3,10 @@
 import { CalendarClock, ReceiptText, Undo2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
-import { ADMIN_FOOTER_NAV, ADMIN_NAV } from "@/config/navigation";
 import { ar } from "@/messages/ar";
 import { useAdminOverview } from "./api";
 
 const t = ar.admin.attention;
-
-const READY = new Set([...ADMIN_NAV.flatMap((g) => g.items), ...ADMIN_FOOTER_NAV].filter((i) => i.status === "ready").map((i) => i.href));
 
 /** The dashboard frame for the platform owner: its own sidebar, and the bell lists what waits. */
 export function AdminShell({ name, children }: { name: string; children: React.ReactNode }) {
@@ -46,27 +43,14 @@ export function AttentionList({ pending, refunds, expiring }: { pending: number;
       ) : (
         <ul className="flex flex-col gap-1">
           {items.map(({ key, icon: Icon, label, href, tone }) => {
-            const ready = READY.has(href.split("?")[0]);
-            const body = (
-              <>
-                <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tone}`} aria-hidden>
-                  <Icon className="size-4" />
-                </span>
-                <span className="flex flex-col">
-                  <span className="text-[13px] font-semibold">{label}</span>
-                  {ready ? null : <span className="text-[11px] text-ink-3">{t.soonHint}</span>}
-                </span>
-              </>
-            );
             return (
               <li key={key}>
-                {ready ? (
-                  <Link href={href} className="flex items-center gap-3 rounded-lg p-1.5 hover:bg-surface-2">
-                    {body}
-                  </Link>
-                ) : (
-                  <span className="flex items-center gap-3 p-1.5">{body}</span>
-                )}
+                <Link href={href} className="flex items-center gap-3 rounded-lg p-1.5 hover:bg-surface-2">
+                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tone}`} aria-hidden>
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="text-[13px] font-semibold">{label}</span>
+                </Link>
               </li>
             );
           })}

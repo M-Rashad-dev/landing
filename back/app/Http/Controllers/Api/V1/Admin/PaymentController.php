@@ -16,8 +16,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Support\CairoTime;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,24 +37,80 @@ final class PaymentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $request->validate(['status' => ['nullable', Rule::in(['pending_review', 'approved', 'rejected', 'all'])]]);
+        $request->validate([
+            'status' => ['nullable', Rule::in(['pending_review', 'approved', 'rejected', 'all'])],
+            'q' => ['nullable', 'string', 'max:100'],
+            'method' => ['nullable', 'string', Rule::exists('payment_methods', 'key')],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
         $status = (string) $request->query('status', 'pending_review');
+        $search = trim((string) $request->query('q', ''));
+        $method = (string) $request->query('method', '');
+        $from = $request->query('from') ? CarbonImmutable::parse((string) $request->query('from'), CairoTime::ZONE)->startOfDay()->utc() : null;
+        $to = $request->query('to') ? CarbonImmutable::parse((string) $request->query('to'), CairoTime::ZONE)->addDay()->startOfDay()->utc() : null;
 
         $page = Tenancy::withoutTenant(fn () => Payment::query()
             ->with(['invoice', 'tenant:id,name', 'method:key,name'])
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($status !== 'all', fn (Builder $q) => $q->where('status', $status))
+            ->when($method !== '', fn (Builder $q) => $q->where('method_key', $method))
+            ->when($from !== null, fn (Builder $q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn (Builder $q) => $q->where('created_at', '<', $to))
+            ->when($search !== '', function (Builder $q) use ($search): void {
+                $like = '%'.addcslashes($search, '%_\\').'%';
+                // «ST-00012» is the store reference the merchant writes on the transfer.
+                $storeId = preg_match('/^ST-?0*(\d+)$/i', $search, $m) === 1 ? (int) $m[1] : null;
+                $q->where(fn (Builder $w) => $w
+                    ->where('sender_ref', 'like', $like)
+                    ->orWhereHas('tenant', fn (Builder $t) => $t->where('name', 'like', $like))
+                    ->orWhereHas('invoice', fn (Builder $i) => $i->where('number', 'like', $like))
+                    ->when($storeId !== null, fn (Builder $x) => $x->orWhere('tenant_id', $storeId)));
+            })
             // Oldest first while waiting, newest first otherwise.
             ->orderBy('created_at', $status === 'pending_review' ? 'asc' : 'desc')
             ->orderBy('id')
             ->paginate($this->perPage($request)));
 
+        $repeated = $this->repeatedReferences($page->getCollection()->pluck('sender_ref')->all());
+        $counts = Tenancy::withoutTenant(fn () => Payment::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'));
+
         return $this->ok(
-            $page->getCollection()->map(fn (Payment $p) => $this->row($p))->values()->all(),
+            $page->getCollection()->map(fn (Payment $p) => $this->row($p) + ['repeated_ref' => isset($repeated[mb_strtolower(trim($p->sender_ref))])])->values()->all(),
             [
                 'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total(),
-                'pending' => Tenancy::withoutTenant(fn () => Payment::query()->where('status', PaymentStatus::PendingReview)->count()),
+                'pending' => (int) ($counts[PaymentStatus::PendingReview->value] ?? 0),
+                'counts' => [
+                    'pending_review' => (int) ($counts[PaymentStatus::PendingReview->value] ?? 0),
+                    'approved' => (int) ($counts[PaymentStatus::Approved->value] ?? 0),
+                    'rejected' => (int) ($counts[PaymentStatus::Rejected->value] ?? 0),
+                    'all' => (int) $counts->sum(),
+                ],
             ],
         );
+    }
+
+    /**
+     * Transfer numbers on this page that were sent more than once (any store): the same
+     * receipt used twice is the first thing to check before approving.
+     *
+     * @param  list<string>  $refs
+     * @return array<string, true>
+     */
+    private function repeatedReferences(array $refs): array
+    {
+        $refs = array_values(array_unique(array_filter(array_map(fn ($r) => trim((string) $r), $refs))));
+        if ($refs === []) {
+            return [];
+        }
+
+        return Tenancy::withoutTenant(fn () => Payment::query()
+            ->whereIn('sender_ref', $refs)
+            ->selectRaw('lower(trim(sender_ref)) as ref, count(*) as total')
+            ->groupByRaw('lower(trim(sender_ref))')
+            ->havingRaw('count(*) > 1')
+            ->pluck('ref')
+            ->mapWithKeys(fn ($ref) => [(string) $ref => true])
+            ->all());
     }
 
     public function receipt(int $payment, ReceiptStore $receipts): StreamedResponse

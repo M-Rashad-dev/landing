@@ -95,8 +95,8 @@ function Attention({ data, loading }: { data?: AdminOverview; loading: boolean }
   }
 
   const items = [
-    { key: "payments", show: pending > 0, icon: ReceiptText, label: at.payments(pending), href: null, tone: "bg-accent-soft text-accent-ink" },
-    { key: "refunds", show: refunds > 0, icon: Undo2, label: at.refunds(refunds), href: null, tone: "bg-danger-soft text-danger" },
+    { key: "payments", show: pending > 0, icon: ReceiptText, label: at.payments(pending), href: "/admin/payments", tone: "bg-accent-soft text-accent-ink" },
+    { key: "refunds", show: refunds > 0, icon: Undo2, label: at.refunds(refunds), href: "/admin/refunds", tone: "bg-danger-soft text-danger" },
     { key: "expiring", show: expiring > 0, icon: CalendarClock, label: at.expiring(expiring), href: "/admin/stores?tab=expiring", tone: "bg-info-soft text-info" },
   ].filter((i) => i.show);
 
@@ -105,26 +105,14 @@ function Attention({ data, loading }: { data?: AdminOverview; loading: boolean }
       <p className="mb-2 px-1 text-[13px] font-semibold">{at.title}</p>
       <ul className="grid gap-2 sm:grid-cols-3">
         {items.map(({ key, icon: Icon, label, href, tone }) => {
-          const body = (
-            <>
-              <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", tone)} aria-hidden>
-                <Icon className="size-4" />
-              </span>
-              <span className="flex flex-col">
-                <span className="text-sm font-semibold">{label}</span>
-                {href ? null : <span className="text-[11px] text-ink-3">{at.soonHint}</span>}
-              </span>
-            </>
-          );
           return (
             <li key={key}>
-              {href ? (
-                <Link href={href} className="flex h-full items-center gap-3 rounded-lg bg-surface p-3 transition-colors hover:bg-surface-2">
-                  {body}
-                </Link>
-              ) : (
-                <span className="flex h-full items-center gap-3 rounded-lg bg-surface p-3">{body}</span>
-              )}
+              <Link href={href} className="flex h-full items-center gap-3 rounded-lg bg-surface p-3 transition-colors hover:bg-surface-2">
+                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", tone)} aria-hidden>
+                  <Icon className="size-4" />
+                </span>
+                <span className="text-sm font-semibold">{label}</span>
+              </Link>
             </li>
           );
         })}

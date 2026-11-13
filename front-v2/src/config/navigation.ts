@@ -96,9 +96,9 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     label: a.groups.money,
     items: [
-      { href: "/admin/payments", label: a.items.payments, icon: ReceiptText, status: "soon" },
-      { href: "/admin/refunds", label: a.items.refunds, icon: Undo2, status: "soon" },
-      { href: "/admin/payment-methods", label: a.items.methods, icon: CreditCard, status: "soon" },
+      { href: "/admin/payments", label: a.items.payments, icon: ReceiptText, status: "ready" },
+      { href: "/admin/refunds", label: a.items.refunds, icon: Undo2, status: "ready" },
+      { href: "/admin/payment-methods", label: a.items.methods, icon: CreditCard, status: "ready" },
     ],
   },
   {

@@ -259,6 +259,32 @@ it('rejects with a reason the merchant sees, then takes a new receipt', function
     expect($owner->tenant->fresh()->plan_key)->toBe('basic');
 });
 
+it('finds receipts by store, store reference, transfer number, method and day, and flags a number sent twice', function () {
+    $first = payOwner('basic');
+    $first->tenant->forceFill(['name' => 'Sama Shop'])->save();
+    buyPlan('pro')->assertCreated();
+    $second = payOwner('basic');
+    buyPlan('pro', 'monthly', ['sender_ref' => ' tx-998877 '])->assertCreated();
+    $third = payOwner('basic');
+    buyPlan('pro', 'monthly', ['sender_ref' => 'IP-1'])->assertCreated();
+
+    asAdmin();
+    $rows = $this->getJson('/api/v1/admin/payments')->assertOk()
+        ->assertJsonPath('meta.counts.pending_review', 3)
+        ->assertJsonPath('meta.counts.all', 3)
+        ->json('data');
+    expect(collect($rows)->pluck('repeated_ref', 'tenant.id')->all())
+        ->toBe([$first->tenant_id => true, $second->tenant_id => true, $third->tenant_id => false]);
+
+    $this->getJson('/api/v1/admin/payments?q=sama')->assertJsonCount(1, 'data')->assertJsonPath('data.0.tenant.id', $first->tenant_id);
+    $this->getJson('/api/v1/admin/payments?q='.sprintf('ST-%05d', $third->tenant_id))->assertJsonCount(1, 'data')->assertJsonPath('data.0.tenant.id', $third->tenant_id);
+    $this->getJson('/api/v1/admin/payments?q=IP-1')->assertJsonCount(1, 'data');
+    $this->getJson('/api/v1/admin/payments?method=instapay')->assertJsonCount(3, 'data');
+    $this->getJson('/api/v1/admin/payments?status=all&from='.now()->addDays(2)->toDateString())->assertJsonCount(0, 'data');
+    $this->getJson('/api/v1/admin/payments?method=nope')->assertStatus(422);
+    $this->getJson('/api/v1/admin/payments?from=2026-11-10&to=2026-11-01')->assertStatus(422);
+});
+
 it('edits payment methods (an active one needs its account) and audits it', function () {
     asAdmin();
     $body = ['name' => 'فودافون كاش', 'account_label' => 'رقم', 'account_value' => '', 'instructions' => null, 'is_active' => true, 'sort_order' => 2];
