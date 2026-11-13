@@ -11,11 +11,13 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\StorePage;
 use App\Rules\PageSlug;
+use App\Rules\TenantExists;
 use App\Rules\TenantUnique;
 use App\Support\Slugs;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 /** «صفحات المتجر»: about us, shipping, return policy… at /pages/{slug}. */
 final class StorePageController extends Controller
@@ -48,6 +50,19 @@ final class StorePageController extends Controller
         $storePage->update(array_filter($data, fn ($v, $k) => $k !== 'slug' || $v !== null, ARRAY_FILTER_USE_BOTH));
 
         return $this->ok($this->row($storePage));
+    }
+
+    /** The order of the pages in the store footer. */
+    public function reorder(Request $request): Response
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'max:50'], 'ids.*' => ['integer', 'distinct', TenantExists::table('store_pages')]]);
+        DB::transaction(function () use ($data) {
+            foreach (array_values($data['ids']) as $position => $id) {
+                StorePage::query()->whereKey((int) $id)->first()?->update(['position' => $position + 1]);
+            }
+        });
+
+        return $this->noContent();
     }
 
     public function destroy(StorePage $storePage): Response

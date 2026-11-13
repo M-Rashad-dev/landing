@@ -59,7 +59,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/design/theme", label: t.items.themeHome, icon: Palette, status: "ready" },
       { href: "/dashboard/design/menus", label: t.items.menus, icon: ListTree, status: "soon" },
-      { href: "/dashboard/design/pages", label: t.items.storePages, icon: FileText, status: "soon" },
+      { href: "/dashboard/design/pages", label: t.items.storePages, icon: FileText, status: "ready" },
       { href: "/dashboard/design/identity", label: t.items.identity, icon: LayoutTemplate, status: "soon" },
     ],
   },
@@ -72,7 +72,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/marketing/landings", label: t.items.landings, icon: Megaphone, status: "soon" },
     ],
   },
-  { label: t.groups.insights, items: [{ href: "/dashboard/analytics", label: t.items.analytics, icon: BarChart3, status: "soon" }] },
+  { label: t.groups.insights, items: [{ href: "/dashboard/analytics", label: t.items.analytics, icon: BarChart3, status: "ready" }] },
 ];
 
 /** Pinned at the bottom of the sidebar. */

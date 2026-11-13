@@ -134,6 +134,7 @@ Route::prefix('dashboard')
         Route::put('categories/order', [CategoryController::class, 'reorder']);
         Route::put('categories/{category}', [CategoryController::class, 'update']);
         Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
+        Route::put('store-pages/order', [StorePageController::class, 'reorder']);
         Route::apiResource('store-pages', StorePageController::class)->except(['show']);
         Route::get('store/analytics', StoreAnalyticsController::class);
 

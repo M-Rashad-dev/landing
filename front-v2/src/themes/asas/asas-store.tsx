@@ -23,6 +23,7 @@ export function AsasStore({
   selected = null,
   onSelect,
   media = {},
+  tools,
 }: {
   design: Design;
   data: DesignData;
@@ -31,18 +32,26 @@ export function AsasStore({
   selected?: Selection;
   onSelect?: (id: Selection) => void;
   media?: DesignData["media"];
+  /** Builder: quick actions drawn over the selected part (move, copy, hide, delete). */
+  tools?: (id: Selection) => React.ReactNode;
 }) {
   const select = (id: Selection) => (event: React.MouseEvent) => {
     if (mode !== "builder" || !onSelect) return;
+    // The quick actions over the selection handle their own clicks.
+    if ((event.target as HTMLElement).closest("[data-builder-tools]")) return;
+    // A click on the preview selects; it never follows a link of the store.
+    event.preventDefault();
     event.stopPropagation();
     onSelect(id);
   };
   const frame = (id: Selection) => (mode === "builder" ? cn("as-selectable", selected === id && "as-selected") : undefined);
+  const toolsOf = (id: Selection) => (mode === "builder" && tools && selected === id ? <div data-builder-tools className="absolute end-3 top-3 z-20">{tools(id)}</div> : null);
 
   return (
     <AsasRoot settings={design.settings} data={data} storeName={storeName} mode={mode} media={media} className="min-h-full">
       <div className={frame("header")} onClickCapture={mode === "builder" ? select("header") : undefined}>
         <Header />
+        {toolsOf("header")}
       </div>
       <main>
         {design.sections
@@ -50,11 +59,13 @@ export function AsasStore({
           .map((section) => (
             <div key={section.id} id={`section-${section.id}`} className={frame(section.id)} onClickCapture={mode === "builder" ? select(section.id) : undefined}>
               <SectionView section={section} />
+              {toolsOf(section.id)}
             </div>
           ))}
       </main>
       <div className={frame("footer")} onClickCapture={mode === "builder" ? select("footer") : undefined}>
         <Footer />
+        {toolsOf("footer")}
       </div>
       <WhatsappButton />
     </AsasRoot>

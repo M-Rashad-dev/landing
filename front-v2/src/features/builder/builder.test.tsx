@@ -7,6 +7,7 @@ import { AsasStore } from "@/themes/asas/asas-store";
 import { inkOn, type Design, type DesignData } from "@/themes/asas/types";
 import { newSection } from "./api";
 
+vi.mock("@/lib/auth/session-context", () => ({ useSession: () => ({ storeUrl: "https://naanaa.com", store_name: "نعناع" }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => "/dashboard/design/builder", useSearchParams: () => new URLSearchParams() }));
 
 const design: Design = {
@@ -70,6 +71,9 @@ describe("«أساس»", () => {
     fireEvent.click(screen.getByText("شحن مجاني فوق 1000"));
     expect(onSelect).toHaveBeenLastCalledWith("header");
     expect(document.querySelector(".as-selected")?.id).toBe("section-latest000001");
+    // A product link in the preview selects its section and never opens (fireEvent.click is false when prevented).
+    expect(fireEvent.click(screen.getByRole("link", { name: "ساعة ذكية" }))).toBe(false);
+    expect(onSelect).toHaveBeenLastCalledWith("latest000001");
   });
 
   it("picks readable text on any color and builds new sections ready to edit", () => {
@@ -118,5 +122,42 @@ describe("Builder", () => {
     await act(async () => {
       await screen.findByText(ar.design.builder.saved);
     });
+  });
+
+  it("adds a section from the gallery, moves it from the canvas, and undoes", async () => {
+    const { Builder } = await import("./builder");
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <TooltipProvider>
+          <Builder />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+    await screen.findAllByText("أحدث المنتجات");
+    const b = ar.design.builder;
+    const titles = () => Array.from(document.querySelectorAll("main [id^=section-]")).map((el) => el.id);
+
+    fireEvent.click(screen.getByRole("button", { name: b.addSection }));
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(b.types.features.title) }));
+    // The new section opens in the panel and shows last on the canvas.
+    expect(await screen.findByRole("button", { name: b.backTo(b.homePage) })).toBeInTheDocument();
+    const added = titles().at(-1)!;
+    expect(titles()).toHaveLength(4);
+
+    // Its canvas toolbar moves it up.
+    fireEvent.click(screen.getByRole("button", { name: b.moveUp }));
+    expect(titles().indexOf(added)).toBe(2);
+
+    // Ctrl+Z twice: back to where it started.
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(titles().indexOf(added)).toBe(3);
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(titles()).toHaveLength(3);
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    expect(titles()).toHaveLength(4);
+
+    // Esc closes the settings, back to the list.
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("button", { name: b.addSection })).toBeInTheDocument();
   });
 });
