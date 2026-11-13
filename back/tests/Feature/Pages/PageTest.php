@@ -38,7 +38,8 @@ function createPage(array $overrides = []): array
     return test()->postJson('/api/v1/dashboard/pages', array_merge([
         'title' => 'صفحة العرض',
         'slug' => 'عرض-خاص',
-        'theme_key' => 'bidaya',
+        // The generic section content (any theme without its own schema); «بداية» has its own tests.
+        'theme_key' => 'celia',
         'product_id' => test()->product->id,
         'content' => starter(),
     ], $overrides))->assertCreated()->json('data');
@@ -65,7 +66,8 @@ it('starts a «بداية» page with its five sections and the order form, name
         ->assertCreated()->json('data');
 
     $sections = collect($page['draft_content']['sections']);
-    expect($sections->pluck('type')->all())->toBe(['header', 'hero', 'features', 'gallery', 'testimonials', 'faq', 'order_form', 'footer'])
+    expect($sections->pluck('type')->all())->toBe(['hero', 'features', 'gallery', 'testimonials', 'faq', 'order_form'])
+        ->and($page['draft_content']['settings']['colors']['primary'])->toBe('#0b875b')
         ->and($sections->firstWhere('type', 'hero')['props']['title'])->toBe($this->product->name);
 });
 
@@ -177,7 +179,7 @@ it('keeps pages on a disabled theme working but refuses it for new pages and swi
     $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();
 
     $this->postJson('/api/v1/dashboard/pages', ['title' => 'جديدة', 'slug' => 'new-one', 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors(['theme_key']);
-    $other = createPage(['slug' => 'other']);
+    $other = createPage(['slug' => 'other', 'theme_key' => 'layali']);
     $this->putJson("/api/v1/dashboard/pages/{$other['id']}/content", ['version' => 1, 'content' => starter(), 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors(['theme_key']);
 });
 
@@ -196,12 +198,12 @@ it('publishes a snapshot that later draft edits do not change', function () {
 
     $content = starter();
     $content['sections'][1]['props']['title'] = 'مسودة جديدة';
-    $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => 1, 'content' => $content, 'theme_key' => 'celia'])
-        ->assertOk()->assertJsonPath('data.has_unpublished_changes', true)->assertJsonPath('data.published_theme_key', 'bidaya');
+    $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => 1, 'content' => $content, 'theme_key' => 'layali'])
+        ->assertOk()->assertJsonPath('data.has_unpublished_changes', true)->assertJsonPath('data.published_theme_key', 'celia');
 
     $model = asTenant($this->user, fn () => LandingPage::query()->findOrFail($page['id']));
     expect($model->published_content['sections'][1]['props']['title'])->toBe('أهلًا')
-        ->and($model->published_content['theme_key'])->toBe('bidaya');
+        ->and($model->published_content['theme_key'])->toBe('celia');
 });
 
 it('unpublishes and clears the home flag', function () {

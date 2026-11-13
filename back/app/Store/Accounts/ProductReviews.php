@@ -97,6 +97,20 @@ final class ProductReviews
      *
      * @return list<array{name: string, rating: int, text: string}>
      */
+    /**
+     * The good written reviews of one product (a landing page set to show reviews by itself).
+     *
+     * @return list<array{name: string, rating: int, text: string}>
+     */
+    public function forProduct(int $productId, int $limit = 9): array
+    {
+        return ProductReview::query()->visible()->where('product_id', $productId)->where('rating', '>=', 4)->whereNotNull('text')
+            ->latest('id')->limit($limit)->get()
+            ->map(fn (ProductReview $r) => ['name' => ProductReview::displayName($r->author_name), 'rating' => $r->rating, 'text' => (string) $r->text])
+            ->values()
+            ->all();
+    }
+
     public function forHome(int $limit = 6): array
     {
         return ProductReview::query()->visible()->where('rating', '>=', 4)->whereNotNull('text')

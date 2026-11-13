@@ -5,8 +5,6 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
-  CheckCircle2,
-  ChevronLeft,
   Copy,
   ExternalLink,
   Eye,
@@ -14,7 +12,6 @@ import {
   LayoutList,
   LayoutPanelTop,
   Laptop,
-  Loader2,
   MoreHorizontal,
   Palette,
   PanelBottom,
@@ -46,16 +43,14 @@ import type { Design, DesignData, MediaUrls, Section, SectionType, Settings } fr
 import { copySection, designKey, newSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type DesignPayload } from "./api";
 import { SectionGallery, SectionIcon } from "./section-gallery";
 import { BannerForm, FeaturesForm, ProductsForm, TestimonialsForm } from "./section-forms";
+import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "./kit";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "./theme-forms";
 
 const t = ar.design.builder;
 const th = ar.design.theme;
 const MAX_SECTIONS = 20;
-const HISTORY = 60;
 
 type Edit = Selection | "look" | "general";
-type Status = "saved" | "dirty" | "saving" | "invalid" | "conflict";
-type Device = "desktop" | "tablet" | "mobile";
 type Tab = "sections" | "theme";
 
 export function Builder() {
@@ -84,130 +79,31 @@ export function Builder() {
 function Editor({ initial }: { initial: DesignPayload }) {
   const client = useQueryClient();
   const session = useSession();
-  const [draft, setDraft] = React.useState<Design>(initial.draft);
   const [data, setData] = React.useState<DesignData>(initial.data);
   const [published, setPublished] = React.useState({ at: initial.published_at, pending: initial.has_unpublished_changes });
   const [media, setMedia] = React.useState<Record<string, MediaUrls>>({});
   const [selected, setSelected] = React.useState<Edit>(null);
   const [tab, setTab] = React.useState<Tab>("sections");
   const [device, setDevice] = React.useState<Device>("desktop");
-  const [status, setStatus] = React.useState<Status>("saved");
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [publishing, setPublishing] = React.useState(false);
   const [removing, setRemoving] = React.useState<Section | null>(null);
   const [gallery, setGallery] = React.useState(false);
-  const version = React.useRef(initial.version);
-  const pending = React.useRef<Design | null>(null);
-  const saving = React.useRef<Promise<boolean> | null>(null);
   const frame = React.useRef<HTMLDivElement>(null);
-  // Undo / redo: snapshots of the whole design; quick edits in a row (typing) make one step.
-  const [history, setHistory] = React.useState<{ past: Design[]; future: Design[] }>({ past: [], future: [] });
-  const lastStep = React.useRef(0);
+  const editor = useDraftEditor<Design, DesignPayload>({
+    initial: initial.draft,
+    version: initial.version,
+    save: saveDesign,
+    onSaved: (res) => {
+      setData(res.data);
+      setPublished({ at: res.published_at, pending: res.has_unpublished_changes });
+      client.setQueryData(designKey, res);
+    },
+    onEscape: () => setSelected(null),
+  });
+  const { draft, change, undo, redo, status, errors, flush } = editor;
 
   const allMedia = React.useMemo(() => ({ ...data.media, ...media }), [data.media, media]);
   const rememberMedia = React.useCallback((item: MediaItem) => setMedia((m) => ({ ...m, [String(item.id)]: item.urls })), []);
-
-  /** Saves the latest draft; later edits wait and are saved right after (one request at a time). */
-  const flush = React.useCallback(async (): Promise<boolean> => {
-    if (saving.current) await saving.current;
-    const next = pending.current;
-    if (!next) return true;
-    pending.current = null;
-    setStatus("saving");
-    const run = (async () => {
-      try {
-        const res = await saveDesign(next, version.current);
-        version.current = res.version;
-        setData(res.data);
-        setPublished({ at: res.published_at, pending: res.has_unpublished_changes });
-        setErrors({});
-        client.setQueryData(designKey, res);
-        setStatus(pending.current ? "dirty" : "saved");
-        return true;
-      } catch (error) {
-        if (isApiError(error) && error.status === 409) setStatus("conflict");
-        else if (isApiError(error) && error.isValidation) {
-          setErrors(Object.fromEntries(Object.entries(error.errors).map(([k, v]) => [k, v[0] ?? ""])));
-          setStatus("invalid");
-        } else {
-          toast.error(errorMessage(error));
-          pending.current ??= next;
-          setStatus("dirty");
-        }
-        return false;
-      } finally {
-        saving.current = null;
-      }
-    })();
-    saving.current = run;
-    return run;
-  }, [client]);
-
-  // Autosave: a short pause after the last edit.
-  React.useEffect(() => {
-    if (status !== "dirty") return;
-    const timer = window.setTimeout(() => void flush(), 700);
-    return () => window.clearTimeout(timer);
-  }, [draft, status, flush]);
-
-  React.useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => {
-      if (pending.current || saving.current) e.preventDefault();
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, []);
-
-  const apply = (next: Design) => {
-    setDraft(next);
-    pending.current = next;
-    setStatus((s) => (s === "conflict" ? s : "dirty"));
-  };
-
-  /** `typing`: edits in the settings forms; quick ones in a row make one undo step. Moves, adds and deletes are steps of their own. */
-  const change = (next: Design, typing = false) => {
-    const now = Date.now();
-    if (!typing || now - lastStep.current > 800) setHistory((h) => ({ past: [...h.past, draft].slice(-HISTORY), future: [] }));
-    else setHistory((h) => (h.future.length ? { ...h, future: [] } : h));
-    lastStep.current = typing ? now : 0;
-    apply(next);
-  };
-
-  const undo = () => {
-    const previous = history.past.at(-1);
-    if (!previous) return;
-    setHistory({ past: history.past.slice(0, -1), future: [draft, ...history.future] });
-    lastStep.current = 0;
-    apply(previous);
-  };
-  const redo = () => {
-    const next = history.future[0];
-    if (!next) return;
-    setHistory({ past: [...history.past, draft], future: history.future.slice(1) });
-    lastStep.current = 0;
-    apply(next);
-  };
-
-  // Ctrl+Z / Ctrl+Y (Ctrl+Shift+Z) outside text fields; Esc closes the settings.
-  const keys = React.useRef({ undo, redo });
-  keys.current = { undo, redo };
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing = e.target instanceof Element ? e.target.closest("input, textarea, select, [contenteditable=true]") : null;
-      if (e.key === "Escape" && !document.querySelector("[role=dialog], [role=alertdialog], [role=menu]")) setSelected(null);
-      if (typing || !(e.ctrlKey || e.metaKey)) return;
-      const key = e.key.toLowerCase();
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        keys.current.undo();
-      } else if (key === "y" || (key === "z" && e.shiftKey)) {
-        e.preventDefault();
-        keys.current.redo();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const setSettings = (settings: Settings) => change({ ...draft, settings }, true);
   const setSection = (id: string, props: Section["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === id ? ({ ...s, props } as Section) : s)) }, true);
@@ -261,15 +157,15 @@ function Editor({ initial }: { initial: DesignPayload }) {
     try {
       if (!(await flush())) return;
       const res = await publishDesign();
-      version.current = res.version;
+      editor.setVersion(res.version);
       setPublished({ at: res.published_at, pending: false });
       client.setQueryData(designKey, res);
       await client.invalidateQueries({ queryKey: ["store"] });
       toast.success(t.published);
     } catch (error) {
       if (isApiError(error) && error.isValidation) {
-        setErrors(Object.fromEntries(Object.entries(error.errors).map(([k, v]) => [k, v[0] ?? ""])));
-        setStatus("invalid");
+        editor.setErrors(Object.fromEntries(Object.entries(error.errors).map(([k, v]) => [k, v[0] ?? ""])));
+        editor.setStatus("invalid");
       }
       toast.error(errorMessage(error));
     } finally {
@@ -338,12 +234,12 @@ function Editor({ initial }: { initial: DesignPayload }) {
           </div>
           <span className="h-6 w-px bg-border" aria-hidden />
           <Tooltip content={`${t.undo} (${t.shortcutUndo})`}>
-            <Button size="icon-sm" variant="ghost" aria-label={t.undo} disabled={history.past.length === 0} onClick={undo}>
+            <Button size="icon-sm" variant="ghost" aria-label={t.undo} disabled={!editor.canUndo} onClick={undo}>
               <Undo2 />
             </Button>
           </Tooltip>
           <Tooltip content={`${t.redo} (${t.shortcutRedo})`}>
-            <Button size="icon-sm" variant="ghost" aria-label={t.redo} disabled={history.future.length === 0} onClick={redo}>
+            <Button size="icon-sm" variant="ghost" aria-label={t.redo} disabled={!editor.canRedo} onClick={redo}>
               <Redo2 />
             </Button>
           </Tooltip>
@@ -518,14 +414,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
                   ] as Array<[Edit, LucideIcon, string, string]>
                 ).map(([key, Icon, label, hint]) => (
                   <li key={String(key)}>
-                    <button type="button" onClick={() => setSelected(key)} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-start transition hover:border-border-strong hover:bg-surface-2/60">
-                      <PanelIcon icon={Icon} />
-                      <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                        <span className="text-sm font-semibold">{label}</span>
-                        <span className="truncate text-xs text-ink-3">{hint}</span>
-                      </span>
-                      <ChevronLeft className="size-4 text-ink-3" aria-hidden />
-                    </button>
+                    <GroupRow icon={Icon} label={label} hint={hint} onClick={() => setSelected(key)} />
                   </li>
                 ))}
               </ul>
@@ -596,142 +485,4 @@ function editorTitle(selected: Edit, section: Section | null): string {
   if (selected === "header") return t.header;
   if (selected === "footer") return t.footer;
   return section ? sectionTitle(section) : t.tabs.sections;
-}
-
-/* ---------- Pieces ---------- */
-
-function RailButton({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn("flex w-14 flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold transition", active ? "bg-brand-soft text-brand-strong" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
-    >
-      <Icon className="size-5" />
-      {label}
-    </button>
-  );
-}
-
-function PanelTitle({ title, hint, badge }: { title: string; hint: string; badge?: string }) {
-  return (
-    <div className="flex flex-col gap-1 px-4 pb-3 pt-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-base font-semibold">{title}</h2>
-        {badge ? <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-3">{badge}</span> : null}
-      </div>
-      <p className="text-xs leading-relaxed text-ink-3">{hint}</p>
-    </div>
-  );
-}
-
-function PanelIcon({ icon: Icon }: { icon: LucideIcon }) {
-  return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-2" aria-hidden>
-      <Icon className="size-3.5" />
-    </span>
-  );
-}
-
-/** Header and footer: always there, not moved, opened like a section. */
-function PinnedRow({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} aria-label={label} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-2/50 px-3 py-2.5 text-start transition hover:border-border-strong hover:bg-surface-2">
-      <PanelIcon icon={Icon} />
-      <span className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="text-sm font-semibold">{label}</span>
-        <span className="text-xs text-ink-3">{t.pinned}</span>
-      </span>
-      <ChevronLeft className="size-4 text-ink-3" aria-hidden />
-    </button>
-  );
-}
-
-function Inspector({ title, icon, back, onBack, actions, children }: { title: string; icon: React.ReactNode; back: string; onBack: () => void; actions?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-border px-3 pb-3 pt-2">
-        <button type="button" onClick={onBack} className="mb-2 flex items-center gap-1 rounded-md px-1 py-1 text-xs font-semibold text-ink-3 hover:text-ink">
-          <ArrowRight className="size-3.5" />
-          {t.backTo(back)}
-        </button>
-        <div className="flex items-center gap-2 px-1">
-          {icon}
-          <h2 className="min-w-0 flex-1 truncate font-display text-base font-semibold">{title}</h2>
-          {actions}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">{children}</div>
-    </div>
-  );
-}
-
-function ToolButton({ icon: Icon, label, onClick, disabled = false, danger = false }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className={cn("flex size-7 items-center justify-center rounded-md transition hover:bg-white/15 disabled:opacity-30", danger && "hover:bg-red-500/80")}>
-      <Icon className="size-3.5" />
-    </button>
-  );
-}
-
-function CanvasChip({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5 rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg" dir="rtl">
-      <Icon className="size-3.5" />
-      {label}
-    </span>
-  );
-}
-
-/** The preview inside a browser window, a tablet or a phone. */
-function DeviceFrame({ device, host, children }: { device: Device; host: string; children: React.ReactNode }) {
-  if (device === "desktop") {
-    return (
-      <div className="mx-auto flex h-full max-w-[1280px] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-        <div className="flex h-9 shrink-0 items-center gap-3 border-b border-border bg-surface-2 px-3" dir="ltr">
-          <span className="flex gap-1.5" aria-hidden>
-            <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-            <span className="size-2.5 rounded-full bg-[#febc2e]" />
-            <span className="size-2.5 rounded-full bg-[#28c840]" />
-          </span>
-          <span className="mx-auto w-full max-w-sm truncate rounded-md bg-surface px-3 py-0.5 text-center text-[11px] text-ink-3">{host}</span>
-          <span className="w-12" aria-hidden />
-        </div>
-        <div className="min-h-0 flex-1">{children}</div>
-      </div>
-    );
-  }
-  const phone = device === "mobile";
-  return (
-    <div className={cn("mx-auto flex h-full flex-col overflow-hidden bg-white shadow-2xl ring-ink transition-[width] duration-300", phone ? "w-[390px] rounded-[2.4rem] ring-[10px]" : "w-[820px] max-w-full rounded-[1.6rem] ring-[12px]")}>
-      {phone ? <div className="mx-auto mt-1.5 h-5 w-28 shrink-0 rounded-full bg-ink" aria-hidden /> : null}
-      <div className="min-h-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
-function SaveStatus({ status }: { status: Status }) {
-  const base = "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium";
-  if (status === "saving" || status === "dirty")
-    return (
-      <span className={cn(base, "bg-surface-2 text-ink-3")}>
-        <Loader2 className="size-3.5 animate-spin" />
-        {status === "saving" ? t.saving : t.unsaved}
-      </span>
-    );
-  if (status === "invalid")
-    return (
-      <span className={cn(base, "bg-danger-soft text-danger")}>
-        <TriangleAlert className="size-3.5" />
-        {t.invalid}
-      </span>
-    );
-  if (status === "conflict") return null;
-  return (
-    <span className={cn(base, "bg-success-soft text-success")}>
-      <CheckCircle2 className="size-3.5" />
-      {t.saved}
-    </span>
-  );
 }

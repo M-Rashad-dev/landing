@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
-import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
+import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlay";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { errorMessage } from "@/lib/api/errors";
 import { usePlanLimit, useSession } from "@/lib/auth/session-context";
@@ -172,14 +172,12 @@ function LandingCard({ page }: { page: LandingRow }) {
         ) : null}
 
         <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
-          <Tooltip content={t.actions.editSoon}>
-            <span className="flex-1">
-              <Button variant="outline" className="w-full" disabled>
-                <Paintbrush />
-                {t.actions.edit}
-              </Button>
-            </span>
-          </Tooltip>
+          <Button asChild variant="outline" className="flex-1">
+            <Link href={`/dashboard/landings/${page.id}/builder`}>
+              <Paintbrush />
+              {t.actions.edit}
+            </Link>
+          </Button>
           {published ? null : (
             <Button onClick={() => void run(() => publishLanding(page.id), t.actions.published)} loading={busy}>
               <Send />

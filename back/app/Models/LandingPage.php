@@ -93,6 +93,14 @@ class LandingPage extends Model
 
     public function hasUnpublishedChanges(): bool
     {
-        return $this->isPublished() && $this->published_content != $this->draft_content;
+        if (! $this->isPublished()) {
+            return false;
+        }
+        // The live copy also records its theme: compare the content itself, then the theme.
+        $published = (array) $this->published_content;
+        $theme = $published['theme_key'] ?? null;
+        unset($published['theme_key']);
+
+        return $published != $this->draft_content || ($theme !== null && $theme !== $this->theme_key);
     }
 }

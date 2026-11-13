@@ -7,20 +7,20 @@ namespace App\Actions\Pages;
 use App\Exceptions\ApiException;
 use App\Http\Resources\PageDetailResource;
 use App\Models\LandingPage;
-use App\Services\PageContentSanitizer;
+use App\Themes\LandingThemes;
 use Illuminate\Support\Facades\DB;
 
 /** Saves the Builder draft with optimistic locking on `version`. */
 final class SavePageContent
 {
     public function __construct(
-        private readonly PageContentSanitizer $sanitizer,
+        private readonly LandingThemes $themes,
         private readonly SyncPageMedia $syncMedia,
     ) {}
 
     public function handle(LandingPage $page, int $version, mixed $content, ?string $themeKey): LandingPage
     {
-        $clean = $this->sanitizer->sanitize($content, 'content', $page->kind)['content'];
+        $clean = $this->themes->clean($themeKey ?? $page->theme_key, $content, 'content', $page->kind);
 
         return DB::transaction(function () use ($page, $version, $clean, $themeKey): LandingPage {
             /** @var LandingPage $locked */

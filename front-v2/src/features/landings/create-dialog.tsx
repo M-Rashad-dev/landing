@@ -49,11 +49,12 @@ function CreateForm({ theme, onClose }: { theme: LandingTheme; onClose: () => vo
 
   const submit = form.handleSubmit(async (v) => {
     try {
-      await createLanding({ title: v.title.trim(), slug: v.slug.trim().toLowerCase(), theme_key: theme.key, product_id: Number(v.product_id) });
+      const page = await createLanding({ title: v.title.trim(), slug: v.slug.trim().toLowerCase(), theme_key: theme.key, product_id: Number(v.product_id) });
       toast.success(t.created);
       await refresh();
       onClose();
-      router.push("/dashboard/marketing/landings");
+      // Straight into the Builder to shape the new page.
+      router.push(`/dashboard/landings/${page.id}/builder`);
     } catch (error) {
       if (isApiError(error)) {
         for (const field of ["title", "slug", "product_id"] as const) {

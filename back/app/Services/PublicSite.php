@@ -16,6 +16,7 @@ use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Tenant;
 use App\Pricing\Shipping;
+use App\Store\Accounts\ProductReviews;
 use App\Support\PlainText;
 use App\Support\TrackingIds;
 use App\Tenancy\Tenancy;
@@ -187,6 +188,8 @@ final class PublicSite
             'product' => $product,
             'offers' => $this->data->offers($page->product, now()),
             'media' => (object) $this->data->media($content),
+            'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
+            'store_name' => (string) Tenant::query()->whereKey($page->tenant_id)->value('name'),
             'seo' => $this->seo($page, $identity, $primaryHost),
             'tracking' => $this->tracking($page, $identity),
             'shipping' => $this->shipping->publicConfig(now()),

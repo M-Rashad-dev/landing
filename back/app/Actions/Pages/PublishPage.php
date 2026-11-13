@@ -11,7 +11,7 @@ use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
 use App\Models\Tenant;
 use App\Models\Theme;
-use App\Services\PageContentSanitizer;
+use App\Themes\LandingThemes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 final class PublishPage
 {
     public function __construct(
-        private readonly PageContentSanitizer $sanitizer,
+        private readonly LandingThemes $themes,
         private readonly SyncPageMedia $syncMedia,
         private readonly EnsureHomePage $home,
     ) {}
@@ -47,7 +47,7 @@ final class PublishPage
         }
 
         try {
-            $clean = $this->sanitizer->sanitize($page->draft_content, 'content', $page->kind)['content'];
+            $clean = $this->themes->clean($page->theme_key, $page->draft_content, 'content', $page->kind);
         } catch (ValidationException $e) {
             $first = collect($e->errors())->flatten()->first();
             $blockers[] = $this->blocker('content_invalid', ['error' => (string) $first]);

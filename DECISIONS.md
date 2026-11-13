@@ -327,4 +327,12 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **List**: last 30 days per page (visits from the page counters, orders that count as sales, conversion) and counts per status.
   - **Orders from a landing page carry a visible tag** («صفحة هبوط: name») in the list, the quick view, the order page and the confirm queue (owner request).
   - **«القوائم» and «الهوية والوسائط» pages dropped** (owner): each theme sets its header / footer links and its look from its own Builder settings.
+- **«بداية» (landing pages part 2, Nov 2026)**:
+  - **Its own content shape** (`App\Themes\BidayaDesign`, like «أساس»): `{version, settings, sections}`; settings = colors, font, size, button shape, logo, header (show, announcement), footer (text, phone, WhatsApp, social), general (sticky order button, floating WhatsApp). Sections: البداية، المميزات، صور المنتج، آراء العملاء، الأسئلة الشائعة، and exactly one order form that can move but never be hidden or removed (max 12 sections). `App\Themes\LandingThemes` picks the validator per theme on create, save and publish; other themes keep the generic sanitizer.
+  - **No made-up reviews**: «آراء العملاء» starts on automatic (the product's own good written reviews, hidden on the live page while there are none); the merchant can switch to writing them.
+  - **Order form** writes the shape `App\Support\OrderForm` reads (fields enabled / required, name and phone always on, offer picker), so the existing public quote / order / lead endpoints serve it unchanged. Offers come from the store's «العروض».
+  - **Public page**: `sites/[host]/(landing)/[slug]` in its own frame (no store header / cart), the store pages moved to `sites/[host]/(store)`; works whether or not the store itself is open. After an order → `/{slug}/done` («طلبك وصل»), which sends the purchase event once (the order is handed over in sessionStorage). Visits and form starts go to the page counters.
+  - **Builder**: the store Builder's shared parts moved to `features/builder/kit.tsx` (editing state with undo / redo + autosave, rail, panel, inspector, device frames, save status); the landing Builder adds a «الصفحة» tab (name, address, product, Google / sharing text, the page's own pixels and conversion event).
+  - The live page hoists the font into the head (`precedence`), the Builder loads it in place so a font change never holds the editor back.
+  - «فيه تعديلات لسه متنشرتش» compares the content without the theme name the live copy also stores (it was always «yes» before).
 

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Services\FormToken;
-use Database\Factories\LandingPageFactory;
 use Database\Seeders\ThemeSeeder;
 
 /*
@@ -61,10 +60,7 @@ it('runs the whole store flow through the API', function () {
         'theme_key' => 'bidaya',
         'identity_id' => $identity['id'],
         'product_id' => $product['id'],
-        'content' => ['version' => 1, 'sections' => [
-            LandingPageFactory::section('hero', ['title' => 'شنطة العمر'], true, 'big-type'),
-            LandingPageFactory::section('order_form', [], true, 'bordered'),
-        ]],
+        // No content: the page starts with «بداية»'s sections and its order form.
     ], $auth)->assertCreated()->json('data');
     $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish", [], $auth)->assertOk();
     $this->postJson("/api/v1/dashboard/pages/{$page['id']}/set-home", [], $auth)->assertOk();

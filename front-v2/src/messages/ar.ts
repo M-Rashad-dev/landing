@@ -6,6 +6,7 @@
 import { admin } from "./ar/admin";
 import { analytics } from "./ar/analytics";
 import { auth } from "./ar/auth";
+import { bidaya } from "./ar/bidaya";
 import { catalog } from "./ar/catalog";
 import { common } from "./ar/common";
 import { design } from "./ar/design";
@@ -24,4 +25,4 @@ import { storePages } from "./ar/store-pages";
 import { storefront } from "./ar/storefront";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya } as const;

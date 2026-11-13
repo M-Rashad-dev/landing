@@ -10,14 +10,13 @@ use App\Enums\PlanLimit;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Product;
-use App\Services\PageContentSanitizer;
-use App\Themes\LandingStarter;
+use App\Themes\LandingThemes;
 use Illuminate\Support\Facades\DB;
 
 final class CreatePage
 {
     public function __construct(
-        private readonly PageContentSanitizer $sanitizer,
+        private readonly LandingThemes $themes,
         private readonly SyncPageMedia $syncMedia,
     ) {}
 
@@ -28,9 +27,10 @@ final class CreatePage
 
         // No content sent: the theme's starter sections (with the product name in the first one).
         $product = isset($data['product_id']) ? Product::query()->find($data['product_id']) : null;
-        $content = $this->sanitizer->sanitize(
-            isset($data['content']) && $data['content'] !== null ? $data['content'] : LandingStarter::content($data['theme_key'], $product),
-        )['content'];
+        $content = $this->themes->clean(
+            $data['theme_key'],
+            isset($data['content']) && $data['content'] !== null ? $data['content'] : $this->themes->starter($data['theme_key'], $product),
+        );
 
         $identityId = $data['identity_id'] ?? Identity::query()->where('is_default', true)->value('id') ?? Identity::query()->value('id');
 

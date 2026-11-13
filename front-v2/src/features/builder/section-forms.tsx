@@ -198,7 +198,7 @@ export function ProductsForm({ props, onChange, errors }: { props: ProductsProps
 
 /* ---------- مميزات المتجر ---------- */
 
-export function FeaturesForm({ props, onChange, errors }: { props: FeaturesProps; onChange: (p: FeaturesProps) => void; errors: Errors }) {
+export function FeaturesForm({ props, onChange, errors, max = 4 }: { props: FeaturesProps; onChange: (p: FeaturesProps) => void; errors: Errors; max?: number }) {
   const setItem = (i: number, patch: Partial<FeaturesProps["items"][number]>) => onChange({ ...props, items: props.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) });
   return (
     <div className="flex flex-col gap-4">
@@ -244,7 +244,7 @@ export function FeaturesForm({ props, onChange, errors }: { props: FeaturesProps
         </Card>
       ))}
       {errors.items ? <p className="text-xs text-danger">{errors.items}</p> : null}
-      {props.items.length < 4 ? (
+      {props.items.length < max ? (
         <Button variant="outline" onClick={() => onChange({ ...props, items: [...props.items, { icon: "star", title: ar.design.builder.defaults.featureTitle, text: null }] })}>
           <Plus />
           {tf.add}

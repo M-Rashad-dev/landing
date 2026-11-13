@@ -22,6 +22,7 @@ use App\Models\Order;
 use App\Models\PageStat;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
+use App\Store\Accounts\ProductReviews;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -122,7 +123,7 @@ final class PageController extends Controller
     }
 
     /** Data for the Builder preview iframe: draft content + the same public shapes the live page uses. */
-    public function preview(LandingPage $page, PublicPageData $data, Shipping $shipping): JsonResponse
+    public function preview(Request $request, LandingPage $page, PublicPageData $data, Shipping $shipping): JsonResponse
     {
         $page->load(['identity', 'product']);
 
@@ -135,6 +136,8 @@ final class PageController extends Controller
             'offers' => $data->offers($page->product, now()),
             'media' => (object) $data->media($page->draft_content),
             'shipping' => $shipping->publicConfig(now()),
+            'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
+            'store_name' => (string) $request->user()?->tenant?->name,
         ]);
     }
 

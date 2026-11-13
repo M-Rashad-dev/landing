@@ -1,0 +1,61 @@
+/*
+ * «بداية»: the free landing theme. It shares the store theme's utilities (as-*) and adds the
+ * button shape and a few page pieces. Like the store, it reacts to its own width (container
+ * queries), so the Builder previews phone and desktop exactly.
+ */
+.bd-root .as-btn {
+  border-radius: var(--bd-radius);
+}
+
+.bd-chip {
+  border-radius: var(--bd-radius);
+}
+
+.bd-card {
+  background: var(--as-card);
+  border: 1px solid var(--as-line);
+  border-radius: 1rem;
+}
+
+.bd-field {
+  height: 2.9rem;
+  width: 100%;
+  border: 1px solid var(--as-line);
+  border-radius: 0.65rem;
+  background: var(--as-bg);
+  padding-inline: 0.85rem;
+  outline: none;
+}
+textarea.bd-field {
+  height: auto;
+  padding-block: 0.6rem;
+}
+.bd-field:focus {
+  border-color: var(--as-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--as-primary) 20%, transparent);
+}
+.bd-field[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.bd-faq > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.bd-faq > summary::-webkit-details-marker {
+  display: none;
+}
+.bd-faq[open] .bd-faq-icon {
+  transform: rotate(45deg);
+}
+
+@keyframes bd-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.bd-pulse {
+  animation: bd-pulse 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bd-pulse { animation: none; }
+}
