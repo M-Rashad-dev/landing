@@ -320,4 +320,11 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **Plans**: the editor sends the whole plan (`POST /admin/plans`, `PUT /admin/plans/{key}`); the code is fixed after creation; a plan can be deleted only if no store ever subscribed and it is not the trial plan (otherwise archive it). The trial / grace / invoice / support settings sit next to the plans (`PUT admin/billing/settings`).
   - **Themes**: «مستخدم في» counts stores running the theme plus landing pages using it (`in_use`, was pages only). Turning a theme off never breaks stores already on it. Images upload, delete and reorder on their own, outside the details form.
   - **«سجل العمليات»**: every admin action, filtered by kind (action prefix), each row links to its store.
+- **Landing pages start again (Nov 2026, owner)**:
+  - **Old landing themes and pages removed**: ملاك، سيليا، ليالي and every landing page on them are deleted (migration `replace_old_landing_themes`); orders and leads keep their rows with an empty page link, theme invoices stay as money records. The platform now ships «بداية» (free landing) and «أساس» (free store); paid themes are added by the admin later. Tests get two paid landing themes from `Tests\Fixtures\TestCatalogSeeder` only.
+  - **A page sells one product of the store** (price, options and stock come from it). A new page starts with its theme's sections (`App\Themes\LandingStarter`: «بداية» = header, البداية، المميزات، صور المنتج، آراء العملاء، الأسئلة الشائعة، فورم الطلب، footer), the product name in the first one.
+  - **Address**: `store-domain/slug`; the store's own paths (products, cart, checkout, offers, account, pages, categories, track, search) are reserved slugs.
+  - **List**: last 30 days per page (visits from the page counters, orders that count as sales, conversion) and counts per status.
+  - **Orders from a landing page carry a visible tag** («صفحة هبوط: name») in the list, the quick view, the order page and the confirm queue (owner request).
+  - **«القوائم» and «الهوية والوسائط» pages dropped** (owner): each theme sets its header / footer links and its look from its own Builder settings.
 

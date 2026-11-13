@@ -9,6 +9,8 @@ use App\Actions\Pages\PageLifecycle;
 use App\Actions\Pages\PublishPage;
 use App\Actions\Pages\SavePageContent;
 use App\Actions\Pages\SyncPageMedia;
+use App\Enums\OrderStatus;
+use App\Enums\PageStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\PageRequest;
 use App\Http\Requests\Dashboard\SavePageContentRequest;
@@ -16,15 +18,18 @@ use App\Http\Resources\PageDetailResource;
 use App\Http\Resources\PageResource;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
+use App\Models\Order;
+use App\Models\PageStat;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 
 final class PageController extends Controller
 {
-    private const RELATIONS = ['identity', 'product'];
+    private const RELATIONS = ['identity', 'product.media'];
 
     public function index(Request $request): JsonResponse
     {
@@ -37,11 +42,42 @@ final class PageController extends Controller
             ->with(self::RELATIONS)
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('title', 'like', '%'.addcslashes($search, '%_\\').'%')->orWhere('slug', 'like', '%'.addcslashes($search, '%_\\').'%')))
             ->when(in_array($status, ['draft', 'published'], true), fn ($q) => $q->where('status', $status))
-            ->orderByDesc('is_home')
             ->latest('updated_at')
             ->paginate($this->perPage($request));
+        $this->attachStats($pages->getCollection());
 
-        return $this->paginated($pages, PageResource::class);
+        return $this->paginated($pages, PageResource::class, [
+            'counts' => [
+                'all' => LandingPage::query()->landings()->count(),
+                'published' => LandingPage::query()->landings()->where('status', PageStatus::Published)->count(),
+                'draft' => LandingPage::query()->landings()->where('status', PageStatus::Draft)->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Last 30 days per page: visits (first-party counters), orders that count as sales, conversion.
+     *
+     * @param  Collection<int, LandingPage>  $pages
+     */
+    private function attachStats(Collection $pages): void
+    {
+        $ids = $pages->pluck('id')->all();
+        if ($ids === []) {
+            return;
+        }
+        $since = now()->subDays(30);
+        $views = PageStat::query()->whereIn('landing_page_id', $ids)->where('date', '>=', $since->toDateString())
+            ->selectRaw('landing_page_id, sum(views) as total')->groupBy('landing_page_id')->pluck('total', 'landing_page_id');
+        $orders = Order::query()->whereIn('landing_page_id', $ids)->where('created_at', '>=', $since)
+            ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Fake])
+            ->selectRaw('landing_page_id, count(*) as total')->groupBy('landing_page_id')->pluck('total', 'landing_page_id');
+
+        foreach ($pages as $page) {
+            $v = (int) ($views[$page->id] ?? 0);
+            $o = (int) ($orders[$page->id] ?? 0);
+            $page->setAttribute('stats', ['views' => $v, 'orders' => $o, 'conversion' => $v > 0 ? round($o / $v * 100, 2) : null]);
+        }
     }
 
     public function store(PageRequest $request, CreatePage $action): JsonResponse

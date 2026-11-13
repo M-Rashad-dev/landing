@@ -156,7 +156,7 @@ it('forbids tenant owners and needs a token', function (string $method, string $
     ['POST', '/api/v1/admin/tenants/1/activate'],
     ['POST', '/api/v1/admin/tenants/1/reset-password'],
     ['GET', '/api/v1/admin/themes'],
-    ['PATCH', '/api/v1/admin/themes/malak'],
+    ['PATCH', '/api/v1/admin/themes/bidaya'],
 ]);
 
 it('keeps the super admin out of the dashboard', function () {

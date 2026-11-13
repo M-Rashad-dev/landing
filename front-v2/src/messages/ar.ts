@@ -11,6 +11,7 @@ import { common } from "./ar/common";
 import { design } from "./ar/design";
 import { domain } from "./ar/domain";
 import { home } from "./ar/home";
+import { landings } from "./ar/landings";
 import { media } from "./ar/media";
 import { nav } from "./ar/nav";
 import { orders } from "./ar/orders";
@@ -23,4 +24,4 @@ import { storePages } from "./ar/store-pages";
 import { storefront } from "./ar/storefront";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings } as const;

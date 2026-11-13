@@ -67,7 +67,7 @@ it('lists the store themes with what it owns and can publish', function () {
 
     $rows = collect($this->getJson('/api/v1/dashboard/themes')->assertOk()->json('data'))->keyBy('key');
 
-    expect($rows['malak']['owned'])->toBeTrue()->and($rows['malak']['can_publish'])->toBeTrue()->and($rows['malak']['is_free'])->toBeTrue()
+    expect($rows['bidaya']['owned'])->toBeTrue()->and($rows['bidaya']['can_publish'])->toBeTrue()->and($rows['bidaya']['is_free'])->toBeTrue()
         ->and($rows['celia']['owned'])->toBeFalse()->and($rows['celia']['price']['final'])->toEqual(100)
         // Owned on Basic: editable, not published (paid themes need Pro or Max).
         ->and($rows['layali']['owned'])->toBeTrue()->and($rows['layali']['can_publish'])->toBeFalse();
@@ -83,12 +83,12 @@ it('filters, searches and sorts the theme store, hiding unlisted themes', functi
     $this->getJson('/api/v1/dashboard/theme-store?price=paid&kind=landing')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'celia');
     $this->getJson('/api/v1/dashboard/theme-store?kind=store')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'asas');
     $this->getJson('/api/v1/dashboard/theme-store?tag=fashion')->assertJsonCount(1, 'data');
-    $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('ملاك'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'malak');
+    $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('بداية'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'bidaya');
     $this->getJson('/api/v1/dashboard/theme-store?sort=price_desc')->assertJsonPath('data.0.key', 'celia');
     $this->getJson('/api/v1/dashboard/theme-store?sort=bad&kind=shop')->assertStatus(422)->assertJsonValidationErrors(['sort', 'kind']);
     $this->getJson('/api/v1/dashboard/theme-store/layali')->assertNotFound();
     $this->getJson('/api/v1/dashboard/theme-store/nope')->assertNotFound();
-    $this->getJson('/api/v1/dashboard/theme-store/celia')->assertOk()->assertJsonPath('data.features.0', '16 قسم جاهز');
+    $this->getJson('/api/v1/dashboard/theme-store/celia')->assertOk()->assertJsonPath('data.features.0', 'ميزة');
 });
 
 it('applies a theme discount inside its dates', function () {
@@ -120,7 +120,7 @@ it('shows what a theme costs without creating an invoice, and refuses owned them
         ->assertJsonPath('data.id', null)->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.total', 100);
 
     expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
-    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'malak'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'bidaya'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
 });
 
 it('owns the theme forever once the admin approves the payment', function () {
@@ -154,7 +154,7 @@ it('refuses pages and switches to a paid theme the store does not own', function
 
     $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'paid-page', 'theme_key' => 'celia', 'product_id' => $product->id])
         ->assertStatus(422)->assertJsonPath('errors.theme_key.0', __('pages.theme_not_owned'));
-    $id = $this->postJson('/api/v1/dashboard/pages', ['title' => 'y', 'slug' => 'free-page', 'theme_key' => 'malak', 'product_id' => $product->id])->assertCreated()->json('data.id');
+    $id = $this->postJson('/api/v1/dashboard/pages', ['title' => 'y', 'slug' => 'free-page', 'theme_key' => 'bidaya', 'product_id' => $product->id])->assertCreated()->json('data.id');
     $this->putJson("/api/v1/dashboard/pages/{$id}/content", ['version' => 1, 'content' => ['version' => 1, 'sections' => []], 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors('theme_key');
 });
 
@@ -220,7 +220,7 @@ it('uploads, orders and deletes theme images', function () {
 
     $this->deleteJson("/api/v1/admin/themes/celia/images/{$ids[0]}")->assertOk()->assertJsonCount(1, 'data.images');
     expect(Storage::disk('public')->exists($first->variants['large']))->toBeFalse();
-    $this->deleteJson("/api/v1/admin/themes/malak/images/{$ids[1]}")->assertNotFound();
+    $this->deleteJson("/api/v1/admin/themes/bidaya/images/{$ids[1]}")->assertNotFound();
 });
 
 it('creates and deletes tags', function () {

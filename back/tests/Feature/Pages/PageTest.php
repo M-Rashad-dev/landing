@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Enums\OrderStatus;
 use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Offer;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Theme;
 use Database\Factories\LandingPageFactory;
@@ -36,7 +38,7 @@ function createPage(array $overrides = []): array
     return test()->postJson('/api/v1/dashboard/pages', array_merge([
         'title' => 'صفحة العرض',
         'slug' => 'عرض-خاص',
-        'theme_key' => 'malak',
+        'theme_key' => 'bidaya',
         'product_id' => test()->product->id,
         'content' => starter(),
     ], $overrides))->assertCreated()->json('data');
@@ -45,7 +47,7 @@ function createPage(array $overrides = []): array
 it('lists active themes', function () {
     Theme::query()->where('key', 'celia')->update(['is_active' => false]);
 
-    $this->getJson('/api/v1/dashboard/themes')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.0.key', 'malak')->assertJsonPath('data.1.key', 'layali');
+    $this->getJson('/api/v1/dashboard/themes')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.0.key', 'bidaya')->assertJsonPath('data.1.key', 'layali');
 });
 
 it('creates a page with the default identity and starter content', function () {
@@ -58,10 +60,33 @@ it('creates a page with the default identity and starter content', function () {
         ->and(count($page['draft_content']['sections']))->toBe(4);
 });
 
+it('starts a «بداية» page with its five sections and the order form, named after the product', function () {
+    $page = $this->postJson('/api/v1/dashboard/pages', ['title' => 'عرض الساعة', 'slug' => 'watch', 'theme_key' => 'bidaya', 'product_id' => $this->product->id])
+        ->assertCreated()->json('data');
+
+    $sections = collect($page['draft_content']['sections']);
+    expect($sections->pluck('type')->all())->toBe(['header', 'hero', 'features', 'gallery', 'testimonials', 'faq', 'order_form', 'footer'])
+        ->and($sections->firstWhere('type', 'hero')['props']['title'])->toBe($this->product->name);
+});
+
+it('lists the pages with their last 30 days and the counts per status', function () {
+    $page = createPage(['slug' => 'watch']);
+    asTenant($this->user, function () use ($page) {
+        DB::table('page_stats')->insert(['tenant_id' => $this->user->tenant_id, 'landing_page_id' => $page['id'], 'date' => now()->toDateString(), 'source' => 'direct', 'device' => 'mobile', 'views' => 40, 'form_starts' => 5]);
+        Order::factory()->count(2)->create(['landing_page_id' => $page['id']]);
+        Order::factory()->status(OrderStatus::Fake)->create(['landing_page_id' => $page['id']]);
+    });
+
+    $this->getJson('/api/v1/dashboard/pages')->assertOk()
+        ->assertJsonPath('data.0.stats', ['views' => 40, 'orders' => 2, 'conversion' => 5])
+        ->assertJsonPath('meta.counts', ['all' => 1, 'published' => 0, 'draft' => 1])
+        ->assertJsonPath('data.0.product.id', $this->product->id);
+});
+
 it('validates slugs', function (string $slug) {
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => $slug, 'theme_key' => 'malak'])
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => $slug, 'theme_key' => 'bidaya'])
         ->assertStatus(422)->assertJsonValidationErrors('slug');
-})->with(['a', 'two--dashes', '-start', 'end-', 'with space', 'admin', 'thank-you', 'x/y', 'emoji🙂']);
+})->with(['a', 'two--dashes', '-start', 'end-', 'with space', 'admin', 'thank-you', 'x/y', 'emoji🙂', 'offers', 'account', 'products', 'checkout']);
 
 it('accepts arabic and latin slugs', function (string $slug) {
     createPage(['slug' => $slug]);
@@ -73,7 +98,7 @@ it('lowercases slugs', function () {
 
 it('keeps slugs unique per tenant and frees them on delete', function () {
     $page = createPage(['slug' => 'sale']);
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'sale', 'theme_key' => 'malak'])->assertStatus(422)->assertJsonValidationErrors('slug');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'sale', 'theme_key' => 'bidaya'])->assertStatus(422)->assertJsonValidationErrors('slug');
 
     $this->deleteJson("/api/v1/dashboard/pages/{$page['id']}")->assertNoContent();
     expect(LandingPage::withTrashed()->withoutGlobalScopes()->find($page['id'])->slug)->toBe("sale--deleted-{$page['id']}");
@@ -93,8 +118,8 @@ it('rejects inactive themes and identities/products of another tenant', function
     $foreignIdentity = Identity::factory()->create();
 
     $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x1', 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors('theme_key');
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x2', 'theme_key' => 'malak', 'product_id' => $foreignProduct->id])->assertStatus(422)->assertJsonValidationErrors('product_id');
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x3', 'theme_key' => 'malak', 'identity_id' => $foreignIdentity->id])->assertStatus(422)->assertJsonValidationErrors('identity_id');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x2', 'theme_key' => 'bidaya', 'product_id' => $foreignProduct->id])->assertStatus(422)->assertJsonValidationErrors('product_id');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x3', 'theme_key' => 'bidaya', 'identity_id' => $foreignIdentity->id])->assertStatus(422)->assertJsonValidationErrors('identity_id');
 });
 
 it('saves content with optimistic locking', function () {
@@ -172,11 +197,11 @@ it('publishes a snapshot that later draft edits do not change', function () {
     $content = starter();
     $content['sections'][1]['props']['title'] = 'مسودة جديدة';
     $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => 1, 'content' => $content, 'theme_key' => 'celia'])
-        ->assertOk()->assertJsonPath('data.has_unpublished_changes', true)->assertJsonPath('data.published_theme_key', 'malak');
+        ->assertOk()->assertJsonPath('data.has_unpublished_changes', true)->assertJsonPath('data.published_theme_key', 'bidaya');
 
     $model = asTenant($this->user, fn () => LandingPage::query()->findOrFail($page['id']));
     expect($model->published_content['sections'][1]['props']['title'])->toBe('أهلًا')
-        ->and($model->published_content['theme_key'])->toBe('malak');
+        ->and($model->published_content['theme_key'])->toBe('bidaya');
 });
 
 it('unpublishes and clears the home flag', function () {
@@ -314,7 +339,7 @@ it('enforces the pages limit', function () {
     config(['landing.limits.pages' => 1]);
     createPage();
 
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'malak'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'bidaya'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('filters the list by status and search', function () {

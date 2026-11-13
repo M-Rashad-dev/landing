@@ -9,7 +9,9 @@ use App\Enums\PageStatus;
 use App\Enums\PlanLimit;
 use App\Models\Identity;
 use App\Models\LandingPage;
+use App\Models\Product;
 use App\Services\PageContentSanitizer;
+use App\Themes\LandingStarter;
 use Illuminate\Support\Facades\DB;
 
 final class CreatePage
@@ -24,9 +26,11 @@ final class CreatePage
     {
         app(Entitlements::class)->ensureCanAdd(PlanLimit::LandingPages);
 
-        $content = isset($data['content']) && $data['content'] !== null
-            ? $this->sanitizer->sanitize($data['content'])['content']
-            : ['version' => 1, 'sections' => []];
+        // No content sent: the theme's starter sections (with the product name in the first one).
+        $product = isset($data['product_id']) ? Product::query()->find($data['product_id']) : null;
+        $content = $this->sanitizer->sanitize(
+            isset($data['content']) && $data['content'] !== null ? $data['content'] : LandingStarter::content($data['theme_key'], $product),
+        )['content'];
 
         $identityId = $data['identity_id'] ?? Identity::query()->where('is_default', true)->value('id') ?? Identity::query()->value('id');
 

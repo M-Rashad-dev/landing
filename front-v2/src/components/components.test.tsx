@@ -17,7 +17,7 @@ const columns: Column<Row>[] = [
 describe("navigation", () => {
   it("opens only the parts already built", () => {
     const all = [...DASHBOARD_NAV.flatMap((g) => g.items), ...DASHBOARD_FOOTER_NAV];
-    expect(all.filter((i) => i.status === "ready").map((i) => i.href)).toEqual(["/dashboard", "/dashboard/orders", "/dashboard/abandoned", "/dashboard/customers", "/dashboard/reviews", "/dashboard/catalog/products", "/dashboard/catalog/categories", "/dashboard/shipping", "/dashboard/store", "/dashboard/design/theme", "/dashboard/design/pages", "/dashboard/marketing/offers", "/dashboard/marketing/coupons", "/dashboard/analytics", "/dashboard/settings", "/dashboard/components"]);
+    expect(all.filter((i) => i.status === "ready").map((i) => i.href)).toEqual(["/dashboard", "/dashboard/orders", "/dashboard/abandoned", "/dashboard/customers", "/dashboard/reviews", "/dashboard/catalog/products", "/dashboard/catalog/categories", "/dashboard/shipping", "/dashboard/store", "/dashboard/design/theme", "/dashboard/design/pages", "/dashboard/marketing/offers", "/dashboard/marketing/coupons", "/dashboard/marketing/landings", "/dashboard/analytics", "/dashboard/settings", "/dashboard/components"]);
     expect(isActive("/dashboard/components", { href: "/dashboard/components" })).toBe(true);
     expect(isActive("/dashboard/x", { href: "/dashboard", exact: true })).toBe(false);
   });

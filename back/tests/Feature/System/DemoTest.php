@@ -20,10 +20,11 @@ it('builds a full demo store through the real actions, once', function () {
 
     asTenant($owner, function () {
         $pages = LandingPage::query()->get();
-        expect($pages)->toHaveCount(2)
-            ->and($pages->every(fn (LandingPage $p) => $p->status === PageStatus::Published))->toBeTrue()
-            ->and($pages->pluck('theme_key')->sort()->values()->all())->toBe(['celia', 'malak'])
-            ->and($pages->firstWhere('is_home', true)?->slug)->toBe('smart-watch');
+        expect($pages)->toHaveCount(1)
+            ->and($pages->first()->status)->toBe(PageStatus::Published)
+            ->and($pages->first()->theme_key)->toBe('bidaya')
+            ->and($pages->first()->slug)->toBe('smart-watch')
+            ->and(collect($pages->first()->published_content['sections'])->pluck('type')->all())->toContain('order_form');
 
         $orders = Order::query()->get();
         expect($orders)->toHaveCount(24)

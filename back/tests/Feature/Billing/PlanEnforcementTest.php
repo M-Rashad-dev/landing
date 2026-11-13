@@ -87,7 +87,7 @@ it('counts the basic page limit (3) on create and duplicate', function () {
     $pages = asTenant($owner, fn () => LandingPage::factory()->count(3)->create());
     $product = asTenant($owner, fn () => Product::factory()->create());
 
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'new-page', 'theme_key' => 'malak', 'product_id' => $product->id])->assertForbidden()->assertJsonPath('code', 'plan_limit_reached');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'new-page', 'theme_key' => 'bidaya', 'product_id' => $product->id])->assertForbidden()->assertJsonPath('code', 'plan_limit_reached');
     $this->postJson("/api/v1/dashboard/pages/{$pages[0]->id}/duplicate")->assertForbidden()->assertJsonPath('limit_key', 'landing_pages');
 });
 

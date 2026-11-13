@@ -7,7 +7,7 @@ import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { DescriptionList, Timeline, type TimelineEvent } from "@/components/data/details";
-import { OrderStatusBadge } from "@/components/domain/order-status";
+import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-status";
 import { DatePicker } from "@/components/forms/date-pickers";
 import { PhoneInput } from "@/components/forms/inputs";
 import { PageHeader } from "@/components/layout/page-header";
@@ -65,7 +65,12 @@ export function OrderPage({ id }: { id: number }) {
             <OrderStatusBadge status={order.status} />
           </span>
         }
-        description={`${formatDateTime(order.created_at)} · ${order.source === "store" ? ar.domain.source.store : (order.page?.title ?? ar.domain.source.landing)}`}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            {formatDateTime(order.created_at)}
+            <OrderSourceTag source={order.source} page={order.page} />
+          </span>
+        }
         actions={
           <>
             <Button variant="outline" asChild>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, MessageCircle, PartyPopper, PhoneOff, ShieldAlert, XCircle } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
-import { OrderStatusBadge } from "@/components/domain/order-status";
+import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-status";
 import { DatePicker } from "@/components/forms/date-pickers";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +185,7 @@ function QueueCard({ id, onNext, onDone }: { id: number; onNext: () => void; onD
               <Link href={`/dashboard/orders/${order.id}`} className="font-semibold text-brand-strong hover:underline">
                 #{order.order_number}
               </Link>{" "}
-              · {formatDateTime(order.created_at)} · {order.source === "store" ? ar.domain.source.store : (order.page?.title ?? ar.domain.source.landing)}
+              · {formatDateTime(order.created_at)} · <OrderSourceTag source={order.source} page={order.page} />
             </p>
             <p className="mt-1 text-2xl font-bold">{order.customer_name}</p>
             <a href={`tel:${order.customer_phone}`} dir="ltr" className="text-xl font-semibold tabular text-brand-strong hover:underline">

@@ -106,7 +106,7 @@ it('serves the published snapshot, not later draft edits', function () {
     $response = publicGet('pages', ['host' => 'rashad.localhost', 'slug' => 'offer'])->assertOk();
 
     expect($response->json('data.content.sections.0.props.title'))->toBe('العنوان المنشور')
-        ->and($response->json('data.theme_key'))->toBe('malak')
+        ->and($response->json('data.theme_key'))->toBe('bidaya')
         ->and($response->json('data.page.slug'))->toBe('offer')
         ->and($response->json('data.content'))->not->toHaveKey('theme_key')
         ->and($response->getContent())->not->toContain('مسودة جديدة');

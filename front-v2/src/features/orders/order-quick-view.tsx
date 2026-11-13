@@ -3,7 +3,7 @@
 import { ArrowLeftRight, ExternalLink, MessageCircle, Phone } from "lucide-react";
 import * as React from "react";
 import { DescriptionList, EntityCell } from "@/components/data/details";
-import { OrderStatusBadge } from "@/components/domain/order-status";
+import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-status";
 import { Button } from "@/components/ui/button";
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { Drawer } from "@/components/ui/overlay";
@@ -32,7 +32,14 @@ export function OrderQuickView({ row, onClose, onOpen }: { row: OrderRow | null;
       open={row !== null}
       onOpenChange={(o) => !o && onClose()}
       title={row ? t.detail.title(row.order_number) : ""}
-      description={row ? `${formatDateTime(row.created_at)} · ${row.source === "store" ? ar.domain.source.store : (row.page?.title ?? ar.domain.source.landing)}` : undefined}
+      description={
+        row ? (
+          <span className="flex flex-wrap items-center gap-2">
+            {formatDateTime(row.created_at)}
+            <OrderSourceTag source={row.source} page={row.page} />
+          </span>
+        ) : undefined
+      }
     >
       {row ? <QuickBody key={row.id} id={row.id} onOpen={() => onOpen(row.id)} /> : null}
     </Drawer>

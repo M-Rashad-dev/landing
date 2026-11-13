@@ -26,7 +26,7 @@ class LandingPageFactory extends Factory
             'title' => 'صفحة '.fake()->word(),
             'slug' => 'page-'.Str::lower(Str::random(8)),
             'status' => PageStatus::Draft,
-            'theme_key' => 'malak',
+            'theme_key' => 'bidaya',
             'identity_id' => fn (array $attributes) => Tenancy::runAs((int) $attributes['tenant_id'], fn () => Identity::factory()->create()->id),
             'product_id' => null,
             'draft_content' => ['version' => 1, 'sections' => []],
@@ -45,7 +45,7 @@ class LandingPageFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => PageStatus::Published,
             'published_at' => now(),
-            'published_content' => array_merge($attributes['draft_content'] ?? ['version' => 1, 'sections' => []], ['theme_key' => $attributes['theme_key'] ?? 'malak']),
+            'published_content' => array_merge($attributes['draft_content'] ?? ['version' => 1, 'sections' => []], ['theme_key' => $attributes['theme_key'] ?? 'bidaya']),
         ]);
     }
 

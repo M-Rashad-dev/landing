@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { DataTable, FilterBar, Pagination, type Column } from "@/components/data/data-table";
-import { OrderStatusBadge } from "@/components/domain/order-status";
+import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-status";
 import { DateRangePicker, type RangeValue } from "@/components/forms/date-pickers";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -192,7 +192,9 @@ export function OrdersPage() {
       cell: (o) => (
         <span className="flex flex-col">
           <span className="line-clamp-1">{t.itemsSummary(o.items_summary?.first ?? o.product?.name ?? null, o.items_summary?.count ?? 1)}</span>
-          <span className="text-xs text-ink-3">{o.source === "store" ? ar.domain.source.store : (o.page?.title ?? ar.domain.source.landing)}</span>
+          <span className="mt-0.5">
+            <OrderSourceTag source={o.source} page={o.page} />
+          </span>
         </span>
       ),
     },

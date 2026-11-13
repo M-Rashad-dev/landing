@@ -46,7 +46,7 @@ return [
         'api', '_next', 'admin', 'dashboard', 'login', 'register', 'preview', 'media',
         'sitemap', 'robots', 'favicon', 'thank-you', 'track',
         // Store routes (the store owns these paths on the tenant host).
-        'products', 'categories', 'cart', 'checkout', 'pages', 'search',
+        'products', 'categories', 'cart', 'checkout', 'pages', 'search', 'offers', 'account',
     ],
 
     // Platform safety ceilings. Plan limits (admin) apply below these; "unlimited" means up to here.

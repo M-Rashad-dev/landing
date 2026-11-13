@@ -8,7 +8,6 @@ use App\Actions\Auth\RegisterTenant;
 use App\Actions\Orders\ChangeOrderStatus;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Pages\CreatePage;
-use App\Actions\Pages\PageLifecycle;
 use App\Actions\Pages\PublishPage;
 use App\Actions\Products\SaveProduct;
 use App\Actions\Promotions\SaveDiscountCode;
@@ -16,7 +15,6 @@ use App\Actions\Promotions\SaveOffer;
 use App\Actions\Shipping\SaveShippingCompany;
 use App\Actions\Shipping\SaveShippingOffer;
 use App\Billing\SubscriptionManager;
-use App\Billing\Themes\ThemeAccess;
 use App\Enums\DiscountType;
 use App\Enums\OfferType;
 use App\Enums\OrderStatus;
@@ -30,8 +28,8 @@ use App\Models\ShippingSetting;
 use App\Models\User;
 use App\Services\FormToken;
 use App\Tenancy\Tenancy;
+use App\Themes\LandingStarter;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -95,11 +93,6 @@ final class DemoSeeder extends Seeder
 
         // The demo store tries every feature (owner decision: demo accounts get Pro).
         app(SubscriptionManager::class)->grant($registered['tenant'], 'pro', 365, 'demo', null);
-        // …and owns the paid themes its pages use.
-        foreach (['celia', 'layali'] as $theme) {
-            app(ThemeAccess::class)->grant($registered['tenant'], $theme, 'admin_grant', null, 0, 'demo');
-        }
-
         Tenancy::runAs($registered['tenant']->id, fn () => $this->store($registered['user']->id, $registered['domain']->host));
     }
 
@@ -173,37 +166,27 @@ final class DemoSeeder extends Seeder
             'is_active' => true,
         ], [$product->id], []);
 
-        $malak = $this->page('عرض الساعة الذكية', 'smart-watch', 'malak', $product, $userId);
-        $this->page('الساعة الذكية (تصميم سيليا)', 'smart-watch-celia', 'celia', $product, $userId);
-        app(PageLifecycle::class)->setHome($malak);
+        $page = $this->page('عرض الساعة الذكية', 'smart-watch', $product, $userId);
 
-        $this->orders($malak->fresh(), $product, $host, $userId);
+        $this->orders($page->fresh(), $product, $host, $userId);
     }
 
-    private function page(string $title, string $slug, string $theme, Product $product, int $userId): LandingPage
+    /** A landing page on «بداية» with its starter sections and a written hero. */
+    private function page(string $title, string $slug, Product $product, int $userId): LandingPage
     {
-        $variants = $theme === 'malak'
-            ? ['header' => 'centered-logo', 'hero' => 'split', 'product_showcase' => 'card', 'features' => 'icon-cards', 'offers' => 'cards', 'testimonials' => 'cards-slider', 'faq' => 'accordion-soft', 'order_form' => 'card', 'footer' => 'simple-center']
-            : ['header' => 'bar', 'hero' => 'big-type', 'product_showcase' => 'split-image', 'features' => 'numbered-grid', 'offers' => 'bundle-tiles', 'testimonials' => 'quote-wall', 'faq' => 'accordion-lines', 'order_form' => 'bordered', 'footer' => 'dark-columns'];
-
-        // Empty props fall back to each section's defaults; only the hero gets custom copy.
-        $sections = [];
-        foreach ($variants as $type => $variant) {
-            $sections[] = [
-                'id' => (string) Str::uuid(),
-                'type' => $type,
-                'variant' => $variant,
-                'visible' => true,
-                'props' => $type === 'hero' ? ['title' => 'ساعتك الذكية بأقل سعر في مصر', 'subtitle' => 'شحن مجاني والدفع عند الاستلام — جرّبها 14 يوم.'] : [],
-            ];
+        $content = LandingStarter::content('bidaya', $product);
+        foreach ($content['sections'] as $i => $section) {
+            if ($section['type'] === 'hero') {
+                $content['sections'][$i]['props'] = ['title' => 'ساعتك الذكية بأقل سعر في مصر', 'subtitle' => 'شحن مجاني والدفع عند الاستلام، وتقدر تجربها 14 يوم.'];
+            }
         }
 
         $page = app(CreatePage::class)->handle([
             'title' => $title,
             'slug' => $slug,
-            'theme_key' => $theme,
+            'theme_key' => 'bidaya',
             'product_id' => $product->id,
-            'content' => ['version' => 1, 'sections' => $sections],
+            'content' => $content,
         ], $userId);
 
         return app(PublishPage::class)->handle($page);

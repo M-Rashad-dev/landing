@@ -98,7 +98,7 @@ it('validates store menus and the theme', function () {
 
     $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'url', 'label' => 'x', 'url' => 'javascript:alert(1)']], 'footer' => []]])
         ->assertStatus(422)->assertJsonValidationErrors(['menus.header.0.url']);
-    $this->putJson('/api/v1/dashboard/store', ['theme_key' => 'malak'])->assertStatus(422);
+    $this->putJson('/api/v1/dashboard/store', ['theme_key' => 'bidaya'])->assertStatus(422);
     $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'all_products', 'label' => '<b>كل المنتجات</b>']], 'footer' => []]])
         ->assertOk()->assertJsonPath('data.menus.header.0.label', 'كل المنتجات');
 });

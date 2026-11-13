@@ -14,28 +14,14 @@ use Illuminate\Database\Seeder;
  */
 class ThemeSeeder extends Seeder
 {
-    /** Owner decision: Malak free, Celia 100, Layali 150 (landing themes); store: Rewaq free, Diwan 200. */
+    /** The free themes we ship: «بداية» for landing pages, «أساس» for the store (paid themes are added by the admin). */
     private const THEMES = [
         [
-            'key' => 'malak', 'name' => 'ملاك', 'sort_order' => 1, 'price' => 0,
-            'short_description' => 'ثيم ناعم وهادي، مناسب لأي منتج.',
-            'description' => 'ألوان هادية وزوايا ناعمة وحركة خفيفة مع السكرول. مجاني لكل المتاجر.',
-            'features' => ['16 قسم جاهز', 'متوافق مع الموبايل', 'ألوان وخطوط من هويتك'],
+            'key' => 'bidaya', 'name' => 'بداية', 'sort_order' => 1, 'price' => 0,
+            'short_description' => 'ثيم صفحة الهبوط المجاني: بسيط وسريع، ومعمول علشان يبيع منتج واحد.',
+            'description' => 'صفحة لمنتج واحد بأقسام تظبطها بنفسك (البداية، المميزات، صور المنتج، آراء العملاء، الأسئلة الشائعة) وفورم طلب بالدفع عند الاستلام، بألوانك وخطك.',
+            'features' => ['5 أقسام + فورم الطلب', 'سريعة على الموبايل', 'ألوانك وخطك ولوجو متجرك'],
             'tags' => ['general'],
-        ],
-        [
-            'key' => 'celia', 'name' => 'سيليا', 'sort_order' => 2, 'price' => 100,
-            'short_description' => 'ثيم جريء بحدود واضحة وعناوين كبيرة.',
-            'description' => 'تصميم قوي بيلفت النظر، مناسب للعروض والمنتجات اللي محتاجة طاقة.',
-            'features' => ['16 قسم جاهز', 'أزرار وحدود جريئة', 'ألوان وخطوط من هويتك'],
-            'tags' => ['fashion', 'electronics'],
-        ],
-        [
-            'key' => 'layali', 'name' => 'ليالي', 'sort_order' => 3, 'price' => 150,
-            'short_description' => 'ثيم ليلي فخم بلمسات زجاجية ولمعة.',
-            'description' => 'خلفية داكنة من ألوان هويتك، عناوين متدرجة وتوهج خفيف. مناسب للعطور والهدايا والمنتجات الفاخرة.',
-            'features' => ['وضع ليلي من ألوانك', 'لمسات زجاج وتوهج', 'مناسب للمنتجات الفاخرة'],
-            'tags' => ['perfumes', 'accessories'],
         ],
         [
             'key' => 'asas', 'name' => 'أساس', 'sort_order' => 10, 'price' => 0, 'kind' => 'store',

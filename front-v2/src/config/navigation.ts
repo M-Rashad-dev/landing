@@ -71,7 +71,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/marketing/offers", label: t.items.offers, icon: Tag, status: "ready" },
       { href: "/dashboard/marketing/coupons", label: t.items.coupons, icon: TicketPercent, status: "ready" },
       { href: "/dashboard/marketing/upsells", label: t.items.upsells, icon: Gift, status: "soon" },
-      { href: "/dashboard/marketing/landings", label: t.items.landings, icon: Megaphone, status: "soon" },
+      { href: "/dashboard/marketing/landings", label: t.items.landings, icon: Megaphone, status: "ready" },
     ],
   },
   { label: t.groups.insights, items: [{ href: "/dashboard/analytics", label: t.items.analytics, icon: BarChart3, status: "ready" }] },
