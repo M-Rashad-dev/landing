@@ -27,6 +27,7 @@ import {
   type StoreDetail,
 } from "./api";
 import { entitlementLabel, ExtendDialog, GrantPlanDialog, GrantThemeDialog, OverrideDialog, PasswordResultDialog, SuspendDialog, useDialog } from "./store-dialogs";
+import { describeLog } from "./activity-page";
 import { PlanCell } from "./stores-page";
 
 const t = ar.admin.store;
@@ -476,7 +477,7 @@ function HistoryPanel({ storeId }: { storeId: number }) {
               title: ar.admin.actions[row.action] ?? row.action,
               by: row.admin ? h.by(row.admin.name) : undefined,
               at: row.created_at ?? "",
-              body: describe(row.meta),
+              body: describeLog(row),
               tone: row.action === "tenant.suspend" || row.action === "payment.reject" ? "danger" : row.action.endsWith("grant") || row.action === "payment.approve" ? "success" : "neutral",
             }))}
           />
@@ -484,17 +485,4 @@ function HistoryPanel({ storeId }: { storeId: number }) {
       </PanelBody>
     </Panel>
   );
-}
-
-/** The useful part of a log row (the reason, the plan and days, the limit). */
-function describe(meta: Record<string, unknown> | null): string | undefined {
-  if (!meta) return undefined;
-  const parts: string[] = [];
-  if (typeof meta.reason === "string") parts.push(meta.reason);
-  if (typeof meta.plan_key === "string") parts.push(meta.plan_key);
-  if (typeof meta.days === "number") parts.push(t.history.days(meta.days));
-  if (typeof meta.entitlement === "string") parts.push(entitlementLabel(meta.entitlement));
-  if (typeof meta.theme_key === "string") parts.push(meta.theme_key);
-  if (typeof meta.invoice === "string") parts.push(meta.invoice);
-  return parts.length ? parts.join(" · ") : undefined;
 }

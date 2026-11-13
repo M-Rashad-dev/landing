@@ -132,7 +132,7 @@ it('enables and disables themes without touching existing pages', function () {
     $owner = createOwner();
     $page = asTenant($owner, fn () => LandingPage::factory()->published()->create(['theme_key' => 'celia']));
 
-    $this->getJson('/api/v1/admin/themes')->assertOk()->assertJsonFragment(['key' => 'celia', 'is_active' => true, 'pages_count' => 1]);
+    $this->getJson('/api/v1/admin/themes')->assertOk()->assertJsonFragment(['key' => 'celia', 'is_active' => true, 'in_use' => 1]);
     $this->patchJson('/api/v1/admin/themes/celia', ['is_active' => false])->assertOk()->assertJsonPath('data.is_active', false);
     expect(Theme::query()->find('celia')->is_active)->toBeFalse()
         ->and(asTenant($owner, fn () => $page->fresh()->theme_key))->toBe('celia')

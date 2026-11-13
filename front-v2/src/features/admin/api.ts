@@ -134,10 +134,10 @@ export type AuditRow = {
   created_at: string | null;
 };
 
-export const useActivity = (filters: { tenant?: number; page?: number }) =>
+export const useActivity = (filters: { tenant?: number; action?: string; page?: number }) =>
   useQuery({
     queryKey: ["admin", "activity", filters],
-    queryFn: () => apiPage<AuditRow>("/admin/audit-logs", { query: { tenant: filters.tenant, page: filters.page ?? 1, per_page: 20 } }) as Promise<Paginated<AuditRow>>,
+    queryFn: () => apiPage<AuditRow>("/admin/audit-logs", { query: { tenant: filters.tenant, action: filters.action || null, page: filters.page ?? 1, per_page: 20 } }) as Promise<Paginated<AuditRow>>,
     placeholderData: keepPreviousData,
   });
 

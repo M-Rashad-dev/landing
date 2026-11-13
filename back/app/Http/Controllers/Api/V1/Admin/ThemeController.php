@@ -14,6 +14,7 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ThemeRequest;
 use App\Models\LandingPage;
+use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\Theme;
 use App\Models\ThemeImage;
@@ -203,10 +204,21 @@ final class ThemeController extends Controller
         return $this->noContent();
     }
 
-    /** @return array<string, int> pages per theme (audited bypass: platform-wide count). */
+    /** @return array<string, int> stores running each theme + landing pages using it (audited bypass: platform-wide counts). */
     private function usage(): array
     {
-        return Tenancy::withoutTenant(fn () => LandingPage::query()->selectRaw('theme_key, count(*) as total')->groupBy('theme_key')->pluck('total', 'theme_key')->map(fn ($n) => (int) $n)->all());
+        return Tenancy::withoutTenant(function (): array {
+            $usage = [];
+            $pages = LandingPage::query()->selectRaw('theme_key, count(*) as total')->groupBy('theme_key')->pluck('total', 'theme_key');
+            $stores = Store::query()->selectRaw('theme_key, count(*) as total')->groupBy('theme_key')->pluck('total', 'theme_key');
+            foreach ([$pages, $stores] as $counts) {
+                foreach ($counts as $key => $total) {
+                    $usage[(string) $key] = ($usage[(string) $key] ?? 0) + (int) $total;
+                }
+            }
+
+            return $usage;
+        });
     }
 
     /**
@@ -220,7 +232,7 @@ final class ThemeController extends Controller
             'is_active' => $theme['is_active'],
             'is_listed' => $theme['is_listed'],
             'sort_order' => $theme['sort_order'],
-            'pages_count' => $usage[$theme['key']] ?? 0,
+            'in_use' => $usage[$theme['key']] ?? 0,
             'raw' => [
                 'price' => $theme['price_cents'] / 100,
                 'discount_percent' => $theme['discount_percent'],

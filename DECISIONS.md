@@ -316,4 +316,8 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - **Receipts** (`GET admin/payments`): tabs by status with counts (`meta.counts`), search by store name, transfer number, invoice number or the store reference (`ST-00012` = store 12), filters by method and Cairo days. Waiting receipts come oldest first.
   - **A transfer number sent more than once** (any store, case and spaces ignored) is flagged on the row and in the review (`repeated_ref`): the same receipt used twice is the first thing to check. It is a warning, not a block (two real transfers can share a short number).
   - **Review**: the receipt image (streamed privately through the BFF) next to what it pays for; approving asks once more, rejecting needs a reason (ready reasons to pick); after each decision the next waiting receipt on the page opens.
+- **Super admin, part 3: catalog (Nov 2026)**:
+  - **Plans**: the editor sends the whole plan (`POST /admin/plans`, `PUT /admin/plans/{key}`); the code is fixed after creation; a plan can be deleted only if no store ever subscribed and it is not the trial plan (otherwise archive it). The trial / grace / invoice / support settings sit next to the plans (`PUT admin/billing/settings`).
+  - **Themes**: «مستخدم في» counts stores running the theme plus landing pages using it (`in_use`, was pages only). Turning a theme off never breaks stores already on it. Images upload, delete and reorder on their own, outside the details form.
+  - **«سجل العمليات»**: every admin action, filtered by kind (action prefix), each row links to its store.
 

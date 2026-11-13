@@ -89,7 +89,7 @@ export const DASHBOARD_FOOTER_NAV: NavItem[] = [
 
 const a = ar.admin.nav;
 
-/** The platform admin (/admin): parts 2 and 3 open the money and catalog pages. */
+/** The platform admin (/admin). */
 export const ADMIN_NAV: NavGroup[] = [
   { items: [{ href: "/admin", label: a.items.home, icon: Home, status: "ready", exact: true }] },
   { label: a.groups.stores, items: [{ href: "/admin/stores", label: a.items.stores, icon: Store, status: "ready" }] },
@@ -104,14 +104,14 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     label: a.groups.catalog,
     items: [
-      { href: "/admin/plans", label: a.items.plans, icon: BadgeDollarSign, status: "soon" },
-      { href: "/admin/themes", label: a.items.themes, icon: Layers, status: "soon" },
+      { href: "/admin/plans", label: a.items.plans, icon: BadgeDollarSign, status: "ready" },
+      { href: "/admin/themes", label: a.items.themes, icon: Layers, status: "ready" },
     ],
   },
 ];
 
 export const ADMIN_FOOTER_NAV: NavItem[] = [
-  { href: "/admin/activity", label: a.items.activity, icon: History, status: "soon" },
+  { href: "/admin/activity", label: a.items.activity, icon: History, status: "ready" },
   { href: "/admin/settings", label: a.items.settings, icon: Settings, status: "ready" },
 ];
 
