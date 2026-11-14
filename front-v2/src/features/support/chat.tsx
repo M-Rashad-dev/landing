@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { attachmentUrl, checkFiles, IMAGE_MAX_MB, IMAGE_TYPES, loadOlder, MAX_FILES, supportKey, VIDEO_MAX_MB, VIDEO_TYPES, type Conversation, type Message, type Side } from "./api";
 import { useQueryClient } from "@tanstack/react-query";
+import { MediaViewer } from "./media-viewer";
 
 const t = ar.support;
 
@@ -65,23 +66,53 @@ function Bubble({ side, message, read, showStatus }: { side: Side; message: Mess
   }
   const own = message.sender === side;
   return (
+    <BubbleBody side={side} message={message} own={own} read={read} showStatus={showStatus} />
+  );
+}
+
+function fileSize(bytes: number): string {
+  const mb = bytes / 1024 / 1024;
+  return mb >= 1 ? t.media.mb(Math.round(mb * 10) / 10) : t.media.kb(Math.max(1, Math.round(bytes / 1024)));
+}
+
+function BubbleBody({ side, message, own, read, showStatus }: { side: Side; message: Message; own: boolean; read: boolean; showStatus: boolean }) {
+  const [viewing, setViewing] = React.useState<number | null>(null);
+  return (
     <div className={cn("flex max-w-[85%] flex-col gap-1", own ? "self-end items-end" : "self-start items-start")}>
       {!own && side === "merchant" ? <span className="px-1 text-[11px] font-semibold text-brand-strong">{t.name}</span> : null}
       <div className={cn("flex flex-col gap-1.5 rounded-2xl px-3 py-2 text-sm leading-relaxed", own ? "rounded-ee-md bg-primary text-white" : "rounded-es-md bg-surface-2 text-ink")}>
         {message.attachments.length > 0 ? (
           <div className={cn("grid gap-1.5", message.attachments.length > 1 && "grid-cols-2")}>
-            {message.attachments.map((a) =>
+            {message.attachments.map((a, i) =>
               a.kind === "video" ? (
-                <video key={a.id} src={attachmentUrl(side, a.id)} controls preload="metadata" className="max-h-64 w-full rounded-lg bg-black" aria-label={a.name} />
+                // A video stays a file in the chat: nothing loads until it's opened.
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setViewing(i)}
+                  className={cn("flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-start", own ? "bg-white/15 hover:bg-white/25" : "bg-surface hover:bg-surface-3")}
+                  aria-label={t.media.open(a.name)}
+                >
+                  <span className={cn("grid size-9 shrink-0 place-items-center rounded-md", own ? "bg-white/20" : "bg-surface-2")}>
+                    <Film className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold">{a.name}</span>
+                    <span className={cn("block text-[11px]", own ? "text-white/75" : "text-ink-3")}>
+                      {t.media.video} · {fileSize(a.size)}
+                    </span>
+                  </span>
+                </button>
               ) : (
-                <a key={a.id} href={attachmentUrl(side, a.id)} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg">
+                <button key={a.id} type="button" onClick={() => setViewing(i)} className="block overflow-hidden rounded-lg" aria-label={t.media.open(a.name)}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- private files through the BFF */}
-                  <img src={attachmentUrl(side, a.id)} alt={a.name} loading="lazy" className="max-h-56 w-full object-cover" />
-                </a>
+                  <img src={attachmentUrl(side, a.id)} alt={a.name} loading="lazy" className="max-h-56 w-full cursor-zoom-in object-cover" />
+                </button>
               ),
             )}
           </div>
         ) : null}
+        {message.attachments.length > 0 ? <MediaViewer side={side} items={message.attachments} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} /> : null}
         {message.body ? <p className="whitespace-pre-wrap break-words">{message.body}</p> : null}
       </div>
       <span className="flex items-center gap-1 px-1 text-[10px] text-ink-3">

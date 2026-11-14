@@ -53,6 +53,19 @@ export const support = {
     offline: "الاتصال اتقطع، بنحاول نوصل تاني…",
   },
 
+  media: {
+    open: (name: string) => `افتح «${name}»`,
+    video: "فيديو",
+    mb: (n: number) => `${formatNumber(n)} ميجا`,
+    kb: (n: number) => `${formatNumber(n)} كيلو`,
+    download: "نزّل",
+    close: "اقفل",
+    next: "اللي بعده",
+    prev: "اللي قبله",
+    position: (i: number, n: number) => `${formatNumber(i)} من ${formatNumber(n)}`,
+    cantPlay: "الفيديو ده مش بيشتغل في المتصفح، نزّله واتفرج عليه.",
+  },
+
   rating: {
     title: "إيه رأيك في الخدمة؟",
     stars: (n: number) => `${formatNumber(n)} من 5`,

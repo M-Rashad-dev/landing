@@ -68,6 +68,27 @@ const messages = [
   { id: 2, sender: "support", body: "بنشوفها حالًا", created_at: "2026-11-14T08:10:00Z", attachments: [] },
 ];
 
+describe("files in the chat", () => {
+  it("opens an image full screen in the page, and keeps a video as a file until it's opened", async () => {
+    const { Thread } = await import("./chat");
+    const withVideo = [{ ...messages[0], attachments: [messages[0].attachments[0], { id: 10, kind: "video", name: "bug.mp4", mime: "video/mp4", size: 5 * 1024 * 1024 }] }];
+    const { container } = wrap(<Thread side="merchant" conversation={{ ticket, messages: withVideo, has_more: false } as never} />);
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.getByText(`${t.media.video} · ${t.media.mb(5)}`)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: t.media.open("screen.png") }));
+    const viewer = await screen.findByRole("dialog", { name: /screen\.png/ });
+    expect(within(viewer).getByRole("img", { name: "screen.png" })).toHaveAttribute("src", "/api/bff/dashboard/support/attachments/9");
+    expect(within(viewer).getByRole("link", { name: t.media.download })).toHaveAttribute("download", "screen.png");
+
+    // The next file is the video, playing only now.
+    fireEvent.click(within(viewer).getByRole("button", { name: t.media.next }));
+    expect(within(viewer).getByLabelText("bug.mp4").tagName).toBe("VIDEO");
+    fireEvent.click(within(viewer).getByRole("button", { name: t.media.close }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+});
+
 describe("files", () => {
   it("takes images up to 10 MB and videos up to 50 MB only", () => {
     const file = (name: string, type: string, mb: number) => Object.defineProperty(new File(["x"], name, { type }), "size", { value: mb * 1024 * 1024 });
