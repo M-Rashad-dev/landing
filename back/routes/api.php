@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PixelController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
@@ -110,6 +111,16 @@ Route::prefix('dashboard')
         Route::apiResource('identities', IdentityController::class);
         Route::post('identities/{identity}/make-default', [IdentityController::class, 'makeDefault']);
 
+        // Product import from a sheet (before the products resource so "imports" is not a product id).
+        Route::get('product-imports', [ProductImportController::class, 'index']);
+        Route::get('product-imports/template', [ProductImportController::class, 'template']);
+        Route::post('product-imports', [ProductImportController::class, 'store'])->middleware('throttle:product-imports');
+        Route::get('product-imports/{productImport}', [ProductImportController::class, 'show'])->whereNumber('productImport');
+        Route::post('product-imports/{productImport}/start', [ProductImportController::class, 'start'])->whereNumber('productImport');
+        Route::post('product-imports/{productImport}/cancel', [ProductImportController::class, 'cancel'])->whereNumber('productImport');
+        Route::delete('product-imports/{productImport}', [ProductImportController::class, 'destroy'])->whereNumber('productImport');
+        Route::get('product-imports/{productImport}/failures', [ProductImportController::class, 'failures'])->whereNumber('productImport');
+        Route::get('product-imports/{productImport}/failures/file', [ProductImportController::class, 'failuresFile'])->whereNumber('productImport');
         Route::post('products/bulk', [ProductController::class, 'bulk']);
         Route::apiResource('products', ProductController::class);
         Route::patch('products/{product}/quick', [ProductController::class, 'quick']);

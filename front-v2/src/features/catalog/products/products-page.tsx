@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, FolderMinus, FolderPlus, Package, Plus, Search, Trash2, X } from "lucide-react";
+import { Eye, EyeOff, FolderMinus, FolderPlus, Package, Plus, Search, Trash2, X, FileUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -102,12 +102,20 @@ export function ProductsPage() {
         title={t.title}
         description={t.description}
         actions={
-          <Button asChild>
-            <Link href="/dashboard/catalog/products/new">
-              <Plus />
-              {t.add}
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/catalog/products/import">
+                <FileUp />
+                {ar.imports.open}
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/catalog/products/new">
+                <Plus />
+                {t.add}
+              </Link>
+            </Button>
+          </>
         }
         tabs={
           <Tabs value={filters.status} onValueChange={(v) => setUrl({ status: v === "all" ? null : v })}>

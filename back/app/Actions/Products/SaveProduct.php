@@ -26,8 +26,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class SaveProduct
 {
-    /** @param array<string, mixed> $data validated ProductRequest data */
-    public function handle(array $data, ?Product $product = null): Product
+    /**
+     * @param  array<string, mixed>  $data  validated ProductRequest data
+     * @param  bool  $revalidate  false when a batch (an import) refreshes the store once at the end
+     */
+    public function handle(array $data, ?Product $product = null, bool $revalidate = true): Product
     {
         if ($product === null) {
             app(Entitlements::class)->ensureCanAdd(PlanLimit::Products);
@@ -73,7 +76,9 @@ final class SaveProduct
             return $product;
         });
 
-        RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
+        if ($revalidate) {
+            RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
+        }
 
         return $product;
     }

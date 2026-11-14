@@ -52,8 +52,8 @@ return [
     // Platform safety ceilings. Plan limits (admin) apply below these; "unlimited" means up to here.
     'limits' => [
         'pages' => 200,
-        'products' => 500,
-        'media' => 2000,
+        'products' => 10000,
+        'media' => 30000,
         'discount_codes' => 500,
         'offers' => 200,
         'custom_domains' => 10,
