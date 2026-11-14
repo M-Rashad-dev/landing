@@ -21,6 +21,21 @@ export type DesignPayload = {
 
 export const designKey = ["store", "design"] as const;
 
+/** A store theme in the theme store (price, what it has, whether this store owns it). */
+export type StoreTheme = {
+  key: string;
+  name: string;
+  short_description: string | null;
+  price: { original: number; final: number; discount_percent: number; discount_ends_at: string | null } | null;
+  is_free: boolean;
+  owned?: boolean;
+  can_publish?: boolean;
+  cover: Record<string, string> | null;
+  features?: string[];
+};
+
+export const useStoreThemes = () => useQuery({ queryKey: ["store", "theme-store"], queryFn: () => api<StoreTheme[]>("/dashboard/theme-store", { query: { kind: "store" } }) });
+
 export function useDesign() {
   return useQuery({ queryKey: designKey, queryFn: () => api<DesignPayload>("/dashboard/store/design"), refetchOnWindowFocus: false });
 }

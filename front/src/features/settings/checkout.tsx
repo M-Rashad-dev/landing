@@ -16,7 +16,7 @@ import { errorMessage, isApiError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { IMAGE_ACCEPT, ImageRejected, prepareImage } from "@/lib/media/compress";
 import { ar } from "@/messages/ar";
-import { sendReceipt, usePreview, type Invoice, type PayMethod, type Period } from "./billing-api";
+import { sendReceipt, usePreview, type CheckoutItem, type Invoice, type PayMethod, type Period } from "./billing-api";
 
 const t = ar.settings.checkout;
 
@@ -25,8 +25,11 @@ export function CheckoutPage() {
   const router = useRouter();
   const client = useQueryClient();
   const plan = params.get("plan") ?? "";
+  const theme = params.get("theme") ?? "";
   const period: Period = params.get("period") === "yearly" ? "yearly" : "monthly";
-  const query = usePreview(plan, period);
+  // ?theme=sufi buys a theme; otherwise ?plan=…&period=… a subscription.
+  const item: CheckoutItem = theme ? { type: "theme", theme_key: theme } : { type: "subscription", plan_key: plan, period };
+  const query = usePreview(item);
 
   async function done(invoice: Invoice) {
     toast.success(t.sent);
@@ -47,7 +50,7 @@ export function CheckoutPage() {
           <ReceiptForm
             methods={query.data.pay_with ?? []}
             total={query.data.total}
-            submit={(fields, receipt) => sendReceipt("/dashboard/billing/checkout", { type: "subscription", plan_key: plan, period, ...fields }, receipt)}
+            submit={(fields, receipt) => sendReceipt("/dashboard/billing/checkout", { ...(item as Record<string, string>), ...fields }, receipt)}
             onDone={done}
           />
           <Summary invoice={query.data} />

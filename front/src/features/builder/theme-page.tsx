@@ -1,17 +1,22 @@
 "use client";
 
-import { ExternalLink, Lock, Paintbrush, Sparkles } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, ExternalLink, Paintbrush, Power, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import * as React from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ErrorState, LockedNotice, Skeleton } from "@/components/ui/feedback";
+import { ErrorState, LockedNotice, Skeleton, toast } from "@/components/ui/feedback";
+import { ConfirmDialog } from "@/components/ui/overlay";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { useStore } from "@/features/store/store-page";
+import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/errors";
 import { usePlanFeature } from "@/lib/auth/session-context";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { useStoreThemes, type StoreTheme } from "./api";
 
 const t = ar.design.page;
 
@@ -21,6 +26,24 @@ const SHOTS: Record<string, string> = { asas: "/themes/asas.png", sufi: "/themes
 export function ThemePage() {
   const allowed = usePlanFeature("store");
   const query = useStore();
+  const client = useQueryClient();
+  const [activating, setActivating] = React.useState<{ key: string; name: string } | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  async function activate() {
+    if (!activating) return;
+    setBusy(true);
+    try {
+      await api("/dashboard/store", { method: "PUT", body: { theme_key: activating.key } });
+      await client.invalidateQueries({ queryKey: ["store"] });
+      toast.success(t.activated(activating.name));
+      setActivating(null);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
@@ -73,18 +96,27 @@ export function ThemePage() {
                           </p>
                         ) : null}
                         <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                          <Button asChild>
-                            <Link href="/dashboard/design/builder">
-                              <Paintbrush />
-                              {t.customize}
-                            </Link>
-                          </Button>
-                          <Button asChild variant="outline">
-                            <Link href="/dashboard/design/preview" target="_blank">
-                              <ExternalLink />
-                              {t.preview}
-                            </Link>
-                          </Button>
+                          {theme.active ? (
+                            <>
+                              <Button asChild>
+                                <Link href="/dashboard/design/builder">
+                                  <Paintbrush />
+                                  {t.customize}
+                                </Link>
+                              </Button>
+                              <Button asChild variant="outline">
+                                <Link href="/dashboard/design/preview" target="_blank">
+                                  <ExternalLink />
+                                  {t.preview}
+                                </Link>
+                              </Button>
+                            </>
+                          ) : (
+                            <Button onClick={() => setActivating({ key: theme.key, name: theme.name })}>
+                              <Power />
+                              {t.activate}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </article>
@@ -94,21 +126,85 @@ export function ThemePage() {
             </PanelBody>
           </Panel>
 
-          <Panel>
-            <PanelHeader title={t.paid} />
-            <PanelBody className="flex flex-col items-center gap-2 py-10 text-center">
-              <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
-                <Sparkles className="size-6" />
-              </span>
-              <Badge>
-                <Lock />
-                {ar.common.soon}
-              </Badge>
-              <p className="max-w-md text-sm text-ink-2">{t.paidSoon}</p>
-            </PanelBody>
-          </Panel>
+          <PaidThemes owned={query.data.exists ? query.data.themes.map((x) => x.key) : ["asas"]} />
         </div>
       )}
+      <ConfirmDialog
+        open={activating !== null}
+        onOpenChange={(o) => !o && setActivating(null)}
+        title={activating ? t.activateTitle(activating.name) : ""}
+        description={t.activateText}
+        confirmLabel={t.activate}
+        loading={busy}
+        onConfirm={() => void activate()}
+      />
     </>
+  );
+}
+
+/** Paid store themes the store does not own yet: picture, what it has, price, and «اشتريه». */
+function PaidThemes({ owned }: { owned: string[] }) {
+  const query = useStoreThemes();
+  const themes = (query.data ?? []).filter((theme: StoreTheme) => !theme.is_free && !owned.includes(theme.key) && !theme.owned);
+  return (
+    <Panel>
+      <PanelHeader title={t.paid} description={t.paidHint} />
+      <PanelBody>
+        {query.isPending ? (
+          <Skeleton className="h-72 rounded-xl" />
+        ) : query.isError ? (
+          <ErrorState onRetry={() => void query.refetch()} message={errorMessage(query.error)} />
+        ) : themes.length === 0 ? (
+          <p className="py-8 text-center text-sm text-ink-2">{t.noPaid}</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {themes.map((theme) => {
+              const shot = SHOTS[theme.key] ?? theme.cover?.large ?? theme.cover?.medium ?? null;
+              const price = theme.price;
+              return (
+                <article key={theme.key} className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
+                  <div className="relative aspect-[16/10] overflow-hidden border-b border-border bg-surface-2">
+                    {shot ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- static screenshot or platform media
+                      <img src={shot} alt={theme.name} className="size-full object-cover object-top" />
+                    ) : null}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 p-4">
+                    <p className="flex items-center justify-between gap-2">
+                      <span className="text-lg font-bold">{theme.name}</span>
+                      {price ? (
+                        <span className="flex items-baseline gap-1.5">
+                          <b className="tabular">{formatMoney(price.final)}</b>
+                          {price.discount_percent > 0 ? <s className="tabular text-xs text-ink-3">{formatMoney(price.original)}</s> : null}
+                        </span>
+                      ) : null}
+                    </p>
+                    {theme.short_description ? <p className="text-sm text-ink-2">{theme.short_description}</p> : null}
+                    {theme.features?.length ? (
+                      <ul className="flex flex-col gap-1">
+                        {theme.features.slice(0, 4).map((f) => (
+                          <li key={f} className="flex items-start gap-1.5 text-xs text-ink-2">
+                            <Check className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="mt-auto pt-2">
+                      <Button asChild>
+                        <Link href={`/dashboard/settings/billing/checkout?theme=${encodeURIComponent(theme.key)}`}>
+                          <ShoppingBag />
+                          {t.buy}
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </PanelBody>
+    </Panel>
   );
 }

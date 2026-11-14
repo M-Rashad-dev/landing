@@ -90,11 +90,15 @@ export const useUsage = () => useQuery({ queryKey: ["billing", "usage"], queryFn
 export const useInvoices = () => useQuery({ queryKey: ["billing", "invoices"], queryFn: () => apiPage<Invoice>("/dashboard/billing/invoices", { query: { per_page: 50 } }) });
 export const useInvoice = (id: number) => useQuery({ queryKey: ["billing", "invoice", id], queryFn: () => api<Invoice>(`/dashboard/billing/invoices/${id}`) });
 
-export function usePreview(plan: string, period: Period) {
+/** What is being bought: a plan for a period, or a theme (bought once, kept with its updates). */
+export type CheckoutItem = { type: "subscription"; plan_key: string; period: Period } | { type: "theme"; theme_key: string };
+
+export function usePreview(item: CheckoutItem) {
+  const key = item.type === "theme" ? item.theme_key : `${item.plan_key}:${item.period}`;
   return useQuery({
-    queryKey: ["billing", "preview", plan, period],
-    queryFn: () => api<Invoice>("/dashboard/billing/checkout/preview", { method: "POST", body: { type: "subscription", plan_key: plan, period } }),
-    enabled: plan !== "",
+    queryKey: ["billing", "preview", item.type, key],
+    queryFn: () => api<Invoice>("/dashboard/billing/checkout/preview", { method: "POST", body: item }),
+    enabled: item.type === "theme" ? item.theme_key !== "" : item.plan_key !== "",
   });
 }
 
