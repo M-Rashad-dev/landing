@@ -34,13 +34,13 @@ const FIELDS = ["name", "store_name", "email", "phone", "password"] as const;
  * Store owner sign up: one short form and one password with an eye (no "repeat password";
  * the back end still receives the confirmation it expects).
  */
-export function RegisterForm() {
+export function RegisterForm({ storeName = "" }: { storeName?: string }) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     mode: "onTouched",
-    defaultValues: { name: "", store_name: "", email: "", phone: "", password: "" },
+    defaultValues: { name: "", store_name: storeName, email: "", phone: "", password: "" },
   });
   const { errors, isSubmitting } = form.formState;
   const describe = (name: keyof Values, hint = false) => (errors[name] ? `${name}-error` : hint ? `${name}-hint` : undefined);

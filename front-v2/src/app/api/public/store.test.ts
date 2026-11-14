@@ -40,6 +40,14 @@ describe("host routing", () => {
     expect(rewrittenTo(await proxy(visit("shop.example.com", "/api/public/store/quote")))).toBeNull();
   });
 
+  it("shows the marketing page on the platform domain only, never at /platform itself", async () => {
+    expect(rewrittenTo(await proxy(visit("maksab.test", "/")))).toBe("http://maksab.test/platform");
+    expect(rewrittenTo(await proxy(visit("www.maksab.test", "/")))).toBe("http://www.maksab.test/platform");
+    expect(rewrittenTo(await proxy(visit("maksab.test", "/platform")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("app.maksab.test", "/platform")))).toContain("/__not-found");
+    expect((await proxy(visit("app.maksab.test", "/"))).headers.get("location")).toContain("/login");
+  });
+
   it("keeps store pages off the app host", async () => {
     expect(rewrittenTo(await proxy(visit("app.maksab.test", "/sites/shop.example.com")))).toContain("/__not-found");
     expect(rewrittenTo(await proxy(visit("app.maksab.test", "/products")))).toContain("/__not-found");

@@ -1,0 +1,403 @@
+/* The platform's marketing page. Shares the dashboard tokens (globals.css) and adds a few of its own. */
+:root {
+  --mk-paper: #f4f7f2;
+  --mk-paper-2: #eaf0e7;
+  --mk-deep: #0b2219;
+  --mk-deep-2: #12301f;
+  --mk-deep-line: #23432f;
+  --mk-coffee: #3b2416;
+  --mk-coffee-2: #7a4a2a;
+  --mk-cream: #fbf8f3;
+  --mk-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mk {
+  background: var(--mk-paper);
+  color: var(--ink);
+  overflow-x: clip;
+}
+.mk-wrap {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+@media (min-width: 768px) {
+  .mk-wrap {
+    padding-inline: 32px;
+  }
+}
+
+.mk-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+/* Section heads: "01 — label" on the side, a big two-line title. */
+.mk-num {
+  border-top: 2px solid currentColor;
+  padding-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.mk-num span {
+  display: block;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.mk-dark .mk-num span {
+  color: #8fa699;
+}
+.mk-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+  font-size: clamp(34px, 5.2vw, 58px);
+}
+.mk-title > span {
+  display: block;
+}
+.mk-sub {
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.75;
+  color: var(--ink-2);
+  max-width: 40rem;
+}
+.mk-dark .mk-sub {
+  color: #a9bdb1;
+}
+
+/* Buttons and links */
+.mk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    transform 0.4s var(--mk-ease),
+    box-shadow 0.4s var(--mk-ease),
+    background-color 0.3s;
+}
+.mk-btn:hover {
+  transform: translateY(-2px);
+}
+.mk-btn:active {
+  transform: translateY(0);
+}
+.mk-btn-ink {
+  background: var(--ink);
+  color: #fff;
+}
+.mk-btn-ink:hover {
+  box-shadow: 0 12px 24px -12px rgb(var(--shadow-rgb) / 0.6);
+}
+.mk-btn-mint {
+  background: var(--brand);
+  color: var(--ink);
+}
+.mk-btn-mint:hover {
+  box-shadow: 0 12px 24px -12px rgb(47 207 145 / 0.8);
+}
+.mk-btn-line {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.mk-link {
+  position: relative;
+}
+.mk-link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4px;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.5s var(--mk-ease);
+}
+.mk-link:hover {
+  color: var(--ink);
+}
+.mk-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Frames */
+.mk-browser {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 var(--border),
+    0 40px 90px -40px rgb(var(--shadow-rgb) / 0.45);
+}
+.mk-browser-bar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 14px;
+  border-bottom: 1px solid var(--border);
+  background: #fafcf9;
+}
+.mk-browser-bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.mk-browser-url {
+  margin-inline: auto;
+  height: 24px;
+  width: min(360px, 60%);
+  border-radius: 7px;
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  direction: ltr;
+}
+.mk-phone {
+  width: 300px;
+  max-width: 100%;
+  aspect-ratio: 300 / 620;
+  border-radius: 44px;
+  background: #0d1b14;
+  padding: 10px;
+  box-shadow: 0 40px 80px -30px rgb(var(--shadow-rgb) / 0.5);
+  flex: none;
+}
+.mk-phone > div {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 35px;
+  overflow: hidden;
+  background: var(--mk-cream);
+}
+.mk-phone > div::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 24px;
+  border-radius: 20px;
+  background: #0d1b14;
+  z-index: 3;
+}
+.mk-coffee-btn {
+  background: var(--mk-coffee);
+  color: #fbf3e8;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Numbered pins and notes */
+.mk-pin {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 6px rgb(255 200 61 / 0.3);
+  animation: mk-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+@keyframes mk-pulse {
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 200 61 / 0.12);
+  }
+}
+.mk-note-n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- motion ---------- */
+
+/* Set by the inline script before paint, so nothing flashes; removed for reduced motion. */
+.mk-js [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 32px, 0);
+  filter: blur(8px);
+  transition:
+    opacity 0.9s var(--mk-ease) var(--d, 0ms),
+    transform 1.2s var(--mk-ease) var(--d, 0ms),
+    filter 1s var(--mk-ease) var(--d, 0ms);
+}
+.mk-js [data-reveal="scale"] {
+  transform: translate3d(0, 40px, 0) scale(0.96);
+}
+.mk-js [data-reveal="fade"] {
+  transform: none;
+  filter: none;
+}
+.mk-js [data-reveal="side"] {
+  transform: translate3d(-40px, 0, 0);
+}
+.mk-js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Hero headline: each line rises on load. */
+.mk-js .mk-hero-line {
+  opacity: 0;
+  transform: translate3d(0, 0.45em, 0);
+  filter: blur(10px);
+  animation: mk-rise 1.3s var(--mk-ease) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes mk-rise {
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Hero dashboard: arrives tilted, flattens as the page scrolls. */
+.mk-tilt {
+  transform-origin: 50% 0;
+}
+@media (min-width: 1024px) {
+  .mk-js .mk-tilt {
+    transform: perspective(1800px) rotateX(calc((1 - var(--mk-hero, 0)) * 12deg)) scale(calc(0.95 + var(--mk-hero, 0) * 0.05));
+    will-change: transform;
+  }
+}
+.mk-js .mk-tilt-in {
+  opacity: 0;
+  animation: mk-rise-far 1.6s var(--mk-ease) 0.55s forwards;
+}
+@keyframes mk-rise-far {
+  from {
+    opacity: 0;
+    translate: 0 80px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The journey: the dashed line draws itself, the dots light up after it. */
+.mk-js .mk-draw {
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 1.8s var(--mk-ease) 0.2s;
+}
+.mk-js .is-in .mk-draw,
+.mk-js .mk-draw.is-in {
+  transform: none;
+}
+
+/* Bars that fill when seen */
+.mk-js .mk-fill {
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 1.6s var(--mk-ease) var(--d, 0.3s);
+}
+.mk-js .is-in .mk-fill {
+  transform: none;
+}
+
+/* Gentle float for the phones */
+@media (min-width: 1024px) {
+  .mk-float {
+    animation: mk-float 7s ease-in-out infinite;
+  }
+  .mk-float-2 {
+    animation: mk-float 8s ease-in-out -3s infinite;
+  }
+}
+@keyframes mk-float {
+  50% {
+    translate: 0 -12px;
+  }
+}
+
+/* Dashboard demo bits */
+.mk-toast {
+  animation: mk-toast 0.7s var(--mk-ease);
+}
+@keyframes mk-toast {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+.mk-row-in {
+  animation: mk-row 1.8s var(--mk-ease);
+}
+@keyframes mk-row {
+  from {
+    background: var(--accent-soft);
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  30% {
+    opacity: 1;
+    transform: none;
+    background: var(--accent-soft);
+  }
+}
+.mk-path {
+  transition: d 0.8s var(--mk-ease);
+}
+.mk-price {
+  display: inline-block;
+  animation: mk-price 0.6s var(--mk-ease);
+}
+@keyframes mk-price {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Images grow a touch on hover */
+.mk-zoom img {
+  transition: transform 1.2s var(--mk-ease);
+}
+.mk-zoom:hover img {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk *,
+  .mk *::before,
+  .mk *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

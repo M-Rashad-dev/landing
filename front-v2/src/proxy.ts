@@ -10,7 +10,7 @@ import { SITE_PATH_HEADER } from "@/lib/public/host";
  * Host routing (Next 16 "proxy", formerly middleware). Only fast checks: the real session check is
  * /auth/me in the layouts.
  * - APP_HOST        → dashboard, admin, sign-in, api
- * - PLATFORM_DOMAIN → the same as the app host for now (the marketing page comes later)
+ * - PLATFORM_DOMAIN → the marketing home page at "/" (drawn from /platform, reachable only this way); other paths as the app host
  * - any other host  → that store, rewritten to /sites/{host}{path} (reachable only through this rewrite);
  *   a landing page link under an A/B test shows page A or page B, kept per visitor in a cookie
  */
@@ -26,6 +26,11 @@ export async function proxy(request: NextRequest) {
   // Machine endpoint (secret-protected) and uploaded images answer on any host.
   if (pathname === "/api/revalidate" || pathname.startsWith("/media/")) return NextResponse.next();
 
+  if (kind === "platform" && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/platform";
+    return NextResponse.rewrite(url);
+  }
   if (kind !== "tenant") return appHost(request, pathname, search);
 
   // A store host: app pages do not exist here; the visitor endpoints do.
