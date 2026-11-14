@@ -115,15 +115,55 @@ final class AsasDesign
         return $this->clean($validator->validated()[$prefix]);
     }
 
+    /** @return list<string|object> */
+    public static function textRule(int $max, bool $required = false): array
+    {
+        return [$required ? 'required' : 'nullable', 'string', 'max:'.$max];
+    }
+
     /** @param array<string, mixed> $design @return array<string, mixed> */
     private function rules(array $design, string $p): array
     {
-        $text = fn (int $max, bool $required = false) => [$required ? 'required' : 'nullable', 'string', 'max:'.$max];
+        $text = self::textRule(...);
+
+        $rules = [
+            $p => ['required', 'array'],
+            ...$this->settingsRules($p),
+            "{$p}.sections" => ['present', 'array', 'max:'.self::MAX_SECTIONS],
+        ];
+
+        foreach (array_values((array) ($design['sections'] ?? [])) as $i => $section) {
+            $s = "{$p}.sections.{$i}";
+            $rules["{$s}.id"] = ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'];
+            $rules["{$s}.type"] = ['required', Rule::in(self::SECTION_TYPES)];
+            $rules["{$s}.visible"] = ['required', 'boolean'];
+            $rules["{$s}.props"] = ['required', 'array'];
+            $props = (array) ($section['props'] ?? []);
+
+            match (is_array($section) ? ($section['type'] ?? null) : null) {
+                'banner' => $rules += $this->bannerRules($s, $props, $text),
+                'products' => $rules += $this->productsRules($s, $props, $text),
+                'features' => $rules += $this->featuresRules($s, $text),
+                'testimonials' => $rules += $this->testimonialsRules($s, $props, $text),
+                default => null,
+            };
+        }
+
+        return $rules;
+    }
+
+    /**
+     * The theme settings shared by every store theme (colors, font, logo, header, footer, lists).
+     *
+     * @return array<string, mixed>
+     */
+    public function settingsRules(string $p): array
+    {
+        $text = self::textRule(...);
         $color = ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'];
         $media = ['nullable', 'integer', TenantExists::table('media')];
 
         $rules = [
-            $p => ['required', 'array'],
             "{$p}.settings" => ['required', 'array'],
             "{$p}.settings.colors.primary" => $color,
             "{$p}.settings.colors.secondary" => $color,
@@ -145,59 +185,59 @@ final class AsasDesign
             "{$p}.settings.general.whatsapp_button" => ['required', 'boolean'],
             "{$p}.settings.general.show_out_of_stock" => ['required', 'boolean'],
             "{$p}.settings.general.products_per_page" => ['required', 'integer', Rule::in(self::PER_PAGE)],
-            "{$p}.sections" => ['present', 'array', 'max:'.self::MAX_SECTIONS],
         ];
         foreach (self::SOCIAL as $network) {
             $rules["{$p}.settings.footer.social.{$network}"] = ['nullable', 'string', 'max:300', new SafeUrl];
         }
 
-        foreach (array_values((array) ($design['sections'] ?? [])) as $i => $section) {
-            $s = "{$p}.sections.{$i}";
-            $rules["{$s}.id"] = ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'];
-            $rules["{$s}.type"] = ['required', Rule::in(self::SECTION_TYPES)];
-            $rules["{$s}.visible"] = ['required', 'boolean'];
-            $rules["{$s}.props"] = ['required', 'array'];
-            $props = (array) ($section['props'] ?? []);
-
-            match (is_array($section) ? ($section['type'] ?? null) : null) {
-                'banner' => $rules += $this->bannerRules($s, $props, $text),
-                'products' => $rules += [
-                    "{$s}.props.title" => $text(80, true),
-                    "{$s}.props.description" => $text(200),
-                    "{$s}.props.source" => ['required', Rule::in(self::PRODUCT_SOURCES)],
-                    "{$s}.props.category_id" => [($props['source'] ?? null) === 'category' ? 'required' : 'nullable', 'integer', TenantExists::table('categories')],
-                    "{$s}.props.limit" => ['required', 'integer', Rule::in(self::PRODUCT_LIMITS)],
-                    "{$s}.props.layout" => ['required', Rule::in(['grid', 'slider'])],
-                    "{$s}.props.columns" => ['required', 'integer', Rule::in(self::COLUMNS)],
-                    "{$s}.props.show_view_all" => ['required', 'boolean'],
-                ],
-                'features' => $rules += [
-                    "{$s}.props.title" => $text(80),
-                    "{$s}.props.items" => ['required', 'array', 'min:2', 'max:4'],
-                    "{$s}.props.items.*.icon" => ['required', Rule::in(self::ICONS)],
-                    "{$s}.props.items.*.title" => $text(40, true),
-                    "{$s}.props.items.*.text" => $text(120),
-                ],
-                'testimonials' => $rules += [
-                    "{$s}.props.title" => $text(80),
-                    "{$s}.props.source" => ['required', Rule::in(['auto', 'manual'])],
-                    "{$s}.props.items" => [($props['source'] ?? null) === 'manual' ? 'required' : 'present', 'array', ($props['source'] ?? null) === 'manual' ? 'min:1' : 'min:0', 'max:12'],
-                    "{$s}.props.items.*.name" => $text(60, true),
-                    "{$s}.props.items.*.rating" => ['required', 'integer', 'between:1,5'],
-                    "{$s}.props.items.*.text" => $text(400, true),
-                ],
-                default => null,
-            };
-        }
-
         return $rules;
+    }
+
+    /** @param array<string, mixed> $props @return array<string, mixed> */
+    public function productsRules(string $s, array $props, \Closure $text): array
+    {
+        return [
+            "{$s}.props.title" => $text(80, true),
+            "{$s}.props.description" => $text(200),
+            "{$s}.props.source" => ['required', Rule::in(self::PRODUCT_SOURCES)],
+            "{$s}.props.category_id" => [($props['source'] ?? null) === 'category' ? 'required' : 'nullable', 'integer', TenantExists::table('categories')],
+            "{$s}.props.limit" => ['required', 'integer', Rule::in(self::PRODUCT_LIMITS)],
+            "{$s}.props.layout" => ['required', Rule::in(['grid', 'slider'])],
+            "{$s}.props.columns" => ['required', 'integer', Rule::in(self::COLUMNS)],
+            "{$s}.props.show_view_all" => ['required', 'boolean'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function featuresRules(string $s, \Closure $text): array
+    {
+        return [
+            "{$s}.props.title" => $text(80),
+            "{$s}.props.items" => ['required', 'array', 'min:2', 'max:4'],
+            "{$s}.props.items.*.icon" => ['required', Rule::in(self::ICONS)],
+            "{$s}.props.items.*.title" => $text(40, true),
+            "{$s}.props.items.*.text" => $text(120),
+        ];
+    }
+
+    /** @param array<string, mixed> $props @return array<string, mixed> */
+    public function testimonialsRules(string $s, array $props, \Closure $text): array
+    {
+        return [
+            "{$s}.props.title" => $text(80),
+            "{$s}.props.source" => ['required', Rule::in(['auto', 'manual'])],
+            "{$s}.props.items" => [($props['source'] ?? null) === 'manual' ? 'required' : 'present', 'array', ($props['source'] ?? null) === 'manual' ? 'min:1' : 'min:0', 'max:12'],
+            "{$s}.props.items.*.name" => $text(60, true),
+            "{$s}.props.items.*.rating" => ['required', 'integer', 'between:1,5'],
+            "{$s}.props.items.*.text" => $text(400, true),
+        ];
     }
 
     /**
      * @param  array<string, mixed>  $props
      * @return array<string, mixed>
      */
-    private function bannerRules(string $s, array $props, \Closure $text): array
+    public function bannerRules(string $s, array $props, \Closure $text): array
     {
         $rules = [
             "{$s}.props.slides" => ['present', 'array', 'max:8'],
@@ -232,9 +272,18 @@ final class AsasDesign
      */
     private function attributes(array $design, string $p): array
     {
+        return self::attributeNames(array_keys($this->rules($design, $p)));
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return array<string, string>
+     */
+    public static function attributeNames(array $keys): array
+    {
         $names = (array) __('design.attributes');
         $out = [];
-        foreach (array_keys($this->rules($design, $p)) as $key) {
+        foreach ($keys as $key) {
             $last = (string) last(explode('.', $key));
             $name = $last === 'text' && str_contains($key, '.colors.') ? 'text_color' : $last;
             if (isset($names[$name])) {
@@ -254,11 +303,45 @@ final class AsasDesign
      */
     private function clean(array $d): array
     {
-        $s = $d['settings'];
-        $str = fn (mixed $v): ?string => is_string($v) && trim(strip_tags($v)) !== '' ? trim(strip_tags($v)) : null;
+        $sections = [];
+        foreach (array_values((array) $d['sections']) as $section) {
+            $sections[] = ['id' => (string) $section['id'], 'type' => (string) $section['type'], 'visible' => (bool) $section['visible'], 'props' => $this->cleanProps((string) $section['type'], (array) $section['props'])];
+        }
+
+        return ['settings' => $this->cleanSettings((array) $d['settings']), 'sections' => $sections];
+    }
+
+    /** A text without tags, null when empty. */
+    public static function str(mixed $v): ?string
+    {
+        return is_string($v) && trim(strip_tags($v)) !== '' ? trim(strip_tags($v)) : null;
+    }
+
+    /**
+     * @param  array{type: string, target_id?: mixed, url?: mixed}  $link
+     * @return array{type: string, target_id: int|null, url: string|null}
+     */
+    public static function cleanLink(array $link): array
+    {
+        return [
+            'type' => (string) $link['type'],
+            'target_id' => in_array($link['type'], ['category', 'product'], true) ? (int) $link['target_id'] : null,
+            'url' => $link['type'] === 'url' ? trim((string) $link['url']) : null,
+        ];
+    }
+
+    /**
+     * The shared settings, rebuilt with only the known keys.
+     *
+     * @param  array<string, mixed>  $s
+     * @return array<string, mixed>
+     */
+    public function cleanSettings(array $s): array
+    {
+        $str = self::str(...);
         $int = fn (mixed $v): ?int => $v === null || $v === '' ? null : (int) $v;
 
-        $settings = [
+        return [
             'colors' => array_map(fn ($c) => strtolower((string) $c), array_intersect_key((array) $s['colors'], self::DEFAULT_COLORS)),
             'font' => (string) $s['font'],
             'font_size' => (string) $s['font_size'],
@@ -280,48 +363,48 @@ final class AsasDesign
                 'products_per_page' => (int) $s['general']['products_per_page'],
             ],
         ];
+    }
 
-        $sections = [];
-        foreach (array_values((array) $d['sections']) as $section) {
-            $p = (array) $section['props'];
-            $props = match ($section['type']) {
-                'banner' => [
-                    'slides' => array_values(array_map(fn (array $slide) => [
-                        'media_id' => (int) $slide['media_id'],
-                        'title' => $str($slide['title'] ?? null),
-                        'text' => $str($slide['text'] ?? null),
-                        'button_label' => $str($slide['button_label'] ?? null),
-                        'link' => [
-                            'type' => (string) $slide['link']['type'],
-                            'target_id' => in_array($slide['link']['type'], ['category', 'product'], true) ? (int) $slide['link']['target_id'] : null,
-                            'url' => $slide['link']['type'] === 'url' ? trim((string) $slide['link']['url']) : null,
-                        ],
-                    ], (array) ($p['slides'] ?? []))),
-                    'autoplay' => (bool) $p['autoplay'],
-                ],
-                'products' => [
-                    'title' => (string) $str($p['title']),
-                    'description' => $str($p['description'] ?? null),
-                    'source' => (string) $p['source'],
-                    'category_id' => $p['source'] === 'category' ? (int) $p['category_id'] : null,
-                    'limit' => (int) $p['limit'],
-                    'layout' => (string) $p['layout'],
-                    'columns' => (int) $p['columns'],
-                    'show_view_all' => (bool) $p['show_view_all'],
-                ],
-                'features' => [
-                    'title' => $str($p['title'] ?? null),
-                    'items' => array_values(array_map(fn (array $i) => ['icon' => (string) $i['icon'], 'title' => (string) $str($i['title']), 'text' => $str($i['text'] ?? null)], (array) $p['items'])),
-                ],
-                'testimonials' => [
-                    'title' => $str($p['title'] ?? null),
-                    'source' => (string) $p['source'],
-                    'items' => array_values(array_map(fn (array $i) => ['name' => (string) $str($i['name']), 'rating' => (int) $i['rating'], 'text' => (string) $str($i['text'])], (array) ($p['items'] ?? []))),
-                ],
-            };
-            $sections[] = ['id' => (string) $section['id'], 'type' => (string) $section['type'], 'visible' => (bool) $section['visible'], 'props' => $props];
-        }
+    /**
+     * Props of the section types «أساس» has (the paid themes reuse them).
+     *
+     * @param  array<string, mixed>  $p
+     * @return array<string, mixed>
+     */
+    public function cleanProps(string $type, array $p): array
+    {
+        $str = self::str(...);
 
-        return ['settings' => $settings, 'sections' => $sections];
+        return match ($type) {
+            'banner' => [
+                'slides' => array_values(array_map(fn (array $slide) => [
+                    'media_id' => (int) $slide['media_id'],
+                    'title' => $str($slide['title'] ?? null),
+                    'text' => $str($slide['text'] ?? null),
+                    'button_label' => $str($slide['button_label'] ?? null),
+                    'link' => self::cleanLink((array) $slide['link']),
+                ], (array) ($p['slides'] ?? []))),
+                'autoplay' => (bool) $p['autoplay'],
+            ],
+            'products' => [
+                'title' => (string) $str($p['title']),
+                'description' => $str($p['description'] ?? null),
+                'source' => (string) $p['source'],
+                'category_id' => $p['source'] === 'category' ? (int) $p['category_id'] : null,
+                'limit' => (int) $p['limit'],
+                'layout' => (string) $p['layout'],
+                'columns' => (int) $p['columns'],
+                'show_view_all' => (bool) $p['show_view_all'],
+            ],
+            'features' => [
+                'title' => $str($p['title'] ?? null),
+                'items' => array_values(array_map(fn (array $i) => ['icon' => (string) $i['icon'], 'title' => (string) $str($i['title']), 'text' => $str($i['text'] ?? null)], (array) $p['items'])),
+            ],
+            'testimonials' => [
+                'title' => $str($p['title'] ?? null),
+                'source' => (string) $p['source'],
+                'items' => array_values(array_map(fn (array $i) => ['name' => (string) $str($i['name']), 'rating' => (int) $i['rating'], 'text' => (string) $str($i['text'])], (array) ($p['items'] ?? []))),
+            ],
+        };
     }
 }

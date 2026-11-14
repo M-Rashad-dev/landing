@@ -101,6 +101,26 @@ final class StoreCatalog
     }
 
     /**
+     * Products the merchant picked, in the order picked (gone or hidden ones are skipped).
+     *
+     * @param  list<int>  $ids
+     * @return list<array<string, mixed>>
+     */
+    public function cards(array $ids, bool $inStockOnly = false): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']))->whereIn('id', $ids);
+        if ($inStockOnly) {
+            $this->inStock($query);
+        }
+        $found = $query->get()->keyBy('id');
+
+        return collect($ids)->map(fn (int $id) => $found->get($id))->filter()->map(fn (Product $p) => $this->card($p))->values()->all();
+    }
+
+    /**
      * The average and number of visible reviews on each product of the list.
      *
      * @param  Builder<Product>  $query
@@ -170,6 +190,8 @@ final class StoreCatalog
         $compare = $p->compareAtCents();
         /** @var Media|null $image */
         $image = $p->media->first();
+        /** @var Media|null $second */
+        $second = $p->media->skip(1)->first();
 
         return [
             'id' => $p->id,
@@ -180,6 +202,8 @@ final class StoreCatalog
             'compare_at_price' => $compare === null ? null : Money::toFloat($compare),
             'discount_percent' => $compare !== null && $compare > $price ? (int) round(($compare - $price) * 100 / $compare) : null,
             'image' => $this->data->image($image),
+            // Shown when the card is hovered (themes that use it).
+            'image_2' => $this->data->image($second),
             'available' => $p->inStock(),
             'is_featured' => $p->is_featured,
             // A card can be added to the cart directly when nothing must be chosen.

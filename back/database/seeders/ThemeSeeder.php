@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
  */
 class ThemeSeeder extends Seeder
 {
-    /** The free themes we ship: «بداية» for landing pages, «أساس» for the store (paid themes are added by the admin). */
+    /** The themes we ship: «بداية» (landing pages) and «أساس» (store) for free, «صوفي» paid (the admin sets its price). */
     private const THEMES = [
         [
             'key' => 'bidaya', 'name' => 'بداية', 'sort_order' => 1, 'price' => 0,
@@ -29,6 +29,13 @@ class ThemeSeeder extends Seeder
             'description' => 'رئيسية بأقسام تظبطها بنفسك (بنر، قوائم منتجات، مميزات المتجر، آراء العملاء)، وألوانك وخطك ولوجو متجرك.',
             'features' => ['بنر وسلايدر', 'قوائم منتجات بشبكة أو سلايدر', 'ألوانك وخطك ولوجو متجرك'],
             'tags' => ['general'],
+        ],
+        [
+            'key' => 'sufi', 'name' => 'صوفي', 'sort_order' => 20, 'price' => 990, 'kind' => 'store',
+            'short_description' => 'ثيم متجر فخم وفاتح، معاه وضع ليلي، للملابس والإلكترونيات والإكسسوارات.',
+            'description' => 'رئيسية بـ 16 قسم تظبطها بنفسك: بنر بملء الشاشة مدموج مع الهيدر، شريط متحرك، تصنيفات بالصور، منتجات بتبويبات، بنرات، عرض بعداد تنازلي، منتج مميز يتضاف للسلة من الرئيسية، فيديو، براندات، قصة المتجر، مميزات، آراء العملاء، معرض صور، أسئلة شائعة، وفروعك على الخريطة. ووضع ليلي بألوان تختارها، وأزرار واتساب واتصال عائمة. بتشتريه مرة واحدة وبيفضل معاك بكل تحديثاته.',
+            'features' => ['16 قسم للرئيسية', 'وضع ليلي بألوانك', 'بنر بملء الشاشة مدموج مع الهيدر', 'منتج مميز وعرض بعداد تنازلي'],
+            'tags' => ['fashion', 'electronics', 'accessories'],
         ],
     ];
 

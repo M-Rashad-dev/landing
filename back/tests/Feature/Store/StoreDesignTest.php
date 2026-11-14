@@ -12,30 +12,33 @@ use App\Models\Tenant;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
-function designOwner(string $plan = 'pro'): User
-{
-    $tenant = Tenant::factory()->onPlan($plan)->create();
-    $user = User::factory()->for($tenant)->create();
-    Domain::factory()->for($tenant)->create(['host' => 'design-'.$tenant->id.'.localhost', 'active_host' => 'design-'.$tenant->id.'.localhost']);
-    asTenant($tenant, fn () => Identity::factory()->default()->create());
-    Sanctum::actingAs($user->fresh(['tenant']));
+// Shared with SufiDesignTest (defined once, whichever file loads first).
+if (! function_exists('designOwner')) {
+    function designOwner(string $plan = 'pro'): User
+    {
+        $tenant = Tenant::factory()->onPlan($plan)->create();
+        $user = User::factory()->for($tenant)->create();
+        Domain::factory()->for($tenant)->create(['host' => 'design-'.$tenant->id.'.localhost', 'active_host' => 'design-'.$tenant->id.'.localhost']);
+        asTenant($tenant, fn () => Identity::factory()->default()->create());
+        Sanctum::actingAs($user->fresh(['tenant']));
 
-    return $user;
-}
+        return $user;
+    }
 
-/** The design as the Builder holds it, with changes on top. */
-function designDraft(array $changes = []): array
-{
-    $draft = test()->getJson('/api/v1/dashboard/store/design')->assertOk()->json('data.draft');
+    /** The design as the Builder holds it, with changes on top. */
+    function designDraft(array $changes = []): array
+    {
+        $draft = test()->getJson('/api/v1/dashboard/store/design')->assertOk()->json('data.draft');
 
-    return array_replace_recursive($draft, $changes);
-}
+        return array_replace_recursive($draft, $changes);
+    }
 
-function saveDesign(array $draft, ?int $version = null)
-{
-    $version ??= test()->getJson('/api/v1/dashboard/store/design')->json('data.version');
+    function saveDesign(array $draft, ?int $version = null)
+    {
+        $version ??= test()->getJson('/api/v1/dashboard/store/design')->json('data.version');
 
-    return test()->putJson('/api/v1/dashboard/store/design', ['draft' => $draft, 'version' => $version]);
+        return test()->putJson('/api/v1/dashboard/store/design', ['draft' => $draft, 'version' => $version]);
+    }
 }
 
 it('opens «أساس» with the starter design in the mint colors and the four sections', function () {
