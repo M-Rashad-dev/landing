@@ -24,9 +24,9 @@ const tf = ar.design.features;
 const tt = ar.design.testimonials;
 
 type Errors = Record<string, string>;
-const nullable = (v: string) => (v.trim() === "" ? null : v);
+export const nullable = (v: string) => (v.trim() === "" ? null : v);
 
-function Card({ title, onUp, onDown, onRemove, removeLabel, children }: { title: string; onUp?: () => void; onDown?: () => void; onRemove?: () => void; removeLabel: string; children: React.ReactNode }) {
+export function Card({ title, onUp, onDown, onRemove, removeLabel, children }: { title: string; onUp?: () => void; onDown?: () => void; onRemove?: () => void; removeLabel: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3">
       <div className="flex items-center gap-1">
@@ -52,7 +52,7 @@ function Card({ title, onUp, onDown, onRemove, removeLabel, children }: { title:
   );
 }
 
-function move<T>(list: T[], from: number, to: number): T[] {
+export function move<T>(list: T[], from: number, to: number): T[] {
   const next = [...list];
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item);

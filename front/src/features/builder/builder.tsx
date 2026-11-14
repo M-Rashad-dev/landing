@@ -40,19 +40,21 @@ import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { AsasStore, type Selection } from "@/themes/asas/asas-store";
 import { SufiStore } from "@/themes/sufi/sufi-store";
-import { SUFI_KEY, type SufiDesign } from "@/themes/sufi/types";
-import type { Design, DesignData, MediaUrls, Section, SectionType, Settings } from "@/themes/asas/types";
-import { copySection, designKey, newSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type DesignPayload } from "./api";
-import { SectionGallery, SectionIcon } from "./section-gallery";
+import { SUFI_KEY, type SufiDesign, type SufiSection, type SufiSettings } from "@/themes/sufi/types";
+import type { Design, DesignData, MediaUrls, Section, Settings } from "@/themes/asas/types";
+import { copySection, designKey, newSection, newSufiSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type AnySection, type DesignPayload } from "./api";
+import { SECTION_TYPES, SectionGallery, SectionIcon, SUFI_SECTION_TYPES, type AnySectionType } from "./section-gallery";
 import { BannerForm, FeaturesForm, ProductsForm, TestimonialsForm } from "./section-forms";
+import { SufiGeneralExtras, SufiHeaderExtras, SufiLookExtras, SufiSectionForm } from "./sufi-forms";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "./kit";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "./theme-forms";
 
 const t = ar.design.builder;
 const th = ar.design.theme;
-const MAX_SECTIONS = 20;
 
 type Edit = Selection | "look" | "general";
+/** The draft of any store theme (sections of «أساس» or «صوفي»). */
+type AnyDesign = { settings: Settings; sections: AnySection[] };
 type Tab = "sections" | "theme";
 
 export function Builder() {
@@ -88,13 +90,15 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const [tab, setTab] = React.useState<Tab>("sections");
   const [device, setDevice] = React.useState<Device>("desktop");
   const [publishing, setPublishing] = React.useState(false);
-  const [removing, setRemoving] = React.useState<Section | null>(null);
+  const [removing, setRemoving] = React.useState<AnySection | null>(null);
+  const isSufi = initial.theme.key === SUFI_KEY;
+  const MAX_SECTIONS = isSufi ? 30 : 20;
   const [gallery, setGallery] = React.useState(false);
   const frame = React.useRef<HTMLDivElement>(null);
-  const editor = useDraftEditor<Design, DesignPayload>({
-    initial: initial.draft,
+  const editor = useDraftEditor<AnyDesign, DesignPayload>({
+    initial: initial.draft as AnyDesign,
     version: initial.version,
-    save: saveDesign,
+    save: (d, v) => saveDesign(d as Design, v),
     onSaved: (res) => {
       setData(res.data);
       setPublished({ at: res.published_at, pending: res.has_unpublished_changes });
@@ -108,7 +112,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const rememberMedia = React.useCallback((item: MediaItem) => setMedia((m) => ({ ...m, [String(item.id)]: item.urls })), []);
 
   const setSettings = (settings: Settings) => change({ ...draft, settings }, true);
-  const setSection = (id: string, props: Section["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === id ? ({ ...s, props } as Section) : s)) }, true);
+  const setSection = (id: string, props: AnySection["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === id ? ({ ...s, props } as AnySection) : s)) }, true);
   const toggle = (id: string) => change({ ...draft, sections: draft.sections.map((x) => (x.id === id ? { ...x, visible: !x.visible } : x)) });
   const move = (id: string, by: -1 | 1) => {
     const from = draft.sections.findIndex((s) => s.id === id);
@@ -119,7 +123,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
     change({ ...draft, sections });
     window.setTimeout(() => scrollTo(id), 60);
   };
-  const duplicate = (s: Section) => {
+  const duplicate = (s: AnySection) => {
     if (draft.sections.length >= MAX_SECTIONS) return;
     const copy = copySection(s);
     const at = draft.sections.indexOf(s) + 1;
@@ -145,8 +149,8 @@ function Editor({ initial }: { initial: DesignPayload }) {
     }
   }
 
-  function add(type: SectionType) {
-    const section = newSection(type);
+  function add(type: AnySectionType) {
+    const section = isSufi ? newSufiSection(type as SufiSection["type"]) : newSection(type as Section["type"]);
     change({ ...draft, sections: [...draft.sections, section] });
     setGallery(false);
     setSelected(section.id);
@@ -318,11 +322,20 @@ function Editor({ initial }: { initial: DesignPayload }) {
               }
             >
               {selected === "look" ? (
-                <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
+                <>
+                  <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
+                  {isSufi ? <SufiLookExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : selected === "general" ? (
-                <GeneralForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <GeneralForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {isSufi ? <SufiGeneralExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : selected === "header" ? (
-                <HeaderForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <HeaderForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {isSufi ? <SufiHeaderExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : selected === "footer" ? (
                 <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
               ) : section ? (
@@ -428,7 +441,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-5">
           <DeviceFrame device={device} host={host}>
             <div ref={frame} className="h-full overflow-y-auto">
-              {initial.theme.key === SUFI_KEY ? (
+              {isSufi ? (
                 <SufiStore
                   design={draft as unknown as SufiDesign}
                   data={data}
@@ -441,7 +454,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
                 />
               ) : (
               <AsasStore
-                design={draft}
+                design={draft as Design}
                 data={data}
                 storeName={initial.store_name}
                 mode="builder"
@@ -456,7 +469,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
         </main>
       </div>
 
-      <SectionGallery open={gallery} onOpenChange={setGallery} onPick={add} />
+      <SectionGallery open={gallery} onOpenChange={setGallery} onPick={add} types={isSufi ? SUFI_SECTION_TYPES : SECTION_TYPES} />
       <ConfirmDialog
         open={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}
@@ -475,7 +488,12 @@ function Editor({ initial }: { initial: DesignPayload }) {
   );
 }
 
-function SectionForm({ section, errors, onChange, media, onMedia }: { section: Section; errors: Record<string, string>; onChange: (props: Section["props"]) => void; media: Record<string, MediaUrls>; onMedia: (item: MediaItem) => void }) {
+function SectionForm({ section: any, errors, onChange, media, onMedia }: { section: AnySection; errors: Record<string, string>; onChange: (props: AnySection["props"]) => void; media: Record<string, MediaUrls>; onMedia: (item: MediaItem) => void }) {
+  // Products, features and testimonials are shared: «صوفي» uses the same forms.
+  if (!(["banner", "products", "features", "testimonials"] as string[]).includes(any.type)) {
+    return <SufiSectionForm section={any as SufiSection} errors={errors} onChange={onChange} media={media} onMedia={onMedia} />;
+  }
+  const section = any as Section;
   switch (section.type) {
     case "banner":
       return <BannerForm props={section.props} onChange={onChange} errors={errors} media={media} onMedia={onMedia} />;
@@ -489,12 +507,12 @@ function SectionForm({ section, errors, onChange, media, onMedia }: { section: S
 }
 
 /** The section's own title when it has one, else its type. */
-function sectionTitle(s: Section): string {
-  const custom = s.type === "products" ? s.props.title : s.type === "features" || s.type === "testimonials" ? s.props.title : null;
+function sectionTitle(s: AnySection): string {
+  const custom = "title" in s.props && typeof s.props.title === "string" ? s.props.title : null;
   return custom || t.types[s.type].title;
 }
 
-function editorTitle(selected: Edit, section: Section | null): string {
+function editorTitle(selected: Edit, section: AnySection | null): string {
   if (selected === "look") return th.tabs.look;
   if (selected === "general") return th.tabs.general;
   if (selected === "header") return t.header;

@@ -1,24 +1,43 @@
 "use client";
 
-import { Images, LayoutGrid, MessageSquareQuote, Sparkles, type LucideIcon } from "lucide-react";
+import { BookOpen, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, MapPin, MessageSquareQuote, PanelsTopLeft, PlaySquare, Sparkles, Star, Text, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { SectionType } from "@/themes/asas/types";
+import type { SufiSectionType } from "@/themes/sufi/types";
+
+export type AnySectionType = SectionType | SufiSectionType;
 
 const t = ar.design.builder;
 
 export const SECTION_TYPES: SectionType[] = ["banner", "products", "features", "testimonials"];
 
+/** «صوفي»'s sections, in the order the gallery offers them. */
+export const SUFI_SECTION_TYPES: SufiSectionType[] = ["hero", "marquee", "categories", "product_tabs", "banners", "countdown", "featured_product", "products", "video", "brands", "story", "features", "testimonials", "gallery", "faq", "location"];
+
 /** One icon and one tint per section type, used in the list, the gallery and the canvas. */
-export const SECTION_LOOK: Record<SectionType, { icon: LucideIcon; tint: string }> = {
+export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: string }> = {
   banner: { icon: Images, tint: "bg-violet-100 text-violet-700" },
   products: { icon: LayoutGrid, tint: "bg-emerald-100 text-emerald-700" },
   features: { icon: Sparkles, tint: "bg-amber-100 text-amber-700" },
   testimonials: { icon: MessageSquareQuote, tint: "bg-sky-100 text-sky-700" },
+  hero: { icon: PanelsTopLeft, tint: "bg-violet-100 text-violet-700" },
+  marquee: { icon: Text, tint: "bg-stone-200 text-stone-700" },
+  categories: { icon: Grid3x3, tint: "bg-teal-100 text-teal-700" },
+  product_tabs: { icon: Columns3, tint: "bg-emerald-100 text-emerald-700" },
+  banners: { icon: Images, tint: "bg-fuchsia-100 text-fuchsia-700" },
+  countdown: { icon: Clock, tint: "bg-rose-100 text-rose-700" },
+  featured_product: { icon: Gem, tint: "bg-amber-100 text-amber-800" },
+  video: { icon: PlaySquare, tint: "bg-red-100 text-red-700" },
+  brands: { icon: Star, tint: "bg-indigo-100 text-indigo-700" },
+  story: { icon: BookOpen, tint: "bg-orange-100 text-orange-700" },
+  gallery: { icon: GalleryHorizontalEnd, tint: "bg-pink-100 text-pink-700" },
+  faq: { icon: CircleHelp, tint: "bg-cyan-100 text-cyan-700" },
+  location: { icon: MapPin, tint: "bg-lime-100 text-lime-800" },
 };
 
-export function SectionIcon({ type, size = "md" }: { type: SectionType; size?: "sm" | "md" }) {
+export function SectionIcon({ type, size = "md" }: { type: AnySectionType; size?: "sm" | "md" }) {
   const { icon: Icon, tint } = SECTION_LOOK[type];
   return (
     <span className={cn("flex shrink-0 items-center justify-center rounded-lg", tint, size === "sm" ? "size-7" : "size-9")} aria-hidden>
@@ -28,7 +47,16 @@ export function SectionIcon({ type, size = "md" }: { type: SectionType; size?: "
 }
 
 /** A small drawing of what the section looks like on the store. */
-function Sketch({ type }: { type: SectionType }) {
+function Sketch({ type }: { type: AnySectionType }) {
+  if (!(SECTION_TYPES as string[]).includes(type)) {
+    // The paid themes' sections: their icon on their tint.
+    const { icon: Icon, tint } = SECTION_LOOK[type];
+    return (
+      <span className={cn("flex size-full items-center justify-center", tint)}>
+        <Icon className="size-10 opacity-80" />
+      </span>
+    );
+  }
   const line = "fill-ink/15";
   const strong = "fill-ink/30";
   const accent = "fill-brand/70";
@@ -88,14 +116,14 @@ function Sketch({ type }: { type: SectionType }) {
   );
 }
 
-export function SectionGallery({ open, onOpenChange, onPick }: { open: boolean; onOpenChange: (open: boolean) => void; onPick: (type: SectionType) => void }) {
+export function SectionGallery({ open, onOpenChange, onPick, types = SECTION_TYPES }: { open: boolean; onOpenChange: (open: boolean) => void; onPick: (type: AnySectionType) => void; types?: AnySectionType[] }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader title={t.galleryTitle} description={t.galleryHint} />
         <DialogBody>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {SECTION_TYPES.map((type) => (
+            {types.map((type) => (
               <li key={type}>
                 <button
                   type="button"

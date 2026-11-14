@@ -4,6 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
 import type { Design, DesignData, Section, SectionType } from "@/themes/asas/types";
+import type { SufiSection, SufiSectionType } from "@/themes/sufi/types";
+
+/** A section of any store theme («أساس» or «صوفي»). */
+export type AnySection = Section | SufiSection;
 
 export type DesignPayload = {
   theme: { key: string; name: string };
@@ -60,9 +64,48 @@ export function newSection(type: SectionType): Section {
   }
 }
 
+const none = { type: "none" as const, target_id: null, url: null };
+const ds = ar.design.builder.types;
+
+/** A new «صوفي» section, ready to edit (the shared types come from newSection). */
+export function newSufiSection(type: SufiSectionType): AnySection {
+  const id = newId();
+  const make = <T extends SufiSectionType>(t: T, props: Extract<SufiSection, { type: T }>["props"]) => ({ id, type: t, visible: true, props }) as SufiSection;
+  switch (type) {
+    case "hero":
+      return make("hero", { slides: [], autoplay: true, height: "full", merge_header: true, shade: 40, kicker: null });
+    case "marquee":
+      return make("marquee", { items: [d.marqueeItem], speed: "normal" });
+    case "categories":
+      return make("categories", { title: ds.categories.title, description: null, category_ids: [], shape: "circle", layout: "grid", columns_desktop: 6, columns_mobile: 3 });
+    case "product_tabs":
+      return make("product_tabs", { title: d.productsTitle, description: null, limit: 8, tabs: [{ label: d.tabLatest, source: "latest", category_id: null, product_ids: [] }] });
+    case "banners":
+      return make("banners", { items: [] });
+    case "countdown":
+      return make("countdown", { media_id: null, kicker: null, title: ds.countdown.title, text: null, button_label: null, link: { type: "offers", target_id: null, url: null }, ends_at: new Date(Date.now() + 3 * 86400000).toISOString(), on_end: "hide" });
+    case "featured_product":
+      return make("featured_product", { product_id: 0, kicker: null });
+    case "video":
+      return make("video", { url: "", title: null, text: null, cover_media_id: null });
+    case "brands":
+      return make("brands", { title: ds.brands.title, items: [] });
+    case "story":
+      return make("story", { kicker: null, title: ds.story.title, text: null, media_id: 0, media2_id: null, stats: [], button_label: null, link: none });
+    case "gallery":
+      return make("gallery", { title: ds.gallery.title, description: null, items: [] });
+    case "faq":
+      return make("faq", { title: ds.faq.title, text: null, whatsapp_button: true, items: [{ question: "", answer: "" }] });
+    case "location":
+      return make("location", { title: ds.location.title, description: null, branches: [{ name: "", address: "", hours: null, phone: null, map_url: "" }] });
+    default:
+      return newSection(type as SectionType);
+  }
+}
+
 /** A copy of a section with a new id (its banner images and texts stay the same). */
-export function copySection(section: Section): Section {
-  return { ...structuredClone(section), id: newId() } as Section;
+export function copySection<T extends AnySection>(section: T): T {
+  return { ...structuredClone(section), id: newId() };
 }
 
 /** Errors of one section from the server keys (draft.sections.{i}.props.…), by the rest of the path. */
