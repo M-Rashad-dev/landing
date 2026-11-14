@@ -3,6 +3,7 @@ import { BRAND } from "@/config/brand";
 import { MarketingHeader } from "@/features/marketing/header";
 import "@/features/marketing/marketing.css";
 import { MotionRoot } from "@/features/marketing/motion";
+import { platformPageLinks } from "@/features/marketing/pages";
 import { appUrl, pricingData, whatsappUrl } from "@/features/marketing/plans";
 import { ClosingCta, FaqSection, LandingSection, MarketingFooter, OrdersSection, PricingSection, ToolsSection } from "@/features/marketing/sections-bottom";
 import { BuilderSection, Facts, Hero, Journey, StoreSection } from "@/features/marketing/sections-top";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
  * /platform itself is not reachable). The pricing comes from the same plans the billing uses.
  */
 export default async function PlatformHome() {
-  const data = await pricingData();
+  const [data, pages] = await Promise.all([pricingData(), platformPageLinks()]);
   const registerUrl = appUrl("/register");
   const loginUrl = appUrl("/login");
 
@@ -58,7 +59,7 @@ export default async function PlatformHome() {
         <FaqSection whatsapp={whatsappUrl(data?.support.whatsapp ?? null)} />
         <ClosingCta registerUrl={registerUrl} />
       </main>
-      <MarketingFooter loginUrl={loginUrl} registerUrl={registerUrl} support={data?.support ?? null} />
+      <MarketingFooter loginUrl={loginUrl} registerUrl={registerUrl} support={data?.support ?? null} pages={pages} />
     </div>
   );
 }

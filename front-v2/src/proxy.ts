@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AB_TEST_COOKIE } from "@/lib/ab/cookie";
 import { AB_COOKIE_MAX_AGE, matchRoute, pickVariant, routesForHost, VARIANT_COOKIE } from "@/lib/ab/split";
 import { TOKEN_COOKIE } from "@/lib/auth/cookie";
+import { platformPageSlug } from "@/lib/host/platform-pages";
 import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, matchesPrefix, STORE_API_PREFIXES } from "@/lib/host/classify";
 import { requestHost } from "@/lib/http/request";
 import { SITE_PATH_HEADER } from "@/lib/public/host";
@@ -10,7 +11,7 @@ import { SITE_PATH_HEADER } from "@/lib/public/host";
  * Host routing (Next 16 "proxy", formerly middleware). Only fast checks: the real session check is
  * /auth/me in the layouts.
  * - APP_HOST        → dashboard, admin, sign-in, api
- * - PLATFORM_DOMAIN → the marketing home page at "/" (drawn from /platform, reachable only this way); other paths as the app host
+ * - PLATFORM_DOMAIN → the marketing home page at "/" and the platform pages at /{slug} (drawn from /platform, reachable only this way); other paths as the app host
  * - any other host  → that store, rewritten to /sites/{host}{path} (reachable only through this rewrite);
  *   a landing page link under an A/B test shows page A or page B, kept per visitor in a cookie
  */
@@ -26,10 +27,13 @@ export async function proxy(request: NextRequest) {
   // Machine endpoint (secret-protected) and uploaded images answer on any host.
   if (pathname === "/api/revalidate" || pathname.startsWith("/media/")) return NextResponse.next();
 
-  if (kind === "platform" && pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/platform";
-    return NextResponse.rewrite(url);
+  if (kind === "platform") {
+    const page = pathname === "/" ? "" : platformPageSlug(pathname);
+    if (page !== null) {
+      const url = request.nextUrl.clone();
+      url.pathname = page ? `/platform/${page}` : "/platform";
+      return NextResponse.rewrite(url);
+    }
   }
   if (kind !== "tenant") return appHost(request, pathname, search);
 

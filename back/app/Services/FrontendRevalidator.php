@@ -28,7 +28,17 @@ final class FrontendRevalidator
      */
     public function revalidateHosts(array $hosts): void
     {
-        $tags = array_values(array_unique(array_map(fn (string $host): string => 'host:'.mb_strtolower($host), array_filter($hosts))));
+        $this->revalidateTags(array_values(array_map(fn (string $host): string => 'host:'.mb_strtolower($host), array_filter($hosts))));
+    }
+
+    /**
+     * @param  list<string>  $tags
+     *
+     * @throws RuntimeException when Next answers with an error (so the job retries)
+     */
+    public function revalidateTags(array $tags): void
+    {
+        $tags = array_values(array_unique(array_filter($tags)));
 
         if ($tags === []) {
             return;

@@ -43,7 +43,11 @@ describe("host routing", () => {
   it("shows the marketing page on the platform domain only, never at /platform itself", async () => {
     expect(rewrittenTo(await proxy(visit("maksab.test", "/")))).toBe("http://maksab.test/platform");
     expect(rewrittenTo(await proxy(visit("www.maksab.test", "/")))).toBe("http://www.maksab.test/platform");
+    expect(rewrittenTo(await proxy(visit("maksab.test", "/terms")))).toBe("http://maksab.test/platform/terms");
+    expect(rewrittenTo(await proxy(visit("maksab.test", "/refund-policy")))).toBe("http://maksab.test/platform/refund-policy");
     expect(rewrittenTo(await proxy(visit("maksab.test", "/platform")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("maksab.test", "/platform/terms")))).toContain("/__not-found");
+    expect(rewrittenTo(await proxy(visit("app.maksab.test", "/terms")))).toContain("/__not-found");
     expect(rewrittenTo(await proxy(visit("app.maksab.test", "/platform")))).toContain("/__not-found");
     expect((await proxy(visit("app.maksab.test", "/"))).headers.get("location")).toContain("/login");
   });

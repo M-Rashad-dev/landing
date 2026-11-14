@@ -104,6 +104,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/themes", label: a.items.themes, icon: Layers, status: "ready" },
     ],
   },
+  { label: a.groups.platform, items: [{ href: "/admin/pages", label: a.items.pages, icon: FileText, status: "ready" }] },
 ];
 
 export const ADMIN_FOOTER_NAV: NavItem[] = [

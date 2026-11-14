@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogControl
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Api\V1\Admin\PlatformPageController as AdminPlatformPageController;
 use App\Http\Controllers\Api\V1\Admin\TenantBillingController as AdminTenantBillingController;
 use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
+use App\Http\Controllers\Api\V1\PlatformPageController;
 use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
@@ -59,6 +61,9 @@ use Illuminate\Support\Facades\Route;
 
 // Marketing pricing page (public, cached 60 s by the browser).
 Route::get('plans', PricingPageController::class)->middleware('throttle:public-plans');
+// The platform's own pages (about, terms, privacy…) for the platform domain.
+Route::get('platform-pages', [PlatformPageController::class, 'index'])->middleware('throttle:public-plans');
+Route::get('platform-pages/{slug}', [PlatformPageController::class, 'show'])->middleware('throttle:public-plans');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -296,6 +301,10 @@ Route::prefix('admin')
         Route::put('plans/{key}', [AdminPlanController::class, 'update']);
         Route::delete('plans/{key}', [AdminPlanController::class, 'destroy']);
         Route::put('billing/settings', [AdminPlanController::class, 'updateSettings']);
+
+        Route::get('platform-pages', [AdminPlatformPageController::class, 'index']);
+        Route::get('platform-pages/{slug}', [AdminPlatformPageController::class, 'show']);
+        Route::put('platform-pages/{slug}', [AdminPlatformPageController::class, 'update']);
 
         Route::get('payments', [AdminPaymentController::class, 'index']);
         Route::get('payments/{payment}/receipt', [AdminPaymentController::class, 'receipt'])->whereNumber('payment');

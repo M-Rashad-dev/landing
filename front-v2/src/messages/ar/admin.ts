@@ -4,7 +4,7 @@ import { formatMoney, formatNumber } from "@/lib/format";
 export const admin = {
   role: "مدير المنصة",
   nav: {
-    groups: { stores: "المتاجر", money: "الفلوس", catalog: "الباقات والثيمات" },
+    groups: { stores: "المتاجر", money: "الفلوس", catalog: "الباقات والثيمات", platform: "المنصة" },
     items: {
       home: "الرئيسية",
       stores: "المتاجر",
@@ -13,6 +13,7 @@ export const admin = {
       methods: "وسائل الدفع",
       plans: "الباقات",
       themes: "الثيمات",
+      pages: "صفحات المنصة",
       activity: "سجل العمليات",
       settings: "الإعدادات",
     },
@@ -472,6 +473,7 @@ export const admin = {
       "billing.": "إعدادات الفوترة",
       "payment_method.": "وسائل الدفع",
       "alerts.": "التنبيهات",
+      "platform_page.": "صفحات المنصة",
     } as Record<string, string>,
     columns: { action: "العملية", store: "المتجر", details: "التفاصيل", by: "بواسطة", at: "إمتى" },
     empty: "مفيش عمليات لسه",
@@ -501,7 +503,32 @@ export const admin = {
     "theme.update": "تعديل ثيم",
     "theme.enable": "تفعيل ثيم",
     "theme.disable": "تعطيل ثيم",
+    "platform_page.update": "تعديل صفحة من صفحات المنصة",
   } as Record<string, string>,
+
+  /** «صفحات المنصة»: about, terms, privacy, refunds, acceptable use (Markdown). */
+  pages: {
+    title: "صفحات المنصة",
+    description: "الصفحات التعريفية والقانونية اللي بتظهر في فوتر موقع المنصة. النص مبدئي: كمّل البيانات اللي بين [أقواس] وراجعه مع محامي.",
+    published: "ظاهرة",
+    hidden: "مخفية",
+    edit: "تعديل",
+    view: "افتح الصفحة",
+    updated: (date: string, by: string | null) => (by ? `آخر تعديل ${date} بواسطة ${by}` : `آخر تعديل ${date}`),
+    placeholders: (n: number) => (n === 1 ? "فيه خانة واحدة لسه بين [أقواس]" : `فيه ${formatNumber(n)} خانات لسه بين [أقواس]`),
+    noPlaceholders: "كل البيانات متكمّلة",
+    back: "صفحات المنصة",
+    pageTitle: "العنوان",
+    titleRequired: "اكتب العنوان",
+    summary: "ملخص",
+    summaryHint: "سطر أو اتنين تحت العنوان، وبيظهر في نتايج جوجل.",
+    body: "النص",
+    bodyHint: "Markdown: ## عنوان قسم، - نقطة، **خط عريض**، [نص](رابط). كل عنوان قسم بيظهر في فهرس الصفحة.",
+    bodyRequired: "النص قصير أوي",
+    show: "ظاهرة في الموقع",
+    showHint: "لو قفلتها، الصفحة بتختفي من الفوتر ورابطها بيبقى «مش موجودة».",
+    saved: "الصفحة اتحفظت، وهتظهر في الموقع خلال ثواني",
+  },
 
   settings: {
     title: "الإعدادات",

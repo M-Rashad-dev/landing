@@ -10,6 +10,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([ThemeSeeder::class, PlanSeeder::class, PaymentMethodSeeder::class]);
+        $this->call([ThemeSeeder::class, PlanSeeder::class, PaymentMethodSeeder::class, PlatformPageSeeder::class]);
     }
 }

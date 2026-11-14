@@ -10,7 +10,8 @@ import { SECTIONS } from "./nav";
 const t = ar.marketing.nav;
 
 /** Sticky header: clear over the hero, frosted once the page moves; a sheet menu on phones. */
-export function MarketingHeader({ loginUrl, registerUrl }: { loginUrl: string; registerUrl: string }) {
+/** `home` is "" on the home page (plain #anchors) and "/" on other pages (back to the home page). */
+export function MarketingHeader({ loginUrl, registerUrl, home = "" }: { loginUrl: string; registerUrl: string; home?: string }) {
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
@@ -35,12 +36,12 @@ export function MarketingHeader({ loginUrl, registerUrl }: { loginUrl: string; r
   return (
     <header className={cn("sticky top-0 z-40 transition-[background-color,box-shadow,backdrop-filter] duration-500", scrolled || open ? "bg-[color-mix(in_srgb,var(--mk-paper)_82%,transparent)] shadow-[0_1px_0_var(--border)] backdrop-blur-xl" : "bg-transparent")}>
       <div className="mk-wrap flex h-16 items-center gap-10 md:h-20">
-        <a href="#top" aria-label={ar.marketing.meta.title}>
+        <a href={home ? "/" : "#top"} aria-label={ar.marketing.meta.title}>
           <Logo />
         </a>
         <nav aria-label={t.menu} className="hidden items-center gap-7 text-[15px] font-medium text-ink-2 lg:flex">
           {SECTIONS.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="mk-link">
+            <a key={s.id} href={`${home}#${s.id}`} className="mk-link">
               {s.label}
             </a>
           ))}
@@ -60,7 +61,7 @@ export function MarketingHeader({ loginUrl, registerUrl }: { loginUrl: string; r
       <div id="mk-menu" hidden={!open} className="mk-wrap border-t border-border pb-6 lg:hidden">
         <nav className="flex flex-col py-2 text-lg font-semibold">
           {SECTIONS.map((s) => (
-            <a key={s.id} href={`#${s.id}`} onClick={() => setOpen(false)} className="border-b border-border py-3.5">
+            <a key={s.id} href={`${home}#${s.id}`} onClick={() => setOpen(false)} className="border-b border-border py-3.5">
               {s.label}
             </a>
           ))}

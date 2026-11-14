@@ -35,6 +35,13 @@ export function appUrl(path: string): string {
   return `${env.publicScheme}://${env.appHost}${port}${path}`;
 }
 
+/** The platform site (where the platform pages live), e.g. for "open the page" links in the admin. */
+export function platformUrl(path = ""): string {
+  const env = serverEnv();
+  const port = env.publicPort ? `:${env.publicPort}` : "";
+  return `${env.publicScheme}://${env.platformDomain}${port}${path}`;
+}
+
 /** "01094062024" → "https://wa.me/201094062024". */
 export function whatsappUrl(phone: string | null): string | null {
   if (!phone) return null;

@@ -241,6 +241,69 @@
   justify-content: center;
 }
 
+/* Platform pages (terms, privacy…): long-form reading */
+.mk-prose {
+  font-size: 17px;
+  line-height: 1.95;
+  color: var(--ink-2);
+}
+.mk-prose h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 3rem 0 1rem;
+  scroll-margin-top: 110px;
+}
+.mk-prose h2:first-child {
+  margin-top: 0;
+}
+.mk-prose h3 {
+  font-weight: 600;
+  font-size: 19px;
+  color: var(--ink);
+  margin: 2rem 0 0.5rem;
+}
+.mk-prose p {
+  margin: 0 0 1.1rem;
+}
+.mk-prose ul,
+.mk-prose ol {
+  margin: 0 0 1.2rem;
+  padding-inline-start: 1.4rem;
+}
+.mk-prose ul {
+  list-style: disc;
+}
+.mk-prose ol {
+  list-style: decimal;
+}
+.mk-prose li {
+  margin-bottom: 0.45rem;
+}
+.mk-prose li::marker {
+  color: var(--primary);
+}
+.mk-prose strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.mk-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mk-prose blockquote {
+  border-inline-start: 3px solid var(--brand);
+  padding-inline-start: 1rem;
+  color: var(--ink);
+}
+.mk-prose hr {
+  margin: 2.5rem 0;
+  border-color: var(--border);
+}
+
 /* ---------- motion ---------- */
 
 /* Set by the inline script before paint, so nothing flashes; removed for reduced motion. */

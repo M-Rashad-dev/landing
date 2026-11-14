@@ -232,7 +232,10 @@ export const marketing = {
     ],
   },
   cta: { title: ["متجرك ممكن", "يبقى شغال", "النهارده."], note: "تجربة مجانية كاملة · من غير كارت بنكي" },
-  footer: { about: "منصة متاجر وصفحات هبوط للسوق المصري.", product: "المنصة", account: "حسابك", contact: "تواصل معانا", rights: (year: number, name: string) => `© ${year} ${name}` },
+  footer: { about: "منصة متاجر وصفحات هبوط للسوق المصري.", product: "المنصة", account: "حسابك", contact: "تواصل معانا", legal: "معلومات", rights: (year: number, name: string) => `© ${year} ${name}` },
+
+  /** The platform's own pages (about, terms…), written by the super admin. */
+  page: { home: "الرئيسية", updated: (date: string) => `آخر تحديث: ${date}`, toc: "في الصفحة دي", more: "صفحات تانية", contact: "عندك سؤال؟", contactText: "كلمنا وهنرد عليك في أسرع وقت." },
 
   /** The interactive dashboard on the home page (sample numbers). */
   demo: {

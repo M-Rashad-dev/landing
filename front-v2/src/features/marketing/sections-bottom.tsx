@@ -9,6 +9,7 @@ import grinder from "../../../public/marketing/grinder.jpg";
 import { DashboardDemo } from "./dashboard-demo";
 import { Faq } from "./faq";
 import { SECTIONS } from "./nav";
+import type { PlatformPageLink } from "./pages";
 import type { PricingData } from "./plans";
 import { Pricing } from "./pricing";
 import { delay, Features, SectionHead } from "./sections-top";
@@ -282,12 +283,12 @@ export function ClosingCta({ registerUrl }: { registerUrl: string }) {
   );
 }
 
-export function MarketingFooter({ loginUrl, registerUrl, support }: { loginUrl: string; registerUrl: string; support: PricingData["support"] | null }) {
+export function MarketingFooter({ loginUrl, registerUrl, support, pages, home = "" }: { loginUrl: string; registerUrl: string; support: PricingData["support"] | null; pages: PlatformPageLink[]; home?: string }) {
   const f = m.footer;
   return (
     <footer className="bg-[var(--mk-deep)] pb-10 pt-20 text-[#a9bdb1]">
       <div className="mk-wrap">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
           <div>
             <span className="[&_span]:!text-white">
               <Logo />
@@ -297,7 +298,7 @@ export function MarketingFooter({ loginUrl, registerUrl, support }: { loginUrl: 
           <div>
             <p className="mb-3.5 text-sm font-semibold text-white">{f.product}</p>
             {SECTIONS.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className="block py-1.5 text-sm hover:text-white">
+              <a key={s.id} href={`${home}#${s.id}`} className="block py-1.5 text-sm hover:text-white">
                 {s.label}
               </a>
             ))}
@@ -311,6 +312,16 @@ export function MarketingFooter({ loginUrl, registerUrl, support }: { loginUrl: 
               {m.nav.login}
             </a>
           </div>
+          {pages.length > 0 ? (
+            <div>
+              <p className="mb-3.5 text-sm font-semibold text-white">{f.legal}</p>
+              {pages.map((p) => (
+                <a key={p.slug} href={`/${p.slug}`} className="block py-1.5 text-sm hover:text-white">
+                  {p.title}
+                </a>
+              ))}
+            </div>
+          ) : null}
           {support && (support.whatsapp || support.email) ? (
             <div>
               <p className="mb-3.5 text-sm font-semibold text-white">{f.contact}</p>
