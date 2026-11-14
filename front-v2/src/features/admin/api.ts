@@ -143,7 +143,7 @@ export const useActivity = (filters: { tenant?: number; action?: string; page?: 
 
 /* ---------- email alerts ---------- */
 
-export type AlertEvent = "receipt_submitted" | "refund_requested" | "store_registered" | "daily_summary";
+export type AlertEvent = "receipt_submitted" | "refund_requested" | "store_registered" | "daily_summary" | "support_ticket";
 export type AlertSettings = { email: string | null; events: AlertEvent[]; available: AlertEvent[]; mail_ready: boolean };
 
 export const useAlertSettings = () => useQuery({ queryKey: ["admin", "alerts"], queryFn: () => api<AlertSettings>("/admin/alerts") });

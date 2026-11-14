@@ -116,7 +116,7 @@ it('saves where the alerts go and which ones, and sends a test', function () {
     $this->getJson('/api/v1/admin/alerts')->assertOk()
         ->assertJsonPath('data.email', null)
         ->assertJsonPath('data.mail_ready', false)
-        ->assertJsonCount(4, 'data.available');
+        ->assertJsonCount(5, 'data.available');
     $this->postJson('/api/v1/admin/alerts/test')->assertStatus(422)->assertJsonPath('code', 'alert_email_missing');
 
     $this->putJson('/api/v1/admin/alerts', ['email' => 'not-an-email', 'events' => []])->assertStatus(422)->assertJsonValidationErrors('email');

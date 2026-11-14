@@ -50,7 +50,7 @@ describe("ImportPage", () => {
   it("shows the guessed columns with samples and starts the import with the chosen options", async () => {
     params.value = new URLSearchParams("id=7");
     const preview = { ...base, id: 7, status: "uploaded", source: "shopify", headers: ["Title", "Variant Price", "Variant SKU", "Notes"], samples: [["Hoodie", "450", "HD-1", "x"]], mapping: { name: 0, price: 1, sku: 2 }, fields: [], multi: ["images"], room: 2 };
-    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    fetchMock.mockImplementation(async (url: string) => {
       if (String(url).endsWith("/start")) return Response.json({ data: { ...preview, status: "queued" } });
       if (String(url).includes("/product-imports/7")) return Response.json({ data: preview });
       return Response.json({ data: [preview] });

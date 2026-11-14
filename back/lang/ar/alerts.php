@@ -18,6 +18,15 @@ return [
         'reference' => 'رقم التحويل',
         'action' => 'راجع الإيصال',
     ],
+    'support' => [
+        'subject' => 'محادثة دعم جديدة #:number من :store',
+        'intro' => 'متجر «:store» فتح محادثة مع الدعم.',
+        'number' => 'رقم التذكرة',
+        'store' => 'المتجر',
+        'topic' => 'الموضوع',
+        'message' => 'الرسالة',
+        'action' => 'افتح المحادثة',
+    ],
     'refund' => [
         'subject' => 'طلب استرداد من :store',
         'intro' => ':store طلب استرداد فلوس الاشتراك.',

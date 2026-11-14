@@ -1,10 +1,12 @@
 "use client";
 
-import { CalendarClock, ReceiptText, Undo2, type LucideIcon } from "lucide-react";
+import { CalendarClock, Headset, ReceiptText, Undo2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { ar } from "@/messages/ar";
+import { useSupportLive } from "../support/api";
 import { useAdminOverview } from "./api";
+import { useSupportUnread } from "./support-page";
 
 const t = ar.admin.attention;
 
@@ -14,22 +16,26 @@ export function AdminShell({ name, children }: { name: string; children: React.R
   const pending = overview.data?.billing.pending_payments ?? 0;
   const refunds = overview.data?.billing.refund_requests ?? 0;
   const expiring = overview.data?.subscriptions.expiring_week ?? 0;
+  // Support messages arrive live everywhere in the admin (badge, bell, open conversation).
+  useSupportLive("support", null);
+  const support = useSupportUnread().data?.unread ?? 0;
 
   return (
     <AppShell
       area="admin"
       account={{ name, store: ar.admin.role, storeUrl: null }}
-      badges={{ "/admin/payments": pending, "/admin/refunds": refunds }}
-      alertCount={pending + refunds}
-      notifications={<AttentionList pending={pending} refunds={refunds} expiring={expiring} />}
+      badges={{ "/admin/payments": pending, "/admin/refunds": refunds, "/admin/support": support }}
+      alertCount={pending + refunds + support}
+      notifications={<AttentionList pending={pending} refunds={refunds} expiring={expiring} support={support} />}
     >
       {children}
     </AppShell>
   );
 }
 
-export function AttentionList({ pending, refunds, expiring }: { pending: number; refunds: number; expiring: number }) {
+export function AttentionList({ pending, refunds, expiring, support = 0 }: { pending: number; refunds: number; expiring: number; support?: number }) {
   const items: Array<{ key: string; icon: LucideIcon; label: string; href: string; tone: string }> = [
+    support > 0 ? { key: "support", icon: Headset, label: t.support(support), href: "/admin/support", tone: "bg-brand-soft text-brand-strong" } : null,
     pending > 0 ? { key: "payments", icon: ReceiptText, label: t.payments(pending), href: "/admin/payments", tone: "bg-accent-soft text-accent-ink" } : null,
     refunds > 0 ? { key: "refunds", icon: Undo2, label: t.refunds(refunds), href: "/admin/refunds", tone: "bg-danger-soft text-danger" } : null,
     expiring > 0 ? { key: "expiring", icon: CalendarClock, label: t.expiring(expiring), href: "/admin/stores?tab=expiring", tone: "bg-info-soft text-info" } : null,

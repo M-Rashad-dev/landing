@@ -23,6 +23,7 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 - demo data: `php artisan platform:demo` (owner `demo@example.com`, super admin `admin@example.com`, password `demo-pass-123`; refuses production)
 - deploy files (`docker-compose.yml`, Dockerfiles, `deploy/*`) were never run here (no Docker): treat them as untested
 - custom domains locally: `*.localtest.me` resolves to 127.0.0.1 (= local `SERVER_IP`), so it verifies through real DNS; tests swap `DnsResolver` (see `fakeDns()` in `tests/Feature/Domains`)
+- realtime (support chat): `php artisan reverb:start --host=127.0.0.1 --port=8080` (started by `tools/start-dev.sh`); `REVERB_ALLOWED_ORIGINS` takes host names without port
 - smoke: `bash scripts/smoke-*.sh` (needs both apps + queue running: `bash tools/start-dev.sh`; run `php artisan cache:clear` first to reset the register rate limit)
 
 ## Next 16 notes

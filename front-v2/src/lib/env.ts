@@ -15,5 +15,14 @@ export function serverEnv() {
     /** Public site URLs (redirects to the primary host). Production: https, no port. */
     publicScheme: (process.env.PUBLIC_SCHEME === "http" ? "http" : "https") as "http" | "https",
     publicPort: process.env.PUBLIC_PORT ?? "",
+    /** The browser's realtime connection (Laravel Reverb). Null key = realtime off (the chat still works on reload). */
+    realtime: process.env.REVERB_APP_KEY
+      ? {
+          key: process.env.REVERB_APP_KEY,
+          host: process.env.REVERB_PUBLIC_HOST ?? "",
+          port: Number(process.env.REVERB_PUBLIC_PORT ?? 443),
+          scheme: (process.env.REVERB_PUBLIC_SCHEME === "http" ? "http" : "https") as "http" | "https",
+        }
+      : null,
   };
 }

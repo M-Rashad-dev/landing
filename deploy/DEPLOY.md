@@ -53,6 +53,7 @@ cp .env.example .env
 | `APP_KEY` | `echo "base64:$(openssl rand -base64 32)"` |
 | `DB_PASSWORD` و`DB_ROOT_PASSWORD` | باسوردات قوية مختلفة |
 | `INTERNAL_API_KEY` و`REVALIDATE_SECRET` | كل واحد `openssl rand -hex 32` (قيمتين مختلفتين) |
+| `REVERB_APP_ID` و`REVERB_APP_KEY` و`REVERB_APP_SECRET` | شات الدعم اللحظي (Reverb، شغال على نفس السيرفر): رقم أي رقم، والمفتاح `openssl rand -hex 10`، والسر `openssl rand -hex 32` |
 
 `.env` فيه أسرار: `chmod 600 .env`، وماتحطوش في git.
 

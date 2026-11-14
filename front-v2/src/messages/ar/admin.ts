@@ -8,6 +8,7 @@ export const admin = {
     items: {
       home: "الرئيسية",
       stores: "المتاجر",
+      support: "الدعم",
       payments: "المدفوعات",
       refunds: "الاسترداد",
       methods: "وسائل الدفع",
@@ -24,6 +25,7 @@ export const admin = {
     payments: (n: number) => (n === 1 ? "إيصال واحد مستني مراجعة" : `${formatNumber(n)} إيصالات مستنية مراجعة`),
     refunds: (n: number) => (n === 1 ? "طلب استرداد واحد" : `${formatNumber(n)} طلبات استرداد`),
     expiring: (n: number) => (n === 1 ? "اشتراك واحد بيخلص خلال أسبوع" : `${formatNumber(n)} اشتراكات بتخلص خلال أسبوع`),
+    support: (n: number) => (n === 1 ? "محادثة دعم مستنية ردك" : `${formatNumber(n)} محادثات دعم مستنية ردك`),
   },
 
   home: {
@@ -543,6 +545,7 @@ export const admin = {
         receipt_submitted: { title: "متجر يرفع إيصال دفع", description: "عشان تراجعه بسرعة والباقة تتفعّل للتاجر." },
         refund_requested: { title: "متجر يطلب استرداد", description: "فيه المبلغ والسبب." },
         store_registered: { title: "متجر جديد يتسجل", description: "اسم المتجر والمالك وموبايله." },
+        support_ticket: { title: "محادثة دعم جديدة", description: "رقم التذكرة واسم المتجر والموضوع وأول رسالة." },
         daily_summary: { title: "ملخص كل يوم الساعة 9 الصبح", description: "متاجر جديدة، طلبات ومبيعات امبارح، دخل الاشتراكات، واللي مستنيك." },
       } as Record<string, { title: string; description: string }>,
       saved: "التنبيهات اتحفظت",

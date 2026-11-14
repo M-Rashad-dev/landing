@@ -4,8 +4,10 @@
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/tools/env.sh"
 (cd "$ROOT/back" && php artisan serve --host=127.0.0.1 --port=8010 > "$ROOT/tools/laravel.log" 2>&1) &
-(cd "$ROOT/back" && php artisan queue:work --sleep=1 --tries=3 > "$ROOT/tools/queue.log" 2>&1) &
+(cd "$ROOT/back" && php artisan queue:work --sleep=1 --tries=3 --timeout=1800 > "$ROOT/tools/queue.log" 2>&1) &
 # Scheduler: subscriptions:sweep (every minute), domain checks, lead pruning.
 (cd "$ROOT/back" && php artisan schedule:work > "$ROOT/tools/schedule.log" 2>&1) &
+# Realtime (support chat): WebSocket server on :8080.
+(cd "$ROOT/back" && php artisan reverb:start --host=127.0.0.1 --port=8080 > "$ROOT/tools/reverb.log" 2>&1) &
 (cd "$ROOT/front" && pnpm start > "$ROOT/tools/next.log" 2>&1) &
 wait

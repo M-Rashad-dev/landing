@@ -97,6 +97,24 @@ final class AdminAlerts
         });
     }
 
+    /** A store opened a support conversation. */
+    public function supportTicket(Tenant $tenant, int $number, string $topic, string $preview): void
+    {
+        $this->guard(AdminAlert::SupportTicket, fn (): AdminAlertMail => new AdminAlertMail(
+            AdminAlert::SupportTicket->value,
+            __('alerts.support.subject', ['number' => $number, 'store' => $tenant->name]),
+            __('alerts.support.intro', ['store' => $tenant->name]),
+            [
+                ['label' => __('alerts.support.number'), 'value' => '#'.$number],
+                ['label' => __('alerts.support.store'), 'value' => $tenant->name],
+                ['label' => __('alerts.support.topic'), 'value' => $topic],
+                ['label' => __('alerts.support.message'), 'value' => $preview],
+            ],
+            __('alerts.support.action'),
+            $this->adminUrl('admin/support?ticket='.$number),
+        ));
+    }
+
     public function storeRegistered(Tenant $tenant, User $owner, string $host): void
     {
         $this->guard(AdminAlert::StoreRegistered, fn (): AdminAlertMail => new AdminAlertMail(

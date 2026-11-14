@@ -28,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/internal.php'));
         },
     )
+    // Realtime channel auth for the dashboards, with the same token as the API.
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'tenant.user' => ResolveTenantFromUser::class,

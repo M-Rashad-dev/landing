@@ -27,7 +27,7 @@ final class PlatformSettings
         'support_whatsapp' => null,
         // Email alerts to the platform owner (AdminAlerts): where, and which ones.
         'alert_email' => null,
-        'alert_events' => ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary'],
+        'alert_events' => ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary', 'support_ticket'],
     ];
 
     /** @var array<string, mixed>|null */

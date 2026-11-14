@@ -11,6 +11,7 @@ enum AdminAlert: string
     case RefundRequested = 'refund_requested';
     case StoreRegistered = 'store_registered';
     case DailySummary = 'daily_summary';
+    case SupportTicket = 'support_ticket';
 
     /** @return list<string> */
     public static function values(): array

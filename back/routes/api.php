@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewControl
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Api\V1\Admin\PlatformPageController as AdminPlatformPageController;
+use App\Http\Controllers\Api\V1\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\Api\V1\Admin\TenantBillingController as AdminTenantBillingController;
 use App\Http\Controllers\Api\V1\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
+use App\Http\Controllers\Api\V1\Dashboard\SupportController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
 use App\Http\Controllers\Api\V1\PlatformPageController;
@@ -110,6 +112,20 @@ Route::prefix('dashboard')
 
         Route::apiResource('identities', IdentityController::class);
         Route::post('identities/{identity}/make-default', [IdentityController::class, 'makeDefault']);
+
+        // Support chat with the platform (conversations by their number). Open even when the plan has
+        // expired: that is exactly when a store needs to ask about payment.
+        Route::withoutMiddleware('plan.writable')->group(function (): void {
+            Route::get('support/summary', [SupportController::class, 'summary']);
+            Route::get('support/tickets', [SupportController::class, 'index']);
+            Route::post('support/tickets', [SupportController::class, 'store'])->middleware('throttle:support');
+            Route::get('support/tickets/{number}', [SupportController::class, 'show'])->whereNumber('number');
+            Route::post('support/tickets/{number}/messages', [SupportController::class, 'message'])->whereNumber('number')->middleware('throttle:support');
+            Route::post('support/tickets/{number}/read', [SupportController::class, 'read'])->whereNumber('number');
+            Route::post('support/tickets/{number}/close', [SupportController::class, 'close'])->whereNumber('number');
+            Route::post('support/tickets/{number}/rating', [SupportController::class, 'rate'])->whereNumber('number');
+            Route::get('support/attachments/{id}', [SupportController::class, 'attachment'])->whereNumber('id');
+        });
 
         // Product import from a sheet (before the products resource so "imports" is not a product id).
         Route::get('product-imports', [ProductImportController::class, 'index']);
@@ -312,6 +328,16 @@ Route::prefix('admin')
         Route::put('plans/{key}', [AdminPlanController::class, 'update']);
         Route::delete('plans/{key}', [AdminPlanController::class, 'destroy']);
         Route::put('billing/settings', [AdminPlanController::class, 'updateSettings']);
+
+        Route::get('support/tickets', [AdminSupportController::class, 'index']);
+        Route::get('support/unread', [AdminSupportController::class, 'unread']);
+        Route::get('support/stats', [AdminSupportController::class, 'stats']);
+        Route::get('support/tickets/{number}', [AdminSupportController::class, 'show'])->whereNumber('number');
+        Route::post('support/tickets/{number}/messages', [AdminSupportController::class, 'message'])->whereNumber('number');
+        Route::post('support/tickets/{number}/read', [AdminSupportController::class, 'read'])->whereNumber('number');
+        Route::post('support/tickets/{number}/close', [AdminSupportController::class, 'close'])->whereNumber('number');
+        Route::post('support/tickets/{number}/reopen', [AdminSupportController::class, 'reopen'])->whereNumber('number');
+        Route::get('support/attachments/{id}', [AdminSupportController::class, 'attachment'])->whereNumber('id');
 
         Route::get('platform-pages', [AdminPlatformPageController::class, 'index']);
         Route::get('platform-pages/{slug}', [AdminPlatformPageController::class, 'show']);

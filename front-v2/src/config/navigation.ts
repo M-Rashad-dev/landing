@@ -9,6 +9,7 @@ import {
   Blocks,
   FileText,
   FolderTree,
+  Headset,
   Gift,
   Home,
   Megaphone,
@@ -88,7 +89,13 @@ const a = ar.admin.nav;
 /** The platform admin (/admin). */
 export const ADMIN_NAV: NavGroup[] = [
   { items: [{ href: "/admin", label: a.items.home, icon: Home, status: "ready", exact: true }] },
-  { label: a.groups.stores, items: [{ href: "/admin/stores", label: a.items.stores, icon: Store, status: "ready" }] },
+  {
+    label: a.groups.stores,
+    items: [
+      { href: "/admin/stores", label: a.items.stores, icon: Store, status: "ready" },
+      { href: "/admin/support", label: a.items.support, icon: Headset, status: "ready" },
+    ],
+  },
   {
     label: a.groups.money,
     items: [

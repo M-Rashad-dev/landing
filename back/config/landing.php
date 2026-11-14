@@ -49,6 +49,19 @@ return [
         'products', 'categories', 'cart', 'checkout', 'pages', 'search', 'offers', 'account',
     ],
 
+    // Support chat between stores and the platform.
+    'support' => [
+        // A conversation waiting for the merchant closes after this many hours without a reply.
+        'idle_hours' => (int) env('SUPPORT_IDLE_HOURS', 12),
+        // At most this many open conversations per store…
+        'max_open' => 2,
+        // …and a new one only this many hours after the last one still open was started.
+        'open_gap_hours' => 12,
+        'max_files' => 5,
+        'image_max_kb' => 10 * 1024,
+        'video_max_kb' => 50 * 1024,
+    ],
+
     // Platform safety ceilings. Plan limits (admin) apply below these; "unlimited" means up to here.
     'limits' => [
         'pages' => 200,

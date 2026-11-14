@@ -37,6 +37,15 @@ https:// {
 		header Cache-Control "public, max-age=2592000, immutable"
 	}
 
+	# Realtime sockets of the dashboards (Laravel Reverb), on the app host only.
+	@reverb {
+		host {$APP_HOST}
+		path /app/* /apps/*
+	}
+	handle @reverb {
+		reverse_proxy reverb:8080
+	}
+
 	# Everything else: Next (dashboard, builder, public sites, BFF). Caddy keeps the original
 	# Host and adds X-Forwarded-For. Laravel (back-web) and /internal/* are never exposed.
 	handle {

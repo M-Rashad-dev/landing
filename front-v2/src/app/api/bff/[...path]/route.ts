@@ -5,11 +5,11 @@ import { forbiddenOrigin, jsonError, upstreamUnavailable } from "@/lib/http/json
 import { forwardedHeaders, isSafeMethod, isSameOrigin } from "@/lib/http/request";
 
 /** Laravel route groups the dashboard may reach through the BFF. */
-const ALLOWED_ROOTS = new Set(["dashboard", "admin", "auth"]);
+const ALLOWED_ROOTS = new Set(["dashboard", "admin", "auth", "broadcasting"]);
 const ALLOWED_AUTH = new Set(["me"]);
 
 /** Response headers passed back to the browser. */
-const PASS_HEADERS = ["content-type", "content-disposition", "retry-after", "cache-control"];
+const PASS_HEADERS = ["content-type", "content-disposition", "retry-after", "cache-control", "content-range", "accept-ranges", "content-length"];
 
 type Context = { params: Promise<{ path: string[] }> };
 
@@ -44,6 +44,9 @@ async function proxy(request: NextRequest, context: Context): Promise<NextRespon
   if (contentType) headers.set("Content-Type", contentType);
   const contentLength = request.headers.get("content-length");
   if (contentLength) headers.set("Content-Length", contentLength);
+  // Videos in the support chat play in parts.
+  const range = request.headers.get("range");
+  if (range && isSafeMethod(request.method)) headers.set("Range", range);
 
   const hasBody = !isSafeMethod(request.method) && request.body !== null;
 

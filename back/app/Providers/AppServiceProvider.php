@@ -61,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('receipt-upload', fn (Request $request) => Limit::perHour(10)->by('receipt-upload:'.($request->user()?->tenant_id ?? $request->ip())));
         RateLimiter::for('public-plans', fn (Request $request) => Limit::perMinute(60)->by('public-plans:'.$request->ip()));
 
+        // Support: opening conversations and sending messages (files can be big).
+        RateLimiter::for('support', fn (Request $request) => Limit::perMinute(20)->by('support:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Product sheet uploads are read in the request (columns, sample rows): a few per minute.
         RateLimiter::for('product-imports', fn (Request $request) => Limit::perMinute(10)->by('product-imports:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
