@@ -8,6 +8,8 @@ import type { StoreConfig } from "@/lib/store/types";
 import { TrackingScripts } from "@/lib/tracking/scripts";
 import { captureUtm } from "@/lib/tracking/utm";
 import { Footer, Header, WhatsappButton } from "./chrome";
+import { SufiFrame } from "../sufi/sufi-store";
+import { SUFI_KEY } from "../sufi/types";
 import { AsasRoot } from "./root";
 
 type Shop = { config: StoreConfig };
@@ -57,12 +59,17 @@ export function AsasShell({ config, children }: { config: StoreConfig; children:
   return (
     <QueryProvider>
     <ShopContext.Provider value={shop}>
-      <AsasRoot settings={config.design.settings} data={config.data} storeName={config.store_name} mode="live" className="flex min-h-dvh flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <WhatsappButton />
-      </AsasRoot>
+      {/* The store's theme draws the frame; the inner pages are shared and take its colors. */}
+      {config.theme_key === SUFI_KEY ? (
+        <SufiFrame config={config}>{children}</SufiFrame>
+      ) : (
+        <AsasRoot settings={config.design.settings} data={config.data} storeName={config.store_name} mode="live" className="flex min-h-dvh flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <WhatsappButton />
+        </AsasRoot>
+      )}
       <TrackingScripts tracking={config.tracking} />
     </ShopContext.Provider>
     </QueryProvider>

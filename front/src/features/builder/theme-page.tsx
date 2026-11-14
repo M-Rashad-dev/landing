@@ -16,7 +16,7 @@ import { ar } from "@/messages/ar";
 const t = ar.design.page;
 
 /** Screenshots of the themes (front/public/themes). */
-const SHOTS: Record<string, string> = { asas: "/themes/asas.png" };
+const SHOTS: Record<string, string> = { asas: "/themes/asas.png", sufi: "/themes/sufi.png" };
 
 export function ThemePage() {
   const allowed = usePlanFeature("store");

@@ -39,6 +39,8 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { AsasStore, type Selection } from "@/themes/asas/asas-store";
+import { SufiStore } from "@/themes/sufi/sufi-store";
+import { SUFI_KEY, type SufiDesign } from "@/themes/sufi/types";
 import type { Design, DesignData, MediaUrls, Section, SectionType, Settings } from "@/themes/asas/types";
 import { copySection, designKey, newSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type DesignPayload } from "./api";
 import { SectionGallery, SectionIcon } from "./section-gallery";
@@ -426,6 +428,18 @@ function Editor({ initial }: { initial: DesignPayload }) {
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-5">
           <DeviceFrame device={device} host={host}>
             <div ref={frame} className="h-full overflow-y-auto">
+              {initial.theme.key === SUFI_KEY ? (
+                <SufiStore
+                  design={draft as unknown as SufiDesign}
+                  data={data}
+                  storeName={initial.store_name}
+                  mode="builder"
+                  selected={selected === "look" || selected === "general" ? null : selected}
+                  onSelect={(id) => select(id)}
+                  media={media}
+                  tools={tools}
+                />
+              ) : (
               <AsasStore
                 design={draft}
                 data={data}
@@ -436,6 +450,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
                 media={media}
                 tools={tools}
               />
+              )}
             </div>
           </DeviceFrame>
         </main>

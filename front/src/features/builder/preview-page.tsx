@@ -3,6 +3,8 @@
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { errorMessage } from "@/lib/api/errors";
 import { AsasStore } from "@/themes/asas/asas-store";
+import { SufiStore } from "@/themes/sufi/sufi-store";
+import { SUFI_KEY, type SufiDesign } from "@/themes/sufi/types";
 import { useDesign } from "./api";
 
 /** The saved draft as the store will look, full page (links stay inert until the storefront exists). */
@@ -18,7 +20,11 @@ export function PreviewPage() {
   }
   return (
     <div className="min-h-dvh">
-      <AsasStore design={query.data.draft} data={query.data.data} storeName={query.data.store_name} mode="preview" />
+      {query.data.theme.key === SUFI_KEY ? (
+        <SufiStore design={query.data.draft as unknown as SufiDesign} data={query.data.data} storeName={query.data.store_name} mode="preview" />
+      ) : (
+        <AsasStore design={query.data.draft} data={query.data.data} storeName={query.data.store_name} mode="preview" />
+      )}
     </div>
   );
 }
