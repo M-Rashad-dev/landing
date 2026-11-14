@@ -24,12 +24,11 @@
   MySQL 8 + Redis in production, Laravel Reverb for realtime, Caddy for HTTPS (on-demand TLS for merchant domains),
   everything in Docker Compose on one VPS.
 - **State**: feature-complete for a first production test. Deployed once to the owner's VPS
-  (`https://13.140.220.40.sslip.io`). The latest work («صوفي» paid theme + theme pages) is committed locally on
-  `v4` and **not pushed yet**.
+  (`https://13.140.220.40.sslip.io`). All work is pushed to `v4` and `main`.
 - **Next agreed work** (owner's order): (1) **notifications system incl. SMS for OTP** (provider being negotiated),
   (2) paid plans / online payment, then more paid themes (owner's designs) — see §12.
 - **The owner**: talk to him in **short Egyptian Arabic**, build **one part at a time and stop for his review**,
-  never use an external service without his approval, never push or deploy without being asked. Details in §1.
+  never use an external service without his approval, push every commit (v4 + main) but never deploy to the server yourself. Details in §1.
 
 ---
 
@@ -71,7 +70,7 @@ running app himself and is detail-oriented about UX.
   home demo, theme showcase stores, ready page templates).
 - **No legacy compatibility code**: change/rename/delete in place instead of keeping parallel endpoints.
 - **Commits**: one per finished part, message ending with
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. **Never push unless he asks.** Never force anything.
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. **Every commit is pushed right away** (owner, 2026-11-14: «مش عاوز اي commit بدون push»): `git push origin v4` and fast-forward `main` (`git push origin v4:main`), which he deploys from. Never force-push.
 - **Browser checks** use a **throwaway tenant** (registered by script, e.g. name "Sufi Smoke") that is **deleted
   afterwards** with its files. Never save the owner's demo store design/products (he tests on the same local stack
   at the same time — it broke his Builder once). Read-only looks at the demo account are fine.
@@ -483,8 +482,5 @@ Landing Builder lives in `features/landings/`.
 
 - Branch **`v4`** (current work). `main` on GitHub (`origin`, private repo `M-Rashad-dev/landing`) was fast-forwarded
   to `b385c66` (cut-over) and deployed.
-- Committed locally on `v4`, **not pushed** (ask before pushing): store setup skip + «بيتجهز» page (`79cfec1`),
-  Sufi back end (`21588f3`), Sufi storefront (`26a41c8`), Sufi in the Builder (`098c991`), paid themes on the theme
-  page (`1f1010e`), theme page + showcase store (`0fa90a4`), and this documentation clean-up.
-- When the owner says push: `git push origin v4` and fast-forward main (`git push origin v4:main`) — he deploys from
-  `main`. After pushing, the server picks up Sufi on the next `./deploy/deploy.sh` (ThemeSeeder adds its row).
+- Everything up to the brand logo commit is pushed to `v4` and `main`. The server picks up «صوفي» and the logo on
+  the owner's next `./deploy/deploy.sh` (ThemeSeeder adds the «صوفي» row).
