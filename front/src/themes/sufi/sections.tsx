@@ -91,7 +91,7 @@ function Hero({ id, props }: { id: string; props: HeroProps }) {
   const count = props.slides.length;
 
   React.useEffect(() => {
-    if (!props.autoplay || count < 2 || mode !== "live") return;
+    if (!props.autoplay || count < 2 || mode === "builder") return;
     const timer = window.setInterval(() => setOn((i) => (i + 1) % count), 6500);
     return () => window.clearInterval(timer);
   }, [props.autoplay, count, mode]);
@@ -321,7 +321,7 @@ function useNow(live: boolean): number | null {
 function Countdown({ id, props }: { id: string; props: CountdownProps }) {
   const { data, mode } = useSufi();
   const image = useImage();
-  const now = useNow(mode === "live");
+  const now = useNow(mode !== "builder");
   const left = now === null ? null : Math.max(0, new Date(props.ends_at).getTime() - now);
   const ended = left === 0;
   if (ended && props.on_end === "hide" && mode === "live") return null;
@@ -404,7 +404,10 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
   };
 
   const add = (then: "cart" | "checkout") => {
-    if (mode !== "live") return;
+    if (mode !== "live") {
+      setMessage(t.featured.previewOnly);
+      return;
+    }
     if (product.options.some((o) => o.is_required && chosen[o.id] === undefined)) {
       setMessage(t.featured.pickAll);
       return;
@@ -568,7 +571,7 @@ function Video({ props }: { props: VideoProps }) {
           {playing && embed ? (
             <iframe src={embed} title={props.title ?? t.video.play} className="absolute inset-0 size-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
           ) : (
-            <button type="button" onClick={() => mode === "live" && setPlaying(true)} className="group absolute inset-0 block" aria-label={t.video.play}>
+            <button type="button" onClick={() => mode !== "builder" && setPlaying(true)} className="group absolute inset-0 block" aria-label={t.video.play}>
               {poster ? (
                 // eslint-disable-next-line @next/next/no-img-element -- merchant cover or the video's own poster
                 <img src={poster} alt="" className="size-full object-cover" loading="lazy" />
@@ -813,7 +816,7 @@ function Location({ props }: { props: LocationProps }) {
           </div>
           {branch ? (
             <div className="sf-reveal relative h-80 overflow-hidden rounded-[1.6rem] border @5xl:h-[30rem]">
-              {mode === "live" ? (
+              {mode !== "builder" ? (
                 <iframe key={on} src={mapEmbed(branch)} title={branch.name} className="size-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
               ) : (
                 <span className="flex size-full items-center justify-center bg-(--sf-soft)">

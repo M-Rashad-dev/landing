@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, ExternalLink, Paintbrush, Power, ShoppingBag } from "lucide-react";
+import { Check, ExternalLink, Eye, Paintbrush, Power, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,12 +16,13 @@ import { errorMessage } from "@/lib/api/errors";
 import { usePlanFeature } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { THEME_DEMOS, THEME_SHOTS } from "@/themes/registry";
 import { useStoreThemes, type StoreTheme } from "./api";
 
 const t = ar.design.page;
 
-/** Screenshots of the themes (front/public/themes). */
-const SHOTS: Record<string, string> = { asas: "/themes/asas.png", sufi: "/themes/sufi.png" };
+const shotOf = (key: string): string | null => THEME_SHOTS[key]?.[0] ?? null;
+const detailOf = (key: string) => `/dashboard/design/themes/${encodeURIComponent(key)}`;
 
 export function ThemePage() {
   const allowed = usePlanFeature("store");
@@ -72,20 +73,22 @@ export function ThemePage() {
                   const design = query.data.exists ? query.data.design : null;
                   return (
                     <article key={theme.key} className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
-                      <div className="relative aspect-[16/10] overflow-hidden border-b border-border bg-surface-2">
-                        {SHOTS[theme.key] ? (
+                      <Link href={detailOf(theme.key)} className="group relative block aspect-[16/10] overflow-hidden border-b border-border bg-surface-2" aria-label={`${theme.name} · ${t.details}`}>
+                        {shotOf(theme.key) ? (
                           // eslint-disable-next-line @next/next/no-img-element -- static screenshot
-                          <img src={SHOTS[theme.key]} alt={theme.name} className="size-full object-cover object-top" />
+                          <img src={shotOf(theme.key)!} alt={theme.name} className="size-full object-cover object-top transition duration-500 group-hover:scale-[1.03]" />
                         ) : null}
                         {theme.active ? (
                           <Badge tone="success" className="absolute start-3 top-3" dot>
                             {t.active}
                           </Badge>
                         ) : null}
-                      </div>
+                      </Link>
                       <div className="flex flex-1 flex-col gap-2 p-4">
                         <p className="flex items-center gap-2 text-lg font-bold">
-                          {theme.name}
+                          <Link href={detailOf(theme.key)} className="hover:underline">
+                            {theme.name}
+                          </Link>
                           {theme.free ? <Badge size="sm">{t.free}</Badge> : null}
                         </p>
                         {theme.short_description ? <p className="text-sm text-ink-2">{theme.short_description}</p> : null}
@@ -159,19 +162,21 @@ function PaidThemes({ owned }: { owned: string[] }) {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {themes.map((theme) => {
-              const shot = SHOTS[theme.key] ?? theme.cover?.large ?? theme.cover?.medium ?? null;
+              const shot = theme.cover?.large ?? theme.cover?.medium ?? shotOf(theme.key);
               const price = theme.price;
               return (
                 <article key={theme.key} className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
-                  <div className="relative aspect-[16/10] overflow-hidden border-b border-border bg-surface-2">
+                  <Link href={detailOf(theme.key)} className="group relative block aspect-[16/10] overflow-hidden border-b border-border bg-surface-2" aria-label={`${theme.name} · ${t.details}`}>
                     {shot ? (
                       // eslint-disable-next-line @next/next/no-img-element -- static screenshot or platform media
-                      <img src={shot} alt={theme.name} className="size-full object-cover object-top" />
+                      <img src={shot} alt={theme.name} className="size-full object-cover object-top transition duration-500 group-hover:scale-[1.03]" />
                     ) : null}
-                  </div>
+                  </Link>
                   <div className="flex flex-1 flex-col gap-2 p-4">
                     <p className="flex items-center justify-between gap-2">
-                      <span className="text-lg font-bold">{theme.name}</span>
+                      <Link href={detailOf(theme.key)} className="text-lg font-bold hover:underline">
+                        {theme.name}
+                      </Link>
                       {price ? (
                         <span className="flex items-baseline gap-1.5">
                           <b className="tabular">{formatMoney(price.final)}</b>
@@ -190,13 +195,21 @@ function PaidThemes({ owned }: { owned: string[] }) {
                         ))}
                       </ul>
                     ) : null}
-                    <div className="mt-auto pt-2">
+                    <div className="mt-auto flex flex-wrap gap-2 pt-2">
                       <Button asChild>
-                        <Link href={`/dashboard/settings/billing/checkout?theme=${encodeURIComponent(theme.key)}`}>
+                        <Link href={detailOf(theme.key)}>
                           <ShoppingBag />
                           {t.buy}
                         </Link>
                       </Button>
+                      {THEME_DEMOS.has(theme.key) ? (
+                        <Button asChild variant="outline">
+                          <Link href={`${detailOf(theme.key)}/demo`} target="_blank">
+                            <Eye />
+                            {t.demo}
+                          </Link>
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 </article>

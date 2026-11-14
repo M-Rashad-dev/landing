@@ -118,10 +118,11 @@
 .sf-qa-icon { transition: transform 0.2s, background 0.2s; }
 
 /* ---------- floating ---------- */
-.sf-float { position: fixed; z-index: 45; bottom: 1.25rem; inset-inline-end: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+/* Under the header (z-40), so the phone menu it opens covers them. */
+.sf-float { position: fixed; z-index: 35; bottom: 1.25rem; inset-inline-end: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
 [data-mode="builder"] .sf-float { position: absolute; }
 /* An orthogonal writing mode stretches a fixed box to the screen: size it to its words. */
-.sf-offers-tab { position: fixed; z-index: 44; top: 40%; inset-inline-start: 0; writing-mode: vertical-rl; height: max-content; width: max-content; padding: 0.9rem 0.45rem; border-start-end-radius: 0.8rem; border-end-end-radius: 0.8rem; }
+.sf-offers-tab { position: fixed; z-index: 35; top: 40%; inset-inline-start: 0; writing-mode: vertical-rl; height: max-content; width: max-content; padding: 0.9rem 0.45rem; border-start-end-radius: 0.8rem; border-end-end-radius: 0.8rem; }
 @container (min-width: 48rem) { .sf-offers-tab { padding: 1.1rem 0.6rem; } }
 
 /* Gallery: the last tile widens to close its row (big first tile = 2×2). */

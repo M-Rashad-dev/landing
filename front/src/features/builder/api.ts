@@ -32,7 +32,13 @@ export type StoreTheme = {
   can_publish?: boolean;
   cover: Record<string, string> | null;
   features?: string[];
+  description?: string | null;
+  tags?: Array<{ id: number; slug: string; name: string }>;
+  images?: Array<{ id: number; kind: "cover" | "desktop" | "mobile"; urls: Record<string, string> }>;
+  min_plan?: { key: string; name: string } | null;
 };
+
+export const useStoreTheme = (key: string) => useQuery({ queryKey: ["store", "theme-store", key], queryFn: () => api<StoreTheme>(`/dashboard/theme-store/${encodeURIComponent(key)}`) });
 
 export const useStoreThemes = () => useQuery({ queryKey: ["store", "theme-store"], queryFn: () => api<StoreTheme[]>("/dashboard/theme-store", { query: { kind: "store" } }) });
 

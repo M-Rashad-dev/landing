@@ -121,15 +121,20 @@ export function Header() {
   const [open, setOpen] = React.useState(false);
   const [searching, setSearching] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const ref = React.useRef<HTMLElement>(null);
   const layout = settings.header.layout;
   const f = settings.footer;
 
   React.useEffect(() => {
-    if (mode !== "live") return;
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    if (mode === "builder") return;
+    // The page scrolls, or a box around the store (the theme's showcase, a preview frame).
+    let box: HTMLElement | null = ref.current?.parentElement ?? null;
+    while (box && !/(auto|scroll)/.test(getComputedStyle(box).overflowY)) box = box.parentElement;
+    const target: HTMLElement | Window = box ?? window;
+    const onScroll = () => setScrolled((box ? box.scrollTop : window.scrollY) > 40);
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => target.removeEventListener("scroll", onScroll);
   }, [mode]);
 
   const tools = (
@@ -154,7 +159,7 @@ export function Header() {
   );
 
   return (
-    <header className={cn("sf-header", scrolled && "sf-scrolled", !settings.header.sticky && "!static")}>
+    <header ref={ref} className={cn("sf-header", scrolled && "sf-scrolled", !settings.header.sticky && "!static")}>
       {settings.header.topbar ? (
         <div className="sf-topbar sf-hline hidden @3xl:block">
           <div className="sf-wrap as-xs flex h-full items-center justify-between gap-6 opacity-85">

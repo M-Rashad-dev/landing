@@ -121,7 +121,8 @@ export function SufiRoot({
   const [visitor, toggle] = useVisitorScheme(settings, mode === "live");
   const scheme = forced ?? visitor;
   const ref = React.useRef<HTMLDivElement>(null);
-  const motion = settings.general.animations && mode === "live";
+  // Motion everywhere but the Builder (sections there must show at once to be edited).
+  const motion = settings.general.animations && mode !== "builder";
   useReveal(ref, motion);
 
   const colors = scheme === "dark" ? settings.colors_dark : settings.colors;

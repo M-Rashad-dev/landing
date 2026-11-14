@@ -25,6 +25,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("theme-store/sufi")) return Response.json({ data: { ...themeStore[1], description: "وصف", tags: [], images: [] } });
       if (String(url).includes("theme-store")) return Response.json({ data: themeStore });
       if (init?.method === "PUT") return Response.json({ data: store() });
       return Response.json({ data: store() });
@@ -52,7 +53,25 @@ describe("ThemePage", () => {
     const card = (await screen.findByText("ثيم متجر فخم")).closest("article")!;
     expect(within(card).getByText("صوفي")).toBeInTheDocument();
     expect(within(card).getByText("16 قسم للرئيسية")).toBeInTheDocument();
-    expect(within(card).getByRole("link", { name: t.buy })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=sufi");
+    // The picture, the name and «اشتريه» open the theme's page; «معاينة الثيم» its showcase store.
+    expect(within(card).getByRole("link", { name: t.buy })).toHaveAttribute("href", "/dashboard/design/themes/sufi");
+    expect(within(card).getByRole("link", { name: `صوفي · ${t.details}` })).toHaveAttribute("href", "/dashboard/design/themes/sufi");
+    expect(within(card).getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi/demo");
+  });
+
+  it("shows a theme's page with its price, what it has, the checkout and the showcase", async () => {
+    const { StoreThemeDetail } = await import("./theme-detail");
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <TooltipProvider>
+          <StoreThemeDetail themeKey="sufi" />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("16 قسم للرئيسية")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: new RegExp(t.buy) })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=sufi");
+    expect(screen.getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi/demo");
+    expect(screen.getByText(t.detail.oneTime)).toBeInTheDocument();
   });
 
   it("moves a bought theme to «ثيماتي» and switches the store to it", async () => {

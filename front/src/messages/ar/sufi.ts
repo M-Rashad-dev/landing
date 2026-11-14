@@ -38,6 +38,7 @@ export const sufi = {
     reviews: (avg: number, n: number) => `${formatNumber(avg)} · ${formatNumber(n)} تقييم`,
     details: "تفاصيل المنتج",
     gone: "المنتج ده مش متاح دلوقتي.",
+    previewOnly: "ده عرض للثيم: الشراء بيشتغل في متجرك الحقيقي.",
   },
   video: { play: "شغّل الفيديو" },
   faq: { whatsapp: "كلّمنا واتساب", open: "افتح الإجابة" },
