@@ -92,7 +92,7 @@ return [
         'export_max_rows' => 10000,
     ],
 
-    // Plans and subscriptions (docs/features/3-PLANS.md). Prices, limits and the trial are set in the admin.
+    // Plans and subscriptions (docs/PROJECT.md). Prices, limits and the trial are set in the admin.
     'billing' => [
         'currency' => 'EGP',
         // Upgrading within these days of a paid period costs only the difference.

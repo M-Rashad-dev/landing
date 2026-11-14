@@ -32,7 +32,7 @@ const t = ar.nav;
 
 /**
  * "ready" pages are open; "soon" pages show locked in the sidebar until their part is built.
- * Opening a part = changing its status here (docs/frontend-v2/HANDOFF.md tracks which part is next).
+ * Opening a part = changing its status here (docs/PROJECT.md tracks what is next).
  */
 export type NavStatus = "ready" | "soon";
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The theme store (docs/features/1-STORES.md part A): catalog details on the existing themes
+ * The theme store (docs/PROJECT.md): catalog details on the existing themes
  * table (platform), images and tags (platform), and what each store owns (tenant).
  * A theme is code; the admin edits only how it is shown and sold.
  */

@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Merchants paying the platform (docs/features/2-PAYMENTS.md). Manual transfers first
+ * Merchants paying the platform (docs/PROJECT.md). Manual transfers first
  * (InstaPay / wallets: receipt + admin review); a gateway plugs into the same invoices later.
  */
 return new class extends Migration

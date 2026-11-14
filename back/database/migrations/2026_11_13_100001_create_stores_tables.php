@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The full online store (docs/features/1-STORES.md part B): one store per tenant on its own
+ * The full online store (docs/PROJECT.md): one store per tenant on its own
  * domain, categories as a tree, products with stock, multi-product orders, store pages.
  * The store home is a landing_pages row (kind = store_home) edited in the existing Builder.
  */

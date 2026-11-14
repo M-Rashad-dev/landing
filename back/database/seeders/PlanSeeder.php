@@ -14,7 +14,7 @@ use App\Models\PlanPrice;
 use Illuminate\Database\Seeder;
 
 /**
- * The three starting plans (docs/features/3-PLANS.md). Safe on every deploy: creates what is
+ * The three starting plans (docs/PROJECT.md). Safe on every deploy: creates what is
  * missing and never overwrites prices or values the admin already changed.
  */
 class PlanSeeder extends Seeder

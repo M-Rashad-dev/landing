@@ -119,7 +119,7 @@ theme only disappears from new pages). Every admin action is written to `admin_a
 `docker-compose.yml` + `deploy/`: Caddy (automatic HTTPS, on-demand certificates for custom domains), Next
 (standalone), nginx + php-fpm, queue, scheduler, MySQL 8, Redis. Follow [deploy/DEPLOY.md](deploy/DEPLOY.md)
 (Arabic, step by step): fill `.env` from `.env.example`, run `./deploy/deploy.sh`, then `platform:create-admin`.
-Backups: `deploy/backup.sh` (daily cron) and `deploy/restore.sh`. Architecture notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Backups: `deploy/backup.sh` (daily cron) and `deploy/restore.sh`. Architecture notes: [docs/PROJECT.md](docs/PROJECT.md).
 
 ## Themes
 
