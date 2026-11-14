@@ -27,8 +27,18 @@ it('starts with shipping off and no company, and needs an active company to swit
 
     $this->putJson('/api/v1/dashboard/shipping', ['enabled' => true])->assertStatus(422)->assertJsonValidationErrors(['enabled']);
 
+    // The first company turns the fees on by itself.
     $this->postJson('/api/v1/dashboard/shipping-companies', companyPayload())->assertCreated();
-    $this->putJson('/api/v1/dashboard/shipping', ['enabled' => true])->assertOk()->assertJsonPath('data.enabled', true)->assertJsonCount(1, 'data.companies');
+    $this->getJson('/api/v1/dashboard/shipping')->assertOk()->assertJsonPath('data.enabled', true)->assertJsonCount(1, 'data.companies');
+});
+
+it('keeps the merchant choice of on / off when more companies are added', function () {
+    $this->postJson('/api/v1/dashboard/shipping-companies', companyPayload())->assertCreated();
+    $this->putJson('/api/v1/dashboard/shipping', ['enabled' => false])->assertOk()->assertJsonPath('data.enabled', false);
+
+    $this->postJson('/api/v1/dashboard/shipping-companies', companyPayload(['name' => 'أرامكس']))->assertCreated();
+
+    $this->getJson('/api/v1/dashboard/shipping')->assertOk()->assertJsonPath('data.enabled', false);
 });
 
 it('saves a company with only the governorates that differ, and revalidates the site', function () {

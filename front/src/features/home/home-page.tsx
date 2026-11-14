@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, Clock, PackageX, PhoneCall, ShoppingCart, Tag, Truck } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -12,7 +12,7 @@ import { DateRangePicker, presetRange, type RangeValue } from "@/components/form
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ErrorState, Skeleton } from "@/components/ui/feedback";
+import { ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
 import { DASHBOARD_NAV, DASHBOARD_FOOTER_NAV } from "@/config/navigation";
@@ -267,6 +267,22 @@ function Todo({ todo }: { todo?: Home["todo"] }) {
 
 function Setup({ steps }: { steps: Home["setup"]["steps"] }) {
   const s = t.setup;
+  const client = useQueryClient();
+  const [skipping, setSkipping] = React.useState<SetupKey | null>(null);
+
+  // An optional step (the custom domain) can be skipped: it then counts as done for this store.
+  async function skip(key: SetupKey) {
+    setSkipping(key);
+    try {
+      await api<void>(`/dashboard/home/setup/${key}/skip`, { method: "POST" });
+      await client.invalidateQueries({ queryKey: ["home"] });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSkipping(null);
+    }
+  }
+
   return (
     <Panel>
       <PanelHeader title={s.title} description={s.description} />
@@ -276,9 +292,16 @@ function Setup({ steps }: { steps: Home["setup"]["steps"] }) {
             label: step.optional ? `${s.steps[step.key]} (${s.optional})` : s.steps[step.key],
             done: step.done,
             action: ready(SETUP_LINKS[step.key]) ? (
-              <Button asChild size="sm" variant={step.optional ? "ghost" : "outline"}>
-                <Link href={SETUP_LINKS[step.key]}>{s.go}</Link>
-              </Button>
+              <div className="flex items-center gap-1.5">
+                {step.optional && !step.done ? (
+                  <Button size="sm" variant="ghost" onClick={() => void skip(step.key)} disabled={skipping !== null}>
+                    {s.skip}
+                  </Button>
+                ) : null}
+                <Button asChild size="sm" variant={step.optional ? "ghost" : "outline"}>
+                  <Link href={SETUP_LINKS[step.key]}>{s.go}</Link>
+                </Button>
+              </div>
             ) : (
               <Badge size="sm">{s.soon}</Badge>
             ),

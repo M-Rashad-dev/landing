@@ -7,6 +7,7 @@ namespace App\Actions\Shipping;
 use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\ShippingCompany;
+use App\Models\ShippingSetting;
 use App\Pricing\Shipping;
 use App\Tenancy\Tenancy;
 use Illuminate\Support\Facades\DB;
@@ -30,10 +31,15 @@ final class SaveShippingCompany
             if ($company === null) {
                 $company = new ShippingCompany(['position' => (int) ShippingCompany::query()->max('position') + 1]);
             }
+            $isNew = ! $company->exists;
             $company->fill($data)->save();
             $company->rates()->delete();
             foreach ($rates as $rate) {
                 $company->rates()->create($rate);
+            }
+            // The first company turns the fees on, unless the merchant already chose on / off.
+            if ($isNew && $company->is_active && ! ShippingSetting::query()->exists()) {
+                ShippingSetting::query()->create(['enabled' => true]);
             }
 
             return $company;

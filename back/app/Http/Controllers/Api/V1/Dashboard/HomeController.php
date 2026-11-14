@@ -232,7 +232,9 @@ final class HomeController extends Controller
         if ($hasStore) {
             $steps[] = ['key' => 'store', 'done' => $setup->isLive($tenant, $store), 'optional' => false];
         }
-        $steps[] = ['key' => 'domain', 'done' => Domain::query()->where('type', DomainType::Custom)->exists(), 'optional' => true];
+        // An optional step the merchant chose to skip counts as done (tenant settings, SetupSkipController).
+        $skipped = (array) ($tenant->settings['setup_skipped'] ?? []);
+        $steps[] = ['key' => 'domain', 'done' => in_array('domain', $skipped, true) || Domain::query()->where('type', DomainType::Custom)->exists(), 'optional' => true];
 
         return ['steps' => $steps, 'done' => collect($steps)->every(fn (array $s) => $s['done'] || $s['optional'])];
     }

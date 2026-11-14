@@ -111,3 +111,18 @@ it('validates the period, keeps stores apart and needs a token', function () {
     app('auth')->forgetGuards();
     $this->getJson('/api/v1/dashboard/home')->assertUnauthorized();
 });
+
+it('skips the optional domain step for this store only, and refuses the required steps', function () {
+    $this->postJson('/api/v1/dashboard/home/setup/domain/skip')->assertNoContent();
+    expect(collect($this->getJson('/api/v1/dashboard/home')->json('data.setup.steps'))->firstWhere('key', 'domain')['done'])->toBeTrue();
+
+    $this->postJson('/api/v1/dashboard/home/setup/shipping/skip')->assertNotFound();
+    $this->postJson('/api/v1/dashboard/home/setup/product/skip')->assertNotFound();
+
+    // Another store still sees the step.
+    actingAsOwner(createOwner());
+    expect(collect($this->getJson('/api/v1/dashboard/home')->json('data.setup.steps'))->firstWhere('key', 'domain')['done'])->toBeFalse();
+
+    app('auth')->forgetGuards();
+    $this->postJson('/api/v1/dashboard/home/setup/domain/skip')->assertUnauthorized();
+});

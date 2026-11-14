@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, PauseCircle, SearchX } from "lucide-react";
+import { CircleCheck, PauseCircle, SearchX, Store } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
@@ -72,6 +72,24 @@ export function StoreNotFound() {
 }
 
 /** A store whose subscription is paused or unpaid: no store name, no products, only this. */
+/** A store whose owner has not finished it: visitors are told to come back, the owner where to go. */
+export function StoreNotReady({ dashboardUrl }: { dashboardUrl: string }) {
+  return (
+    <div dir="rtl" lang="ar" className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white p-6 text-center text-neutral-800">
+      <Store className="size-12 text-neutral-400" aria-hidden />
+      <h1 className="text-2xl font-extrabold">{t.notReady.title}</h1>
+      <p className="max-w-md text-sm text-neutral-500">{t.notReady.text}</p>
+      <div className="mt-4 max-w-md rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+        <p className="font-bold text-neutral-800">{t.notReady.ownerTitle}</p>
+        <p className="mt-1">{t.notReady.ownerText}</p>
+        <a href={dashboardUrl} className="mt-3 inline-flex rounded-lg bg-neutral-900 px-4 py-2 font-bold text-white">
+          {t.notReady.ownerAction}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function StorePaused() {
   return (
     <div dir="rtl" lang="ar" className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white p-6 text-center text-neutral-800">

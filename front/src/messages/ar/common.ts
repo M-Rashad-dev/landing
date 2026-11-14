@@ -1,5 +1,6 @@
 /** Words used across the whole dashboard. */
 export const common = {
+  notFound: { title: "الصفحة دي مش موجودة", text: "اتأكد من الرابط، أو ارجع للصفحة الرئيسية." },
   save: "حفظ",
   saving: "جاري الحفظ...",
   cancel: "إلغاء",

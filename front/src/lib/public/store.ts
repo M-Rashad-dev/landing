@@ -26,10 +26,12 @@ export const getStoreProduct = cache(async (host: string, slug: string) => (awai
 
 export const getStorePage = cache(async (host: string, slug: string) => (await publicGet<StaticPage>(`store/pages/${encodeURIComponent(slug)}`, host))?.data ?? null);
 
-export type LiveStore = { host: string; config: StoreConfig; suspended: false } | { host: string; config: null; suspended: true };
+/** `notReady`: the host is a store whose owner has not finished it (off, not published, or not in the plan). */
+export type LiveStore = { host: string; config: StoreConfig; suspended: false } | { host: string; config: null; suspended: true; notReady?: boolean };
 
 /**
- * Every store page: host → site → live store. Unknown host or no live store → 404; a suspended
+ * Every store page: host → site → live store. Unknown host → 404; a store not ready yet → the
+ * "being prepared" page; a suspended
  * (or unpaid) store → the paused page; a host that is not the primary one → permanent redirect to
  * the primary host on the same path.
  */
@@ -44,7 +46,7 @@ export const loadStore = cache(async (rawHost: string): Promise<LiveStore> => {
     const path = (await headers()).get(SITE_PATH_HEADER) ?? "/";
     permanentRedirect(primaryRedirectUrl(site.primary_host, path.startsWith("/") ? path : "/", { scheme: env.publicScheme, port: env.publicPort }));
   }
-  if (!site.store_live) notFound();
+  if (!site.store_live) return { host, config: null, suspended: true, notReady: true };
   const config = await getStoreConfig(host);
   if (!config) notFound();
   return { host, config, suspended: false };

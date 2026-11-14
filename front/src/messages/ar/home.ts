@@ -53,6 +53,7 @@ export const home = {
     },
     optional: "اختياري",
     go: "يلا",
+    skip: "تخطي",
     soon: "قريبًا",
   },
 } as const;

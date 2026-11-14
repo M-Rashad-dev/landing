@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PricingController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
+use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
@@ -186,6 +187,7 @@ Route::prefix('dashboard')
 
         Route::get('overview', OverviewController::class);
         Route::get('home', HomeController::class);
+        Route::post('home/setup/{step}/skip', SetupSkipController::class);
         Route::get('analytics', AnalyticsController::class);
 
         Route::get('ab-tests', [AbTestController::class, 'index']);

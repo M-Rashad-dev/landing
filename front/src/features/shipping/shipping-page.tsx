@@ -111,6 +111,11 @@ export function ShippingPage() {
             <PanelBody className="py-3">
               <SwitchRow title={t.enabled} description={t.enabledHint} checked={data.enabled} onCheckedChange={(v) => void onSwitch(v)} />
               {switchError ? <Alert tone="warning">{switchError}</Alert> : null}
+              {!data.enabled && data.companies.some((c) => c.is_active) ? (
+                <Alert tone="warning" title={t.offTitle} className="mt-2">
+                  {t.offText}
+                </Alert>
+              ) : null}
             </PanelBody>
           </Panel>
 
