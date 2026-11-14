@@ -1,4 +1,4 @@
-import { badRequest, forwardPublic, relay, visitorBody, visitorHost, visitorIp } from "@/lib/public/visitor";
+import { badRequest, pickKeys, relayPublic, visitorBody, visitorHost } from "@/lib/public/visitor";
 
 export const dynamic = "force-dynamic";
 
@@ -6,10 +6,5 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const body = await visitorBody(request);
   if (!body || !Array.isArray(body.items)) return badRequest();
-  return relay(
-    forwardPublic("/public/store/quote", {
-      method: "POST",
-      body: { items: body.items, code: body.code ?? null, phone: body.phone ?? null, governorate: body.governorate ?? null, host: visitorHost(request), ip: visitorIp(request) },
-    }),
-  );
+  return relayPublic("/public/store/quote", { method: "POST", body: { ...pickKeys(body, ["items", "code", "phone", "governorate", "shipping_company_id"]), host: visitorHost(request) } });
 }

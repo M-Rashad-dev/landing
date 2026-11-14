@@ -1,97 +1,76 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AB_TEST_COOKIE } from "@/lib/ab/cookie";
 import { AB_COOKIE_MAX_AGE, matchRoute, pickVariant, routesForHost, VARIANT_COOKIE } from "@/lib/ab/split";
 import { TOKEN_COOKIE } from "@/lib/auth/cookie";
-import { AB_TEST_COOKIE } from "@/lib/tracking/visit";
-import {
-  APP_ALLOWED_PREFIXES,
-  APP_ONLY_PREFIXES,
-  classifyHost,
-  LEGAL_PATHS,
-  matchesPrefix,
-  normalizeHost,
-} from "@/lib/host/classify";
+import { platformPageSlug } from "@/lib/host/platform-pages";
+import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, matchesPrefix, STORE_API_PREFIXES } from "@/lib/host/classify";
+import { requestHost } from "@/lib/http/request";
+import { SITE_PATH_HEADER } from "@/lib/public/host";
 
 /**
- * Host routing (Next 16 "proxy", formerly middleware):
- * - PLATFORM_DOMAIN → marketing page
- * - APP_HOST        → dashboard / admin / preview / api only
- * - any other host  → tenant public site, rewritten to /sites/{host}{path}
- *   (folder is "sites" because Next treats "_folders" as private; it is only
- *   reachable through this rewrite, every other host 404s on /sites).
+ * Host routing (Next 16 "proxy", formerly middleware). Only fast checks: the real session check is
+ * /auth/me in the layouts.
+ * - APP_HOST        → dashboard, admin, sign-in, api
+ * - PLATFORM_DOMAIN → the marketing home page at "/" and the platform pages at /{slug} (drawn from /platform, reachable only this way); other paths as the app host
+ * - any other host  → that store, rewritten to /sites/{host}{path} (reachable only through this rewrite);
+ *   a landing page link under an A/B test shows page A or page B, kept per visitor in a cookie
  */
 export async function proxy(request: NextRequest) {
   const config = {
     platformDomain: (process.env.PLATFORM_DOMAIN ?? "localhost").toLowerCase(),
     appHost: (process.env.APP_HOST ?? "app.localhost").toLowerCase(),
   };
-  const rawHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  const host = normalizeHost(rawHost);
+  const host = requestHost(request);
   const kind = classifyHost(host, config);
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  // Machine endpoints (secret-protected / health) answer on any host, including front:3000.
-  if (pathname === "/api/revalidate" || pathname === "/api/health") return NextResponse.next();
-  // Uploaded images (Caddy serves them in production; the dev fallback route proxies Laravel).
-  if (pathname.startsWith("/media/")) return NextResponse.next();
-
-  if (kind === "app") return handleAppHost(request, pathname);
+  // Machine endpoints (revalidate is secret-protected; health is the container check) and uploaded images answer on any host.
+  if (pathname === "/api/revalidate" || pathname === "/api/health" || pathname.startsWith("/media/")) return NextResponse.next();
 
   if (kind === "platform") {
-    if (pathname === "/" || LEGAL_PATHS.includes(pathname)) return NextResponse.next();
-    if (matchesPrefix(pathname, APP_ONLY_PREFIXES)) {
-      const url = new URL(request.nextUrl.toString());
-      url.host = config.appHost;
-      url.port = request.nextUrl.port;
-      return NextResponse.redirect(url);
+    const page = pathname === "/" ? "" : platformPageSlug(pathname);
+    if (page !== null) {
+      const url = request.nextUrl.clone();
+      url.pathname = page ? `/platform/${page}` : "/platform";
+      return NextResponse.rewrite(url);
     }
-    return notFound(request);
   }
+  if (kind !== "tenant") return appHost(request, pathname, search);
 
-  // Tenant host: block every app-only path, rewrite the rest to the public renderer.
-  if (matchesPrefix(pathname, APP_ONLY_PREFIXES)) return notFound(request);
-  if (pathname.startsWith("/api/")) {
-    // Visitors may reach the public form endpoints only.
-    if (matchesPrefix(pathname, ["/api/public"])) return NextResponse.next();
-    return notFound(request);
-  }
+  // A store host: app pages do not exist here; the visitor endpoints do.
+  if (matchesPrefix(pathname, APP_ONLY_PREFIXES) || pathname.startsWith("/sites/")) return notFound(request);
+  if (pathname.startsWith("/api/")) return matchesPrefix(pathname, STORE_API_PREFIXES) ? NextResponse.next() : notFound(request);
 
   const url = request.nextUrl.clone();
   url.pathname = `/sites/${encodeURIComponent(host)}${pathname === "/" ? "" : pathname}`;
+  const headers = new Headers(request.headers);
+  headers.set(SITE_PATH_HEADER, pathname + search);
 
-  // A/B test on this link: page A or B under the same URL, kept per visitor (cookie).
   const route = request.method === "GET" ? matchRoute(await routesForHost(host), pathname) : null;
-  if (!route) return NextResponse.rewrite(url);
+  if (!route) return NextResponse.rewrite(url, { request: { headers } });
   const variant = pickVariant(route, request.cookies.get(VARIANT_COOKIE(route.id))?.value);
   if (variant === "b") url.pathname = `/sites/${encodeURIComponent(host)}/${encodeURIComponent(route.b)}`;
-  const response = NextResponse.rewrite(url);
+  const response = NextResponse.rewrite(url, { request: { headers } });
   const cookie = { path: "/", maxAge: AB_COOKIE_MAX_AGE, sameSite: "lax" as const };
   response.cookies.set(VARIANT_COOKIE(route.id), variant, cookie);
   response.cookies.set(AB_TEST_COOKIE, String(route.id), cookie);
   return response;
 }
 
-function handleAppHost(request: NextRequest, pathname: string) {
+function appHost(request: NextRequest, pathname: string, search: string) {
   const hasToken = Boolean(request.cookies.get(TOKEN_COOKIE)?.value);
 
-  if (pathname === "/") return redirectTo(request, hasToken ? "/dashboard" : "/login");
-
+  if (pathname === "/") return NextResponse.redirect(new URL(hasToken ? "/dashboard" : "/login", request.url));
   if (!matchesPrefix(pathname, APP_ALLOWED_PREFIXES)) return notFound(request);
 
-  const isAuthPage = matchesPrefix(pathname, ["/login", "/register"]);
-  const isProtected = matchesPrefix(pathname, ["/dashboard", "/admin", "/preview"]);
-
-  if (isProtected && !hasToken) {
+  if (matchesPrefix(pathname, ["/dashboard", "/admin"]) && !hasToken) {
     const url = new URL("/login", request.url);
-    url.searchParams.set("next", pathname + request.nextUrl.search);
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
-  if (isAuthPage && hasToken) return redirectTo(request, "/dashboard");
+  if (matchesPrefix(pathname, ["/login", "/register"]) && hasToken) return NextResponse.redirect(new URL("/dashboard", request.url));
 
   return NextResponse.next();
-}
-
-function redirectTo(request: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, request.url));
 }
 
 function notFound(request: NextRequest) {
@@ -102,5 +81,5 @@ function notFound(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|fonts/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|themes/).*)"],
 };

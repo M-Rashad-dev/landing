@@ -365,3 +365,10 @@ Specs: `docs/features/` (RULES, 1-STORES, 2-PAYMENTS, 3-PLANS).
   - The admin's performance tab: first reply and resolution times, average rating, satisfied (4–5) and solved percentages, topics, daily volume, low ratings to follow up.
   - New email alert to the owner on a new conversation (on by default with the others).
   - **Deploy fix found on the way**: the private disk (`storage/app/private`: receipts, product sheets being imported, chat files) is now a shared `private` volume for back-app, queue and scheduler; before, each container had its own copy and lost it on deploy (the product import would have failed in production). PHP upload limit raised to 55 MB, Next `proxyClientMaxBodySize` 60 MB.
+
+## 2026-11-14 — Cut-over and production readiness
+- The old front end is deleted; `front-v2/` is now `front/` (the only front end). The old Playwright e2e suite went with it.
+- Fresh production database = migrations + base seeders only (themes, plans, payment methods off, platform pages) + `PlatformAdminSeeder` (the owner's super admin from `PLATFORM_ADMIN_*` in `.env`, created once, never updated). No demo data.
+- Laravel image on Debian (`php:8.3-fpm-bookworm`), not Alpine: musl iconv can't decode Windows-1256 CSV files (product import).
+- `storage/app/private` is created in the image so the shared `private` volume is writable by www-data; it is included in the daily backup (without temporary import sheets).
+- Mail is optional in production (`MAIL_MAILER=log` until SMTP is set).

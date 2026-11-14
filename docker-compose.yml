@@ -1,5 +1,5 @@
 # Production stack (PLAN section 20). Start with ./deploy/deploy.sh, which builds, migrates and caches.
-# Only Caddy publishes ports (80, 443). Untested on this machine (no Docker) — see PROGRESS.md.
+# Only Caddy publishes ports (80, 443). Full guide: deploy/DEPLOY.md.
 
 x-logging: &logging
   driver: json-file
@@ -51,6 +51,20 @@ x-back-env: &back-env
   REVERB_SERVER_HOST: 0.0.0.0
   REVERB_SERVER_PORT: "8080"
   REVERB_ALLOWED_ORIGINS: ${APP_HOST}
+  # Email (admin alerts...). Empty MAIL_MAILER = log only (nothing is sent).
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  MAIL_SCHEME: ${MAIL_SCHEME:-}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@example.com}
+  MAIL_FROM_NAME: "${MAIL_FROM_NAME:-مكسب}"
+  # The owner's super admin, created once on a fresh database (PlatformAdminSeeder).
+  PLATFORM_ADMIN_NAME: ${PLATFORM_ADMIN_NAME:-Admin}
+  PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL}
+  PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD}
+  PLATFORM_ADMIN_PHONE: ${PLATFORM_ADMIN_PHONE}
 
 services:
   caddy:

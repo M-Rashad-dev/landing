@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { PaymentsPage } from "@/features/admin/payments-page";
 import { ar } from "@/messages/ar";
-import { PaymentsManager } from "./payments-manager";
 
-export const metadata: Metadata = { title: ar.admin.nav.payments };
+export const metadata: Metadata = { title: ar.admin.payments.title };
 
-export default function AdminPaymentsPage() {
-  return (
-    <>
-      <PageHeader title={ar.admin.nav.payments} description={ar.admin.payments.description} />
-      <PaymentsManager />
-    </>
-  );
+export default function Page() {
+  return <PaymentsPage />;
 }

@@ -1,13 +1,14 @@
 import { z } from "zod";
-import { isValidPhone } from "@/lib/format/phone";
+import { isValidPhone } from "@/lib/phone";
 import { ar } from "@/messages/ar";
 
-/** Shared zod building blocks with Arabic messages. */
+/** Shared zod building blocks with Arabic messages (the back end stays the reference). */
 export const zRequiredString = (max = 191, min = 1) =>
   z
     .string({ error: ar.validation.required })
     .trim()
-    .min(min, min <= 1 ? ar.validation.required : ar.validation.min(min))
+    .min(1, ar.validation.required)
+    .min(min, ar.validation.min(min))
     .max(max, ar.validation.max(max));
 
 export const zEmail = z.string({ error: ar.validation.required }).trim().min(1, ar.validation.required).email(ar.validation.email).max(191, ar.validation.max(191));

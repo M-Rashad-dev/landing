@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ar } from "@/messages/ar";
 
 export function jsonError(status: number, code: string, message?: string): NextResponse {
-  const fallback = status === 403 ? ar.errors.forbidden : status === 404 ? ar.errors.notFoundTitle : ar.errors.generic;
+  const fallback = status === 403 ? ar.errors.forbidden : status === 404 ? ar.errors.notFound : ar.errors.generic;
   return NextResponse.json({ message: message ?? fallback, code }, { status });
 }
 

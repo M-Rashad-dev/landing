@@ -1,21 +1,20 @@
 # Next.js image (standalone output). All configuration is read from env at runtime:
-# nothing domain- or secret-specific is baked into the build.
-# Untested on this machine (no Docker in the dev environment) — see PROGRESS.md.
+# nothing domain- or secret-specific is baked into the build. Fonts come from @fontsource CSS imports.
 
 FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM node:22-alpine AS build
 WORKDIR /app
 RUN corepack enable
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NODE_OPTIONS=--max-old-space-size=3072
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Fonts for public pages are copied from @fontsource into public/fonts before building.
-RUN node scripts/copy-fonts.mjs && pnpm exec next build
+RUN pnpm exec next build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { LoginForm } from "@/features/auth/login-form";
 import { ar } from "@/messages/ar";
-import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: ar.auth.loginTitle };
 

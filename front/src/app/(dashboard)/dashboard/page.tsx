@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { getSession } from "@/lib/auth/session";
+import { Suspense } from "react";
+import { HomePage } from "@/features/home/home-page";
 import { ar } from "@/messages/ar";
-import { HomeOverview } from "./home-overview";
 
-export const metadata: Metadata = { title: ar.nav.home };
+export const metadata: Metadata = { title: ar.home.title };
 
-export default async function DashboardHome() {
-  const session = await getSession();
-
+export default function Page() {
   return (
-    <>
-      <PageHeader title={ar.dashboard.welcomeTitle(session.user.name)} description={ar.dashboard.welcomeText} />
-      <HomeOverview />
-    </>
+    <Suspense>
+      <HomePage />
+    </Suspense>
   );
 }

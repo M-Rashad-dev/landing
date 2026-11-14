@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ar } from "@/messages/ar";
 import { ApiError, applyServerErrors, errorMessage } from "./errors";
 
 describe("applyServerErrors", () => {
@@ -36,7 +37,7 @@ describe("applyServerErrors", () => {
 describe("errorMessage", () => {
   it("uses the server message or a network message", () => {
     expect(errorMessage(new ApiError(409, { message: "مستخدمة" }))).toBe("مستخدمة");
-    expect(errorMessage(new ApiError(0, {}))).toContain("تعذر الاتصال");
-    expect(errorMessage(new Error("boom"))).toContain("خطأ");
+    expect(errorMessage(new ApiError(0, {}))).toBe(ar.errors.network);
+    expect(errorMessage(new Error("boom"))).toBe(ar.errors.generic);
   });
 });

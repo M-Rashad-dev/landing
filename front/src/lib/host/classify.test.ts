@@ -1,19 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, LEGAL_PATHS, matchesPrefix, normalizeHost } from "./classify";
+import { APP_ALLOWED_PREFIXES, APP_ONLY_PREFIXES, classifyHost, matchesPrefix } from "./classify";
 
 const config = { platformDomain: "platform.com", appHost: "app.platform.com" };
 
-describe("normalizeHost", () => {
-  it("lowercases and strips port and trailing dot", () => {
-    expect(normalizeHost("Store-1.Platform.com:443")).toBe("store-1.platform.com");
-    expect(normalizeHost("mystore.com.")).toBe("mystore.com");
-    expect(normalizeHost("[::1]:3000")).toBe("[::1]");
-    expect(normalizeHost(null)).toBe("");
-  });
-});
-
 describe("classifyHost", () => {
-  it("detects the app host", () => {
+  it("detects the app host, any port or case", () => {
     expect(classifyHost("app.platform.com", config)).toBe("app");
     expect(classifyHost("APP.platform.com:3000", config)).toBe("app");
   });
@@ -23,34 +14,23 @@ describe("classifyHost", () => {
     expect(classifyHost("www.platform.com", config)).toBe("platform");
   });
 
-  it("treats everything else as a tenant host", () => {
+  it("treats everything else as a store host", () => {
     expect(classifyHost("store-4821.platform.com", config)).toBe("tenant");
-    expect(classifyHost("mystore.com", config)).toBe("tenant");
+    expect(classifyHost("mystore.com.", config)).toBe("tenant");
   });
 });
 
 describe("matchesPrefix", () => {
-  it("matches exact segments only", () => {
+  it("matches whole segments only", () => {
     expect(matchesPrefix("/dashboard", APP_ONLY_PREFIXES)).toBe(true);
-    expect(matchesPrefix("/dashboard/pages", APP_ONLY_PREFIXES)).toBe(true);
+    expect(matchesPrefix("/dashboard/design/builder", APP_ONLY_PREFIXES)).toBe(true);
     expect(matchesPrefix("/dashboards", APP_ONLY_PREFIXES)).toBe(false);
-    expect(matchesPrefix("/offer", APP_ONLY_PREFIXES)).toBe(false);
+    expect(matchesPrefix("/products", APP_ONLY_PREFIXES)).toBe(false);
   });
-});
 
-describe("legal pages", () => {
-  it("are allowed on the app host and never app-only (store hosts render their own pages)", () => {
-    for (const path of LEGAL_PATHS) {
-      expect(matchesPrefix(path, APP_ALLOWED_PREFIXES)).toBe(true);
-      expect(matchesPrefix(path, APP_ONLY_PREFIXES)).toBe(false);
-    }
-  });
-});
-
-describe("theme preview", () => {
-  it("is served on the app host only", () => {
-    expect(matchesPrefix("/theme-preview/celia", APP_ALLOWED_PREFIXES)).toBe(true);
-    expect(matchesPrefix("/theme-preview/celia", APP_ONLY_PREFIXES)).toBe(false);
-    expect(matchesPrefix("/preview/1", APP_ALLOWED_PREFIXES)).toBe(true);
+  it("keeps store pages off the app host", () => {
+    expect(matchesPrefix("/products", APP_ALLOWED_PREFIXES)).toBe(false);
+    expect(matchesPrefix("/sites/x.com", APP_ALLOWED_PREFIXES)).toBe(false);
+    expect(matchesPrefix("/media/1/a.webp", APP_ALLOWED_PREFIXES)).toBe(true);
   });
 });

@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 return [
+    // The owner's super admin on a fresh server (PlatformAdminSeeder; deploy/deploy.sh). Existing accounts are never touched.
+    'platform_admin' => [
+        'name' => env('PLATFORM_ADMIN_NAME', 'Admin'),
+        'email' => env('PLATFORM_ADMIN_EMAIL', ''),
+        'password' => env('PLATFORM_ADMIN_PASSWORD', ''),
+        'phone' => env('PLATFORM_ADMIN_PHONE', ''),
+    ],
 
     /*
     | Platform hosts. PLATFORM_DOMAIN hosts the marketing page and the free

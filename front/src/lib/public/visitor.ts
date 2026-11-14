@@ -1,26 +1,20 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { laravelFetch } from "@/lib/api/server";
-import { normalizeHost } from "@/lib/host/classify";
+import { jsonError, upstreamUnavailable } from "@/lib/http/json";
+import { clientIp, requestHost } from "@/lib/http/request";
 
 const MAX_BODY_BYTES = 32 * 1024;
 
-/** Host the visitor is on (Caddy keeps the original Host). */
-export function visitorHost(request: Request): string {
-  return normalizeHost(request.headers.get("x-forwarded-host") ?? request.headers.get("host"));
-}
+export const visitorHost = requestHost;
 
-/**
- * Client IP: first X-Forwarded-For entry. Behind Caddy that header is set from the real
- * connection (untrusted incoming values are replaced), so it cannot be spoofed by visitors.
- */
+/** The visitor's IP (first X-Forwarded-For entry, set by Caddy from the real connection), or null. */
 export function visitorIp(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || request.headers.get("x-real-ip")?.trim() || "";
+  const ip = clientIp(request);
   return /^[0-9a-fA-F:.]{2,45}$/.test(ip) ? ip : null;
 }
 
-/** Visitor JSON body, size-limited; null when missing, too big or not an object. */
+/** The visitor's JSON body, size-limited; null when missing, too big or not an object. */
 export async function visitorBody(request: Request): Promise<Record<string, unknown> | null> {
   const text = await request.text().catch(() => "");
   if (!text || text.length > MAX_BODY_BYTES) return null;
@@ -32,21 +26,46 @@ export async function visitorBody(request: Request): Promise<Record<string, unkn
   }
 }
 
-/** Relays Laravel's answer (status + JSON) without caching. */
-export async function relay(upstream: Promise<Response>): Promise<NextResponse> {
+/** Calls a public endpoint (internal key, no dashboard token) and relays Laravel's answer, never cached. */
+export async function relayPublic(path: string, init: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; headers?: Record<string, string> } = {}): Promise<NextResponse> {
   try {
-    const response = await upstream;
+    const response = await laravelFetch(path, { auth: false, internal: true, method: init.method ?? "GET", body: init.body, headers: init.headers });
+    if (response.status === 202 || response.status === 204) return new NextResponse(null, { status: response.status, headers: { "Cache-Control": "no-store" } });
     const json = (await response.json().catch(() => ({}))) as unknown;
     return NextResponse.json(json, { status: response.status, headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ message: "تعذر الاتصال بالخادم.", code: "upstream_unavailable" }, { status: 502 });
+    return upstreamUnavailable();
   }
 }
 
-export function forwardPublic(path: string, init: { method?: "GET" | "POST"; body?: unknown } = {}): Promise<Response> {
-  return laravelFetch(path, { auth: false, internal: true, method: init.method ?? "GET", body: init.body });
+export function badRequest(): NextResponse {
+  return jsonError(400, "bad_request");
 }
 
-export function badRequest(): NextResponse {
-  return NextResponse.json({ message: "طلب غير صالح.", code: "bad_request" }, { status: 400 });
+/** Keeps only the listed keys of the visitor's body. */
+export function pickKeys(body: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of keys) if (key in body) out[key] = body[key];
+  return out;
+}
+
+/** The store customer's sign-in (httpOnly, this store's host only). */
+export const CUSTOMER_COOKIE = "as_customer";
+const NINETY_DAYS = 60 * 60 * 24 * 90;
+
+export function customerHeaders(request: Request): Record<string, string> {
+  const pair = (request.headers.get("cookie") ?? "")
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${CUSTOMER_COOKIE}=`));
+  const token = pair?.slice(CUSTOMER_COOKIE.length + 1) ?? "";
+  return /^[A-Za-z0-9]{64}$/.test(token) ? { "X-Customer-Token": token } : {};
+}
+
+export function setCustomerCookie(response: NextResponse, token: string, secure: boolean): void {
+  response.cookies.set({ name: CUSTOMER_COOKIE, value: token, httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: NINETY_DAYS });
+}
+
+export function clearCustomerCookie(response: NextResponse, secure: boolean): void {
+  response.cookies.set({ name: CUSTOMER_COOKIE, value: "", httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 0 });
 }

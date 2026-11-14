@@ -1,7 +1,5 @@
 "use client";
 
-import { announcePlanBlock, isPlanErrorCode } from "@/lib/billing/events";
-import type { PlanBlock } from "@/lib/billing/types";
 import { ApiError, type ApiErrorBody } from "./errors";
 
 export type Paginated<T> = {
@@ -61,8 +59,6 @@ async function parse<T>(response: Response): Promise<T> {
   if (response.status === 204) return undefined as T;
   const json = (await response.json().catch(() => ({}))) as ApiErrorBody;
   if (!response.ok) {
-    // Plan limits / locked features / expired plan: one upgrade dialog instead of a bare error toast.
-    if (response.status === 403 && isPlanErrorCode(json.code)) announcePlanBlock(json as PlanBlock);
     throw new ApiError(response.status, json);
   }
   return json as T;

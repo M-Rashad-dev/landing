@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # First install and every update: ./deploy/deploy.sh  (safe to run again).
-# Checks .env, builds the images, starts the stack, migrates, seeds the themes and checks health.
-# Written without Docker on the dev machine: untested, see PROGRESS.md.
+# Checks .env, builds the images, starts the stack, migrates, seeds the base data and checks health.
+# Seeders only add what is missing: re-running never overwrites what the admin edited.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -18,7 +18,7 @@ set -a
 . ./.env
 set +a
 
-for name in PLATFORM_DOMAIN APP_HOST SERVER_IP APP_KEY DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD INTERNAL_API_KEY REVALIDATE_SECRET REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET; do
+for name in PLATFORM_DOMAIN APP_HOST SERVER_IP APP_KEY DB_DATABASE DB_USERNAME DB_PASSWORD DB_ROOT_PASSWORD INTERNAL_API_KEY REVALIDATE_SECRET REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET PLATFORM_ADMIN_EMAIL PLATFORM_ADMIN_PASSWORD PLATFORM_ADMIN_PHONE; do
   [ -n "${!name:-}" ] || fail "$name is empty in .env"
 done
 [ "$SERVER_IP" != "0.0.0.0" ] || fail "Set SERVER_IP to the server's public IP."
@@ -50,9 +50,10 @@ step "Starting Laravel"
 docker compose up -d back-app
 wait_healthy back-app 120
 
-step "Migrating and seeding themes"
+step "Migrating and seeding (themes, plans, payment methods, platform pages, your admin account)"
 docker compose exec -T back-app php artisan migrate --force
-docker compose exec -T back-app php artisan db:seed --class='Database\Seeders\ThemeSeeder' --force
+docker compose exec -T back-app php artisan db:seed --force
+docker compose exec -T back-app php artisan db:seed --class='Database\Seeders\PlatformAdminSeeder' --force
 
 step "Starting everything"
 docker compose up -d --remove-orphans
@@ -75,5 +76,5 @@ cat <<EOF
   Dashboard:  https://$APP_HOST
   Platform:   https://$PLATFORM_DOMAIN
   Stores:     https://{store}.$PLATFORM_DOMAIN
-  First time: docker compose exec back-app php artisan platform:create-admin
+  Admin:      sign in at https://$APP_HOST with PLATFORM_ADMIN_EMAIL, then change the password.
 EOF

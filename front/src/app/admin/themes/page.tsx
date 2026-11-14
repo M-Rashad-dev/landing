@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { ThemesPage } from "@/features/admin/themes-page";
 import { ar } from "@/messages/ar";
-import { ThemesManager } from "./themes-manager";
 
-export const metadata: Metadata = { title: ar.admin.nav.themes };
+export const metadata: Metadata = { title: ar.admin.themes.title };
 
-export default function ThemesPage() {
-  return (
-    <>
-      <PageHeader title={ar.admin.nav.themes} description={ar.admin.themes.description} />
-      <ThemesManager />
-    </>
-  );
+export default function Page() {
+  return <ThemesPage />;
 }

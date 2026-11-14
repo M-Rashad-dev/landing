@@ -1,4 +1,4 @@
-import { badRequest, forwardPublic, relay, visitorBody, visitorHost } from "@/lib/public/visitor";
+import { badRequest, pickKeys, relayPublic, visitorBody, visitorHost } from "@/lib/public/visitor";
 
 export const dynamic = "force-dynamic";
 
@@ -6,10 +6,5 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const body = await visitorBody(request);
   if (!body) return badRequest();
-  return relay(
-    forwardPublic("/public/store/events", {
-      method: "POST",
-      body: { type: body.type, utm_source: body.utm_source ?? null, referrer: body.referrer ?? null, device: body.device ?? null, host: visitorHost(request) },
-    }),
-  );
+  return relayPublic("/public/store/events", { method: "POST", body: { ...pickKeys(body, ["type", "utm_source", "referrer", "device"]), host: visitorHost(request) } });
 }

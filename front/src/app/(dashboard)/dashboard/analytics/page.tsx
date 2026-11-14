@@ -1,18 +1,14 @@
-import { PlanGate } from "@/components/billing/plan";
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { Suspense } from "react";
+import { AnalyticsPage } from "@/features/analytics/analytics-page";
 import { ar } from "@/messages/ar";
-import { AnalyticsDashboard } from "./analytics-dashboard";
 
 export const metadata: Metadata = { title: ar.analytics.title };
 
-export default function AnalyticsPage() {
+export default function Page() {
   return (
-    <>
-      <PageHeader title={ar.analytics.title} description={ar.analytics.description} />
-      <PlanGate feature="advanced_analytics" label={ar.nav.analytics} replace>
-        <AnalyticsDashboard />
-      </PlanGate>
-    </>
+    <Suspense>
+      <AnalyticsPage />
+    </Suspense>
   );
 }

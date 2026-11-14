@@ -1,28 +1,19 @@
-import { getSitemap, PUBLIC_REVALIDATE } from "@/lib/public/api";
-import { parseSiteHost } from "@/lib/public/host";
+import { notFound } from "next/navigation";
+import { publicGet } from "@/lib/public/fetch";
+import { liveStore } from "@/lib/public/store";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams(): Array<{ host: string }> {
-  return [];
-}
+type Sitemap = { primary_host: string; pages: Array<{ slug: string; url: string; updated_at: string | null }> };
 
-function escapeXml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-}
+const escapeXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** Published, indexable pages of the host's tenant (home on "/"), with primary-host URLs. */
-export async function GET(_request: Request, { params }: { params: Promise<{ host: string }> }) {
-  const host = parseSiteHost((await params).host);
-  const sitemap = host ? await getSitemap(host) : null;
-  if (!sitemap) return new Response("Not found", { status: 404 });
-
-  const urls = sitemap.pages
-    .map((page) => `<url><loc>${escapeXml(page.url)}</loc>${page.updated_at ? `<lastmod>${escapeXml(page.updated_at)}</lastmod>` : ""}</url>`)
-    .join("");
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
-
-  return new Response(xml, {
-    headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": `public, max-age=0, s-maxage=${PUBLIC_REVALIDATE}` },
-  });
+/** Every public URL of the store (home, products, categories, pages), from the back end. */
+export async function GET(_request: Request, context: { params: Promise<{ host: string }> }) {
+  const { host } = await liveStore((await context.params).host);
+  const sitemap = (await publicGet<Sitemap>("sitemap", host))?.data;
+  if (!sitemap) notFound();
+  const urls = sitemap.pages.map((p) => `  <url><loc>${escapeXml(p.url)}</loc>${p.updated_at ? `<lastmod>${escapeXml(p.updated_at)}</lastmod>` : ""}</url>`).join("\n");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
 }

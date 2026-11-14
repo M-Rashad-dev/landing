@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The classic fetch cache (revalidate + tags) drives public-page ISR, so Cache Components stay off.
   cacheComponents: false,
+  experimental: {
+    // Requests pass through proxy.ts: support chat videos go up to 50 MB.
+    proxyClientMaxBodySize: "60mb",
+  },
   turbopack: {
     rules: {
       "*.css": {

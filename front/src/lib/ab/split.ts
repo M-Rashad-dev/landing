@@ -1,6 +1,6 @@
 /**
- * A/B split on public sites, used by the proxy. Each route is an entry link (page A's slug, and
- * "" when A is the home page) whose visitors go to page A or B; the choice is kept in a cookie.
+ * A/B split of landing pages, used by the proxy: each route is page A's link, whose visitors see
+ * page A or page B under that same link; the choice is kept in a cookie for 30 days.
  */
 export type AbRoute = { id: number; entries: string[]; a: string; b: string; split_a: number };
 export type Variant = "a" | "b";
@@ -8,10 +8,10 @@ export type Variant = "a" | "b";
 export const VARIANT_COOKIE = (id: number) => `lp_ab_${id}`;
 export const AB_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
-/** Slug of a public path ("/" → "", "/Offer/" → "offer"); null for paths that are not pages. */
+/** Slug of a landing page link ("/Offer/" → "offer"); null for the store home and other paths. */
 export function slugOfPath(pathname: string): string | null {
   const trimmed = pathname.replace(/^\/+|\/+$/g, "");
-  if (trimmed.includes("/") || trimmed.includes(".") || trimmed === "track") return null;
+  if (trimmed === "" || trimmed.includes("/") || trimmed.includes(".")) return null;
   try {
     return decodeURIComponent(trimmed).toLowerCase();
   } catch {

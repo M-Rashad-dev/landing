@@ -1,5 +1,18 @@
 import type { NextRequest } from "next/server";
-import { normalizeHost } from "@/lib/host/classify";
+
+/** Lowercase host without port or trailing dot. */
+export function normalizeHost(rawHost: string | null | undefined): string {
+  if (!rawHost) return "";
+  let host = rawHost.trim().toLowerCase();
+  if (host.startsWith("[")) {
+    // IPv6 literal: [::1]:3000
+    const end = host.indexOf("]");
+    return end === -1 ? host : host.slice(0, end + 1);
+  }
+  const colon = host.lastIndexOf(":");
+  if (colon !== -1) host = host.slice(0, colon);
+  return host.replace(/\.$/, "");
+}
 
 /** Host the visitor typed (Caddy keeps the original Host header). */
 export function requestHost(request: NextRequest | Request): string {

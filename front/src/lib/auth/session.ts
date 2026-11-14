@@ -4,7 +4,7 @@ import { cache } from "react";
 import { serverApi } from "@/lib/api/server";
 import { serverEnv } from "@/lib/env";
 import { isApiError } from "@/lib/api/errors";
-import type { Session } from "@/lib/types";
+import type { Session } from "@/lib/types/session";
 
 /** Current user (deduplicated per request). Redirects to login when the token is invalid. */
 export const getSession = cache(async (): Promise<Session> => {

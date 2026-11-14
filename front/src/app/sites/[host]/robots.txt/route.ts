@@ -1,23 +1,11 @@
-import { serverEnv } from "@/lib/env";
-import { resolveHost } from "@/lib/public/api";
-import { parseSiteHost, primaryRedirectUrl } from "@/lib/public/host";
+import { liveStore } from "@/lib/public/store";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams(): Array<{ host: string }> {
-  return [];
-}
-
-export async function GET(_request: Request, { params }: { params: Promise<{ host: string }> }) {
-  const host = parseSiteHost((await params).host);
-  const site = host ? await resolveHost(host) : null;
-  if (!site) return new Response("Not found", { status: 404 });
-
-  const env = serverEnv();
-  const body =
-    site.status === "suspended"
-      ? "User-agent: *\nDisallow: /\n"
-      : `User-agent: *\nAllow: /\n\nSitemap: ${primaryRedirectUrl(site.primary_host, "/sitemap.xml", { scheme: env.publicScheme, port: env.publicPort })}\n`;
-
-  return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+/** Search engines may read the store, not its cart, checkout, tracking and accounts. */
+export async function GET(_request: Request, context: { params: Promise<{ host: string }> }) {
+  const { config } = await liveStore((await context.params).host);
+  const sitemap = new URL("/sitemap.xml", config.seo.canonical).toString();
+  const body = ["User-agent: *", "Allow: /", "Disallow: /cart", "Disallow: /checkout", "Disallow: /track", "Disallow: /account", "", `Sitemap: ${sitemap}`, ""].join("\n");
+  return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
 }

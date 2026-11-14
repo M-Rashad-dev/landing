@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { ThemeEditorPage } from "@/features/admin/theme-editor";
 import { ar } from "@/messages/ar";
-import { ThemeEditor } from "./theme-editor";
 
-export const metadata: Metadata = { title: ar.admin.nav.themes };
+export const metadata: Metadata = { title: ar.admin.themes.title };
 
-export default async function AdminThemePage({ params }: { params: Promise<{ key: string }> }) {
+export default async function Page({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  if (!/^[a-z0-9_-]{1,40}$/.test(key)) notFound();
-
-  return <ThemeEditor themeKey={key} />;
+  return <ThemeEditorPage themeKey={decodeURIComponent(key)} />;
 }

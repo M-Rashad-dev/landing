@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { PlanEditorPage } from "@/features/admin/plan-editor";
 import { ar } from "@/messages/ar";
-import { PlanEditor } from "../plan-editor";
 
-export const metadata: Metadata = { title: ar.admin.plans.createTitle };
+export const metadata: Metadata = { title: ar.admin.plans.editor.newTitle };
 
-export default function NewPlanPage() {
-  return <PlanEditor planKey={null} />;
+export default function Page() {
+  return <PlanEditorPage planKey={null} />;
 }

@@ -1,15 +1,13 @@
-import { badRequest, forwardPublic, relay, visitorBody, visitorHost, visitorIp } from "@/lib/public/visitor";
+import { badRequest, pickKeys, relayPublic, visitorBody, visitorHost, visitorIp } from "@/lib/public/visitor";
 
 export const dynamic = "force-dynamic";
 
-/** One-click post-order offer: the signed token from the order response proves the order is the visitor's. */
+/** One click on the thank-you screen (store or landing page): adds the offer to the order just placed. */
 export async function POST(request: Request) {
   const body = await visitorBody(request);
   if (!body) return badRequest();
-  return relay(
-    forwardPublic("/public/upsell", {
-      method: "POST",
-      body: { order_number: body.order_number, upsell_id: body.upsell_id, token: body.token, host: visitorHost(request), ip: visitorIp(request) },
-    }),
-  );
+  return relayPublic("/public/upsell", {
+    method: "POST",
+    body: { ...pickKeys(body, ["order_number", "upsell_id", "token"]), host: visitorHost(request), ip: visitorIp(request) },
+  });
 }

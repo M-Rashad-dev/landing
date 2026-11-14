@@ -2,130 +2,158 @@
 
 import { Command } from "cmdk";
 import { Check, ChevronDown, Search } from "lucide-react";
+import { Popover as PopoverPrimitive } from "radix-ui";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { inputClass } from "./input";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { controlClass } from "./input";
 
-export type SelectOption = { value: string; label: string; disabled?: boolean; hint?: string };
+export type SelectOption = { value: string; label: string; hint?: string; disabled?: boolean; icon?: React.ReactNode };
 
-/** `e.target.value` like a native select, so callers keep `onChange={(e) => set(e.target.value)}`. */
-export type SelectChange = { target: { value: string; name?: string } };
-
-type SelectProps = {
-  options: readonly SelectOption[];
-  value?: string;
-  onChange?: (event: SelectChange) => void;
-  onBlur?: () => void;
+type Common = {
+  options: SelectOption[];
   placeholder?: string;
-  /** Show a search box. Defaults to on when there are more than 7 options. */
+  /** Search row at the top of the list. Default: on from 6 options. */
   searchable?: boolean;
+  searchPlaceholder?: string;
   id?: string;
-  name?: string;
   disabled?: boolean;
-  required?: boolean;
+  invalid?: boolean;
   className?: string;
   "aria-label"?: string;
-  "aria-invalid"?: boolean;
-  "aria-describedby"?: string;
 };
 
 /**
- * Select built on Radix Popover + cmdk: type-to-search, keyboard (arrows, Enter, Esc),
- * animated panel, check mark on the current value. A hidden input carries the value for forms.
+ * One dropdown for every choice in the dashboard (single and multiple), same look everywhere:
+ * the field turns green while open, the list opens under it with a search row, a check marks
+ * the chosen option (single) or each row has a checkbox (multiple). Keyboard: arrows, Enter, Esc, typing searches.
  */
-export function Select({
-  options,
-  value = "",
-  onChange,
-  onBlur,
-  placeholder,
-  searchable,
-  id,
-  name,
-  disabled,
-  required,
-  className,
-  ...aria
-}: SelectProps) {
+export function Select({ value, onValueChange, emptyLabel, ...props }: Common & { value: string; onValueChange: (value: string) => void; emptyLabel?: string }) {
   const [open, setOpen] = React.useState(false);
-  const listId = React.useId();
-  const all = React.useMemo(() => (placeholder !== undefined ? [{ value: "", label: placeholder }, ...options] : options), [options, placeholder]);
-  const selected = all.find((option) => option.value === value);
-  const withSearch = searchable ?? options.length > 7;
-
-  const pick = (next: string) => {
-    setOpen(false);
-    if (next !== value) onChange?.({ target: { value: next, name } });
-  };
+  const chosen = props.options.find((o) => o.value === value);
+  const label = chosen?.label ?? (value === "" && emptyLabel ? emptyLabel : null);
+  const all = emptyLabel ? [{ value: "", label: emptyLabel }, ...props.options] : props.options;
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) onBlur?.();
-      }}
-    >
-      <PopoverTrigger asChild disabled={disabled}>
+    <Dropdown {...props} open={open} onOpenChange={setOpen} label={label}>
+      {all.map((o) => {
+        const on = o.value === value;
+        return (
+          <Row key={o.value || "__empty"} option={o} onSelect={() => (onValueChange(o.value), setOpen(false))} active={on}>
+            {on ? <Check className="ms-auto size-4 shrink-0 text-primary" aria-hidden /> : null}
+          </Row>
+        );
+      })}
+    </Dropdown>
+  );
+}
+
+/** Several choices; the field shows the chosen names (or how many when they do not fit). */
+export function MultiSelect({ value, onChange, countLabel, ...props }: Common & { value: string[]; onChange: (value: string[]) => void; countLabel?: (n: number) => string }) {
+  const [open, setOpen] = React.useState(false);
+  const chosen = props.options.filter((o) => value.includes(o.value));
+  const label = chosen.length === 0 ? null : chosen.length <= 2 || !countLabel ? chosen.map((o) => o.label).join("، ") : countLabel(chosen.length);
+
+  return (
+    <Dropdown {...props} open={open} onOpenChange={setOpen} label={label} multiple>
+      {props.options.map((o) => {
+        const on = value.includes(o.value);
+        return (
+          <Row key={o.value} option={o} onSelect={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])} active={false} checkbox={on}>
+            {null}
+          </Row>
+        );
+      })}
+    </Dropdown>
+  );
+}
+
+function Dropdown({
+  options,
+  placeholder,
+  searchable,
+  searchPlaceholder,
+  id,
+  disabled,
+  invalid,
+  className,
+  open,
+  onOpenChange,
+  label,
+  multiple = false,
+  children,
+  ...rest
+}: Common & { open: boolean; onOpenChange: (open: boolean) => void; label: string | null; multiple?: boolean; children: React.ReactNode }) {
+  const listId = React.useId();
+  const withSearch = searchable ?? options.length >= 6;
+
+  return (
+    <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <PopoverPrimitive.Trigger asChild disabled={disabled}>
         <button
           type="button"
           id={id}
           role="combobox"
-          aria-controls={listId}
           aria-expanded={open}
+          aria-controls={listId}
           aria-haspopup="listbox"
-          aria-required={required || undefined}
-          {...aria}
-          className={cn(inputClass, "items-center justify-between gap-2 text-start data-[state=open]:border-ring data-[state=open]:ring-4 data-[state=open]:ring-ring/15", className)}
+          aria-label={rest["aria-label"]}
+          aria-invalid={invalid || undefined}
+          className={cn(controlClass, "flex h-9 items-center justify-between gap-2 px-3 text-start text-sm", open && "border-primary ring-3 ring-primary/15", className)}
         >
-          <span className={cn("truncate", (!selected || selected.value === "") && "text-muted-foreground/80")}>{selected?.label ?? placeholder ?? ""}</span>
-          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+          <span className={cn("truncate", !label && "text-ink-3")}>{label ?? placeholder}</span>
+          <ChevronDown className={cn("size-4 shrink-0 text-ink-3 transition-transform duration-200", open && "rotate-180 text-primary")} aria-hidden />
         </button>
-      </PopoverTrigger>
-      {name ? <input type="hidden" name={name} value={value} /> : null}
-      <PopoverContent id={listId} className="w-[var(--radix-popover-trigger-width)] min-w-48">
-        <Command
-          loop
-          filter={(itemValue, search) => (normalize(itemValue).includes(normalize(search)) ? 1 : 0)}
-          className="flex max-h-72 flex-col"
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          align="start"
+          sideOffset={4}
+          collisionPadding={12}
+          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-48 overflow-hidden rounded-lg border border-border bg-surface shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1"
+          onOpenAutoFocus={(e) => {
+            // Focus the search box (or the list) instead of the first row.
+            if (!withSearch) e.preventDefault();
+          }}
         >
-          {withSearch ? (
-            <div className="flex items-center gap-2 border-b px-3">
-              <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <Command.Input autoFocus placeholder={ar.common.searchPlaceholder} className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70" />
-            </div>
-          ) : null}
-          <Command.List className="overflow-y-auto overscroll-contain p-1">
-            <Command.Empty className="px-3 py-6 text-center text-sm text-muted-foreground">{ar.common.noResults}</Command.Empty>
-            {all.map((option) => (
-              <Command.Item
-                key={option.value || "__empty"}
-                value={`${option.label} ${option.hint ?? ""} ${option.value}`}
-                disabled={option.disabled}
-                onSelect={() => pick(option.value)}
-                className="flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-accent"
-              >
-                <Check className={cn("size-4 shrink-0 text-primary", option.value === value ? "opacity-100" : "opacity-0")} aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                {option.hint ? <span className="shrink-0 text-xs text-muted-foreground">{option.hint}</span> : null}
-              </Command.Item>
-            ))}
-          </Command.List>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          <Command dir="rtl" loop>
+            {withSearch ? (
+              <div className="flex items-center gap-2 border-b border-border px-3">
+                <Search className="size-4 shrink-0 text-ink-3" aria-hidden />
+                <Command.Input autoFocus placeholder={searchPlaceholder ?? ar.common.searchShort} className="h-10 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3" />
+              </div>
+            ) : null}
+            <Command.List id={listId} aria-multiselectable={multiple || undefined} className="max-h-60 overflow-y-auto overscroll-contain p-1">
+              <Command.Empty className="px-3 py-6 text-center text-xs text-ink-3">{ar.common.noResults}</Command.Empty>
+              {children}
+            </Command.List>
+          </Command>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   );
 }
 
-/** Arabic-friendly matching: ignore case, diacritics and alef / yaa / taa marbuta variants. */
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[ً-ْ]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
-    .trim();
+function Row({ option, onSelect, active, checkbox, children }: { option: SelectOption; onSelect: () => void; active: boolean; checkbox?: boolean; children: React.ReactNode }) {
+  return (
+    <Command.Item
+      value={`${option.label} ${option.hint ?? ""} ${option.value}`}
+      disabled={option.disabled}
+      onSelect={onSelect}
+      className={cn(
+        "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-45 data-[selected=true]:bg-surface-2",
+        active && "font-semibold text-ink",
+      )}
+    >
+      {checkbox !== undefined ? (
+        <span className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors", checkbox ? "border-primary bg-primary text-primary-ink" : "border-border-strong bg-surface")} aria-hidden>
+          {checkbox ? <Check className="size-3" strokeWidth={3} /> : null}
+        </span>
+      ) : null}
+      {option.icon}
+      <span className="truncate">{option.label}</span>
+      {option.hint ? <span className="ms-auto shrink-0 text-xs text-ink-3">{option.hint}</span> : null}
+      {children}
+    </Command.Item>
+  );
 }

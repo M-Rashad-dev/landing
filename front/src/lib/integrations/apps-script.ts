@@ -3,10 +3,10 @@
  * as a web app. Each order event upserts one row by order number, so status changes update it.
  * Runs entirely in the merchant's Google account: no API key on our side.
  */
-export const APPS_SCRIPT_CODE = `// منصة صفحات الهبوط ← Google Sheets
+export const APPS_SCRIPT_CODE = `// طلبات متجرك وصفحات الهبوط ← Google Sheets
 // كل طلب جديد بيتضاف كسطر، وتغيير الحالة بيحدّث نفس السطر.
 var SHEET_NAME = 'الطلبات';
-var HEADERS = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'موبايل تاني', 'المحافظة', 'المدينة', 'العنوان', 'المنتجات', 'الكمية', 'الخصم', 'الشحن', 'الإجمالي', 'ملاحظات', 'الصفحة', 'المصدر'];
+var HEADERS = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'موبايل تاني', 'المحافظة', 'المدينة', 'العنوان', 'المنتجات', 'الكمية', 'الخصم', 'الشحن', 'الإجمالي', 'ملاحظات', 'الصفحة', 'المصدر', 'من'];
 
 function doPost(e) {
   var body = JSON.parse(e.postData.contents);
@@ -44,6 +44,7 @@ function doPost(e) {
     c.notes || '',
     order.page ? order.page.title : '',
     (order.utm && order.utm.source) || '',
+    order.source === 'store' ? 'المتجر' : 'صفحة هبوط',
   ];
 
   var lock = LockService.getScriptLock();

@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { PlanGate } from "@/components/billing/plan";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { StorePage } from "@/features/store/store-page";
 import { ar } from "@/messages/ar";
-import { StoreOverview } from "./store-overview";
 
-export const metadata: Metadata = { title: ar.store.title };
+export const metadata: Metadata = { title: ar.settings.store.title };
 
-export default function StorePage() {
+export default function Page() {
   return (
-    <>
-      <PageHeader title={ar.store.title} description={ar.store.description} />
-      <PlanGate feature="store" label={ar.store.title} replace>
-        <StoreOverview />
-      </PlanGate>
-    </>
+    <StorePage />
   );
 }
