@@ -1,36 +1,33 @@
-import { useId } from "react";
 import { BRAND } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 /**
- * Temporary mark drawn in code from the owner's «مكسب» logo (orange bag with a rising bar chart).
- * Swap for the final SVG here only.
+ * The «مكسب» logo (owner's files in public/brand): the symbol alone, the horizontal logo (symbol + name),
+ * and the vertical one. `light` turns it white for dark backgrounds.
  */
-export function LogoMark({ size = 32, className }: { size?: number; className?: string }) {
-  const id = useId();
+export function LogoMark({ size = 32, light = false, className }: { size?: number; light?: boolean; className?: string }) {
   return (
-    <svg viewBox="0 0 40 40" width={size} height={size} className={cn("shrink-0", className)} aria-hidden>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--logo-1)" />
-          <stop offset="0.55" stopColor="var(--logo-2)" />
-          <stop offset="1" stopColor="var(--logo-3)" />
-        </linearGradient>
-      </defs>
-      <path d="M14 13V11a6 6 0 0 1 12 0v2" fill="none" stroke="var(--logo-3)" strokeWidth="3" strokeLinecap="round" />
-      <path d="M8.5 13h23a2 2 0 0 1 2 1.8l1.6 19A2.5 2.5 0 0 1 32.6 36H7.4a2.5 2.5 0 0 1-2.5-2.2l1.6-19A2 2 0 0 1 8.5 13Z" fill={`url(#${id})`} />
-      <rect x="11" y="26" width="4" height="5" rx="1" fill="#fff" />
-      <rect x="18" y="23" width="4" height="8" rx="1" fill="#fff" />
-      <rect x="25" y="19.5" width="4" height="11.5" rx="1" fill="#fff" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element -- small static brand file
+    <img src="/brand/mksab-symbol.png" alt="" width={size} height={size} className={cn("shrink-0 object-contain", light && "brightness-0 invert", className)} aria-hidden />
   );
 }
 
-export function Logo({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
+export function Logo({ collapsed = false, light = false, className }: { collapsed?: boolean; light?: boolean; className?: string }) {
+  if (collapsed) {
+    return (
+      <span className={cn("flex items-center", className)}>
+        <LogoMark light={light} />
+        <span className="sr-only">{BRAND.name}</span>
+      </span>
+    );
+  }
   return (
-    <span className={cn("flex items-center gap-2.5", className)}>
-      <LogoMark />
-      {collapsed ? <span className="sr-only">{BRAND.name}</span> : <span className="font-display text-xl font-bold leading-none text-ink">{BRAND.name}</span>}
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element -- small static brand file
+    <img src="/brand/mksab-horizontal.png" alt={BRAND.name} width={118} height={32} className={cn("h-8 w-auto max-w-none shrink-0 self-start object-contain", light && "brightness-0 invert", className)} />
   );
+}
+
+export function LogoVertical({ className }: { className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element -- small static brand file
+  return <img src="/brand/mksab-vertical.png" alt={BRAND.name} width={100} height={80} className={cn("h-20 w-auto", className)} />;
 }

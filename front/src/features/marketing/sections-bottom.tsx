@@ -290,9 +290,7 @@ export function MarketingFooter({ loginUrl, registerUrl, support, pages, home = 
       <div className="mk-wrap">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
           <div>
-            <span className="[&_span]:!text-white">
-              <Logo />
-            </span>
+            <Logo light />
             <p className="mt-4 max-w-72 text-sm">{f.about}</p>
           </div>
           <div>

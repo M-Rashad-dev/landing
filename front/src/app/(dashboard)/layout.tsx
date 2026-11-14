@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { BRAND_ICONS } from "@/config/brand";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/lib/auth/session-context";
@@ -9,6 +11,8 @@ import { RealtimeProvider } from "@/lib/realtime/realtime";
 import { SupportWidget } from "@/features/support/support-widget";
 
 /** Store owner dashboard: a signed-in owner only (the platform admin has /admin). */
+export const metadata: Metadata = { icons: BRAND_ICONS };
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (session.user.role === "super_admin") redirect("/admin");

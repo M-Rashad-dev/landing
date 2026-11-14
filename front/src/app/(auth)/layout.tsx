@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { BRAND_ICONS } from "@/config/brand";
 import { Check, Sparkles } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { ar } from "@/messages/ar";
@@ -8,6 +10,8 @@ const t = ar.auth.panel;
  * Sign in / sign up frame: the form on one side, a light mint panel (large screens) on the other
  * with what the platform gives a store. The drawing is abstract shapes only (no numbers or names).
  */
+export const metadata: Metadata = { icons: BRAND_ICONS };
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">

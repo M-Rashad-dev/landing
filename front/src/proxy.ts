@@ -81,5 +81,6 @@ function notFound(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|themes/).*)"],
+  // Static files from public/ (theme shots, brand logos, marketing photos) are never routed.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|themes/|brand/|marketing/).*)"],
 };

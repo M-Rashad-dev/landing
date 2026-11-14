@@ -19,7 +19,7 @@
 
 - **Product**: a multi-tenant SaaS for Egyptian merchants, **an online-store platform like Salla / Zid**
   (the store is the core), with **landing pages as a side marketing tool**. Arabic only, RTL, EGP only.
-  Working brand name **«مكسب»** (temporary, defined in one place).
+  Brand name **«مكسب» / mksab** (`config/brand.ts`); the owner's logo files are in `front/public/brand` (horizontal, symbol, vertical, tab icons), drawn by `components/brand/logo.tsx`.
 - **Stack**: Laravel 13 API (PHP 8.3) in `back/` + Next.js 16 (React 19, TS strict, Tailwind 4) in `front/`.
   MySQL 8 + Redis in production, Laravel Reverb for realtime, Caddy for HTTPS (on-demand TLS for merchant domains),
   everything in Docker Compose on one VPS.
@@ -473,7 +473,7 @@ Landing Builder lives in `features/landings/`.
    like store themes when asked. Future themes may restyle inner store pages.
 4. Suggested and discussed, **not yet requested**: staff accounts and permissions, shipping carrier integration
    (Bosta first; merchant connects own account), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
-   a showcase store for «أساس», the owner's final brand/logo (replace tokens + `logo.tsx`), dashboard dark mode,
+   a showcase store for «أساس», dashboard dark mode,
    `composer update` for pre-existing laravel/framework & symfony security advisories (do it as its own step),
    fixing the flaky support test properly, a sample EasyOrders export to tune the import mapper.
 
