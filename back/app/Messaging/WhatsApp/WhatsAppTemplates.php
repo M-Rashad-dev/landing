@@ -79,7 +79,7 @@ final class WhatsAppTemplates
         // v1 of the next three were put under Marketing by Meta: v2 read as plain account updates.
         'merchant_low_stock' => [
             'name' => 'merchant_low_stock_v2',
-            'body' => 'تنبيه مخزون لحسابك: فاضل {{1}} قطعة بس من المنتج {{2}} في متجر {{3}}.',
+            'body' => 'تنبيه مخزون لحسابك: فاضل {{1}} قطعة بس من المنتج {{2}} في متجر {{3}} دلوقتي.',
             'examples' => ['3', 'بن برازيلي 250 جم', 'متجر حبة'],
         ],
         'merchant_support_reply' => [
