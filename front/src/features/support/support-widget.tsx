@@ -10,6 +10,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { OPEN_SUPPORT_EVENT } from "../notifications/events";
 import { applyUpdate, closeTicket, markRead, openTicket, rateTicket, sendMessage, supportKey, useConversation, useMerchantTickets, useSummary, useSupportLive, type Conversation, type Ticket } from "./api";
 import { closesText, Composer, RatingForm, Thread } from "./chat";
 
@@ -27,6 +28,17 @@ export function SupportWidget({ tenantId }: { tenantId: number }) {
   const summary = useSummary();
   const live = useSupportLive("merchant", tenantId);
   const unread = summary.data?.unread ?? 0;
+
+  // The bell's "رد جديد من الدعم" opens that conversation here.
+  React.useEffect(() => {
+    const onOpen = (e: Event) => {
+      const number = (e as CustomEvent<number>).detail;
+      setView(Number.isInteger(number) && number > 0 ? { name: "chat", number } : { name: "list" });
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_SUPPORT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SUPPORT_EVENT, onOpen);
+  }, []);
 
   React.useEffect(() => {
     if (!open) return;

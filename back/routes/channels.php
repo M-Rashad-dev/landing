@@ -14,5 +14,8 @@ use Illuminate\Support\Facades\Broadcast;
 // The id arrives from the channel name as a string.
 Broadcast::channel('support.tenant.{tenantId}', fn (User $user, string $tenantId): bool => ! $user->isSuperAdmin() && $user->is_active && (string) $user->tenant_id === $tenantId, ['guards' => ['sanctum']]);
 
+// A dashboard user's own bell notifications.
+Broadcast::channel('user.{userId}', fn (User $user, string $userId): bool => $user->is_active && (string) $user->id === $userId, ['guards' => ['sanctum']]);
+
 // Every support conversation (the platform admin).
 Broadcast::channel('support.admin', fn (User $user): bool => $user->isSuperAdmin() && $user->is_active, ['guards' => ['sanctum']]);

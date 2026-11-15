@@ -76,10 +76,51 @@ final class WhatsAppTemplates
             'body' => "إيصال الدفع للفاتورة رقم {{1}} اترفض، والسبب: {{2}}.\nتقدر ترفع إيصال جديد من لوحة التحكم.",
             'examples' => ['INV-1042', 'المبلغ ناقص'],
         ],
+        'merchant_low_stock' => [
+            'name' => 'merchant_low_stock_v1',
+            'body' => 'المنتج {{1}} في متجر {{2}} فاضل منه {{3}} قطعة بس في المخزون.',
+            'examples' => ['بن برازيلي 250 جم', 'متجر حبة', '3'],
+        ],
+        'merchant_support_reply' => [
+            'name' => 'merchant_support_reply_v1',
+            'body' => 'فيه رد جديد من فريق الدعم على محادثتك رقم {{1}}. تقدر تشوفه من لوحة التحكم.',
+            'examples' => ['1042'],
+        ],
+        'merchant_domain_ready' => [
+            'name' => 'merchant_domain_ready_v1',
+            'body' => 'الدومين {{1}} اتربط بمتجر {{2}} وبقى شغال.',
+            'examples' => ['habba-shop.com', 'متجر حبة'],
+        ],
+        'merchant_import_done' => [
+            'name' => 'merchant_import_done_v1',
+            'body' => 'استيراد المنتجات لمتجر {{1}} خلص: اتضاف أو اتحدّث {{2}} منتج، و{{3}} صف فيه مشاكل.',
+            'examples' => ['متجر حبة', '120', '4'],
+        ],
+        // v1 was put under Marketing by Meta: v2 reads as a plain account update.
         'admin_new_receipt' => [
-            'name' => 'admin_new_receipt_v1',
-            'body' => 'إيصال جديد من متجر {{1}} بمبلغ {{2}} جنيه في انتظار مراجعتك.',
+            'name' => 'admin_new_receipt_v2',
+            'body' => 'تم استلام إيصال دفع من متجر {{1}} بمبلغ {{2}} جنيه، وهو مستني مراجعتك في لوحة الإدارة.',
             'examples' => ['متجر حبة', '1200'],
+        ],
+        'admin_refund_request' => [
+            'name' => 'admin_refund_request_v1',
+            'body' => 'متجر {{1}} طلب استرداد مبلغ {{2}} جنيه للفاتورة رقم {{3}}، والطلب مستني مراجعتك.',
+            'examples' => ['متجر حبة', '100', 'INV-1042'],
+        ],
+        'admin_new_store' => [
+            'name' => 'admin_new_store_v1',
+            'body' => 'تم تسجيل متجر جديد باسم {{1}}، وصاحبه {{2}}، ورقم موبايله {{3}}.',
+            'examples' => ['متجر حبة', 'أحمد علي', '01012345678'],
+        ],
+        'admin_support_ticket' => [
+            'name' => 'admin_support_ticket_v1',
+            'body' => 'محادثة دعم جديدة رقم {{1}} من متجر {{2}} عن {{3}}، ومستنية ردك.',
+            'examples' => ['1042', 'متجر حبة', 'الدفع والاشتراك'],
+        ],
+        'admin_daily_summary' => [
+            'name' => 'admin_daily_summary_v1',
+            'body' => 'ملخص يوم {{1}} على المنصة: {{2}} متجر جديد، و{{3}} طلب، و{{4}} إيصال مستني مراجعة.',
+            'examples' => ['2026-11-15', '3', '57', '2'],
         ],
     ];
 
@@ -129,6 +170,31 @@ final class WhatsAppTemplates
         }
 
         return $definitions;
+    }
+
+    /** The template has a link button (its domain is fixed once submitted). */
+    public static function hasButton(string $key): bool
+    {
+        return isset(self::UTILITY[$key]['button']);
+    }
+
+    /**
+     * Send-time components for a utility template: the body values, and the link button's value.
+     *
+     * @param  list<string>  $params
+     * @return list<array<string, mixed>>
+     */
+    public static function components(string $key, array $params, ?string $button): array
+    {
+        $components = [];
+        if ($params !== []) {
+            $components[] = ['type' => 'body', 'parameters' => array_map(fn (string $p): array => ['type' => 'text', 'text' => $p], $params)];
+        }
+        if ($button !== null && self::hasButton($key)) {
+            $components[] = ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $button]]];
+        }
+
+        return $components;
     }
 
     /**

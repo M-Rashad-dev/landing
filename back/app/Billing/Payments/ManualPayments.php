@@ -12,6 +12,7 @@ use App\Exceptions\ApiException;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Notifications\StoreNotices;
 use App\Services\AdminAlerts;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\UploadedFile;
@@ -30,6 +31,7 @@ final class ManualPayments
         private readonly ManageTenant $audit,
         private readonly PlatformSettings $settings,
         private readonly AdminAlerts $alerts,
+        private readonly StoreNotices $notices,
     ) {}
 
     /** Runs in the merchant's tenant context. */
@@ -82,6 +84,7 @@ final class ManualPayments
         $invoice = Tenancy::runAs($payment->tenant_id, fn () => Invoice::query()->findOrFail($payment->invoice_id));
         $this->invoices->activate($invoice);
         $this->audit->audit('payment.approve', (string) $payment->id, ['invoice' => $invoice->number, 'tenant_id' => $payment->tenant_id, 'amount' => $payment->amount], 'payment');
+        $this->notices->receiptApproved($invoice);
 
         return $payment;
     }
@@ -91,6 +94,7 @@ final class ManualPayments
     {
         $payment = $this->decide($payment, PaymentStatus::Rejected, $reason, $adminId);
         $this->audit->audit('payment.reject', (string) $payment->id, ['tenant_id' => $payment->tenant_id, 'reason' => $reason], 'payment');
+        $this->notices->receiptRejected(Tenancy::runAs($payment->tenant_id, fn () => Invoice::query()->findOrFail($payment->invoice_id)), $reason);
 
         return $payment;
     }

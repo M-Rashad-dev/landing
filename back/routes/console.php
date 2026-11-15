@@ -10,4 +10,6 @@ Schedule::command('imports:prune')->daily();
 Schedule::command('support:close-idle')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('subscriptions:sweep')->everyMinute()->withoutOverlapping();
 Schedule::command('invoices:expire')->hourly()->withoutOverlapping();
+Schedule::command('notifications:plan-reminders')->hourly()->withoutOverlapping();
+Schedule::command('notifications:prune')->daily();
 Schedule::command('admin:daily-summary')->dailyAt('09:00')->timezone('Africa/Cairo');

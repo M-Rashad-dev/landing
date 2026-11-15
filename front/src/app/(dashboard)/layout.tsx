@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SessionProvider value={{ user: session.user, tenant: session.tenant, plan: session.plan, store_name: session.store_name, storeUrl: url }}>
       <QueryProvider>
         <RealtimeProvider config={serverEnv().realtime}>
-          <AppShell account={{ name: session.user.name, store: session.tenant?.name ?? "", storeUrl: url }}>{children}</AppShell>
+          <AppShell userId={session.user.id} account={{ name: session.user.name, store: session.tenant?.name ?? "", storeUrl: url }}>{children}</AppShell>
           {session.tenant ? <SupportWidget tenantId={session.tenant.id} /> : null}
         </RealtimeProvider>
       </QueryProvider>

@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <QueryProvider>
       <RealtimeProvider config={serverEnv().realtime}>
-        <AdminShell name={session.user.name}>{children}</AdminShell>
+        <AdminShell name={session.user.name} userId={session.user.id}>{children}</AdminShell>
       </RealtimeProvider>
     </QueryProvider>
   );

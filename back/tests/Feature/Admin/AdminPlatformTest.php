@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Billing\PlatformSettings;
 use App\Enums\OrderStatus;
 use App\Enums\TenantStatus;
-use App\Mail\AdminAlertMail;
+use App\Mail\NotificationMail;
 use App\Models\AdminAuditLog;
 use App\Models\Customer;
 use App\Models\Order;
@@ -13,6 +13,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +26,7 @@ beforeEach(function () {
 
 function alertsOn(array $events = ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary']): void
 {
-    app(PlatformSettings::class)->save(['alert_email' => 'owner@platform.test', 'alert_events' => $events]);
+    app(PlatformSettings::class)->save(['alert_channel' => 'email', 'alert_email' => 'owner@platform.test', 'alert_events' => $events]);
 }
 
 // --- home -------------------------------------------------------------------------------
@@ -62,7 +63,7 @@ it('keeps the platform pages to the super admin', function () {
     Sanctum::actingAs(createOwner());
     $this->getJson('/api/v1/admin/overview')->assertForbidden();
     $this->getJson('/api/v1/admin/alerts')->assertForbidden();
-    $this->putJson('/api/v1/admin/alerts', ['email' => 'x@y.com', 'events' => []])->assertForbidden();
+    $this->putJson('/api/v1/admin/alerts', ['channel' => 'email', 'phone' => null, 'email' => 'x@y.com', 'events' => []])->assertForbidden();
     $this->getJson('/api/v1/admin/audit-logs')->assertForbidden();
 });
 
@@ -114,23 +115,30 @@ it('shows the history of one store, its payments included', function () {
 it('saves where the alerts go and which ones, and sends a test', function () {
     Mail::fake();
     $this->getJson('/api/v1/admin/alerts')->assertOk()
+        ->assertJsonPath('data.channel', 'whatsapp')
         ->assertJsonPath('data.email', null)
+        ->assertJsonPath('data.own_email', $this->admin->email)
         ->assertJsonPath('data.mail_ready', false)
+        ->assertJsonPath('data.whatsapp_ready', false)
         ->assertJsonCount(5, 'data.available');
-    $this->postJson('/api/v1/admin/alerts/test')->assertStatus(422)->assertJsonPath('code', 'alert_email_missing');
 
-    $this->putJson('/api/v1/admin/alerts', ['email' => 'not-an-email', 'events' => []])->assertStatus(422)->assertJsonValidationErrors('email');
-    $this->putJson('/api/v1/admin/alerts', ['email' => 'a@b.com', 'events' => ['nope']])->assertStatus(422)->assertJsonValidationErrors('events.0');
-    $this->putJson('/api/v1/admin/alerts', ['email' => 'Owner@Platform.test', 'events' => ['receipt_submitted', 'daily_summary']])->assertOk()
+    $valid = ['channel' => 'email', 'phone' => null, 'email' => 'a@b.com', 'events' => []];
+    $this->putJson('/api/v1/admin/alerts', ['email' => 'not-an-email'] + $valid)->assertStatus(422)->assertJsonValidationErrors('email');
+    $this->putJson('/api/v1/admin/alerts', ['events' => ['nope']] + $valid)->assertStatus(422)->assertJsonValidationErrors('events.0');
+    $this->putJson('/api/v1/admin/alerts', ['channel' => 'sms'] + $valid)->assertStatus(422)->assertJsonValidationErrors('channel');
+    $this->putJson('/api/v1/admin/alerts', ['phone' => '123'] + $valid)->assertStatus(422)->assertJsonValidationErrors('phone');
+    $this->putJson('/api/v1/admin/alerts', ['channel' => 'whatsapp', 'phone' => '01099998888', 'email' => 'Owner@Platform.test', 'events' => ['receipt_submitted', 'daily_summary']])->assertOk()
+        ->assertJsonPath('data.channel', 'whatsapp')
+        ->assertJsonPath('data.phone', '+201099998888')
         ->assertJsonPath('data.email', 'owner@platform.test')
         ->assertJsonPath('data.events', ['receipt_submitted', 'daily_summary']);
     expect(AdminAuditLog::query()->latest('id')->value('action'))->toBe('alerts.update');
 
     $this->postJson('/api/v1/admin/alerts/test')->assertOk()->assertJsonPath('data.sent_to', 'owner@platform.test');
-    Mail::assertSent(AdminAlertMail::class, fn (AdminAlertMail $mail) => $mail->alert === 'test' && $mail->hasTo('owner@platform.test'));
+    Mail::assertSent(NotificationMail::class, fn (NotificationMail $mail) => $mail->event === 'test' && $mail->hasTo('owner@platform.test'));
 });
 
-it('emails the owner when a store sends a receipt', function () {
+it('tells the owner when a store sends a receipt: the bell and the email', function () {
     Mail::fake();
     Storage::fake('local');
     alertsOn();
@@ -143,46 +151,52 @@ it('emails the owner when a store sends a receipt', function () {
         'sender_ref' => 'TX-1234', 'receipt' => UploadedFile::fake()->image('r.jpg', 600, 900),
     ], ['Accept' => 'application/json'])->assertCreated();
 
-    Mail::assertQueued(AdminAlertMail::class, function (AdminAlertMail $mail) {
+    Mail::assertSent(NotificationMail::class, function (NotificationMail $mail) {
         $rows = collect($mail->rows)->pluck('value', 'label');
 
-        return $mail->alert === 'receipt_submitted'
+        return $mail->event === 'receipt_submitted'
             && $mail->hasTo('owner@platform.test')
             && str_contains($mail->heading, 'متجر سما')
             && $rows[__('alerts.receipt.reference')] === 'TX-1234'
             && str_ends_with((string) $mail->actionUrl, '/admin/payments');
     });
+    $bell = UserNotification::query()->where('user_id', $this->admin->id)->sole();
+    expect($bell->event->value)->toBe('receipt_submitted')->and($bell->link)->toBe('/admin/payments');
 });
 
-it('emails the owner about a new store, and stays quiet when that alert is off', function () {
+it('tells the owner about a new store, and only rings the bell when that alert is off', function () {
     Mail::fake();
     app('auth')->forgetGuards();
     alertsOn(['store_registered']);
     $payload = ['name' => 'منى', 'email' => 'mona@example.com', 'phone' => '01012345679', 'store_name' => 'Mona Store', 'password' => 'secret-pass-1', 'password_confirmation' => 'secret-pass-1'];
 
     $id = $this->postJson('/api/v1/auth/register', $payload)->assertCreated()->json('data.tenant.id');
-    Mail::assertQueued(AdminAlertMail::class, fn (AdminAlertMail $mail) => $mail->alert === 'store_registered' && str_ends_with((string) $mail->actionUrl, '/admin/stores/'.$id));
+    Mail::assertSent(NotificationMail::class, fn (NotificationMail $mail) => $mail->event === 'store_registered' && str_ends_with((string) $mail->actionUrl, '/admin/stores/'.$id));
 
     alertsOn(['receipt_submitted']);
     $this->postJson('/api/v1/auth/register', array_merge($payload, ['email' => 'other@example.com', 'phone' => '01012345670', 'store_name' => 'Other Store']))->assertCreated();
-    Mail::assertQueuedCount(1);
+    Mail::assertSentCount(1);
+    expect(UserNotification::query()->where('user_id', $this->admin->id)->count())->toBe(2);
 });
 
-it('sends the daily summary only when it is on', function () {
+it('sends the daily summary only when it is on, once a day', function () {
     Mail::fake();
+    alertsOn([]);
     $this->artisan('admin:daily-summary')->assertSuccessful();
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 
     alertsOn(['daily_summary']);
     $owner = createOwner();
     asTenant($owner, fn () => Order::factory()->create(['total' => '250.00', 'created_at' => now()->subDay()]));
 
     $this->artisan('admin:daily-summary')->assertSuccessful();
-    Mail::assertQueued(AdminAlertMail::class, function (AdminAlertMail $mail) {
+    $this->artisan('admin:daily-summary')->assertSuccessful();
+    Mail::assertSent(NotificationMail::class, function (NotificationMail $mail) {
         $rows = collect($mail->rows)->pluck('value', 'label');
 
-        return $mail->alert === 'daily_summary' && $rows[__('alerts.daily.orders')] === '1';
+        return $mail->event === 'daily_summary' && $rows[__('alerts.daily.orders')] === '1';
     });
+    Mail::assertSentCount(1);
 });
 
 it('never breaks the action when the mail fails', function () {

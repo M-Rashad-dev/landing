@@ -9,6 +9,7 @@ use App\Enums\SslStatus;
 use App\Jobs\RevalidateTenantHosts;
 use App\Jobs\WarmSsl;
 use App\Models\Domain;
+use App\Notifications\StoreNotices;
 use App\Services\Dns\DnsResolver;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 /** Checks a custom domain's DNS and activates it (phase 10, steps 3 and 5). */
 final class DomainVerifier
 {
-    public function __construct(private readonly DnsResolver $dns) {}
+    public function __construct(private readonly DnsResolver $dns, private readonly StoreNotices $notices) {}
 
     /** Null when the host points at the platform, otherwise an Arabic reason. */
     public function check(string $host): ?string
@@ -63,6 +64,7 @@ final class DomainVerifier
         if ($error === null && $this->activate($domain)) {
             WarmSsl::dispatch($domain->id);
             RevalidateTenantHosts::dispatch($domain->tenant_id);
+            $this->notices->domainReady($domain);
         }
 
         return $domain;

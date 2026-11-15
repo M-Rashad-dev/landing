@@ -25,7 +25,10 @@ final class PlatformSettings
         // Shown on invoices and the legal pages.
         'support_email' => null,
         'support_whatsapp' => null,
-        // Email alerts to the platform owner (AdminAlerts): where, and which ones.
+        // Alerts to the platform owner (AdminAlerts): which ones, and where (WhatsApp by default;
+        // empty phone / email = the first super admin's own).
+        'alert_channel' => 'whatsapp',
+        'alert_phone' => null,
         'alert_email' => null,
         'alert_events' => ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary', 'support_ticket'],
     ];

@@ -14,6 +14,7 @@ use App\Models\DiscountCodeRedemption;
 use App\Models\LandingPage;
 use App\Models\Order;
 use App\Models\Product;
+use App\Notifications\StoreNotices;
 use App\Pricing\PriceCalculator;
 use App\Pricing\Quote;
 use App\Services\FormToken;
@@ -51,6 +52,7 @@ final class CreateOrder
         private readonly Stock $stock,
         private readonly LinkCustomer $customers,
         private readonly AutoBlock $autoBlock,
+        private readonly StoreNotices $notices,
     ) {}
 
     /**
@@ -108,7 +110,8 @@ final class CreateOrder
         $governorate = $customer['governorate'] ?? null;
         $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId, $companyId);
 
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId) {
+        $low = [];
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId, &$low) {
             // 7. Lock the code row and re-check its limits.
             $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId, $companyId);
 
@@ -180,7 +183,7 @@ final class CreateOrder
             if ($quote->gift !== null && ($giftProduct = Product::query()->find($quote->gift['product_id'])) !== null) {
                 $lines[] = ['product' => $giftProduct, 'selected' => [], 'quantity' => 1, 'field' => 'quantity'];
             }
-            $this->stock->take($order, $lines);
+            $low = $this->stock->take($order, $lines);
 
             // Gift offer: the free product is its own line at 0.
             if ($quote->gift !== null) {
@@ -218,6 +221,10 @@ final class CreateOrder
         $this->leads->converted($order);
         $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
+        $this->notices->newOrder($order);
+        foreach ($low as $item) {
+            $this->notices->lowStock($order->tenant_id, $item['product_id'], $item['name'], $item['left']);
+        }
 
         // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
         return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];

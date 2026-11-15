@@ -21,6 +21,7 @@ use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
+use App\Notifications\StoreNotices;
 use App\Pricing\CartQuote;
 use App\Pricing\PriceCalculator;
 use App\Services\FormToken;
@@ -52,6 +53,7 @@ final class CreateStoreOrder
         private readonly PostOrderUpsell $upsells,
         private readonly LinkCustomer $customers,
         private readonly AutoBlock $autoBlock,
+        private readonly StoreNotices $notices,
     ) {}
 
     /**
@@ -95,7 +97,8 @@ final class CreateStoreOrder
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
         $this->quoteOrFail($lines, $code, $phone, false, $governorate, $companyId);
 
-        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId): Order {
+        $low = [];
+        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId, &$low): Order {
             $quote = $this->quoteOrFail($lines, $code, $phone, true, $governorate, $companyId);
 
             $order = Order::query()->create([
@@ -151,7 +154,7 @@ final class CreateStoreOrder
                     $take[] = ['product' => $gift, 'selected' => [], 'quantity' => 1, 'field' => "items.{$i}.quantity"];
                 }
             }
-            $this->stock->take($order, $take);
+            $low = $this->stock->take($order, $take);
 
             $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
             $this->customers->handle($order);
@@ -171,6 +174,10 @@ final class CreateStoreOrder
         $this->leads->converted($order, isset($input['cart_token']) && is_string($input['cart_token']) ? $input['cart_token'] : null);
         $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
+        $this->notices->newOrder($order);
+        foreach ($low as $item) {
+            $this->notices->lowStock($order->tenant_id, $item['product_id'], $item['name'], $item['left']);
+        }
         if ($account !== null && ($input['save_address'] ?? false) === true) {
             $this->saveAddress($account, $order);
         }

@@ -7,7 +7,7 @@ use App\Billing\PlatformSettings;
 use App\Billing\SubscriptionManager;
 use App\Enums\AccessState;
 use App\Enums\BillingPeriod;
-use App\Mail\AdminAlertMail;
+use App\Mail\NotificationMail;
 use App\Models\AdminAuditLog;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -319,7 +319,7 @@ it('refunds a plan asked within 3 days: the period ends at once', function () {
     Mail::fake();
     app(PlatformSettings::class)->save(['alert_email' => 'owner@platform.test', 'alert_events' => ['refund_requested']]);
     $this->postJson('/api/v1/dashboard/billing/refund', ['reason' => 'مش محتاجها'])->assertOk()->assertJsonPath('data.refund_reason', 'مش محتاجها');
-    Mail::assertQueued(AdminAlertMail::class, fn (AdminAlertMail $mail) => $mail->alert === 'refund_requested' && in_array('مش محتاجها', array_column($mail->rows, 'value'), true));
+    Mail::assertSent(NotificationMail::class, fn (NotificationMail $mail) => $mail->event === 'refund_requested' && in_array('مش محتاجها', array_column($mail->rows, 'value'), true));
     $this->postJson('/api/v1/dashboard/billing/refund', ['reason' => 'تاني'])->assertStatus(422)->assertJsonPath('code', 'refund_not_allowed');
 
     asAdmin();

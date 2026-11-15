@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\OrderStatus;
+use App\Mail\NotificationMail;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
@@ -16,9 +17,12 @@ use App\Models\ShippingOffer;
 use App\Models\ShippingSetting;
 use App\Models\Tenant;
 use App\Models\Upsell;
+use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\FormToken;
 use Database\Factories\LandingPageFactory;
 use Database\Seeders\ThemeSeeder;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 
@@ -450,4 +454,24 @@ it('offers a post-order upsell and adds it to the order in one click, once, with
     $late = placeOrder(['customer' => ['phone' => '01044445555'], 'ip' => '41.7.7.8'])->json('data');
     $this->travel(31)->minutes();
     $this->postJson('/api/v1/public/upsell', ['host' => SHOP, 'order_number' => $late['order_number'], 'upsell_id' => $late['upsell']['id'], 'token' => $late['upsell']['token']], internalHeaders())->assertStatus(422);
+});
+
+it('tells the store owner about a new order and about stock that runs low', function () {
+    Mail::fake();
+    $owner = User::factory()->for($this->tenant)->create(['notify_channel' => 'email', 'email' => 'owner@shop.test']);
+    asTenant($this->tenant, fn () => $this->product->forceFill(['stock_mode' => Product::STOCK_PRODUCT, 'stock' => 6, 'low_stock_threshold' => 5])->save());
+
+    $number = placeOrder()->assertCreated()->json('data.order_number');
+
+    $bell = UserNotification::query()->where('user_id', $owner->id)->orderBy('id')->get();
+    expect($bell->pluck('event')->map->value->all())->toBe(['new_order', 'low_stock'])
+        ->and($bell[0]->title)->toContain((string) $number)
+        ->and($bell[0]->link)->toStartWith('/dashboard/orders/')
+        ->and($bell[1]->body)->toContain('تيشيرت')->toContain('4');
+    Mail::assertSent(NotificationMail::class, 2);
+    Mail::assertSent(NotificationMail::class, fn ($mail) => $mail->event === 'new_order' && $mail->hasTo('owner@shop.test'));
+
+    // Already under the mark: the next order doesn't repeat the stock warning.
+    placeOrder(['customer' => ['phone' => '01012345679']])->assertCreated();
+    expect(UserNotification::query()->where('user_id', $owner->id)->where('event', 'low_stock')->count())->toBe(1);
 });

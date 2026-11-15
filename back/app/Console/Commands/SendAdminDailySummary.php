@@ -16,12 +16,12 @@ final class SendAdminDailySummary extends Command
 {
     protected $signature = 'admin:daily-summary';
 
-    protected $description = 'Email the platform owner a summary of yesterday';
+    protected $description = 'Tell the platform owner how yesterday went';
 
     public function handle(AdminAlerts $alerts, PlatformStats $stats): int
     {
-        if (! $alerts->wants(AdminAlert::DailySummary)) {
-            $this->info('Daily summary is off (or no alert email).');
+        if (! in_array(AdminAlert::DailySummary->value, $alerts->events(), true)) {
+            $this->info('Daily summary is off.');
 
             return self::SUCCESS;
         }

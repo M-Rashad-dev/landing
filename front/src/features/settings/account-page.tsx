@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Alert, toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RadioCards } from "@/components/ui/choice";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "@/components/ui/panel";
+import { getChannel, saveChannel, type NotifyChannel } from "@/features/notifications/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useSession } from "@/lib/auth/session-context";
@@ -30,6 +33,7 @@ export function AccountPage() {
   return (
     <div className="grid max-w-3xl gap-4">
       <ProfileForm />
+      <NotificationChannel />
       <PasswordForm />
     </div>
   );
@@ -131,6 +135,46 @@ function PasswordForm() {
           </Button>
         </PanelFooter>
       </form>
+    </Panel>
+  );
+}
+
+/** Where notifications go besides the bell: WhatsApp (default) or email. Saved on choice. */
+function NotificationChannel() {
+  const n = ar.notifications.channel;
+  const session = useSession();
+  const user = session.user as { email: string; phone: string | null } | null;
+  const client = useQueryClient();
+  const query = useQuery({ queryKey: ["profile", "notify-channel"], queryFn: getChannel });
+  const save = useMutation({
+    mutationFn: saveChannel,
+    onSuccess: (data) => {
+      client.setQueryData(["profile", "notify-channel"], data);
+      toast.success(n.saved);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const value = save.isPending && save.variables ? save.variables : (query.data?.channel ?? "whatsapp");
+
+  return (
+    <Panel>
+      <PanelHeader title={n.title} description={n.description} />
+      <PanelBody className="flex flex-col gap-3">
+        {query.isError ? (
+          <Alert tone="danger">{errorMessage(query.error)}</Alert>
+        ) : (
+          <RadioCards
+            name="notify-channel"
+            value={value}
+            onValueChange={(v) => save.mutate(v as NotifyChannel)}
+            options={[
+              { value: "whatsapp", title: n.whatsapp, description: user?.phone ? n.whatsappHint(formatPhone(user.phone)) : undefined, disabled: query.isPending || save.isPending },
+              { value: "email", title: n.email, description: user?.email ? n.emailHint(user.email) : undefined, disabled: query.isPending || save.isPending },
+            ]}
+          />
+        )}
+        <p className="text-xs text-ink-3">{n.fallback}</p>
+      </PanelBody>
     </Panel>
   );
 }

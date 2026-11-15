@@ -19,6 +19,7 @@ import { home } from "./ar/home";
 import { landings } from "./ar/landings";
 import { media } from "./ar/media";
 import { nav } from "./ar/nav";
+import { notifications } from "./ar/notifications";
 import { orders } from "./ar/orders";
 import { promotions } from "./ar/promotions";
 import { reviews } from "./ar/reviews";
@@ -30,4 +31,4 @@ import { storefront } from "./ar/storefront";
 import { sufi } from "./ar/sufi";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi, notifications } as const;

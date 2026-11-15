@@ -144,10 +144,20 @@ export const useActivity = (filters: { tenant?: number; action?: string; page?: 
 /* ---------- email alerts ---------- */
 
 export type AlertEvent = "receipt_submitted" | "refund_requested" | "store_registered" | "daily_summary" | "support_ticket";
-export type AlertSettings = { email: string | null; events: AlertEvent[]; available: AlertEvent[]; mail_ready: boolean };
+export type AlertSettings = {
+  channel: "whatsapp" | "email";
+  phone: string | null;
+  email: string | null;
+  own_phone: string | null;
+  own_email: string;
+  events: AlertEvent[];
+  available: AlertEvent[];
+  mail_ready: boolean;
+  whatsapp_ready: boolean;
+};
 
 export const useAlertSettings = () => useQuery({ queryKey: ["admin", "alerts"], queryFn: () => api<AlertSettings>("/admin/alerts") });
-export const saveAlertSettings = (body: { email: string | null; events: AlertEvent[] }) => api<AlertSettings>("/admin/alerts", { method: "PUT", body });
+export const saveAlertSettings = (body: { channel: "whatsapp" | "email"; phone: string | null; email: string | null; events: AlertEvent[] }) => api<AlertSettings>("/admin/alerts", { method: "PUT", body });
 export const sendTestAlert = () => api<{ sent_to: string; mail_ready: boolean }>("/admin/alerts/test", { method: "POST" });
 
 /* ---------- WhatsApp messages ---------- */

@@ -32,6 +32,23 @@ final class WhatsAppMessenger
         ));
     }
 
+    /**
+     * A utility template from WhatsAppTemplates (by its key) with its values. Throws WhatsAppError.
+     *
+     * @param  list<string>  $params
+     */
+    public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId): OutboundMessage
+    {
+        $name = WhatsAppTemplates::name($key);
+
+        return $this->deliver($phone, $purpose, $name, $tenantId, fn (): string => $this->gateway->sendTemplate(
+            $phone,
+            $name,
+            WhatsAppTemplates::LANGUAGE,
+            WhatsAppTemplates::components($key, $params, $button),
+        ));
+    }
+
     /** Free text inside the 24-hour window after the person wrote to us. Throws WhatsAppError. */
     public function sendText(string $phone, string $body, MessagePurpose $purpose, ?int $tenantId): OutboundMessage
     {

@@ -11,6 +11,7 @@ use App\Exceptions\ApiException;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
+use App\Notifications\StoreNotices;
 use App\Services\AdminAlerts;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +33,7 @@ final class SupportDesk
         private readonly SupportFiles $files,
         private readonly SupportPresenter $presenter,
         private readonly AdminAlerts $alerts,
+        private readonly StoreNotices $notices,
     ) {}
 
     /**
@@ -99,16 +101,22 @@ final class SupportDesk
         if (! $ticket->status->isOpen()) {
             throw new ApiException(422, 'support_closed', __('support.closed'));
         }
-        $message = DB::transaction(function () use ($ticket, $sender, $userId, $body, $files): SupportMessage {
+        $merchantWaited = false;
+        $message = DB::transaction(function () use ($ticket, $sender, $userId, $body, $files, &$merchantWaited): SupportMessage {
             $locked = SupportTicket::query()->whereKey($ticket->id)->lockForUpdate()->firstOrFail();
             if (! $locked->status->isOpen()) {
                 throw new ApiException(422, 'support_closed', __('support.closed'));
             }
+            $merchantWaited = $locked->status === SupportStatus::WaitingSupport;
 
             return $this->write($locked, $sender, $userId, $body, $files);
         });
         $ticket->refresh();
         $this->broadcast($ticket, $message);
+        // Told once per answer: the first support message after the merchant wrote (not every line of it).
+        if ($sender === SupportMessage::SUPPORT && $merchantWaited) {
+            $this->notices->supportReply($ticket);
+        }
 
         return $message;
     }

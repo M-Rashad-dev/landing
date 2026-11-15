@@ -49,11 +49,13 @@ final class Stock
      * Takes stock for every line of a new order; call inside the order transaction.
      *
      * @param  list<array{product: Product, selected: list<array{option_id: int, value_id: int}>, quantity: int, field: string}>  $lines
+     * @return list<array{product_id: int, name: string, left: int}> what went down to its low-stock mark with this order
      *
      * @throws ValidationException when a line asks for more than is left
      */
-    public function take(Order $order, array $lines): void
+    public function take(Order $order, array $lines): array
     {
+        $low = [];
         foreach ($lines as $line) {
             $product = $line['product'];
             if (! $product->tracksStock()) {
@@ -65,6 +67,7 @@ final class Stock
                 $this->ensure((int) $row->stock, $line['quantity'], $line['field']);
                 Product::query()->whereKey($product->id)->toBase()->decrement('stock', $line['quantity']);
                 $this->log($order, $product->id, null, -$line['quantity'], 'order');
+                $this->crossed($low, $product, (int) $row->stock, $line['quantity']);
 
                 continue;
             }
@@ -77,6 +80,23 @@ final class Stock
             $this->ensure((int) ($variant?->stock ?? 0), $line['quantity'], $line['field']);
             ProductVariant::query()->whereKey($variant->id)->toBase()->decrement('stock', $line['quantity']);
             $this->log($order, $product->id, $variant->id, -$line['quantity'], 'order');
+            $this->crossed($low, $product, (int) $variant->stock, $line['quantity']);
+        }
+
+        return $low;
+    }
+
+    /**
+     * Notes a product whose stock went from above its low-stock mark to at or under it.
+     *
+     * @param  list<array{product_id: int, name: string, left: int}>  $low
+     */
+    private function crossed(array &$low, Product $product, int $before, int $taken): void
+    {
+        $mark = $product->low_stock_threshold ?? ProductList::LOW_STOCK_DEFAULT;
+        $after = $before - $taken;
+        if ($before > $mark && $after <= $mark) {
+            $low[] = ['product_id' => $product->id, 'name' => (string) $product->name, 'left' => $after];
         }
     }
 

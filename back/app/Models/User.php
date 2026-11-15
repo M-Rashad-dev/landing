@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\NotifyChannel;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,15 +20,19 @@ use Laravel\Sanctum\HasApiTokens;
  * @property int|null $tenant_id
  * @property UserRole $role
  * @property bool $is_active
+ * @property NotifyChannel $notify_channel where notifications go besides the bell
  */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory;
 
-    protected $fillable = ['tenant_id', 'name', 'email', 'phone', 'password', 'role', 'is_active', 'last_login_at'];
+    protected $fillable = ['tenant_id', 'name', 'email', 'phone', 'notify_channel', 'password', 'role', 'is_active', 'last_login_at'];
 
     protected $hidden = ['password'];
+
+    /** @var array<string, mixed> */
+    protected $attributes = ['notify_channel' => 'whatsapp'];
 
     protected function casts(): array
     {
@@ -35,6 +40,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'is_active' => 'boolean',
+            'notify_channel' => NotifyChannel::class,
             'last_login_at' => 'datetime',
         ];
     }

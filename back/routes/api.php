@@ -49,6 +49,7 @@ use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
 use App\Http\Controllers\Api\V1\Dashboard\SupportController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PlatformPageController;
 use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
@@ -89,6 +90,12 @@ Route::prefix('dashboard')
         // The owner's own account stays editable on an expired plan.
         Route::patch('profile', [AccountController::class, 'updateProfile'])->withoutMiddleware('plan.writable');
         Route::put('profile/password', [AccountController::class, 'updatePassword'])->withoutMiddleware('plan.writable');
+        // The bell and where notifications go: also on an expired plan.
+        Route::get('notifications', [NotificationController::class, 'index'])->withoutMiddleware('plan.writable');
+        Route::post('notifications/read', [NotificationController::class, 'readAll'])->withoutMiddleware('plan.writable');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->whereNumber('notification')->withoutMiddleware('plan.writable');
+        Route::get('profile/notifications', [NotificationController::class, 'channel'])->withoutMiddleware('plan.writable');
+        Route::put('profile/notifications', [NotificationController::class, 'updateChannel'])->withoutMiddleware('plan.writable');
 
         Route::get('billing/entitlements', [BillingController::class, 'entitlements']);
         Route::get('billing/usage', [BillingController::class, 'usage']);
@@ -315,6 +322,9 @@ Route::prefix('admin')
     ->middleware(['auth:sanctum', 'super.admin', 'throttle:dashboard'])
     ->group(function (): void {
         Route::get('overview', AdminOverviewController::class);
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read', [NotificationController::class, 'readAll']);
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->whereNumber('notification');
         Route::get('alerts', [AdminAlertController::class, 'show']);
         Route::put('alerts', [AdminAlertController::class, 'update']);
         Route::post('alerts/test', [AdminAlertController::class, 'test'])->middleware('throttle:6,1');

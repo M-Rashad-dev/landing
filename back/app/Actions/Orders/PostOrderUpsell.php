@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Upsell;
+use App\Notifications\StoreNotices;
 use App\Services\PublicPageData;
 use App\Services\Webhooks\WebhookDispatcher;
 use App\Store\Stock;
@@ -62,7 +63,8 @@ final class PostOrderUpsell
             throw new ApiException(422, 'upsell_closed', __('orders.upsell_closed'));
         }
 
-        $result = DB::transaction(function () use ($order, $upsellId): array {
+        $low = [];
+        $result = DB::transaction(function () use ($order, $upsellId, &$low): array {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $upsell = $this->candidate($locked);
@@ -72,7 +74,7 @@ final class PostOrderUpsell
             }
 
             $price = $upsell->priceCents();
-            app(Stock::class)->take($locked, [['product' => $upsell->offerProduct, 'selected' => [], 'quantity' => 1, 'field' => 'upsell']]);
+            $low = app(Stock::class)->take($locked, [['product' => $upsell->offerProduct, 'selected' => [], 'quantity' => 1, 'field' => 'upsell']]);
             OrderItem::query()->create([
                 'order_id' => $locked->id,
                 'product_id' => $upsell->offer_product_id,
@@ -89,6 +91,9 @@ final class PostOrderUpsell
         });
 
         $this->webhooks->order(WebhookEvent::OrderUpdated, $order->refresh());
+        foreach ($low as $item) {
+            app(StoreNotices::class)->lowStock($order->tenant_id, $item['product_id'], $item['name'], $item['left']);
+        }
 
         return $result;
     }

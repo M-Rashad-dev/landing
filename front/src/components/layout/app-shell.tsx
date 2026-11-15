@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, ExternalLink, LogOut, Menu as MenuIcon, Search, UserRound } from "lucide-react";
+import { ExternalLink, LogOut, Menu as MenuIcon, Search, UserRound } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
 import { Avatar, Kbd } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Popover, PopoverContent, PopoverTrigger, TooltipProvider } from "@/components/ui/overlay";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, TooltipProvider } from "@/components/ui/overlay";
+import { NotificationBell } from "@/features/notifications/bell";
 import { logout } from "@/lib/auth/logout";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -30,18 +31,20 @@ export function AppShell({
   account,
   area = "dashboard",
   badges,
-  notifications,
-  alertCount = 0,
+  userId,
+  bellExtra,
+  bellExtraCount = 0,
 }: {
   children: React.ReactNode;
   account: ShellAccount;
   area?: NavArea;
   /** Live counts on sidebar items, by page. */
   badges?: Record<string, number>;
-  /** What the bell shows (the default: nothing new). */
-  notifications?: React.ReactNode;
-  /** A dot on the bell while something waits. */
-  alertCount?: number;
+  /** The signed-in user (their bell and its live channel). */
+  userId: number;
+  /** Shown above the bell's list (the admin's "what waits"), with its count for the dot. */
+  bellExtra?: React.ReactNode;
+  bellExtraCount?: number;
 }) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -112,22 +115,7 @@ export function AppShell({
                   </a>
                 </Button>
               ) : null}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label={ar.nav.notifications} className="relative">
-                    <Bell />
-                    {alertCount > 0 ? <span className="absolute end-2 top-2 size-2 rounded-full bg-accent ring-2 ring-bg" aria-hidden /> : null}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end">
-                  {notifications ?? (
-                    <>
-                      <p className="text-sm font-semibold">{ar.nav.notifications}</p>
-                      <p className="mt-2 text-[13px] text-ink-3">{ar.nav.noNotifications}</p>
-                    </>
-                  )}
-                </PopoverContent>
-              </Popover>
+              <NotificationBell area={area} userId={userId} extra={bellExtra} extraCount={bellExtraCount} />
               <Menu>
                 <MenuTrigger asChild>
                   <button type="button" className="flex items-center gap-2 rounded-lg p-1 hover:bg-surface-2" aria-label={ar.nav.account}>

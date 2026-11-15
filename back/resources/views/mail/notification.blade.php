@@ -11,7 +11,7 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e8e6;border-radius:14px;overflow:hidden;" dir="rtl">
 <tr><td style="background:#2fcf91;height:6px;font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="padding:28px 28px 8px;text-align:right;">
-<p style="margin:0 0 6px;font-size:12px;color:#6b7a74;">{{ __('alerts.brand') }}</p>
+<p style="margin:0 0 6px;font-size:12px;color:#6b7a74;">{{ $brand ?? __('notifications.mail.brand') }}</p>
 <h1 style="margin:0;font-size:20px;line-height:1.5;color:#13261d;">{{ $heading }}</h1>
 <p style="margin:10px 0 0;font-size:14px;line-height:1.8;color:#3d4a45;">{{ $intro }}</p>
 </td></tr>
@@ -33,7 +33,7 @@
 </td></tr>
 @endif
 <tr><td style="padding:22px 28px 26px;text-align:right;">
-<p style="margin:0;font-size:12px;line-height:1.7;color:#8a9893;">{{ __('alerts.footer') }}</p>
+<p style="margin:0;font-size:12px;line-height:1.7;color:#8a9893;">{{ $footer ?? __('notifications.mail.footer') }}</p>
 </td></tr>
 </table>
 </td></tr>

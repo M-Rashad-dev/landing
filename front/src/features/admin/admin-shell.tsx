@@ -11,7 +11,7 @@ import { useSupportUnread } from "./support-page";
 const t = ar.admin.attention;
 
 /** The dashboard frame for the platform owner: its own sidebar, and the bell lists what waits. */
-export function AdminShell({ name, children }: { name: string; children: React.ReactNode }) {
+export function AdminShell({ name, userId, children }: { name: string; userId: number; children: React.ReactNode }) {
   const overview = useAdminOverview();
   const pending = overview.data?.billing.pending_payments ?? 0;
   const refunds = overview.data?.billing.refund_requests ?? 0;
@@ -25,8 +25,9 @@ export function AdminShell({ name, children }: { name: string; children: React.R
       area="admin"
       account={{ name, store: ar.admin.role, storeUrl: null }}
       badges={{ "/admin/payments": pending, "/admin/refunds": refunds, "/admin/support": support }}
-      alertCount={pending + refunds + support}
-      notifications={<AttentionList pending={pending} refunds={refunds} expiring={expiring} support={support} />}
+      userId={userId}
+      bellExtraCount={pending + refunds + support}
+      bellExtra={<AttentionList pending={pending} refunds={refunds} expiring={expiring} support={support} />}
     >
       {children}
     </AppShell>

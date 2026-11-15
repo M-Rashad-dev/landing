@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Billing\PlatformSettings;
 use App\Events\SupportUpdated;
-use App\Mail\AdminAlertMail;
+use App\Mail\NotificationMail;
 use App\Models\Domain;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
@@ -38,7 +38,8 @@ function asSupport(): User
 
 it('opens a conversation with a number, a picture, the page it came from, and tells the platform', function () {
     Mail::fake();
-    app(PlatformSettings::class)->save(['alert_email' => 'owner@platform.test', 'alert_events' => ['support_ticket']]);
+    app(PlatformSettings::class)->save(['alert_channel' => 'email', 'alert_email' => 'owner@platform.test', 'alert_events' => ['support_ticket']]);
+    User::factory()->superAdmin()->create();
     actingAsOwner();
 
     $data = openTicket(['page' => '/dashboard/orders', 'files' => [UploadedFile::fake()->image('screen.png', 400, 300)]]);
@@ -47,7 +48,7 @@ it('opens a conversation with a number, a picture, the page it came from, and te
         ->and($data['ticket']['status'])->toBe('waiting_support')
         ->and($data['messages'][0]['sender'])->toBe('merchant')
         ->and($data['messages'][0]['attachments'][0])->toMatchArray(['kind' => 'image', 'mime' => 'image/png', 'name' => 'screen.png']);
-    Mail::assertQueued(AdminAlertMail::class, fn ($mail) => $mail->hasTo('owner@platform.test'));
+    Mail::assertSent(NotificationMail::class, fn ($mail) => $mail->hasTo('owner@platform.test'));
     Event::assertDispatched(SupportUpdated::class, fn ($e) => $e->ticket['number'] === $data['ticket']['number'] && $e->message !== null);
 });
 

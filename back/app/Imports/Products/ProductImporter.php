@@ -16,6 +16,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImport;
 use App\Models\ProductImportFailure;
+use App\Notifications\StoreNotices;
 use App\Store\Categories;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -116,6 +117,7 @@ final class ProductImporter
         $import->forceFill(['status' => ImportStatus::Completed, 'finished_at' => now(), 'warnings' => $this->warnings()])->save();
         $this->deleteFile($import);
         RevalidateTenantHosts::dispatch($import->tenant_id)->afterCommit();
+        app(StoreNotices::class)->importDone($import);
     }
 
     /** Marks the import failed (job gave up) and keeps what was already counted. */

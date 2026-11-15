@@ -10,6 +10,7 @@ enum MessagePurpose: string
     case CustomerCode = 'customer_code';
     case MerchantCode = 'merchant_code';
     case AutoReply = 'auto_reply';
+    case Notification = 'notification';
 
     /** @return list<string> */
     public static function values(): array

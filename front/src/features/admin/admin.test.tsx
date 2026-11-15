@@ -72,7 +72,7 @@ beforeEach(() => {
   search = new URLSearchParams();
   push.mockReset();
   replace.mockReset();
-  alerts = { email: null, events: ["receipt_submitted", "daily_summary"], available: ["receipt_submitted", "refund_requested", "store_registered", "daily_summary"], mail_ready: false };
+  alerts = { channel: "whatsapp", phone: null, email: null, own_phone: "+201011112222", own_email: "admin@example.com", events: ["receipt_submitted", "daily_summary"], available: ["receipt_submitted", "refund_requested", "store_registered", "daily_summary"], mail_ready: false, whatsapp_ready: false };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: string, init?: RequestInit) => {
@@ -91,7 +91,7 @@ beforeEach(() => {
       if (path === "/admin/tenants/7/suspend") return Response.json({ data: { ...store, status: "suspended", suspended_reason: body.reason } });
       if (path === "/admin/tenants/7/reset-password") return Response.json({ data: { temporary_password: "Xy7#pQ2!mN4z" } });
       if (path === "/admin/alerts" && method === "PUT") {
-        alerts = { ...alerts, email: body.email, events: body.events };
+        alerts = { ...alerts, channel: body.channel, phone: body.phone, email: body.email, events: body.events };
         return Response.json({ data: alerts });
       }
       if (path === "/admin/alerts") return Response.json({ data: alerts });
@@ -154,19 +154,23 @@ describe("admin stores", () => {
   });
 });
 
-describe("admin email alerts", () => {
-  it("says the provider is not connected, saves the email and the alerts, then sends a test", async () => {
+describe("admin alerts", () => {
+  it("says what is not connected, saves the channel, the email and the alerts, then sends a test", async () => {
     wrap(<AdminSettingsPage />);
     expect(await screen.findByText(t.settings.alerts.notReadyTitle)).toBeInTheDocument();
+    expect(screen.getByText(t.settings.alerts.whatsappNotReadyTitle)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(new RegExp(t.settings.alerts.email)), { target: { value: "bad" } });
+    fireEvent.change(screen.getByLabelText(t.settings.alerts.email), { target: { value: "bad" } });
     fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
     expect(await screen.findByText(t.settings.alerts.emailInvalid)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(new RegExp(t.settings.alerts.email)), { target: { value: "owner@platform.test" } });
+    fireEvent.change(screen.getByLabelText(t.settings.alerts.email), { target: { value: "owner@platform.test" } });
+    fireEvent.click(screen.getByRole("radio", { name: new RegExp(t.settings.alerts.emailChoice) }));
     fireEvent.click(screen.getByRole("switch", { name: new RegExp(t.settings.alerts.events.store_registered.title) }));
     fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
-    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ email: "owner@platform.test", events: ["receipt_submitted", "daily_summary", "store_registered"] }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ channel: "email", phone: null, email: "owner@platform.test", events: ["receipt_submitted", "daily_summary", "store_registered"] }),
+    );
 
     const test = await screen.findByRole("button", { name: t.settings.alerts.test });
     await waitFor(() => expect(test).toBeEnabled());
