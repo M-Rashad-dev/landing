@@ -40,7 +40,7 @@ beforeEach(() => {
       if (path === "/admin/messages/overview") return Response.json({ data: overview });
       if (path === "/admin/messages") return Response.json({ data: rows, meta: { current_page: 1, last_page: 1, per_page: 20, total: 2 } });
       if (path === "/admin/messages/templates") {
-        return Response.json({ data: { templates: overview.templates.map((r) => (r.status === "MISSING" ? { ...r, status: "PENDING" } : r)), submitted: ["order_shipped_v1"], errors: {} } });
+        return Response.json({ data: { templates: overview.templates.map((r) => (r.status === "MISSING" ? { ...r, status: "PENDING" } : r)), submitted: ["order_shipped_v1"], skipped: [], errors: {} } });
       }
       return Response.json({ message: "not found" }, { status: 404 });
     }),

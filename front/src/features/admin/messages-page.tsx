@@ -136,6 +136,7 @@ function Templates({ rows }: { rows: TemplateRow[] }) {
       const failed = Object.keys(result.errors).length;
       if (failed) toast.error(t.templates.pushFailed(failed));
       else toast.success(result.submitted.length ? t.templates.pushed(result.submitted.length) : t.templates.nothingToPush);
+      if (result.skipped.length) toast.warning(t.templates.skippedLocal(result.skipped.length));
       queryClient.setQueryData<MessagesOverview>(["admin", "messages", "overview"], (old) => (old ? { ...old, templates: result.templates } : old));
     },
     onError: (error) => toast.error(errorMessage(error)),

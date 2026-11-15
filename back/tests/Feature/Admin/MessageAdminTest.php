@@ -83,6 +83,7 @@ it('lists the message log with filters', function () {
 
 it('submits the missing templates from the admin and logs it', function () {
     adminWhatsappOn();
+    config(['landing.platform_domain' => 'mksab.store', 'landing.app_host' => 'app.mksab.store']);
     Http::fake([
         ADMIN_GRAPH.'/222/message_templates*' => fn (Request $request) => $request->method() === 'GET'
             ? Http::response(['data' => []])
@@ -94,6 +95,23 @@ it('submits the missing templates from the admin and logs it', function () {
         ->assertJsonPath('data.errors', []);
 
     expect(AdminAuditLog::query()->where('action', 'whatsapp.templates_push')->exists())->toBeTrue();
+});
+
+it('never submits link templates from a local copy (their domain would stay localhost)', function () {
+    adminWhatsappOn();
+    config(['landing.platform_domain' => 'localhost', 'landing.app_host' => 'app.localhost']);
+    Http::fake([
+        ADMIN_GRAPH.'/222/message_templates*' => fn (Request $request) => $request->method() === 'GET'
+            ? Http::response(['data' => []])
+            : Http::response(['id' => '9', 'status' => 'PENDING']),
+    ]);
+
+    $res = $this->postJson('/api/v1/admin/messages/templates')->assertOk();
+
+    expect($res->json('data.submitted'))->toContain(WhatsAppTemplates::CODE, WhatsAppTemplates::name('order_cancelled'))
+        ->and($res->json('data.skipped'))->toContain(WhatsAppTemplates::name('order_received'), WhatsAppTemplates::name('merchant_new_order'))
+        ->not->toContain(WhatsAppTemplates::CODE);
+    Http::assertNotSent(fn (Request $request): bool => $request->method() === 'POST' && $request->data()['name'] === WhatsAppTemplates::name('order_received'));
 });
 
 it('is for the super admin only', function () {

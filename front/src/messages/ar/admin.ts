@@ -486,6 +486,7 @@ export const admin = {
       push: "ابعت القوالب الناقصة لـ Meta",
       pushed: (n: number) => (n === 1 ? "اتبعت قالب واحد للمراجعة" : `اتبعت ${n} قوالب للمراجعة`),
       nothingToPush: "كل القوالب اتبعتت قبل كده",
+      skippedLocal: (n: number) => `${n} قوالب فيها لينكات متبعتتش: الدومين هنا محلي، ابعتها من السيرفر`,
       pushFailed: (n: number) => `${n} قوالب Meta رفضت استلامها، شوف السبب جنب كل واحد`,
       columns: { template: "القالب", use: "بيتبعت لما", status: "الحالة" },
       status: { APPROVED: "متوافق عليه", PENDING: "في المراجعة", REJECTED: "مرفوض", PAUSED: "متوقف مؤقتًا", DISABLED: "متوقف", MISSING: "لسه متبعتش" } as Record<string, string>,

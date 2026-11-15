@@ -25,7 +25,7 @@ final class WhatsAppTemplateSync
     /**
      * Submits the missing templates; one refusal doesn't stop the others.
      *
-     * @return array{templates: list<array{name: string, category: string, status: string, rejected_reason: string|null}>, submitted: list<string>, errors: array<string, string>}
+     * @return array{templates: list<array{name: string, category: string, status: string, rejected_reason: string|null}>, submitted: list<string>, skipped: list<string>, errors: array<string, string>}
      */
     public function push(): array
     {
@@ -33,9 +33,16 @@ final class WhatsAppTemplateSync
         $submitted = [];
         $errors = [];
 
+        $skipped = [];
         foreach (WhatsAppTemplates::definitions() as $definition) {
             $name = (string) $definition['name'];
             if (isset($onMeta[$name])) {
+                continue;
+            }
+            // A link button keeps its domain forever: never submit one built on a local domain.
+            if (self::hasLink($definition) && self::localDomain()) {
+                $skipped[] = $name;
+
                 continue;
             }
             try {
@@ -47,7 +54,33 @@ final class WhatsAppTemplateSync
             }
         }
 
-        return ['templates' => $this->rows($onMeta), 'submitted' => $submitted, 'errors' => $errors];
+        return ['templates' => $this->rows($onMeta), 'submitted' => $submitted, 'skipped' => $skipped, 'errors' => $errors];
+    }
+
+    /** @param array<string, mixed> $definition */
+    private static function hasLink(array $definition): bool
+    {
+        foreach ((array) ($definition['components'] ?? []) as $component) {
+            foreach ((array) ($component['buttons'] ?? []) as $button) {
+                if (($button['type'] ?? null) === 'URL') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** This copy runs on a development domain (localhost, *.localhost, *.localtest.me, an IP). */
+    public static function localDomain(): bool
+    {
+        foreach ([(string) config('landing.platform_domain'), (string) config('landing.app_host')] as $host) {
+            if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, 'localtest.me') || filter_var($host, FILTER_VALIDATE_IP) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array<string, array{category: string, status: string, rejected_reason: string|null}> */

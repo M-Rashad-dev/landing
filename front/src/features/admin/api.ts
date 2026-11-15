@@ -194,4 +194,4 @@ export const useMessages = (filters: MessageFilters) =>
     placeholderData: keepPreviousData,
   });
 
-export const pushTemplates = () => api<{ templates: TemplateRow[]; submitted: string[]; errors: Record<string, string> }>("/admin/messages/templates", { method: "POST" });
+export const pushTemplates = () => api<{ templates: TemplateRow[]; submitted: string[]; skipped: string[]; errors: Record<string, string> }>("/admin/messages/templates", { method: "POST" });

@@ -35,7 +35,7 @@ final class WhatsAppTemplatesCommand extends Command
         }
 
         try {
-            $result = $action === 'push' ? $sync->push() : ['templates' => $sync->status(), 'submitted' => [], 'errors' => []];
+            $result = $action === 'push' ? $sync->push() : ['templates' => $sync->status(), 'submitted' => [], 'skipped' => [], 'errors' => []];
         } catch (WhatsAppError $e) {
             $this->error($e->getMessage());
 
@@ -44,6 +44,9 @@ final class WhatsAppTemplatesCommand extends Command
 
         foreach ($result['submitted'] as $name) {
             $this->info("Submitted {$name}");
+        }
+        foreach ($result['skipped'] as $name) {
+            $this->warn("Skipped {$name}: its link button would point to a local domain (push it from the server)");
         }
         foreach ($result['errors'] as $name => $error) {
             $this->error("{$name}: {$error}");
