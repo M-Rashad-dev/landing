@@ -25,8 +25,9 @@
   everything in Docker Compose on one VPS.
 - **State**: feature-complete for a first production test. Deployed once to the owner's VPS
   (`https://13.140.220.40.sslip.io`). All work is pushed to `v4` and `main`.
-- **Next agreed work** (owner's order): (1) **notifications system incl. SMS for OTP** (provider being negotiated),
-  (2) paid plans / online payment, then more paid themes (owner's designs) — see §12.
+- **Now**: the **notifications system on WhatsApp** (part 1 done: sending, codes, webhook, forgot password, admin page;
+  next: the bell + per-event notifications, then order messages, email last). Then paid plans / online payment, then
+  more paid themes (owner's designs) — see §12.
 - **The owner**: talk to him in **short Egyptian Arabic**, build **one part at a time and stop for his review**,
   never use an external service without his approval, push every commit (v4 + main) but never deploy to the server yourself. Details in §1.
 
@@ -50,16 +51,15 @@ running app himself and is detail-oriented about UX.
 ### How features are agreed
 - Big features start with a **plan message** (what exactly will be built, decisions he must take, options with a
   recommendation). He trims or edits it, then says «ابدأ» / «اكمل العمل».
-- UI work starts with a **design image** for approval: a long, realistic mockup (HTML rendered to PNG with
-  Playwright, real photos, every section labelled with a numbered review chip). He explicitly does **not** want a
-  generic "AI look". Once approved, the build must match the image.
+- UI work: **no design images any more** (owner, 2026-11-15) — build the screen directly in the real app, matching
+  the design system; he asks for changes after. He explicitly does **not** want a generic "AI look".
 - Sizeable work is split into parts (e.g. «صوفي» = back end + storefront, then the Builder forms, then the theme
   pages); stop after each part.
 
 ### Hard rules he set (also in CLAUDE.md)
 - **External services only with his approval** (propose with the reason first). Approved so far: payment gateway
   (Paymob, not built yet), `compressly` (browser image compression), Recharts, Laravel Reverb (self-hosted),
-  Google Maps embed links (no API key), YouTube/Vimeo embeds. Keys live in `.env` only, behind our own interface,
+  Google Maps embed links (no API key), YouTube/Vimeo embeds, **Meta WhatsApp Cloud API** (codes + notifications). Keys live in `.env` only, behind our own interface,
   with a fake for tests.
 - **Eloquent / query builder, never raw SQL.** Speed and security matter a lot.
 - **Tenancy**: `TenantExists` / `TenantUnique` (never plain `exists:` / `unique:` on tenant tables);
@@ -437,8 +437,8 @@ Landing Builder lives in `features/landings/`.
 ## 11. Production
 
 - **Server**: the owner's Contabo "Cloud VPS 4" (EU), IP `13.140.220.40`, user `root`, project in `~/landing`.
-  Temporary free domain via sslip.io: `PLATFORM_DOMAIN=13.140.220.40.sslip.io`,
-  `APP_HOST=app.13.140.220.40.sslip.io`, stores at `{name}.13.140.220.40.sslip.io`.
+  Domain **mksab.store** (since 2026-11-15; sslip.io dropped): `PLATFORM_DOMAIN=mksab.store`, `APP_HOST=app.mksab.store`,
+  stores at `{name}.mksab.store`. DNS + mailbox `support@mksab.store` at Hostinger.
 - **Deploy**: `cd ~/landing && git pull origin main && ./deploy/deploy.sh` (builds images, migrates, runs all
   seeders + `PlatformAdminSeeder`, health checks). Full guide in `deploy/DEPLOY.md` (Arabic).
 - **Services**: caddy, front, back-web (nginx), back-app (php-fpm, Debian image — Alpine's iconv can't read
@@ -455,16 +455,14 @@ Landing Builder lives in `features/landings/`.
 
 ## 12. Roadmap — agreed future work (owner's priority order)
 
-1. **Notifications system (complete) + SMS for OTP — NEXT.**
-   - The owner is negotiating with an SMS provider that will offer an OTP/notifications API; he will deploy and test
-     before subscribing. Build behind our own interface: customer OTP already goes through
-     `App\Store\Accounts\CodeSender` (today only a "screen" sender that shows the code and refuses production).
-     Plan both **SMS and WhatsApp senders**; the **super admin switches which one is live**; keys in `.env`; a fake
-     sender in tests.
-   - "Full notifications system": in-platform notifications (bell) + email + SMS/WhatsApp for merchants and
-     customers (order placed/status changed, support replies, billing reminders 7/3/1 days before expiry, receipt
-     decisions, stock alerts…). Agree the exact list and channels with the owner first (plan message).
-   - Email provider: still `MAIL_MAILER=log`; admin alerts are ready once SMTP is set (owner picks the provider).
+1. **Notifications system on WhatsApp — IN PROGRESS** (plan and channel rules in DECISIONS.md 2026-11-15).
+   - Done (part 1): `App\Messaging\WhatsApp` (gateway, templates, messenger, webhook), `outbound_messages`, customer
+     codes on WhatsApp, merchant/admin «نسيت كلمة السر», admin «رسائل واتساب». Meta account: portfolio «Mksab», number
+     +20 10 91152636 (ids in `.env`), no business verification (owner has no papers). **No SMS** (dropped).
+   - Next: part 2 = the bell (merchant + admin, Reverb) + per-event notifications to merchants/admin on WhatsApp
+     (email option) + notification settings; part 3 = customer order messages (checkout opt-in unchecked by default,
+     `/t/{token}` short link on the platform domain, customer email/WhatsApp choice in the profile); email (Hostinger
+     SMTP) last. Suggested for later: order confirmation by WhatsApp buttons.
 2. **Paid plans / online payment**: Paymob gateway (`PaymentGateway` contract, `ManualGateway` today) when the owner
    has an account; later auto-renew with saved cards, then customer online payment with the merchant's own account.
 3. **More paid themes** for stores and landing pages, from the owner's designs, "at the very end". Paid **landing**

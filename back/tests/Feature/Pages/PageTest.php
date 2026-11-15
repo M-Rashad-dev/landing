@@ -48,7 +48,10 @@ function createPage(array $overrides = []): array
 it('lists active themes', function () {
     Theme::query()->where('key', 'celia')->update(['is_active' => false]);
 
-    $this->getJson('/api/v1/dashboard/themes')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.0.key', 'bidaya')->assertJsonPath('data.1.key', 'layali');
+    $keys = collect($this->getJson('/api/v1/dashboard/themes')->assertOk()->json('data'))->pluck('key');
+    expect($keys)->toHaveCount(Theme::query()->where('is_active', true)->count())
+        ->toContain('bidaya', 'layali')
+        ->not->toContain('celia');
 });
 
 it('creates a page with the default identity and starter content', function () {

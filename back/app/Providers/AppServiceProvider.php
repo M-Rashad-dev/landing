@@ -9,10 +9,13 @@ use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Billing\Themes\ThemeAccess;
 use App\Billing\Themes\ThemeCatalog;
+use App\Messaging\WhatsApp\CloudWhatsAppGateway;
+use App\Messaging\WhatsApp\WhatsAppGateway;
 use App\Services\Dns\DnsResolver;
 use App\Services\Dns\NativeDnsResolver;
 use App\Store\Accounts\CodeSender;
 use App\Store\Accounts\ScreenCodeSender;
+use App\Store\Accounts\WhatsAppCodeSender;
 use App\Tenancy\Tenancy;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -33,8 +36,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(ThemeCatalog::class);
         $this->app->scoped(ThemeAccess::class);
         $this->app->bind(DnsResolver::class, NativeDnsResolver::class);
-        // Customer sign-in codes: only the on-screen sender until the owner picks WhatsApp / SMS providers.
-        $this->app->bind(CodeSender::class, ScreenCodeSender::class);
+        $this->app->bind(WhatsAppGateway::class, CloudWhatsAppGateway::class);
+        // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
+        $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()
+            ? $app->make(WhatsAppCodeSender::class)
+            : $app->make(ScreenCodeSender::class));
     }
 
     public function boot(): void
@@ -48,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
     private function configureRateLimiting(): void
     {
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(5)->by('register:'.$request->ip()));
+
+        RateLimiter::for('password-code', fn (Request $request) => Limit::perHour(30)->by('password-code:'.$request->ip()));
+        // Guessing is stopped by the code's own 5 attempts; this only slows scripts down.
+        RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(10)->by('password-reset:'.$request->ip()));
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
             'login:'.$request->ip().'|'.mb_strtolower(trim((string) $request->input('login'))),

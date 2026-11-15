@@ -51,6 +51,12 @@ x-back-env: &back-env
   REVERB_SERVER_HOST: 0.0.0.0
   REVERB_SERVER_PORT: "8080"
   REVERB_ALLOWED_ORIGINS: ${APP_HOST}
+  # WhatsApp Cloud API (Meta): sign-in codes + notifications. Empty = nothing is sent (codes refused in production).
+  WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+  WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+  WHATSAPP_WABA_ID: ${WHATSAPP_WABA_ID:-}
+  WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+  WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
   # Email (admin alerts...). Empty MAIL_MAILER = log only (nothing is sent).
   MAIL_MAILER: ${MAIL_MAILER:-log}
   MAIL_SCHEME: ${MAIL_SCHEME:-}

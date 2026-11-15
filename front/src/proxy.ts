@@ -68,7 +68,7 @@ function appHost(request: NextRequest, pathname: string, search: string) {
     url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
-  if (matchesPrefix(pathname, ["/login", "/register"]) && hasToken) return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (matchesPrefix(pathname, ["/login", "/register", "/forgot-password"]) && hasToken) return NextResponse.redirect(new URL("/dashboard", request.url));
 
   return NextResponse.next();
 }

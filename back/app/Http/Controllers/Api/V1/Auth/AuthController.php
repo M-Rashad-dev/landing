@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Actions\Auth\LoginUser;
+use App\Actions\Auth\PasswordReset;
 use App\Actions\Auth\RegisterTenant;
 use App\Billing\Entitlements;
 use App\Billing\PlanPresenter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\PasswordCodeRequest;
+use App\Http\Requests\Auth\PasswordResetRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\DomainResource;
 use App\Http\Resources\TenantResource;
@@ -49,6 +52,19 @@ final class AuthController extends Controller
             'tenant' => $user->tenant ? TenantResource::make($user->tenant)->resolve($request) : null,
             'token' => $result['token'],
         ]);
+    }
+
+    /** "Forgot my password": a code on WhatsApp (the answer is the same whether the account exists or not). */
+    public function passwordCode(PasswordCodeRequest $request, PasswordReset $reset): JsonResponse
+    {
+        return $this->ok($reset->sendCode((string) $request->validated('login'), $request->ip()));
+    }
+
+    public function passwordReset(PasswordResetRequest $request, PasswordReset $reset): Response
+    {
+        $reset->reset((string) $request->validated('login'), (string) $request->validated('code'), (string) $request->validated('password'));
+
+        return $this->noContent();
     }
 
     public function logout(Request $request): Response

@@ -10,10 +10,10 @@ export function classifyHost(rawHost: string | null | undefined, config: { platf
 }
 
 /** Paths that exist only on the app host: a store host answers them with 404. */
-export const APP_ONLY_PREFIXES = ["/dashboard", "/admin", "/login", "/register", "/api/bff", "/api/auth"];
+export const APP_ONLY_PREFIXES = ["/dashboard", "/admin", "/login", "/register", "/forgot-password", "/api/bff", "/api/auth", "/api/webhooks"];
 
 /** Paths the app host serves; anything else is a 404 there (store pages live on store hosts only). */
-export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/dashboard", "/admin", "/api", "/media"];
+export const APP_ALLOWED_PREFIXES = ["/login", "/register", "/forgot-password", "/dashboard", "/admin", "/api", "/media"];
 
 /** Endpoints a store visitor may call on the store's own host. */
 export const STORE_API_PREFIXES = ["/api/public"];

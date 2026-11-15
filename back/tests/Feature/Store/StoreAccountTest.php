@@ -122,7 +122,7 @@ it('lets a real sender keep the code to itself', function () {
             return true;
         }
 
-        public function send(string $phone, string $code, string $storeName): bool
+        public function send(string $phone, string $code, string $storeName, ?int $tenantId): bool
         {
             return false;
         }

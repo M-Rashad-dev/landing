@@ -44,6 +44,28 @@ export async function forwardAuth(request: NextRequest, laravelPath: "/auth/logi
   return response;
 }
 
+/** "Forgot my password" (signed out, no cookie involved): forwards the JSON body and relays Laravel's answer. */
+export async function forwardPasswordReset(request: NextRequest, laravelPath: "/auth/password/code" | "/auth/password/reset"): Promise<NextResponse> {
+  if (!isSameOrigin(request)) return forbiddenOrigin();
+
+  const env = serverEnv();
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${env.laravelUrl}/api/v1${laravelPath}`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...forwardedHeaders(request) },
+      body: await request.text(),
+      cache: "no-store",
+    });
+  } catch {
+    return upstreamUnavailable();
+  }
+
+  if (upstream.status === 204) return new NextResponse(null, { status: 204 });
+  const json = (await upstream.json().catch(() => ({}))) as unknown;
+  return NextResponse.json(json, { status: upstream.status, headers: retryAfter(upstream) });
+}
+
 function retryAfter(upstream: Response): HeadersInit | undefined {
   const value = upstream.headers.get("retry-after");
   return value ? { "Retry-After": value } : undefined;

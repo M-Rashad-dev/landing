@@ -62,7 +62,7 @@ final class CustomerAccounts
             CustomerLoginCode::query()->where('phone', $phone)->whereNull('consumed_at')->update(['consumed_at' => now()]);
             CustomerLoginCode::query()->create(['phone' => $phone, 'code_hash' => self::hash($phone, $code), 'expires_at' => now()->addSeconds(self::CODE_TTL), 'ip' => $ip]);
         });
-        $reveal = $this->sender->send($phone, $code, $storeName);
+        $reveal = $this->sender->send($phone, $code, $storeName, $tenantId);
 
         return ['channel' => $this->sender->channel(), 'expires_in' => self::CODE_TTL, 'resend_in' => self::RESEND_AFTER, 'code' => $reveal ? $code : null];
     }

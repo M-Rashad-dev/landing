@@ -149,3 +149,49 @@ export type AlertSettings = { email: string | null; events: AlertEvent[]; availa
 export const useAlertSettings = () => useQuery({ queryKey: ["admin", "alerts"], queryFn: () => api<AlertSettings>("/admin/alerts") });
 export const saveAlertSettings = (body: { email: string | null; events: AlertEvent[] }) => api<AlertSettings>("/admin/alerts", { method: "PUT", body });
 export const sendTestAlert = () => api<{ sent_to: string; mail_ready: boolean }>("/admin/alerts/test", { method: "POST" });
+
+/* ---------- WhatsApp messages ---------- */
+
+export const MESSAGE_STATUSES = ["pending", "sent", "delivered", "read", "failed"] as const;
+export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
+export const MESSAGE_PURPOSES = ["customer_code", "merchant_code", "auto_reply"] as const;
+export type MessagePurpose = (typeof MESSAGE_PURPOSES)[number];
+
+export type TemplateRow = { name: string; category: string; status: string; rejected_reason: string | null };
+export type MessageCounts = { total: number; delivered: number; read: number; failed: number };
+export type MessagesOverview = {
+  configured: boolean;
+  phone: { number: string; name: string; name_status: string; quality: string } | null;
+  templates: TemplateRow[];
+  error: string | null;
+  today: MessageCounts;
+  month: MessageCounts;
+};
+export type MessageRow = {
+  id: number;
+  recipient: string;
+  purpose: MessagePurpose;
+  template: string | null;
+  status: MessageStatus;
+  error: string | null;
+  error_code: string | null;
+  tenant: { id: number; name: string } | null;
+  created_at: string;
+  delivered_at: string | null;
+  read_at: string | null;
+};
+export type MessageFilters = { status?: MessageStatus; purpose?: MessagePurpose; phone?: string; page: number };
+
+export const useMessagesOverview = () => useQuery({ queryKey: ["admin", "messages", "overview"], queryFn: () => api<MessagesOverview>("/admin/messages/overview") });
+
+export const useMessages = (filters: MessageFilters) =>
+  useQuery({
+    queryKey: ["admin", "messages", "log", filters],
+    queryFn: () =>
+      apiPage<MessageRow>("/admin/messages", {
+        query: { status: filters.status ?? null, purpose: filters.purpose ?? null, phone: filters.phone || null, page: filters.page, per_page: 20 },
+      }) as Promise<Paginated<MessageRow>>,
+    placeholderData: keepPreviousData,
+  });
+
+export const pushTemplates = () => api<{ templates: TemplateRow[]; submitted: string[]; errors: Record<string, string> }>("/admin/messages/templates", { method: "POST" });

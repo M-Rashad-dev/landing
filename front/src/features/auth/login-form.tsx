@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -82,7 +83,9 @@ export function LoginForm() {
         <Button type="submit" size="lg" className="mt-1 w-full" loading={isSubmitting}>
           {t.submitLogin}
         </Button>
-        <p className="text-center text-xs text-ink-3">{t.forgotHint}</p>
+        <Link href="/forgot-password" className="self-center text-sm font-semibold text-brand-strong underline-offset-4 hover:underline">
+          {t.forgotLink}
+        </Link>
       </form>
       <AuthSwitch question={t.noAccount} action={t.createAccount} href="/register" />
     </>

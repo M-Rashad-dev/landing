@@ -191,6 +191,21 @@ nano .env
    - فعّل وسائل الدفع (إنستاباي / محافظ) واكتب أرقامك.
    - راجع الباقات وأسعارها وصفحات المنصة.
 
+## 6.5) ربط واتساب (أكواد الدخول والإشعارات)
+من غير الخطوة دي **تسجيل دخول العملاء في المتاجر و«نسيت كلمة السر» مش هيشتغلوا** على السيرفر.
+1. في `.env` على السيرفر املا:
+   - `WHATSAPP_TOKEN`: الـ token الدائم بتاع الـ system user `mksab-server`.
+   - `WHATSAPP_PHONE_NUMBER_ID` و`WHATSAPP_WABA_ID`: من developers.facebook.com، وبعدها الـ App، وبعدها WhatsApp، وبعدها API Setup.
+   - `WHATSAPP_APP_SECRET`: من إعدادات الـ App، وبعدها Basic، وبعدها App secret.
+   - `WHATSAPP_VERIFY_TOKEN`: أي كلام عشوائي طويل، تقدر تطلعه بـ `openssl rand -hex 16`.
+2. اعمل `./deploy/deploy.sh`.
+3. من الأدمن ادخل **رسائل واتساب** (`/admin/messages`): لازم يظهر الرقم واسم Mksab. بعدها دوس **«ابعت القوالب الناقصة لـ Meta»**، والقوالب هتتحوّل «في المراجعة» وبعدها «متوافق عليه».
+4. الـ Webhook (عشان تعرف الرسالة وصلت ولا لأ، وعشان الرد التلقائي): في Meta ادخل الـ App، وبعدها WhatsApp، وبعدها Configuration، وبعدها Webhook، ودوس Edit:
+   - **Callback URL**: `https://app.{دومينك}/api/webhooks/whatsapp`
+   - **Verify token**: نفس قيمة `WHATSAPP_VERIFY_TOKEN`.
+   - دوس **Verify and save**، وبعدها في **Webhook fields** اعمل Subscribe على **messages**.
+   - **انشر الـ App** (Publish) عشان Meta تبعت أحداث حقيقية. Meta هتطلب لينك سياسة الخصوصية: `https://{دومينك}/privacy`.
+
 ## 7) جرّب الدورة كاملة
 1. افتح `https://platform.com`، المفروض تلاقي الصفحة التسويقية.
 2. سجّل حساب تاجر جديد، وجرّب الحاجات دي:

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\AlertController as AdminAlertController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
+use App\Http\Controllers\Api\V1\Admin\MessageController as AdminMessageController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\PlanController as AdminPlanController;
@@ -56,6 +57,7 @@ use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
+use App\Http\Controllers\Api\V1\Webhooks\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -72,6 +74,8 @@ Route::get('platform-pages/{slug}', [PlatformPageController::class, 'show'])->mi
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:register');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('password/code', [AuthController::class, 'passwordCode'])->middleware('throttle:password-code');
+    Route::post('password/reset', [AuthController::class, 'passwordReset'])->middleware('throttle:password-reset');
 
     Route::middleware(['auth:sanctum', 'tenant.active'])->group(function (): void {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -249,6 +253,14 @@ Route::prefix('dashboard')
         Route::delete('blocked-customers/{blocked_customer}', [BlockedCustomerController::class, 'destroy']);
     });
 
+// Provider webhooks, relayed by Next (raw body + the provider's signature, checked here).
+Route::prefix('webhooks')
+    ->middleware(['internal.key'])
+    ->group(function (): void {
+        Route::get('whatsapp', [WhatsAppWebhookController::class, 'verify']);
+        Route::post('whatsapp', [WhatsAppWebhookController::class, 'receive']);
+    });
+
 Route::prefix('public')
     ->middleware(['internal.key'])
     ->group(function (): void {
@@ -307,6 +319,9 @@ Route::prefix('admin')
         Route::put('alerts', [AdminAlertController::class, 'update']);
         Route::post('alerts/test', [AdminAlertController::class, 'test'])->middleware('throttle:6,1');
         Route::get('audit-logs', [AdminAuditLogController::class, 'index']);
+        Route::get('messages/overview', [AdminMessageController::class, 'overview']);
+        Route::get('messages', [AdminMessageController::class, 'index']);
+        Route::post('messages/templates', [AdminMessageController::class, 'pushTemplates'])->middleware('throttle:6,1');
         Route::get('tenants', [AdminTenantController::class, 'index']);
         Route::get('tenants/{tenant}', [AdminTenantController::class, 'show'])->whereNumber('tenant');
         Route::post('tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->whereNumber('tenant');

@@ -101,3 +101,54 @@ describe("/api/bff", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("/api/webhooks/whatsapp", () => {
+  it("relays Meta's subscribe check and answers the challenge as text", async () => {
+    const { GET } = await import("./webhooks/whatsapp/route");
+    fetchMock.mockResolvedValueOnce(new Response("98765", { status: 200 }));
+    const response = await GET(request("/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=v&hub.challenge=98765", { origin: null }));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("98765");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://laravel.test/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=v&hub.challenge=98765");
+  });
+
+  it("forwards the raw body and Meta's signature untouched", async () => {
+    const { POST } = await import("./webhooks/whatsapp/route");
+    fetchMock.mockResolvedValueOnce(Response.json({ ok: true }));
+    const raw = '{"entry":[{"changes":[]}],"x":"é"}';
+    const req = new NextRequest(`${ORIGIN}/api/webhooks/whatsapp`, { method: "POST", headers: { host: "app.localhost:3200", "x-hub-signature-256": "sha256=abc" }, body: raw });
+    const response = await POST(req);
+    expect(response.status).toBe(200);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://laravel.test/api/v1/webhooks/whatsapp");
+    expect(init.body).toBe(raw);
+    const headers = new Headers(init.headers);
+    expect(headers.get("x-hub-signature-256")).toBe("sha256=abc");
+    expect(headers.get("x-internal-key")).not.toBeNull();
+  });
+
+  it("answers 403 when Laravel refuses the signature", async () => {
+    const { POST } = await import("./webhooks/whatsapp/route");
+    fetchMock.mockResolvedValueOnce(Response.json({ code: "forbidden" }, { status: 403 }));
+    const req = new NextRequest(`${ORIGIN}/api/webhooks/whatsapp`, { method: "POST", headers: { host: "app.localhost:3200" }, body: "{}" });
+    expect((await POST(req)).status).toBe(403);
+  });
+});
+
+describe("/api/auth/password/*", () => {
+  it("forwards the forgot-password request and relays the answer", async () => {
+    const { POST } = await import("./auth/password/code/route");
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { channel: "whatsapp", code: null } }));
+    const response = await POST(request("/api/auth/password/code", { method: "POST", body: { login: "a@b.c" } }));
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls[0][0]).toBe("http://laravel.test/api/v1/auth/password/code");
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("relays 204 on reset and refuses another site", async () => {
+    const { POST } = await import("./auth/password/reset/route");
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    expect((await POST(request("/api/auth/password/reset", { method: "POST", body: {} }))).status).toBe(204);
+    expect((await POST(request("/api/auth/password/reset", { method: "POST", body: {}, origin: "https://evil.example" }))).status).toBe(403);
+  });
+});
