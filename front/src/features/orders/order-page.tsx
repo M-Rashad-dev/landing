@@ -11,7 +11,7 @@ import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-stat
 import { DatePicker } from "@/components/forms/date-pickers";
 import { PhoneInput } from "@/components/forms/inputs";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type Tone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
@@ -25,7 +25,7 @@ import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { zPhone, zRequiredString } from "@/lib/validation";
 import { ar } from "@/messages/ar";
-import { recordContact, updateOrder, useOrder, useRefreshOrders, whatsappLink, type OrderDetail } from "./api";
+import { recordContact, updateOrder, useOrder, useRefreshOrders, whatsappLink, type CustomerMessage, type OrderDetail } from "./api";
 import { confirmMessage } from "./order-quick-view";
 import { StatusDialog } from "./status-dialog";
 
@@ -109,6 +109,7 @@ export function OrderPage({ id }: { id: number }) {
           <CustomerCard order={order} onEdit={() => setEditing(true)} />
           <ShippingCard order={order} onSaved={refresh} />
           <InternalNote order={order} onSaved={refresh} />
+          <CustomerMessages order={order} />
         </div>
       </div>
 
@@ -571,4 +572,35 @@ function timeline(order: OrderDetail): TimelineEvent[] {
       body,
       tone,
     }));
+}
+
+const MESSAGE_TONE: Record<CustomerMessage["status"], Tone> = { pending: "neutral", sent: "info", delivered: "brand-soft", read: "success", failed: "danger" };
+
+/** What the customer was told about this order (WhatsApp / email) and whether it arrived. */
+function CustomerMessages({ order }: { order: OrderDetail }) {
+  const m = d.messages;
+  const reach = order.customer_email ? m.byEmail : order.whatsapp_opt_in ? m.byWhatsapp : m.none;
+  return (
+    <Panel>
+      <PanelHeader title={m.title} description={reach} />
+      {order.customer_messages.length > 0 ? (
+        <PanelBody className="flex flex-col gap-2.5">
+          {order.customer_messages.map((message) => (
+            <div key={message.id} className="flex items-start justify-between gap-3 text-sm">
+              <span className="flex min-w-0 flex-col">
+                <span className="font-semibold">{m.purpose[message.purpose]}</span>
+                <span className="text-xs text-ink-3">
+                  {message.channel === "email" ? m.email : m.whatsapp} · <span className="tabular">{formatDateTime(message.created_at)}</span>
+                </span>
+                {message.error ? <span className="text-xs text-danger">{message.error}</span> : null}
+              </span>
+              <Badge tone={MESSAGE_TONE[message.status]} size="sm" dot>
+                {m.status[message.status]}
+              </Badge>
+            </div>
+          ))}
+        </PanelBody>
+      ) : null}
+    </Panel>
+  );
 }

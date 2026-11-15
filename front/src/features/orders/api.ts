@@ -63,9 +63,13 @@ export type OrderItem = {
   line_total: number;
 };
 
+export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
+
 export type OrderDetail = OrderRow & {
   customer_phone2: string | null;
   customer_email: string | null;
+  whatsapp_opt_in: boolean;
+  customer_messages: CustomerMessage[];
   city: string | null;
   address: string | null;
   notes: string | null;

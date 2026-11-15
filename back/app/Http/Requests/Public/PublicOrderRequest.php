@@ -26,6 +26,7 @@ final class PublicOrderRequest extends FormRequest
             'answers' => ['nullable', 'array', 'max:50'],
             'form_token' => ['nullable', 'string', 'max:100'],
             'website' => ['nullable', 'string', 'max:200'],
+            'whatsapp_opt_in' => ['nullable', 'boolean'],
             'utm' => ['nullable', 'array'],
             'ab' => ['nullable', 'integer', 'min:1'],
             'offer_id' => ['nullable', 'integer', 'min:0'],

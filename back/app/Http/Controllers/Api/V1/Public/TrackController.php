@@ -44,22 +44,46 @@ final class TrackController extends Controller
         });
     }
 
+    /**
+     * The short link in order messages (https://{platform}/t/{token}): where the order's store
+     * tracks it. Only the store's address comes back, never order data.
+     */
+    public function link(Request $request): JsonResponse
+    {
+        $data = $request->validate(['token' => ['required', 'string', 'regex:/^[a-z0-9]{12}$/']]);
+
+        // Audited bypass: the token is unique platform-wide and unguessable; only the tenant id is read.
+        $tenantId = Tenancy::withoutTenant(fn () => Order::query()->where('track_token', $data['token'])->value('tenant_id'));
+        $host = $tenantId === null ? null : $this->site->primaryHost((int) $tenantId);
+        if ($host === null) {
+            throw new ApiException(404, 'order_not_found', __('orders.track_not_found'));
+        }
+
+        return $this->ok(['url' => rtrim(PublicSite::url($host), '/').'/track?t='.$data['token']])->header('Cache-Control', 'no-store, private');
+    }
+
     public function show(Request $request, PhoneNormalizer $phones): JsonResponse
     {
         $data = $request->validate([
             'host' => ['required', 'string', 'max:253'],
-            'order_number' => ['required', 'integer', 'min:1', 'max:999999999'],
-            'phone' => ['required', 'string', 'max:30'],
+            // The private link from the order messages, or order number + phone.
+            'token' => ['nullable', 'string', 'regex:/^[a-z0-9]{12}$/'],
+            'order_number' => ['required_without:token', 'nullable', 'integer', 'min:1', 'max:999999999'],
+            'phone' => ['required_without:token', 'nullable', 'string', 'max:30'],
             'ip' => ['nullable', 'ip'],
         ]);
         $domain = $this->site->activeDomainOrFail($data['host']);
-        $phone = $phones->normalize($data['phone']);
 
-        $order = $phone === null ? null : Tenancy::runAs($domain->tenant_id, fn () => Order::query()
-            ->with(['items', 'logs'])
-            ->where('order_number', (int) $data['order_number'])
-            ->where(fn ($q) => $q->where('customer_phone', $phone)->orWhere('customer_phone2', $phone))
-            ->first());
+        if (isset($data['token'])) {
+            $order = Tenancy::runAs($domain->tenant_id, fn () => Order::query()->with(['items', 'logs'])->where('track_token', $data['token'])->first());
+        } else {
+            $phone = $phones->normalize((string) $data['phone']);
+            $order = $phone === null ? null : Tenancy::runAs($domain->tenant_id, fn () => Order::query()
+                ->with(['items', 'logs'])
+                ->where('order_number', (int) $data['order_number'])
+                ->where(fn ($q) => $q->where('customer_phone', $phone)->orWhere('customer_phone2', $phone))
+                ->first());
+        }
 
         // Same answer for a wrong number and a wrong phone.
         if ($order === null) {

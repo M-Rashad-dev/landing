@@ -21,6 +21,7 @@ use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
+use App\Notifications\CustomerNotices;
 use App\Notifications\StoreNotices;
 use App\Pricing\CartQuote;
 use App\Pricing\PriceCalculator;
@@ -54,6 +55,7 @@ final class CreateStoreOrder
         private readonly LinkCustomer $customers,
         private readonly AutoBlock $autoBlock,
         private readonly StoreNotices $notices,
+        private readonly CustomerNotices $customerNotices,
     ) {}
 
     /**
@@ -110,6 +112,7 @@ final class CreateStoreOrder
                 'customer_phone' => $phone,
                 'customer_phone2' => $customer['phone2'] ?? null,
                 'customer_email' => $customer['email'] ?? null,
+                'whatsapp_opt_in' => filter_var($input['whatsapp_opt_in'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'governorate' => $governorate,
                 'city' => $customer['city'] ?? null,
                 'address' => $customer['address'] ?? null,
@@ -175,6 +178,7 @@ final class CreateStoreOrder
         $this->autoBlock->afterOrder($order);
         $this->webhooks->order(WebhookEvent::OrderCreated, $order);
         $this->notices->newOrder($order);
+        $this->customerNotices->received($order);
         foreach ($low as $item) {
             $this->notices->lowStock($order->tenant_id, $item['product_id'], $item['name'], $item['left']);
         }

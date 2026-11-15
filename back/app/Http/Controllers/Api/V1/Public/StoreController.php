@@ -122,6 +122,7 @@ final class StoreController extends Controller
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'save_address' => ['nullable', 'boolean'],
+            'whatsapp_opt_in' => ['nullable', 'boolean'],
         ]);
         $data['save_address'] = filter_var($data['save_address'] ?? false, FILTER_VALIDATE_BOOLEAN);
 

@@ -281,6 +281,7 @@ Route::prefix('public')
         Route::post('orders', [PublicOrderController::class, 'store'])->middleware('throttle:public-order-attempts');
         Route::get('brand', [TrackController::class, 'brand'])->middleware('throttle:public-read');
         Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
+        Route::get('track-link', [TrackController::class, 'link'])->middleware('throttle:public-track');
         Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
         Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');

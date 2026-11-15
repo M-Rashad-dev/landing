@@ -28,6 +28,8 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/api/revalidate" || pathname === "/api/health" || pathname.startsWith("/media/")) return NextResponse.next();
 
   if (kind === "platform") {
+    // Order messages' short link: resolved to the order's store tracking page (app/t/[token]).
+    if (/^\/t\/[a-z0-9]{12}$/.test(pathname)) return NextResponse.next();
     const page = pathname === "/" ? "" : platformPageSlug(pathname);
     if (page !== null) {
       const url = request.nextUrl.clone();

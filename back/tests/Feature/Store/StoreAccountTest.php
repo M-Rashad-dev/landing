@@ -246,3 +246,14 @@ it('keeps accounts and reviews to their own store', function () {
     app('auth')->forgetGuards();
     $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/dashboard/reviews')->assertUnauthorized();
 });
+
+it('lets the customer choose where order updates go', function () {
+    accountStore();
+    $token = signIn('01012345678');
+
+    accountCall('GET', 'account', token: $token)->assertOk()->assertJsonPath('data.notify_channel', 'whatsapp');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => null, 'notify_channel' => 'email'], $token)->assertStatus(422)->assertJsonValidationErrors('notify_channel');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com'], $token)->assertOk()->assertJsonPath('data.notify_channel', 'email');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com', 'notify_channel' => 'whatsapp'], $token)->assertOk()->assertJsonPath('data.notify_channel', 'whatsapp');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com', 'notify_channel' => 'sms'], $token)->assertStatus(422)->assertJsonValidationErrors('notify_channel');
+});

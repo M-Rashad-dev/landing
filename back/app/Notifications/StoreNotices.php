@@ -61,7 +61,7 @@ final class StoreNotices
             ],
             __('notifications.low_stock.action'),
             'merchant_low_stock',
-            [$product, $this->store($tenantId), (string) max(0, $left)],
+            [(string) max(0, $left), $product, $this->store($tenantId)],
         ));
     }
 

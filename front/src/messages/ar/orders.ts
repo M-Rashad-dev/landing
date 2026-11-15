@@ -56,6 +56,16 @@ export const orders = {
     damagedHint: "تالف = رجع بايظ أو ضاع، القطع مش هترجع المخزون.",
   },
   detail: {
+    messages: {
+      title: "رسايل العميل",
+      byEmail: "التحديثات بتوصله على الإيميل.",
+      byWhatsapp: "وافق إن التحديثات توصله على واتساب.",
+      none: "مكتبش إيميل ومعلّمش على تحديثات واتساب، فمش هيوصله رسايل عن الطلب.",
+      email: "إيميل",
+      whatsapp: "واتساب",
+      purpose: { order_received: "الطلب اتسجّل", order_shipped: "الطلب اتشحن", order_cancelled: "الطلب اتلغى", order_delivered: "الطلب اتسلّم" },
+      status: { pending: "اتبعتت", sent: "اتبعتت", delivered: "وصلت", read: "اتقرت", failed: "موصلتش" },
+    },
     back: "الطلبات",
     title: (n: number) => `طلب #${n}`,
     items: "المنتجات",

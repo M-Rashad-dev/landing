@@ -7,6 +7,7 @@ import { ar } from "@/messages/ar";
 import { AccountView, SignInView } from "./pages/account";
 import { ProductReviewsSection } from "./pages/reviews";
 import { CheckoutView } from "./pages/checkout";
+import { TrackView } from "./pages/track";
 import { AsasRoot } from "./root";
 import type { Design, DesignData } from "./types";
 
@@ -209,5 +210,34 @@ describe("reviews on the product page", () => {
 
     expect(await screen.findByText("سارة م.")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ product_id: 7, rating: 4, text: "حلو" });
+  });
+});
+
+describe("order tracking from the private link", () => {
+  const order = {
+    order_number: 1024,
+    stage: "shipped",
+    created_at: "2026-11-15T10:00:00Z",
+    items: [{ name: "بن برازيلي", quantity: 2, options: [] }],
+    total: 450,
+    governorate: "القاهرة",
+    shipping_company: "بوسطة",
+    tracking_number: "BX-77",
+    history: [{ stage: "received", at: "2026-11-15T10:00:00Z" }],
+  };
+
+  it("opens the order straight from the token", async () => {
+    stub({ "/track": () => Response.json({ data: order }) });
+    inTheme(<TrackView initialNumber="" token="k3x9q2abcdef" />);
+
+    expect(await screen.findByText(ar.storefront.track.order(1024))).toBeInTheDocument();
+    expect(calls[0].body).toEqual({ token: "k3x9q2abcdef" });
+  });
+
+  it("falls back to number + phone when the link is wrong", async () => {
+    stub({ "/track": () => Response.json({ code: "order_not_found" }, { status: 404 }) });
+    inTheme(<TrackView initialNumber="" token="k3x9q2abcdef" />);
+
+    await waitFor(() => expect(screen.getByText(ar.storefront.track.notFound)).toBeInTheDocument());
   });
 });

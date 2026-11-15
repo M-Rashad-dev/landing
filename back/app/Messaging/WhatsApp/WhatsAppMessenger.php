@@ -37,7 +37,7 @@ final class WhatsAppMessenger
      *
      * @param  list<string>  $params
      */
-    public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId): OutboundMessage
+    public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId, ?int $orderId = null): OutboundMessage
     {
         $name = WhatsAppTemplates::name($key);
 
@@ -46,7 +46,21 @@ final class WhatsAppMessenger
             $name,
             WhatsAppTemplates::LANGUAGE,
             WhatsAppTemplates::components($key, $params, $button),
-        ));
+        ), $orderId);
+    }
+
+    /** An order email that went out (logged next to the WhatsApp ones, on its order). */
+    public function logEmail(string $email, MessagePurpose $purpose, int $tenantId, int $orderId): OutboundMessage
+    {
+        return OutboundMessage::query()->create([
+            'tenant_id' => $tenantId,
+            'order_id' => $orderId,
+            'channel' => 'email',
+            'recipient' => mb_substr($email, 0, 191),
+            'purpose' => $purpose,
+            'status' => MessageStatus::Sent,
+            'sent_at' => now(),
+        ]);
     }
 
     /** Free text inside the 24-hour window after the person wrote to us. Throws WhatsAppError. */
@@ -56,10 +70,11 @@ final class WhatsAppMessenger
     }
 
     /** @param callable(): string $send returns Meta's message id */
-    private function deliver(string $phone, MessagePurpose $purpose, ?string $template, ?int $tenantId, callable $send): OutboundMessage
+    private function deliver(string $phone, MessagePurpose $purpose, ?string $template, ?int $tenantId, callable $send, ?int $orderId = null): OutboundMessage
     {
         $message = OutboundMessage::query()->create([
             'tenant_id' => $tenantId,
+            'order_id' => $orderId,
             'channel' => 'whatsapp',
             'recipient' => $phone,
             'purpose' => $purpose,

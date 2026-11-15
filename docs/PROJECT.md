@@ -26,7 +26,7 @@
 - **State**: feature-complete for a first production test. Deployed once to the owner's VPS
   (`https://13.140.220.40.sslip.io`). All work is pushed to `v4` and `main`.
 - **Now**: the **notifications system on WhatsApp** (part 1 done: sending, codes, webhook, forgot password, admin page;
-  part 2 done: the bell, store-owner/admin notifications, email; next: customer order messages). Then paid plans / online payment, then
+  part 2: the bell, store-owner/admin notifications, email; part 3: customer order messages — all done, waiting on Meta's template review). Then paid plans / online payment, then
   more paid themes (owner's designs) — see §12.
 - **The owner**: talk to him in **short Egyptian Arabic**, build **one part at a time and stop for his review**,
   never use an external service without his approval, push every commit (v4 + main) but never deploy to the server yourself. Details in §1.
@@ -462,8 +462,11 @@ Landing Builder lives in `features/landings/`.
    - Done (part 2): `App\Notifications` (NotificationCenter, StoreNotices, Notice), the bell in both shells (live on
      `user.{id}`), store-owner + admin notifications with a WhatsApp/email choice and email fallback, plan reminders,
      admin alert channel settings (DECISIONS.md 2026-11-16). Email is complete: only `MAIL_*` is missing.
-   - Next: part 3 = customer order messages (checkout opt-in unchecked by default, `/t/{token}` short link on the
-     platform domain, customer email/WhatsApp choice in the profile). Suggested for later: order confirmation by
+   - Done (part 3): order messages to customers (received / shipped / cancelled / delivered) by email or WhatsApp
+     (checkout + landing opt-in, unchecked by default; customer's choice in their account), `/t/{token}` short link,
+     «رسايل العميل» on the order page (DECISIONS.md 2026-11-16).
+   - Waiting on Meta: template review (none approved yet on 2026-11-16). On the server: push the 3 link templates
+     from /admin/messages, set the webhook, publish the app, fill `MAIL_*`. Suggested for later: order confirmation by
      WhatsApp buttons.
 2. **Paid plans / online payment**: Paymob gateway (`PaymentGateway` contract, `ManualGateway` today) when the owner
    has an account; later auto-renew with saved cards, then customer online payment with the merchant's own account.

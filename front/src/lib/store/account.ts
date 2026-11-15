@@ -7,7 +7,7 @@ import type { TrackStage } from "./types";
 /* ---------- Types (back end: StoreAccountController, CustomerOrders, ProductReview) ---------- */
 
 export type Address = { id: number; name: string; governorate: string; city: string | null; address: string; is_default: boolean };
-export type Profile = { name: string | null; email: string | null; phone: string; addresses: Address[] };
+export type Profile = { name: string | null; email: string | null; phone: string; notify_channel: "email" | "whatsapp"; addresses: Address[] };
 export type AddressInput = { name: string; governorate: string; city: string | null; address: string; is_default?: boolean };
 
 export type OrderRow = { order_number: number; created_at: string; stage: TrackStage; total: number; items_count: number; products: string[] };
@@ -102,7 +102,8 @@ export function useMyOrder(number: number) {
 export const sendCode = async (phone: string) => (await call<{ channel: string; expires_in: number; resend_in: number; code: string | null }>("/code", { method: "POST", body: { phone } })).data;
 export const verifyCode = async (phone: string, code: string) => (await call<{ customer: Profile }>("/verify", { method: "POST", body: { phone, code } })).data;
 export const signOut = () => call<void>("/sign-out", { method: "POST", body: {} });
-export const updateProfile = async (name: string, email: string | null) => (await call<Profile>("", { method: "PUT", body: { name, email } })).data;
+export const updateProfile = async (name: string, email: string | null, notifyChannel: "email" | "whatsapp") =>
+  (await call<Profile>("", { method: "PUT", body: { name, email, notify_channel: notifyChannel } })).data;
 export const saveAddress = async (input: AddressInput, id?: number) => (await call<Address>(id ? `/addresses/${id}` : "/addresses", { method: id ? "PUT" : "POST", body: input })).data;
 export const deleteAddress = (id: number) => call<void>(`/addresses/${id}`, { method: "DELETE" });
 export const writeReview = async (input: { product_id: number; rating: number; text: string | null }) => (await call<{ rating: number; text: string | null }>("/reviews", { method: "PUT", body: input })).data;

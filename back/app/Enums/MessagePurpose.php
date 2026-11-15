@@ -11,6 +11,10 @@ enum MessagePurpose: string
     case MerchantCode = 'merchant_code';
     case AutoReply = 'auto_reply';
     case Notification = 'notification';
+    case OrderReceived = 'order_received';
+    case OrderShipped = 'order_shipped';
+    case OrderCancelled = 'order_cancelled';
+    case OrderDelivered = 'order_delivered';
 
     /** @return list<string> */
     public static function values(): array

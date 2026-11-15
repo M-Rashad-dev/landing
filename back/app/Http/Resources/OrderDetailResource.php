@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\OrderItem;
 use App\Models\OrderStatusLog;
+use App\Models\OutboundMessage;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,16 @@ final class OrderDetailResource extends OrderResource
         return array_merge(parent::toArray($request), [
             'customer_phone2' => $this->customer_phone2,
             'customer_email' => $this->customer_email,
+            'whatsapp_opt_in' => (bool) $this->whatsapp_opt_in,
+            // What the customer was told about this order, and how it ended.
+            'customer_messages' => OutboundMessage::query()->where('order_id', $this->id)->orderBy('id')->get()->map(fn (OutboundMessage $m): array => [
+                'id' => $m->id,
+                'purpose' => $m->purpose->value,
+                'channel' => $m->channel,
+                'status' => $m->status->value,
+                'error' => $m->error_title,
+                'created_at' => $m->created_at->toIso8601ZuluString(),
+            ])->all(),
             'city' => $this->city,
             'address' => $this->address,
             'notes' => $this->notes,

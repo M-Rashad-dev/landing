@@ -12,6 +12,7 @@ use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
+use App\Notifications\CustomerNotices;
 use App\Services\Webhooks\WebhookDispatcher;
 use App\Store\Stock;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class ChangeOrderStatus
 {
-    public function __construct(private readonly WebhookDispatcher $webhooks, private readonly Stock $stock, private readonly AutoBlock $autoBlock) {}
+    public function __construct(
+        private readonly WebhookDispatcher $webhooks,
+        private readonly Stock $stock,
+        private readonly AutoBlock $autoBlock,
+        private readonly CustomerNotices $customerNotices,
+    ) {}
 
     /** @param array{block_phone?: bool, block_ip?: bool, tracking_number?: string|null} $options */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
@@ -77,6 +83,7 @@ final class ChangeOrderStatus
             $this->autoBlock->afterReturn($changed);
         }
         $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
+        $this->customerNotices->statusChanged($changed, $to);
 
         return $changed;
     }

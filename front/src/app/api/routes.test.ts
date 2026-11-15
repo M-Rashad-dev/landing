@@ -152,3 +152,28 @@ describe("/api/auth/password/*", () => {
     expect((await POST(request("/api/auth/password/reset", { method: "POST", body: {}, origin: "https://evil.example" }))).status).toBe(403);
   });
 });
+
+describe("/t/[token]", () => {
+  const params = (token: string) => ({ params: Promise.resolve({ token }) });
+
+  it("sends the order's short link on to its store tracking page", async () => {
+    process.env.PLATFORM_DOMAIN = "platform.test";
+    const { GET } = await import("../t/[token]/route");
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { url: "https://habba.platform.test/track?t=k3x9q2abcdef" } }));
+
+    const response = await GET(new Request("https://platform.test/t/k3x9q2abcdef"), params("k3x9q2abcdef"));
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://habba.platform.test/track?t=k3x9q2abcdef");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://laravel.test/api/v1/public/track-link?token=k3x9q2abcdef");
+  });
+
+  it("lands on the platform home for an unknown or malformed link", async () => {
+    process.env.PLATFORM_DOMAIN = "platform.test";
+    const { GET } = await import("../t/[token]/route");
+    fetchMock.mockResolvedValueOnce(Response.json({ code: "order_not_found" }, { status: 404 }));
+
+    expect((await GET(new Request("https://platform.test/t/aaaaaaaaaaaa"), params("aaaaaaaaaaaa"))).headers.get("location")).toBe("https://platform.test/");
+    expect((await GET(new Request("https://platform.test/t/BAD"), params("BAD"))).headers.get("location")).toBe("https://platform.test/");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

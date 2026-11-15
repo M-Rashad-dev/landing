@@ -65,6 +65,8 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
   const me = account.data ?? null;
   const [chosenAddress, setChosenAddress] = React.useState<number | "new" | null>(null);
   const [keepAddress, setKeepAddress] = React.useState(true);
+  // Order messages on WhatsApp: only when the customer ticks it (unchecked by default, Meta's rule).
+  const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
   const filled = React.useRef(false);
   const preferred = me ? (me.addresses.find((a) => a.is_default) ?? me.addresses[0] ?? null) : null;
   // Until the customer picks, the default saved address is the one in use.
@@ -156,6 +158,7 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
           utm: captureUtm(),
           cart_token: cartToken() || null,
           save_address: me !== null && addressId === "new" && keepAddress,
+          whatsapp_opt_in: whatsappOptIn,
         }),
       });
       const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; errors?: Record<string, string[]>; message?: string };
@@ -277,6 +280,13 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
             <FormField id="co-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="co-notes" rows={2} maxLength={500} className={cn(inputClass, "h-auto py-2")} {...register("notes")} />
             </FormField>
+            <label className="as-sm flex items-start gap-2 font-semibold">
+              <input type="checkbox" checked={whatsappOptIn} onChange={(e) => setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
+              <span>
+                {t.whatsappOptIn}
+                <span className="as-xs as-muted block font-normal">{t.whatsappOptInHint}</span>
+              </span>
+            </label>
             {me && addressId === "new" ? (
               <label className="as-sm flex items-center gap-2 font-semibold">
                 <input type="checkbox" checked={keepAddress} onChange={(e) => setKeepAddress(e.target.checked)} className="size-4 accent-(--as-primary)" />

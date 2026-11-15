@@ -12,6 +12,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TrackPage({ params, searchParams }: Props) {
   await liveStore((await params).host);
-  const order = (await searchParams).order;
-  return <TrackView initialNumber={typeof order === "string" && /^\d{1,9}$/.test(order) ? order : ""} />;
+  const query = await searchParams;
+  const order = query.order;
+  // ?t= comes from the link in the order messages: the order opens without typing anything.
+  const token = typeof query.t === "string" && /^[a-z0-9]{12}$/.test(query.t) ? query.t : null;
+  return <TrackView initialNumber={typeof order === "string" && /^\d{1,9}$/.test(order) ? order : ""} token={token} />;
 }

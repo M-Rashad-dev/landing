@@ -227,7 +227,7 @@ export function AccountView() {
           </button>
         ))}
       </div>
-      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} email={me.email ?? ""} phone={me.phone} />}
+      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} email={me.email ?? ""} phone={me.phone} channel={me.notify_channel} />}
       {confirmLeave ? <ConfirmDialog title={t.signOutTitle} text={t.signOutText} confirmLabel={t.signOut} onConfirm={() => void leave()} onCancel={() => setConfirmLeave(false)} /> : null}
     </Container>
   );
@@ -428,10 +428,10 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
   );
 }
 
-function ProfileForm({ name, email, phone }: { name: string; email: string; phone: string }) {
+function ProfileForm({ name, email, phone, channel }: { name: string; email: string; phone: string; channel: "email" | "whatsapp" }) {
   const queryClient = useQueryClient();
-  const [values, setValues] = React.useState({ name, email });
-  const [errors, setErrors] = React.useState<{ name?: string; email?: string; form?: string }>({});
+  const [values, setValues] = React.useState({ name, email, channel });
+  const [errors, setErrors] = React.useState<{ name?: string; email?: string; channel?: string; form?: string }>({});
   const [state, setState] = React.useState<"idle" | "busy" | "saved">("idle");
 
   const submit = async (e: React.FormEvent) => {
@@ -439,11 +439,12 @@ function ProfileForm({ name, email, phone }: { name: string; email: string; phon
     setState("busy");
     setErrors({});
     try {
-      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null));
+      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null, values.channel));
       setState("saved");
     } catch (err) {
       setState("idle");
-      if (isApiError(err) && (err.errors.name || err.errors.email)) setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0] });
+      if (isApiError(err) && (err.errors.name || err.errors.email || err.errors.notify_channel))
+        setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0], channel: err.errors.notify_channel?.[0] });
       else setErrors({ form: errorMessage(err) });
     }
   };
@@ -459,6 +460,16 @@ function ProfileForm({ name, email, phone }: { name: string; email: string; phon
       <FormField id="pf-phone" label={t.phone} hint={t.phoneFixed}>
         <input id="pf-phone" dir="ltr" value={formatPhoneLocal(phone)} readOnly className={cn(inputClass, "text-end opacity-70")} />
       </FormField>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="as-sm mb-2 font-bold">{t.updatesBy}</legend>
+        {(["whatsapp", "email"] as const).map((option) => (
+          <label key={option} className={cn("as-sm flex cursor-pointer items-center gap-2 rounded-lg border p-3 font-semibold", values.channel === option && "border-(--as-primary) bg-(--as-soft)")}>
+            <input type="radio" name="pf-channel" value={option} checked={values.channel === option} onChange={() => setValues((v) => ({ ...v, channel: option }))} className="size-4 accent-(--as-primary)" />
+            {option === "whatsapp" ? t.updatesWhatsapp : t.updatesEmail}
+          </label>
+        ))}
+        {errors.channel ? <p className="as-xs text-red-600">{errors.channel}</p> : null}
+      </fieldset>
       {errors.form ? <p className="as-sm text-red-600">{errors.form}</p> : null}
       <div className="flex items-center gap-3">
         <button type="submit" disabled={state === "busy"} className="as-btn as-sm h-10 disabled:opacity-60">

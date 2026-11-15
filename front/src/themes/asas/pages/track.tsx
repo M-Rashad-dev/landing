@@ -12,12 +12,40 @@ import { Breadcrumb, Container, FormField, inputClass } from "../parts";
 const t = ar.storefront.track;
 const STEPS: TrackStage[] = ["received", "confirmed", "shipped", "delivered"];
 
-/** Order tracking: number + phone → where the order is. */
-export function TrackView({ initialNumber }: { initialNumber: string }) {
+type TrackState = { kind: "idle" | "loading" } | { kind: "error"; message: string } | { kind: "found"; order: TrackedOrder };
+
+async function lookup(body: Record<string, unknown>): Promise<TrackState> {
+  try {
+    const response = await fetch("/api/public/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = (await response.json().catch(() => ({}))) as { data?: TrackedOrder };
+    if (response.ok && json.data) return { kind: "found", order: json.data };
+    return { kind: "error", message: response.status === 404 || response.status === 422 ? t.notFound : response.status === 429 ? t.tooMany : t.failed };
+  } catch {
+    return { kind: "error", message: ar.storefront.checkout.errors.network };
+  }
+}
+
+/** Order tracking: number + phone → where the order is (or straight from the private link's token). */
+export function TrackView({ initialNumber, token = null }: { initialNumber: string; token?: string | null }) {
   const [number, setNumber] = React.useState(initialNumber);
   const [phone, setPhone] = React.useState("");
   const [errors, setErrors] = React.useState<{ number?: string; phone?: string }>({});
-  const [state, setState] = React.useState<{ kind: "idle" | "loading" } | { kind: "error"; message: string } | { kind: "found"; order: TrackedOrder }>({ kind: "idle" });
+  const [state, setState] = React.useState<TrackState>(token ? { kind: "loading" } : { kind: "idle" });
+
+  React.useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    void lookup({ token }).then((next) => {
+      if (!cancelled) setState(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,18 +55,7 @@ export function TrackView({ initialNumber }: { initialNumber: string }) {
     setErrors(next);
     if (next.number || next.phone) return;
     setState({ kind: "loading" });
-    try {
-      const response = await fetch("/api/public/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ order_number: Number(number.trim().replace(/^#/, "")), phone }),
-      });
-      const json = (await response.json().catch(() => ({}))) as { data?: TrackedOrder };
-      if (response.ok && json.data) setState({ kind: "found", order: json.data });
-      else setState({ kind: "error", message: response.status === 404 || response.status === 422 ? t.notFound : response.status === 429 ? t.tooMany : t.failed });
-    } catch {
-      setState({ kind: "error", message: ar.storefront.checkout.errors.network });
-    }
+    setState(await lookup({ order_number: Number(number.trim().replace(/^#/, "")), phone }));
   };
 
   return (

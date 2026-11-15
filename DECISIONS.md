@@ -400,3 +400,11 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Email is complete: only `MAIL_*` (Hostinger SMTP) is missing; until then mails go to the log.
 - Bell rows are kept 90 days once read, 180 days in any case (`notifications:prune`, daily).
 - Tests never use real keys or reach a real service (`Http::preventStrayRequests`, blank `WHATSAPP_*` in phpunit.xml).
+
+## 2026-11-16 — Notifications part 3: order messages to customers
+- Events: order received, shipped (company + tracking number in the email), cancelled, delivered — store and landing-page orders (`App\Notifications\CustomerNotices` → `DeliverCustomerNotice`, after commit, never retried).
+- Channel: the customer's own choice in their store account (`customers.notify_channel`, «حسابي ← بياناتي»; choosing WhatsApp there counts as consent), else **email** when the order/customer has one, else **WhatsApp** only if they ticked «ابعتولي تحديثات طلبي على واتساب» (`orders.whatsapp_opt_in`, unchecked by default — checkout and landing form). Otherwise nothing. WhatsApp that fails falls back to email.
+- Emails go in the store's name (sender name = store, platform address), body = order lines, total, tracking number, and the tracking link.
+- Every order has a private `track_token` (12 chars; older orders get one on their first message). Short link `https://{PLATFORM_DOMAIN}/t/{token}` (Next `app/t/[token]`, one fixed domain for Meta's button) → `GET public/track-link` (audited `withoutTenant`: unique unguessable token, only the tenant id read) → the store's `/track?t={token}`, which opens the order without number + phone.
+- `outbound_messages` now has `order_id` and logs emails too (channel `email`); the order page shows «رسايل العميل» (what was sent, how, and whether it arrived).
+- Templates `merchant_low_stock_v2`, `merchant_import_done_v2`, `admin_daily_summary_v2` replace the v1 that Meta classed Marketing.

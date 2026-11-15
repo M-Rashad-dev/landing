@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Amounts are a snapshot of the quote at creation time and never change afterwards.
@@ -29,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property string $customer_phone
  * @property string|null $customer_phone2
  * @property string|null $customer_email
+ * @property bool $whatsapp_opt_in the customer agreed to order messages on WhatsApp
+ * @property string|null $track_token
  * @property string|null $governorate
  * @property string|null $city
  * @property string|null $address
@@ -67,7 +70,7 @@ class Order extends Model
     // tenant_id is set by BelongsToTenant, never mass-assigned.
     protected $fillable = [
         'order_number', 'landing_page_id', 'source', 'ab_test_id', 'product_id', 'status', 'status_changed_at',
-        'customer_name', 'customer_phone', 'customer_phone2', 'customer_email', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
+        'customer_name', 'customer_phone', 'customer_phone2', 'customer_email', 'whatsapp_opt_in', 'governorate', 'city', 'address', 'notes', 'internal_note', 'answers',
         'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
         'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'shipping_company_id', 'shipping_company_name', 'shipping_offer_name', 'shipping_discount', 'tracking_number', 'customer_id', 'total', 'currency',
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
@@ -94,8 +97,17 @@ class Order extends Model
             'code_discount' => 'decimal:2',
             'total' => 'decimal:2',
             'is_duplicate_suspect' => 'boolean',
+            'whatsapp_opt_in' => 'boolean',
             'utm' => 'array',
         ];
+    }
+
+    /** Every order gets a private tracking token (the customer's link /t/{token}, never guessable). */
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order): void {
+            $order->track_token ??= strtolower(Str::random(12));
+        });
     }
 
     /** @return HasMany<OrderItem, $this> */

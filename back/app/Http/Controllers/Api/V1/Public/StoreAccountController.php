@@ -82,11 +82,20 @@ final class StoreAccountController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:80'],
             'email' => ['nullable', 'string', 'max:191', 'email:rfc'],
+            // Where order updates go: email (needs an email) or WhatsApp. Absent = unchanged.
+            'notify_channel' => ['sometimes', 'nullable', 'in:email,whatsapp'],
         ]);
+        if (($data['notify_channel'] ?? null) === 'email' && trim((string) ($data['email'] ?? '')) === '') {
+            throw ValidationException::withMessages(['notify_channel' => [__('accounts.email_needed')]]);
+        }
 
         return $this->signedIn($request, function (Customer $customer) use ($data) {
             $email = trim((string) ($data['email'] ?? ''));
-            $customer->forceFill(['name' => trim(strip_tags($data['name'])), 'email' => $email === '' ? null : mb_strtolower($email)])->save();
+            $changes = ['name' => trim(strip_tags($data['name'])), 'email' => $email === '' ? null : mb_strtolower($email)];
+            if (array_key_exists('notify_channel', $data)) {
+                $changes['notify_channel'] = $data['notify_channel'];
+            }
+            $customer->forceFill($changes)->save();
 
             return $this->ok($this->profile($customer));
         });
@@ -240,6 +249,8 @@ final class StoreAccountController extends Controller
             'name' => $customer->name,
             'email' => $customer->email,
             'phone' => $customer->phone,
+            // Effective channel: their choice, else email when they have one, else WhatsApp.
+            'notify_channel' => $customer->notify_channel ?? ($customer->email ? 'email' : 'whatsapp'),
             'addresses' => $customer->addresses()->orderByDesc('is_default')->orderBy('id')->get()->map(fn (CustomerAddress $a) => $a->toPublic())->all(),
         ];
     }

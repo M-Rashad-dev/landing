@@ -76,10 +76,11 @@ final class WhatsAppTemplates
             'body' => "إيصال الدفع للفاتورة رقم {{1}} اترفض، والسبب: {{2}}.\nتقدر ترفع إيصال جديد من لوحة التحكم.",
             'examples' => ['INV-1042', 'المبلغ ناقص'],
         ],
+        // v1 of the next three were put under Marketing by Meta: v2 read as plain account updates.
         'merchant_low_stock' => [
-            'name' => 'merchant_low_stock_v1',
-            'body' => 'المنتج {{1}} في متجر {{2}} فاضل منه {{3}} قطعة بس في المخزون.',
-            'examples' => ['بن برازيلي 250 جم', 'متجر حبة', '3'],
+            'name' => 'merchant_low_stock_v2',
+            'body' => 'تنبيه مخزون لحسابك: فاضل {{1}} قطعة بس من المنتج {{2}} في متجر {{3}}.',
+            'examples' => ['3', 'بن برازيلي 250 جم', 'متجر حبة'],
         ],
         'merchant_support_reply' => [
             'name' => 'merchant_support_reply_v1',
@@ -92,8 +93,8 @@ final class WhatsAppTemplates
             'examples' => ['habba-shop.com', 'متجر حبة'],
         ],
         'merchant_import_done' => [
-            'name' => 'merchant_import_done_v1',
-            'body' => 'استيراد المنتجات لمتجر {{1}} خلص: اتضاف أو اتحدّث {{2}} منتج، و{{3}} صف فيه مشاكل.',
+            'name' => 'merchant_import_done_v2',
+            'body' => 'تحديث لحسابك: ملف المنتجات اللي رفعته لمتجر {{1}} خلص، واتضاف أو اتحدّث {{2}} منتج، و{{3}} صف محتاج مراجعة.',
             'examples' => ['متجر حبة', '120', '4'],
         ],
         // v1 was put under Marketing by Meta: v2 reads as a plain account update.
@@ -118,8 +119,8 @@ final class WhatsAppTemplates
             'examples' => ['1042', 'متجر حبة', 'الدفع والاشتراك'],
         ],
         'admin_daily_summary' => [
-            'name' => 'admin_daily_summary_v1',
-            'body' => 'ملخص يوم {{1}} على المنصة: {{2}} متجر جديد، و{{3}} طلب، و{{4}} إيصال مستني مراجعة.',
+            'name' => 'admin_daily_summary_v2',
+            'body' => 'تقرير حسابك عن يوم {{1}}: اتسجل {{2}} متجر جديد، واتعمل {{3}} طلب، وفيه {{4}} إيصال مستني مراجعة.',
             'examples' => ['2026-11-15', '3', '57', '2'],
         ],
     ];

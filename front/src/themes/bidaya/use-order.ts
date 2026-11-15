@@ -67,6 +67,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   const required = (key: FormFieldKey) => key === "name" || key === "phone" || Boolean(props.fields[key]?.required);
 
   const [values, setValues] = React.useState<Partial<Record<FormFieldKey, string>>>({});
+  // Order messages on WhatsApp: only when the visitor ticks it (unchecked by default, Meta's rule).
+  const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [options, setOptions] = React.useState<Record<number, number>>(() => {
     const start: Record<number, number> = {};
@@ -247,6 +249,7 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         offer_id: picker ? chosenOffer : null,
         shipping_company_id: company,
         idempotency_key: crypto.randomUUID(),
+        whatsapp_opt_in: whatsappOptIn,
       });
       const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; code?: string; message?: string; errors?: Record<string, string[]> };
       if (response.ok && json.data) {
@@ -277,6 +280,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     required,
     values,
     setValue,
+    whatsappOptIn,
+    setWhatsappOptIn,
     errors: { ...errors, ...(quote?.code_error && appliedCode ? { code: quote.code_error } : {}) } as Record<string, string>,
     options,
     setOption,

@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int|null $tenant_id
+ * @property int|null $order_id
  * @property string $channel
  * @property string $recipient E.164
  * @property MessagePurpose $purpose
@@ -33,7 +34,7 @@ use Illuminate\Support\Carbon;
 class OutboundMessage extends Model
 {
     protected $fillable = [
-        'tenant_id', 'channel', 'recipient', 'purpose', 'template', 'provider_id', 'status',
+        'tenant_id', 'order_id', 'channel', 'recipient', 'purpose', 'template', 'provider_id', 'status',
         'error_code', 'error_title', 'sent_at', 'delivered_at', 'read_at', 'failed_at',
     ];
 
