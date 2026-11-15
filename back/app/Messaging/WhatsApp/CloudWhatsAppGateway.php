@@ -114,11 +114,10 @@ final class CloudWhatsAppGateway implements WhatsAppGateway
         $json = is_array($json) ? $json : [];
         if ($response->failed()) {
             $error = is_array($json['error'] ?? null) ? $json['error'] : [];
-            $details = $error['error_data']['details'] ?? null;
-            throw new WhatsAppError(
-                (string) ($error['code'] ?? $response->status()),
-                mb_substr((string) (is_string($details) && $details !== '' ? $details : ($error['message'] ?? 'HTTP '.$response->status())), 0, 250),
-            );
+            // The most useful text Meta gave: the user message ("Buttons can't have…"), the details, or the bare message.
+            $text = collect([$error['error_user_msg'] ?? null, $error['error_data']['details'] ?? null, $error['message'] ?? null])
+                ->first(fn (mixed $v): bool => is_string($v) && $v !== '') ?? 'HTTP '.$response->status();
+            throw new WhatsAppError((string) ($error['code'] ?? $response->status()), mb_substr((string) $text, 0, 250));
         }
 
         return $json;

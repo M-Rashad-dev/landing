@@ -29,6 +29,9 @@ final class WhatsAppTemplateSync
      */
     public function push(): array
     {
+        // One call per template, a few seconds each: more than PHP's default 30 s for a web request.
+        set_time_limit(180);
+
         $onMeta = $this->onMeta();
         $submitted = [];
         $errors = [];

@@ -109,7 +109,8 @@ final class WhatsAppTemplates
             'components' => [
                 ['type' => 'BODY', 'add_security_recommendation' => true],
                 ['type' => 'FOOTER', 'code_expiration_minutes' => self::CODE_MINUTES],
-                ['type' => 'BUTTONS', 'buttons' => [['type' => 'OTP', 'otp_type' => 'COPY_CODE', 'text' => 'نسخ الكود']]],
+                // No custom text: Meta refuses it on this button and shows its own («نسخ الرمز»).
+                ['type' => 'BUTTONS', 'buttons' => [['type' => 'OTP', 'otp_type' => 'COPY_CODE']]],
             ],
         ]];
 
