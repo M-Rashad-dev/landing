@@ -34,6 +34,12 @@
         <env name="CNAME_TARGET" value="cname.platform.test"/>
         <env name="SERVER_IP" value="203.0.113.10"/>
         <env name="INTERNAL_API_KEY" value="test-internal-key"/>
+        <!-- Never the developer's real WhatsApp keys: tests set their own and fake Meta. -->
+        <env name="WHATSAPP_TOKEN" value=""/>
+        <env name="WHATSAPP_PHONE_NUMBER_ID" value=""/>
+        <env name="WHATSAPP_WABA_ID" value=""/>
+        <env name="WHATSAPP_APP_SECRET" value=""/>
+        <env name="WHATSAPP_VERIFY_TOKEN" value=""/>
         <env name="REVALIDATE_SECRET" value="test-revalidate-secret"/>
         <env name="FRONT_INTERNAL_URL" value=""/>
         <env name="FILESYSTEM_DISK" value="public"/>

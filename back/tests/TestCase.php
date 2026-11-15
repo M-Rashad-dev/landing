@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\TestCatalogSeeder;
 
 abstract class TestCase extends BaseTestCase
@@ -19,5 +20,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->withHeader('Accept', 'application/json');
+        // No test may reach a real service (Meta, webhooks…): every outgoing call must be faked.
+        Http::preventStrayRequests();
     }
 }
