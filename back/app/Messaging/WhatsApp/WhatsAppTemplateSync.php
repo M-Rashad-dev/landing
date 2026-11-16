@@ -89,6 +89,8 @@ final class WhatsAppTemplateSync
     /** @return array<string, array{category: string, status: string, rejected_reason: string|null}> */
     private function onMeta(): array
     {
+        // Fresh statuses here: the next message asks Meta again too (a v2 may have just been approved).
+        WhatsAppTemplateStatus::forget();
         $byName = [];
         foreach ($this->gateway->templates() as $row) {
             if ($row['language'] === WhatsAppTemplates::LANGUAGE) {

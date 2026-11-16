@@ -7,7 +7,8 @@ namespace App\Messaging\WhatsApp;
 /**
  * The WhatsApp templates the platform uses, in Meta's format. `php artisan whatsapp:templates push`
  * submits the missing ones for review. Meta re-reviews a template on every edit (and it can't be
- * sent meanwhile), so a wording change is a NEW name (…_v2): push it, and switch here once approved.
+ * sent meanwhile), so a wording change is a NEW name (…_v2) with the old one kept as `previous`:
+ * the old one goes out until Meta approves the new one as Utility (WhatsAppTemplateStatus).
  *
  * Button links must have a fixed domain in the template: store links go through the platform
  * domain (/t/{token} → that store's tracking page), dashboard links through the app host.
@@ -23,9 +24,10 @@ final class WhatsAppTemplates
     public const CODE_MINUTES = 5;
 
     /**
-     * Utility templates: key => [name, body with {{n}}, example values, optional URL button].
+     * Utility templates: key => [name, body with {{n}}, example values, optional URL button, and the
+     * approved version it replaces: its name, body, and which of the new values fill its {{1}}, {{2}}…].
      *
-     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}}>
+     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}, previous?: array{name: string, body: string, order: list<int>}}>
      */
     private const UTILITY = [
         'order_received' => [
@@ -76,11 +78,12 @@ final class WhatsAppTemplates
             'body' => "إيصال الدفع للفاتورة رقم {{1}} اترفض، والسبب: {{2}}.\nتقدر ترفع إيصال جديد من لوحة التحكم.",
             'examples' => ['INV-1042', 'المبلغ ناقص'],
         ],
-        // v1 of the next three were put under Marketing by Meta: v2 read as plain account updates.
+        // Meta put v1 of these under Marketing: v2 read as plain account updates (v1 goes out until then).
         'merchant_low_stock' => [
             'name' => 'merchant_low_stock_v2',
             'body' => 'تنبيه مخزون لحسابك: فاضل {{1}} قطعة بس من المنتج {{2}} في متجر {{3}} دلوقتي.',
             'examples' => ['3', 'بن برازيلي 250 جم', 'متجر حبة'],
+            'previous' => ['name' => 'merchant_low_stock_v1', 'body' => 'المنتج {{1}} في متجر {{2}} فاضل منه {{3}} قطعة بس في المخزون.', 'order' => [1, 2, 0]],
         ],
         'merchant_support_reply' => [
             'name' => 'merchant_support_reply_v1',
@@ -96,12 +99,13 @@ final class WhatsAppTemplates
             'name' => 'merchant_import_done_v2',
             'body' => 'تحديث لحسابك: ملف المنتجات اللي رفعته لمتجر {{1}} خلص، واتضاف أو اتحدّث {{2}} منتج، و{{3}} صف محتاج مراجعة.',
             'examples' => ['متجر حبة', '120', '4'],
+            'previous' => ['name' => 'merchant_import_done_v1', 'body' => 'استيراد المنتجات لمتجر {{1}} خلص: اتضاف أو اتحدّث {{2}} منتج، و{{3}} صف فيه مشاكل.', 'order' => [0, 1, 2]],
         ],
-        // v1 was put under Marketing by Meta: v2 reads as a plain account update.
         'admin_new_receipt' => [
             'name' => 'admin_new_receipt_v2',
             'body' => 'تم استلام إيصال دفع من متجر {{1}} بمبلغ {{2}} جنيه، وهو مستني مراجعتك في لوحة الإدارة.',
             'examples' => ['متجر حبة', '1200'],
+            'previous' => ['name' => 'admin_new_receipt_v1', 'body' => 'إيصال جديد من متجر {{1}} بمبلغ {{2}} جنيه في انتظار مراجعتك.', 'order' => [0, 1]],
         ],
         'admin_refund_request' => [
             'name' => 'admin_refund_request_v1',
@@ -122,13 +126,30 @@ final class WhatsAppTemplates
             'name' => 'admin_daily_summary_v2',
             'body' => 'تقرير حسابك عن يوم {{1}}: اتسجل {{2}} متجر جديد، واتعمل {{3}} طلب، وفيه {{4}} إيصال مستني مراجعة.',
             'examples' => ['2026-11-15', '3', '57', '2'],
+            'previous' => ['name' => 'admin_daily_summary_v1', 'body' => 'ملخص يوم {{1}} على المنصة: {{2}} متجر جديد، و{{3}} طلب، و{{4}} إيصال مستني مراجعة.', 'order' => [0, 1, 2, 3]],
         ],
     ];
 
-    /** @return list<string> every template name the platform needs */
+    /** @return list<string> every template name the platform needs (old versions still in use too) */
     public static function names(): array
     {
-        return [self::CODE, ...array_values(array_map(fn (array $t): string => $t['name'], self::UTILITY))];
+        return array_column(self::definitions(), 'name');
+    }
+
+    /**
+     * The version replaced by this key's current one, with its values reordered, or null.
+     *
+     * @param  list<string>  $params  values of the current version
+     * @return array{name: string, params: list<string>}|null
+     */
+    public static function previous(string $key, array $params): ?array
+    {
+        $previous = self::UTILITY[$key]['previous'] ?? null;
+        if ($previous === null) {
+            return null;
+        }
+
+        return ['name' => $previous['name'], 'params' => array_map(fn (int $i): string => (string) ($params[$i] ?? ''), $previous['order'])];
     }
 
     /** Meta's name for a utility template key. */
@@ -168,6 +189,12 @@ final class WhatsAppTemplates
                 ]]];
             }
             $definitions[] = ['name' => $template['name'], 'language' => self::LANGUAGE, 'category' => 'UTILITY', 'components' => $components];
+
+            if (isset($template['previous'])) {
+                $old = $template['previous'];
+                $examples = array_map(fn (int $i): string => $template['examples'][$i], $old['order']);
+                $definitions[] = ['name' => $old['name'], 'language' => self::LANGUAGE, 'category' => 'UTILITY', 'components' => [['type' => 'BODY', 'text' => $old['body'], 'example' => ['body_text' => [$examples]]]]];
+            }
         }
 
         return $definitions;

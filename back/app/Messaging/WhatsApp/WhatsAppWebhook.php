@@ -44,6 +44,10 @@ final class WhatsAppWebhook
         foreach ((array) ($payload['entry'] ?? []) as $entry) {
             foreach ((array) (is_array($entry) ? ($entry['changes'] ?? []) : []) as $change) {
                 $value = is_array($change) && is_array($change['value'] ?? null) ? $change['value'] : [];
+                // Meta reviewed or re-categorized a template: pick the right version from the next message on.
+                if (is_array($change) && in_array($change['field'] ?? null, ['message_template_status_update', 'template_category_update'], true)) {
+                    WhatsAppTemplateStatus::forget();
+                }
                 foreach ((array) ($value['statuses'] ?? []) as $status) {
                     if (is_array($status)) {
                         $this->status($status);

@@ -7,6 +7,7 @@ use App\Enums\MessageStatus;
 use App\Jobs\SendWhatsAppAutoReply;
 use App\Messaging\WhatsApp\WhatsAppMessenger;
 use App\Messaging\WhatsApp\WhatsAppTemplates;
+use App\Messaging\WhatsApp\WhatsAppTemplateStatus;
 use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\OutboundMessage;
@@ -232,4 +233,56 @@ it('submits only the missing templates, with the platform domain in store links'
 
 it('refuses the templates command without keys', function () {
     $this->artisan('whatsapp:templates')->assertFailed();
+});
+
+/** Meta's list of templates with v2 of the low-stock one in the given state. */
+function templateList(string $status, string $category): array
+{
+    return ['data' => [
+        ['name' => 'merchant_low_stock_v1', 'language' => 'ar', 'status' => 'APPROVED', 'category' => 'MARKETING'],
+        ['name' => 'merchant_low_stock_v2', 'language' => 'ar', 'status' => $status, 'category' => $category],
+    ]];
+}
+
+it('sends the approved v1 (its values in its own order) while v2 waits or is Marketing, then v2 once Utility', function () {
+    whatsappOn();
+    $state = ['PENDING', 'UTILITY'];
+    Http::fake([
+        WA_GRAPH.'/222/message_templates*' => function () use (&$state) {
+            return Http::response(templateList(...$state));
+        },
+        WA_GRAPH.'/111/messages' => Http::sequence()->push(['messages' => [['id' => 'wamid.S1']]])->push(['messages' => [['id' => 'wamid.S2']]])->push(['messages' => [['id' => 'wamid.S3']]]),
+    ]);
+    $send = fn () => app(WhatsAppMessenger::class)->sendTemplate('+201012345678', 'merchant_low_stock', ['3', 'بن برازيلي', 'متجر حبة'], null, MessagePurpose::Notification, null);
+    $sent = fn (): array => collect(Http::recorded(fn (Request $r): bool => str_ends_with($r->url(), '/messages')))->map(fn ($pair) => $pair[0]->data()['template'])->values()->all();
+
+    $send();
+    $state = ['APPROVED', 'MARKETING'];
+    WhatsAppTemplateStatus::forget();
+    $send();
+    $state = ['APPROVED', 'UTILITY'];
+    // Meta tells us it re-categorized the template: the next message checks again.
+    metaPost(['entry' => [['changes' => [['field' => 'template_category_update', 'value' => ['message_template_name' => 'merchant_low_stock_v2', 'new_category' => 'UTILITY']]]]]])->assertOk();
+    $send();
+
+    [$pending, $marketing, $approved] = $sent();
+    expect($pending['name'])->toBe('merchant_low_stock_v1')
+        ->and(array_column($pending['components'][0]['parameters'], 'text'))->toBe(['بن برازيلي', 'متجر حبة', '3'])
+        ->and($marketing['name'])->toBe('merchant_low_stock_v1')
+        ->and($approved['name'])->toBe('merchant_low_stock_v2')
+        ->and(array_column($approved['components'][0]['parameters'], 'text'))->toBe(['3', 'بن برازيلي', 'متجر حبة']);
+    // Meta's list is asked once per check, not per message.
+    expect(Http::recorded(fn (Request $r): bool => str_contains($r->url(), 'message_templates')))->toHaveCount(3);
+});
+
+it('keeps sending v1 when Meta cannot say whether v2 is approved', function () {
+    whatsappOn();
+    Http::fake([
+        WA_GRAPH.'/222/message_templates*' => Http::response(['error' => ['code' => 1, 'message' => 'down']], 500),
+        WA_GRAPH.'/111/messages' => Http::response(['messages' => [['id' => 'wamid.S']]]),
+    ]);
+
+    app(WhatsAppMessenger::class)->sendTemplate('+201012345678', 'admin_daily_summary', ['2026-11-16', '1', '2', '3'], null, MessagePurpose::Notification, null);
+
+    Http::assertSent(fn (Request $r): bool => str_ends_with($r->url(), '/messages') && $r->data()['template']['name'] === 'admin_daily_summary_v1');
 });

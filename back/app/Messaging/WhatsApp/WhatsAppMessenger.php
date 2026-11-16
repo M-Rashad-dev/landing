@@ -14,7 +14,10 @@ use App\Models\OutboundMessage;
  */
 final class WhatsAppMessenger
 {
-    public function __construct(private readonly WhatsAppGateway $gateway) {}
+    public function __construct(
+        private readonly WhatsAppGateway $gateway,
+        private readonly WhatsAppTemplateStatus $templates,
+    ) {}
 
     public function configured(): bool
     {
@@ -40,6 +43,11 @@ final class WhatsAppMessenger
     public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId, ?int $orderId = null): OutboundMessage
     {
         $name = WhatsAppTemplates::name($key);
+        // A new version waiting for Meta (or put under Marketing): the approved old one goes out.
+        $previous = WhatsAppTemplates::previous($key, $params);
+        if ($previous !== null && ! $this->templates->approvedUtility($name)) {
+            ['name' => $name, 'params' => $params] = $previous;
+        }
 
         return $this->deliver($phone, $purpose, $name, $tenantId, fn (): string => $this->gateway->sendTemplate(
             $phone,
