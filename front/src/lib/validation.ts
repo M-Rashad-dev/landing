@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isValidPhone } from "@/lib/phone";
 import { ar } from "@/messages/ar";
+import "./zod-ar";
 
 /** Shared zod building blocks with Arabic messages (the back end stays the reference). */
 export const zRequiredString = (max = 191, min = 1) =>

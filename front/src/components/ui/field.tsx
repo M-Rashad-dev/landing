@@ -33,7 +33,7 @@ export function Field({
       ) : null}
       {children}
       {error ? (
-        <p id={htmlFor ? `${htmlFor}-error` : undefined} role="alert" className="text-xs text-danger">
+        <p id={htmlFor ? `${htmlFor}-error` : undefined} role="alert" data-field-error="" className="text-xs text-danger">
           {error}
         </p>
       ) : hint ? (

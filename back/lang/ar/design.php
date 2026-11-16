@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'duplicate_section' => 'فيه قسم متكرر في التصميم. احذف النسخة الزيادة واحفظ تاني.',
     // Starter copy of a new «أساس» design (the merchant edits it in the Builder).
     'products_title' => 'أحدث المنتجات',
     'products_description' => 'وصل جديد، اختار اللي يعجبك.',

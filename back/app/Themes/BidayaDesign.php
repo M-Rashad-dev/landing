@@ -131,7 +131,7 @@ final class BidayaDesign
             foreach (array_values((array) ($data[$prefix]['sections'] ?? [])) as $i => $section) {
                 $id = is_array($section) ? ($section['id'] ?? null) : null;
                 if (is_string($id) && isset($seen[$id])) {
-                    $v->errors()->add("{$prefix}.sections.{$i}.id", __('validation.distinct', ['attribute' => 'id']));
+                    $v->errors()->add("{$prefix}.sections.{$i}.id", __('design.duplicate_section'));
                 }
                 $seen[(string) $id] = true;
                 if (is_array($section) && ($section['type'] ?? null) === 'order_form') {

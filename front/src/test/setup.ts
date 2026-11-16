@@ -25,3 +25,4 @@ if (typeof window !== "undefined") {
   window.ResizeObserver ??= NoopObserver as unknown as typeof ResizeObserver;
   window.IntersectionObserver ??= NoopObserver as unknown as typeof IntersectionObserver;
 }
+import "@/lib/zod-ar";

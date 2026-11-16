@@ -28,6 +28,9 @@ export class ApiError extends Error {
   }
 }
 
+/** Fired (browser only) when a server answer put errors on form fields; FormErrorWatcher toasts and scrolls to them. */
+export const FORM_ERRORS_EVENT = "mk:form-errors";
+
 export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
@@ -68,5 +71,6 @@ export function applyServerErrors<T extends FieldValues>(
     focused = true;
   }
 
+  if (focused && typeof window !== "undefined") window.dispatchEvent(new Event(FORM_ERRORS_EVENT));
   return unmatched;
 }

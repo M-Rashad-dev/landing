@@ -7,6 +7,7 @@ import "@fontsource/readex-pro/600.css";
 import "@fontsource/readex-pro/700.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { FormErrorWatcher } from "@/components/forms/form-error-watcher";
 import { Toaster } from "@/components/ui/feedback";
 import { BRAND } from "@/config/brand";
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster />
+        <FormErrorWatcher />
       </body>
     </html>
   );

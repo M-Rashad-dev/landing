@@ -39,9 +39,9 @@ final class Checkout
 
         if ($draft->totalCents() > 0) {
             $missing = array_filter([
-                'method' => $method === null || $method === '' ? [__('validation.required', ['attribute' => 'method'])] : null,
-                'sender_ref' => $senderRef === null || mb_strlen($senderRef) < 3 ? [__('validation.required', ['attribute' => 'sender_ref'])] : null,
-                'receipt' => $receipt === null ? [__('validation.required', ['attribute' => 'receipt'])] : null,
+                'method' => $method === null || $method === '' ? [__('validation.required', ['attribute' => __('attributes.method')])] : null,
+                'sender_ref' => $senderRef === null || mb_strlen($senderRef) < 3 ? [__('validation.required', ['attribute' => __('attributes.sender_ref')])] : null,
+                'receipt' => $receipt === null ? [__('validation.required', ['attribute' => __('attributes.receipt')])] : null,
             ]);
             if ($missing !== []) {
                 throw ValidationException::withMessages($missing);

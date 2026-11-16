@@ -16,12 +16,14 @@ use App\Services\Dns\NativeDnsResolver;
 use App\Store\Accounts\CodeSender;
 use App\Store\Accounts\ScreenCodeSender;
 use App\Store\Accounts\WhatsAppCodeSender;
+use App\Support\ArabicValidator;
 use App\Tenancy\Tenancy;
 use App\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Arabic field names in every validation message (never a raw key).
+        Validator::resolver(fn ($translator, array $data, array $rules, array $messages, array $attributes) => new ArabicValidator($translator, $data, $rules, $messages, $attributes));
         Model::preventLazyLoading($this->app->environment('local', 'testing'));
         Model::preventSilentlyDiscardingAttributes($this->app->environment('local', 'testing'));
 
