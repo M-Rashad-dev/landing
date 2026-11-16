@@ -28,3 +28,6 @@ Thumbs.db
 
 # Leftover of the front-v2 → front rename (locked folders on Windows); safe to delete.
 /front-v2/
+
+# Video assets folder (screenshots, fonts, logos for the promo video): local only, never committed.
+/v1/
