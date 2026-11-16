@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { THEME_SHOTS } from "@/themes/registry";
 import { ImageOff, Layers } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -67,7 +68,7 @@ export function ThemesPage() {
 function ThemeCard({ theme }: { theme: AdminThemeRow }) {
   const client = useQueryClient();
   const [busy, setBusy] = React.useState(false);
-  const cover = theme.cover?.medium ?? theme.cover?.large ?? null;
+  const cover = theme.cover?.medium ?? theme.cover?.large ?? THEME_SHOTS[theme.key]?.[0] ?? null;
 
   async function toggle(on: boolean) {
     setBusy(true);

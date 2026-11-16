@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { THEME_SHOTS } from "@/themes/registry";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Upload } from "lucide-react";
 import * as React from "react";
@@ -306,7 +307,17 @@ function ImagesSection({ theme, onChanged }: { theme: AdminThemeRow; onChanged: 
   return (
     <FormSection title={t.images} description={t.imagesHint}>
       <div className="flex flex-col gap-4">
-        {images.length === 0 ? (
+        {images.length === 0 && THEME_SHOTS[theme.key] ? (
+          <div className="flex flex-col gap-2">
+            <p className="rounded-lg bg-surface-2 px-3 py-2.5 text-[13px] text-ink-3">{t.shipped}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {THEME_SHOTS[theme.key].map((src) => (
+                // eslint-disable-next-line @next/next/no-img-element -- shipped static picture
+                <img key={src} src={src} alt="" className="aspect-[16/10] w-full rounded-md border border-border object-cover" />
+              ))}
+            </div>
+          </div>
+        ) : images.length === 0 ? (
           <p className="rounded-lg bg-surface-2 px-3 py-2.5 text-[13px] text-ink-3">{t.noImages}</p>
         ) : (
           <SortableList
