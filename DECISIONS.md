@@ -426,3 +426,9 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Food landing theme from the owner's approved mockup, 100 EGP starting price (admin changes it), tag «أكل». Bought once like store themes; the landing theme gallery and theme page now link to checkout instead of «قريبًا».
 - Pack cards are tied to the product's real offers (never prices typed by the merchant); «الكمية الباقية» reads the product's own stock (hidden when stock isn't tracked); the countdown hides itself when it ends.
 - Store/landing theme CSS: `.as-root * { border-color }` moved into `@layer base`, so border color classes (selected options, highlighted cards) show — this also fixes them in «بداية».
+
+## 2026-11-16 — Theme gallery pictures and texts
+- Every shipped theme (أساس، صوفي، بداية، شابع) has a cover + 5 pictures in `public/themes/{key}/` (1600×1000 WebP), made from the real themes on a throwaway store with free Unsplash photos. Store and landing theme pages show them; the admin's uploads still come first. Landing theme pages now show them too (before: only admin uploads).
+- New selling texts in `ThemeSeeder::THEMES`. Seeders still write texts only the first time; `php artisan themes:copy [key]` writes them again on purpose (prices, listing and images untouched).
+- «صوفي» showcase: its offer always ends in 2–3 days (a fixed far date showed thousands of days).
+- WhatsApp: the account must be subscribed to the app (`POST /{waba}/subscribed_apps`) for webhooks; done for Mksab on 2026-11-16, step added to DEPLOY.md. Webhook events still don't reach the server (owner chose to leave it for now).

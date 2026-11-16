@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/feedback";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { errorMessage } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
+import { THEME_SHOTS } from "@/themes/registry";
 import { ar } from "@/messages/ar";
 import { useLandingThemes, type LandingTheme } from "./api";
 import { CreateLandingDialog } from "./create-dialog";
@@ -66,7 +67,7 @@ export function ThemeGallery() {
 }
 
 export function ThemeCard({ theme, onUse }: { theme: LandingTheme; onUse?: () => void }) {
-  const cover = theme.cover?.medium ?? theme.cover?.large ?? null;
+  const cover = theme.cover?.medium ?? theme.cover?.large ?? THEME_SHOTS[theme.key]?.[0] ?? null;
   const details = `/dashboard/marketing/landings/themes/${encodeURIComponent(theme.key)}`;
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface">

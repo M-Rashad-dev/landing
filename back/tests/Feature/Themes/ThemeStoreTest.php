@@ -245,3 +245,22 @@ it('gives a paid theme to a store and takes back only its own gifts', function (
     expect(asTenant($tenant, fn () => ThemePurchase::query()->pluck('theme_key')->all()))->toBe(['layali'])
         ->and(AdminAuditLog::query()->whereIn('action', ['theme.grant', 'theme.revoke'])->count())->toBe(2);
 });
+
+// --- shipped texts ---------------------------------------------------------------------------
+
+it('writes the shipped theme texts again on demand, keeping prices and listing', function () {
+    $shabe = Theme::query()->findOrFail('shabe');
+    $shabe->update(['short_description' => 'نص قديم', 'features' => ['قديم'], 'price' => 250, 'is_listed' => false]);
+    ThemeCatalog::flush();
+
+    $this->artisan('themes:copy', ['key' => 'shabe'])->assertSuccessful();
+
+    $shabe->refresh();
+    expect($shabe->short_description)->toContain('للأكل')
+        ->and($shabe->features)->toContain('كروت باقات مربوطة بعروضك')
+        ->and($shabe->price)->toBe('250.00')
+        ->and($shabe->is_listed)->toBeFalse()
+        ->and($shabe->tags()->pluck('slug')->all())->toBe(['food']);
+
+    $this->artisan('themes:copy', ['key' => 'nope'])->assertFailed();
+});

@@ -275,7 +275,7 @@ front/                     Next.js 16 (port 3200 locally)
   src/lib/                 api client, auth, public (store loading, SEO), store (cart, quote, events), tracking, realtime, env, format…
   src/messages/ar.ts + ar/*.ts   every Arabic string (import { ar } from "@/messages/ar")
   src/config/              brand.ts (name «مكسب»), navigation.ts
-  public/themes/           theme screenshots + sufi/demo/*.jpg (showcase store photos)
+  public/themes/           {key}/cover.webp + 1..5.webp (gallery pictures of each shipped theme) + sufi/demo/*.jpg
 deploy/                    Caddyfile, deploy.sh, backup.sh, restore.sh, DEPLOY.md (Arabic guide)
 docker-compose.yml         production stack; docker-compose.dev.yml (optional MySQL/Redis for dev)
 tools/                     env.sh (portable PHP 8.3 on PATH), start-dev.sh, php/ (portable PHP, git-ignored)
@@ -367,7 +367,8 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 - Dark mode: visitor's choice stored in `localStorage` (`sf_scheme`) via `useSyncExternalStore` (no hydration
   mismatch); the first paint uses the merchant's default.
 - Showcase store data: `front/src/themes/sufi/demo.ts` + `public/themes/sufi/demo/*.jpg` (Unsplash, free licence).
-  Theme screenshots + which themes have a showcase: `front/src/themes/registry.ts`.
+  Theme pictures (cover + 5, store and landing themes) + which themes have a showcase: `front/src/themes/registry.ts`;
+  the admin's own uploads show first. Shipped texts: `ThemeSeeder::THEMES`, written again with `php artisan themes:copy [key]`.
 - Decision: paid themes change the **home, header and footer**; inner pages stay shared for now (future themes may
   restyle inner pages — the owner saw a product-page design for Sufi but it is not built; it also needed size
   guides, delivery estimates and review photos which don't exist yet).
@@ -378,7 +379,7 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 2. Front: `themes/{key}/` (types, root, chrome, sections, store/frame), wire in `AsasShell`, the store home page,
    `builder.tsx`, `preview-page.tsx`; Builder forms + section gallery list; `themes/registry.ts` shots/demo.
 3. Tests: back feature tests (switch after purchase, save every section, validation), front render + Builder tests.
-4. Screenshots into `public/themes/`, a showcase `demo.ts` if it should have «معاينة الثيم».
+4. Cover + 5 pictures into `public/themes/{key}/` (1600×1000 WebP), a showcase `demo.ts` if it should have «معاينة الثيم».
 
 ### Builder
 `front/src/features/builder/`: `builder.tsx` (store), `kit.tsx` (shared editing state: undo/redo, autosave 700 ms,

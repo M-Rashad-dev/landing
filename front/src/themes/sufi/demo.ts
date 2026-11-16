@@ -68,6 +68,9 @@ const FEATURED: StoreProduct = {
 
 const s = <T extends SufiSection["type"]>(type: T, props: Extract<SufiSection, { type: T }>["props"]) => ({ id: `demo-${type}`, type, visible: true, props }) as SufiSection;
 
+
+/** The showcase offer always ends in 2–3 days (a far date read as thousands of days on the countdown). */
+const DEMO_OFFER_ENDS = new Date(Math.ceil(Date.now() / 86400000) * 86400000 + 2 * 86400000).toISOString();
 export const SUFI_DEMO_DESIGN: SufiDesign = {
   settings: {
     colors: { primary: "#b9844f", secondary: "#17181c", background: "#faf8f4", text: "#17181c" },
@@ -95,7 +98,7 @@ export const SUFI_DEMO_DESIGN: SufiDesign = {
     s("categories", { title: "تسوّق حسب القسم", description: null, category_ids: [], shape: "circle", layout: "grid", columns_desktop: 6, columns_mobile: 3 }),
     s("product_tabs", { title: "اختياراتنا ليك", description: "أكتر المنتجات اللي عملاءنا بيحبوها الأسبوع ده", limit: 8, tabs: [{ label: "الأكثر مبيعًا", source: "manual", category_id: null, product_ids: [] }, { label: "وصل حديثًا", source: "latest", category_id: null, product_ids: [] }, { label: "عروض", source: "offers", category_id: null, product_ids: [] }] }),
     s("banners", { items: [{ media_id: id("rack"), kicker: "NEW SEASON", title: "تشكيلة الشتاء وصلت", button_label: "اكتشف المجموعة", link: all }, { media_id: id("headphones"), kicker: "TECH DEALS", title: "سماعات لحد خصم 30%", button_label: "تسوّق الإلكترونيات", link: offers }] }),
-    s("countdown", { media_id: id("watch"), kicker: "عرض لفترة محدودة", title: "الجمعة البيضاء خصم لحد 50%", text: "على كل الساعات والإكسسوارات، والعرض بيخلص مع العداد.", button_label: "الحق العرض", link: offers, ends_at: "2099-01-01T00:00:00Z", on_end: "hide" }),
+    s("countdown", { media_id: id("watch"), kicker: "عرض لفترة محدودة", title: "الجمعة البيضاء خصم لحد 50%", text: "على كل الساعات والإكسسوارات، والعرض بيخلص مع العداد.", button_label: "الحق العرض", link: offers, ends_at: DEMO_OFFER_ENDS, on_end: "hide" }),
     s("featured_product", { product_id: 7, kicker: "الأكثر طلبًا هذا الشهر" }),
     s("products", { title: "وصل حديثًا", description: "آخر حاجة نزلت في المتجر", source: "latest", category_id: null, limit: 4, layout: "grid", columns: 4, show_view_all: true }),
     s("video", { url: "https://www.youtube.com/watch?v=ScMzIvxBSi4", title: "شوف إزاي بنجهّز طلبك", text: "من المخزن لحد باب بيتك في أقل من 48 ساعة", cover_media_id: id("store") }),

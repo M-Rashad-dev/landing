@@ -12,6 +12,8 @@ import { Segmented } from "@/components/ui/tabs";
 import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { cn } from "@/lib/utils";
+import { THEME_SHOTS } from "@/themes/registry";
 import { useLandingTheme } from "./api";
 import { CreateLandingDialog } from "./create-dialog";
 import { buyUrl, LandingSketch, ThemePriceTag } from "./theme-gallery";
@@ -23,6 +25,7 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
   const query = useLandingTheme(themeKey);
   const [creating, setCreating] = React.useState(false);
   const [kind, setKind] = React.useState<"cover" | "desktop" | "mobile">("cover");
+  const [shot, setShot] = React.useState(0);
 
   if (query.isPending) return <Skeleton className="h-[30rem] rounded-xl" />;
   if (query.isError) return <ErrorState onRetry={() => void query.refetch()} message={errorMessage(query.error)} />;
@@ -39,7 +42,9 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex flex-col gap-3">
           {kinds.length > 1 ? <Segmented value={kinds.includes(kind) ? kind : kinds[0]} onChange={setKind} options={kinds.map((k) => ({ value: k, label: t.shots[k] }))} /> : null}
-          {shown.length === 0 ? (
+          {shown.length === 0 && THEME_SHOTS[theme.key] ? (
+            <ShippedShots shots={THEME_SHOTS[theme.key]} name={theme.name} current={shot} onPick={setShot} />
+          ) : shown.length === 0 ? (
             <div className="overflow-hidden rounded-xl border border-border">
               <div className="aspect-[16/10]">
                 <LandingSketch />
@@ -116,5 +121,23 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
       </div>
       <CreateLandingDialog theme={creating ? theme : null} onClose={() => setCreating(false)} />
     </>
+  );
+}
+
+/** The pictures shipped with the theme (public/themes/{key}): one big, the rest to pick from. */
+function ShippedShots({ shots, name, current, onPick }: { shots: string[]; name: string; current: number; onPick: (i: number) => void }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element -- shipped static picture */}
+      <img src={shots[current] ?? shots[0]} alt={name} className="aspect-[16/10] w-full rounded-xl border border-border bg-surface-2 object-cover" />
+      <div className="grid grid-cols-6 gap-2">
+        {shots.map((src, i) => (
+          <button key={src} type="button" onClick={() => onPick(i)} aria-label={t.shotOf(i + 1)} aria-current={i === current} className={cn("overflow-hidden rounded-lg border-2 transition", i === current ? "border-brand" : "border-transparent opacity-70 hover:opacity-100")}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- shipped static picture */}
+            <img src={src} alt="" className="aspect-[16/10] w-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

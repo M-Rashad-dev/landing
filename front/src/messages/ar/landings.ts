@@ -68,6 +68,7 @@ export const landings = {
     needsPlan: "الثيم بتاعك، بس نشر صفحات عليه محتاج باقة فيها الثيمات المدفوعة.",
     shots: { cover: "الغلاف", desktop: "كمبيوتر", mobile: "موبايل" } as Record<string, string>,
     noShots: "صور الثيم جاية قريب",
+    shotOf: (n: number) => `صورة ${n}`,
   },
 
   builder: {

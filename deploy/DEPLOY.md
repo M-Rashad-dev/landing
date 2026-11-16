@@ -205,6 +205,12 @@ nano .env
    - **Verify token**: نفس قيمة `WHATSAPP_VERIFY_TOKEN`.
    - دوس **Verify and save**، وبعدها في **Webhook fields** اعمل Subscribe على **messages**.
    - **انشر الـ App** (Publish) عشان Meta تبعت أحداث حقيقية. Meta هتطلب لينك سياسة الخصوصية: `https://{دومينك}/privacy`.
+   - **اربط حساب واتساب بالتطبيق** (مرة واحدة). من غيرها Meta مش بتبعت أحداث الرقم حتى لو الـ Webhook متظبط:
+     ```bash
+     set -a && . ./.env && set +a
+     curl -s -X POST "https://graph.facebook.com/v23.0/$WHATSAPP_WABA_ID/subscribed_apps" -H "Authorization: Bearer $WHATSAPP_TOKEN"
+     ```
+     لازم يرجّع `{"success":true}`.
 
 ## 7) جرّب الدورة كاملة
 1. افتح `https://platform.com`، المفروض تلاقي الصفحة التسويقية.
@@ -228,6 +234,13 @@ cd /opt/landing
 git pull
 ./deploy/deploy.sh
 ```
+**نصوص الثيمات:** الأوصاف والمميزات بتتكتب أول مرة بس، وبعدها بتبقى بتاعة الأدمن. لو التحديث فيه نصوص جديدة للثيمات وعايزها:
+```bash
+docker compose exec -T back-app php artisan themes:copy          # كل الثيمات
+docker compose exec -T back-app php artisan themes:copy shabe    # ثيم واحد
+```
+(الأسعار والصور اللي رفعتها من الأدمن مش بتتلمس.)
+
 **الرجوع لنسخة أقدم:** `git checkout <commit>` وبعدها `./deploy/deploy.sh`.
 
 > ⚠️ الـ migrations اللي اتنفذت مش بترجع لوحدها. لو التحديث فيه migrations وعايز ترجع قبلها، استرجع النسخة الاحتياطية.
