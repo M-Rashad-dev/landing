@@ -7,6 +7,9 @@ import type { LandingPayload } from "@/lib/public/landing";
 import { TrackingScripts } from "@/lib/tracking/scripts";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
+import { ShabePage } from "../shabe/page";
+import { ShabeRoot } from "../shabe/root";
+import { SHABE_KEY, type ShabeContent } from "../shabe/types";
 import { BidayaRoot } from "./context";
 import { BidayaPage } from "./page";
 import type { LandingData } from "./types";
@@ -41,7 +44,7 @@ export function LandingLive({ payload }: { payload: LandingPayload }) {
 
   return (
     <>
-      <BidayaPage content={payload.content} data={data} mode="live" />
+      {payload.theme_key === SHABE_KEY ? <ShabePage content={payload.content as unknown as ShabeContent} data={data} mode="live" /> : <BidayaPage content={payload.content} data={data} mode="live" />}
       <TrackingScripts tracking={payload.tracking} />
     </>
   );
@@ -77,9 +80,10 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
   }, [payload.page.slug, payload.tracking, orderNumber]);
 
   const number = placed?.number ?? orderNumber;
+  const Root = payload.theme_key === SHABE_KEY ? ShabeRoot : BidayaRoot;
   return (
     <>
-      <BidayaRoot settings={payload.content.settings} data={data} mode="live" className="flex min-h-dvh items-center justify-center px-4 py-12">
+      <Root settings={payload.content.settings as ShabeContent["settings"]} data={data} mode="live" className="flex min-h-dvh items-center justify-center px-4 py-12">
         <div className="bd-card flex w-full max-w-md flex-col items-center gap-4 p-7 text-center">
           <CheckCircle2 className="size-16 text-green-600" aria-hidden />
           <h1 className="as-2xl font-extrabold">{t.title}</h1>
@@ -107,7 +111,7 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
             {t.back}
           </a>
         </div>
-      </BidayaRoot>
+      </Root>
       <TrackingScripts tracking={payload.tracking} />
     </>
   );

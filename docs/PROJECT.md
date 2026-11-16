@@ -108,8 +108,8 @@ running app himself and is detail-oriented about UX.
 - **Paying the platform today = manual transfer** (InstaPay / mobile wallets): the merchant uploads a receipt, the
   owner approves or rejects with a reason. Paymob (cards/wallets) is approved but waits for an account.
 - **Themes**: free («أساس» store, «بداية» landing) + **paid themes bought once and kept forever with updates**
-  («صوفي», 990 EGP placeholder price — the owner sets the real price in admin). Publishing/serving a paid theme
-  needs a plan with `buy_themes`.
+  («صوفي» store, 990 EGP placeholder; «شابع» food landing, 100 EGP starting price — the owner changes prices in
+  admin). Publishing/serving a paid theme needs a plan with `buy_themes`.
 - Refunds: themes never; a plan within 3 days (manual, at most once per 180 days). Upgrade within 7 days pays the
   difference. Expiry: 24 h grace, then sites close to visitors and the dashboard is read-only; **nothing is ever
   deleted**; paying restores everything. Downgrade: over-limit items get `locked_by_plan`.
@@ -256,7 +256,7 @@ back/                      Laravel 13 API (PHP 8.3, strict_types everywhere)
   app/Billing/             Entitlements, plans catalog, invoices/checkout, PlatformSettings, Themes/ThemeAccess + ThemeCatalog
   app/Pricing/             PriceCalculator, PriceMath, Quote, Shipping
   app/Store/               StoreSite (live store config), StoreSetup (isLive), StoreCatalog, Design/{AsasDesign,SufiDesign,StoreDesigner}, Accounts (customer OTP, reviews)
-  app/Themes/              landing themes (BidayaDesign, LandingThemes)
+  app/Themes/              landing themes (BidayaDesign, ShabeDesign, LandingThemes)
   app/Imports/             in-house xlsx/csv reader/writer + product import pipeline
   app/Services/            PublicSite, PublicPageData, Support/* (SupportDesk, SupportFiles), AdminAlerts, Webhooks…
   app/Http/Controllers/Api/V1/{Dashboard,Admin,Public,Auth}/   thin controllers → FormRequest → Action/Service → Resource
@@ -271,7 +271,7 @@ front/                     Next.js 16 (port 3200 locally)
   src/app/(auth) (dashboard) (builder) admin platform sites/[host]/{(store),(landing)} api/{auth,bff,public,revalidate,health}
   src/features/<area>/     screens per area (orders, catalog, builder, support, marketing, admin, settings…)
   src/components/          ui/ (button, select, overlay, feedback…), forms/, data/ (table, charts…), layout/, domain/, brand/
-  src/themes/              asas/ (free store theme + shared store frame/pages), sufi/ (paid store theme), bidaya/ (landing), registry.ts
+  src/themes/              asas/ (free store theme + shared store frame/pages), sufi/ (paid store theme), bidaya/ (landing), shabe/ (paid landing), registry.ts
   src/lib/                 api client, auth, public (store loading, SEO), store (cart, quote, events), tracking, realtime, env, format…
   src/messages/ar.ts + ar/*.ts   every Arabic string (import { ar } from "@/messages/ar")
   src/config/              brand.ts (name «مكسب»), navigation.ts
@@ -325,6 +325,19 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 | `asas` «أساس» | store | free | default store theme; sections: banner, products, features, testimonials (≤20) |
 | `sufi` «صوفي» | store | paid (990 placeholder) | light luxury theme with dark mode; 16 home sections (≤30); see below |
 | `bidaya` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
+| `shabe` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
+
+### «شابع» (paid food landing theme)
+- Back end `App\Themes\ShabeDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
+  `display_font` (Lalezar titles), `header.countdown_ends_at|phone|button_label`. Sections: hero (highlighted word,
+  2 stickers, discount badge, rating, 2 buttons, trust items), marquee, menu (dishes with weights + extras), why,
+  steps, bundles, gallery, video, compare, testimonials (photos, place, overall score), urgency (countdown + real
+  product stock), order_form (+ side card points/image), guarantee, faq.
+- Bundles: cards tied to the product's **offers** (`offer_id`, null = one piece); empty list = one card per running
+  offer automatically. Card prices are a display estimate with the same rules as `PriceMath` (`dealOf`); the order
+  form still shows the server's quote. «اختار ده» sends `shabe:choose-offer` → the form picks that offer.
+- Front `themes/shabe/` reuses «بداية»'s page context (`PageProvider`), order hook, code box and summary; the
+  landing Builder edits both themes (`features/landings/shabe-forms.tsx`). Live, preview, done page pick by theme key.
 
 ### Store theme architecture
 - Back end: `App\Store\Design\AsasDesign` (shared settings rules/cleaning: colors, font, size, logo, favicon, header,
@@ -470,9 +483,8 @@ Landing Builder lives in `features/landings/`.
      WhatsApp buttons.
 2. **Paid plans / online payment**: Paymob gateway (`PaymentGateway` contract, `ManualGateway` today) when the owner
    has an account; later auto-renew with saved cards, then customer online payment with the merchant's own account.
-3. **More paid themes** for stores and landing pages, from the owner's designs, "at the very end". Paid **landing**
-   theme purchase UI still shows «قريبًا» on the landing theme page (`features/landings/theme-detail.tsx`) — wire it
-   like store themes when asked. Future themes may restyle inner store pages.
+3. **More paid themes** for stores and landing pages, from the owner's designs. Paid landing themes are bought like
+   store themes (checkout `?theme=`). Future themes may restyle inner store pages.
 4. Suggested and discussed, **not yet requested**: staff accounts and permissions, shipping carrier integration
    (Bosta first; merchant connects own account), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
    a showcase store for «أساس», dashboard dark mode,

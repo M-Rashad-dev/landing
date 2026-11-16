@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Services\PageContentSanitizer;
 
 /**
- * The landing themes that own their content shape (today «بداية») validate it themselves; any
+ * The landing themes that own their content shape («بداية» and «شابع») validate it themselves; any
  * other theme keeps the generic section sanitizer. One place for create, save and publish.
  */
 final class LandingThemes
@@ -16,6 +16,7 @@ final class LandingThemes
     public function __construct(
         private readonly PageContentSanitizer $generic,
         private readonly BidayaDesign $bidaya,
+        private readonly ShabeDesign $shabe,
     ) {}
 
     /** What a new page on a theme starts with. @return array<string, mixed> */
@@ -23,6 +24,7 @@ final class LandingThemes
     {
         return match ($themeKey) {
             BidayaDesign::KEY => BidayaDesign::defaults($product?->name),
+            ShabeDesign::KEY => ShabeDesign::defaults($product?->name),
             default => ['version' => 1, 'sections' => []],
         };
     }
@@ -36,6 +38,7 @@ final class LandingThemes
     {
         return match ($themeKey) {
             BidayaDesign::KEY => $this->bidaya->validate($content, $prefix),
+            ShabeDesign::KEY => $this->shabe->validate($content, $prefix),
             default => $this->generic->sanitize($content, $prefix, $kind)['content'],
         };
     }

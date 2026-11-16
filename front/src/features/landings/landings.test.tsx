@@ -84,7 +84,7 @@ describe("landing pages", () => {
   it("starts a page on the free theme: the address follows the name, the product is required", async () => {
     wrap(<ThemeGallery />);
     expect(await screen.findByText(t.gallery.paid)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: new RegExp(t.theme.buySoon) })).toBeDisabled();
+    expect(screen.getByRole("link", { name: new RegExp(t.theme.buy) })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=noor");
 
     fireEvent.click(screen.getByRole("button", { name: t.gallery.use }));
     const dialog = await screen.findByRole("dialog");
@@ -94,10 +94,11 @@ describe("landing pages", () => {
     expect(await within(dialog).findByText(t.create.productRequired)).toBeInTheDocument();
   });
 
-  it("shows a paid theme with its discount, and buying waits", async () => {
+  it("shows a paid theme with its discount, and buys it once at checkout", async () => {
     wrap(<ThemeDetail themeKey="noor" />);
     expect(await screen.findByText(t.theme.discount(20))).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: new RegExp(t.theme.buySoon) })).toBeDisabled();
+    expect(screen.getByRole("link", { name: new RegExp(t.theme.buy) })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=noor");
+    expect(screen.getByText(t.theme.oneTime)).toBeInTheDocument();
   });
 
   it("tags an order that came from a landing page", () => {

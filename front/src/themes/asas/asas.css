@@ -15,8 +15,11 @@
   --as-card: color-mix(in srgb, var(--as-text) 3%, var(--as-bg));
 }
 
-.as-root * {
-  border-color: var(--as-line);
+/* In the base layer: a border color utility (border-(--as-primary)…) on an element still wins. */
+@layer base {
+  .as-root * {
+    border-color: var(--as-line);
+  }
 }
 
 .as-xs { font-size: calc(var(--as-fs) * 0.75rem); }

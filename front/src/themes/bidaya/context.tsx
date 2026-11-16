@@ -20,6 +20,11 @@ type Ctx = {
 
 const PageContext = React.createContext<Ctx | null>(null);
 
+/** Other landing themes («شابع») draw inside the same context, so the order hook and images work for them too. */
+export function PageProvider({ value, children }: { value: Ctx; children: React.ReactNode }) {
+  return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
+}
+
 export function usePage(): Ctx {
   const ctx = React.useContext(PageContext);
   if (!ctx) throw new Error("usePage outside «بداية»");

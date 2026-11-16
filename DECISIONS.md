@@ -417,3 +417,12 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 
 ## 2026-11-16 — New logo
 - The owner's new logo (rounded green box with the «m», wordmark «مكسب» + MKSAB) replaces the old one. His files were images, so they were traced to SVG (`public/brand/mksab-horizontal.svg`, `-vertical.svg`, `-symbol.svg`) with a version drawn for dark backgrounds (`*-on-dark.svg`: white box with a green «m», white name, mint #2fcf91 bars) instead of the old `brightness-0 invert` filter. Tab icons (`icon.png` 512, `apple-icon.png` 180: green square with a white «m») are rendered from the same SVG.
+
+## 2026-11-16 — WhatsApp: v1 until v2 is approved as Utility
+- Meta approved every v1 template. Owner decision: a template with a v2 (`merchant_low_stock`, `merchant_import_done`, `admin_new_receipt`, `admin_daily_summary`) keeps sending its **v1** — even where Meta classed v1 as Marketing — until Meta approves the v2 **as Utility**; then v2 goes out on its own, no code change.
+- `WhatsAppTemplates` keeps the old version as `previous` (name, body, and which v2 value fills each v1 `{{n}}`); `WhatsAppTemplateStatus` caches Meta's status/category for 30 minutes, refreshed after a status check or push and on Meta's `message_template_status_update` / `template_category_update` webhook. Meta unreachable = keep sending v1.
+
+## 2026-11-16 — «شابع»: the first paid landing theme
+- Food landing theme from the owner's approved mockup, 100 EGP starting price (admin changes it), tag «أكل». Bought once like store themes; the landing theme gallery and theme page now link to checkout instead of «قريبًا».
+- Pack cards are tied to the product's real offers (never prices typed by the merchant); «الكمية الباقية» reads the product's own stock (hidden when stock isn't tracked); the countdown hides itself when it ends.
+- Store/landing theme CSS: `.as-root * { border-color }` moved into `@layer base`, so border color classes (selected options, highlighted cards) show — this also fixes them in «بداية».

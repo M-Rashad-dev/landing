@@ -1,0 +1,181 @@
+/*
+ * «شابع»: the paid food landing theme. Built on the store utilities (as-*) and «بداية»'s
+ * button shape; adds a display font for titles, dark sections and the food page pieces.
+ * Like the other themes it reacts to its own width (container queries) for the Builder.
+ */
+.sh-root {
+  --sh-on-dark: #fff6ec;
+  --sh-radius: 1.6rem;
+  overflow-x: clip;
+}
+
+.sh-display {
+  font-family: var(--sh-display), var(--as-font), system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.sh-root[data-display="body"] .sh-display {
+  font-weight: 800;
+}
+
+.sh-dark {
+  background: var(--sh-dark);
+  color: var(--sh-on-dark);
+  --as-muted: color-mix(in srgb, var(--sh-on-dark) 68%, var(--sh-dark));
+  --as-line: color-mix(in srgb, var(--sh-on-dark) 14%, var(--sh-dark));
+  --as-card: color-mix(in srgb, var(--sh-on-dark) 6%, var(--sh-dark));
+}
+
+.sh-cream {
+  background: color-mix(in srgb, var(--as-secondary) 14%, var(--as-bg));
+}
+
+.sh-wrap {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@container (min-width: 48rem) {
+  .sh-wrap { padding-inline: 2rem; }
+}
+
+.sh-section { padding-block: 3.5rem; }
+@container (min-width: 48rem) {
+  .sh-section { padding-block: 5.5rem; }
+}
+
+.sh-title { font-size: calc(var(--as-fs) * 2rem); line-height: 1.25; }
+@container (min-width: 48rem) {
+  .sh-title { font-size: calc(var(--as-fs) * 2.75rem); }
+}
+.sh-hero-title { font-size: calc(var(--as-fs) * 2.7rem); line-height: 1.1; }
+@container (min-width: 48rem) {
+  .sh-hero-title { font-size: calc(var(--as-fs) * 4.2rem); }
+}
+
+.sh-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-weight: 800;
+  font-size: calc(var(--as-fs) * 0.82rem);
+  color: var(--as-primary);
+  background: color-mix(in srgb, var(--as-primary) 13%, var(--as-bg));
+}
+.sh-dark .sh-kicker {
+  background: color-mix(in srgb, var(--as-primary) 22%, var(--sh-dark));
+  color: color-mix(in srgb, var(--as-primary) 55%, #fff);
+}
+
+.sh-card {
+  background: var(--as-card);
+  border: 1px solid var(--as-line);
+  border-radius: var(--sh-radius);
+}
+.sh-root .sh-card { background: color-mix(in srgb, #fff 70%, var(--as-bg)); }
+.sh-root .sh-dark .sh-card { background: var(--as-card); }
+
+.sh-root .as-btn { border-radius: var(--bd-radius); }
+.sh-btn-fire { box-shadow: 0 12px 24px -12px color-mix(in srgb, var(--as-primary) 85%, transparent); }
+.sh-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: var(--bd-radius);
+  border: 2px solid var(--as-line);
+  background: var(--as-bg);
+  font-weight: 700;
+  padding: 0.6em 1.2em;
+}
+
+/* hero plate: a rounded arch */
+.sh-plate {
+  border-radius: 44% 44% 2rem 2rem / 36% 36% 2rem 2rem;
+  overflow: hidden;
+  box-shadow: 0 40px 80px -36px rgb(80 30 10 / 0.55);
+}
+.sh-sticker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  background: #fff;
+  color: #1b120c;
+  padding: 0.55rem 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 18px 36px -16px rgb(0 0 0 / 0.35);
+}
+.sh-badge {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  text-align: center;
+  line-height: 1.1;
+  background: var(--as-primary);
+  color: var(--as-on-primary);
+  font-weight: 800;
+}
+@container (min-width: 48rem) {
+  .sh-badge { width: 7.4rem; height: 7.4rem; }
+}
+
+/* marquee */
+.sh-marquee-clip { overflow: hidden; padding-block: 0.75rem; margin-top: -1.5rem; position: relative; z-index: 2; }
+.sh-marquee {
+  background: var(--as-primary);
+  color: var(--as-on-primary);
+  transform: rotate(-1.2deg);
+  margin-inline: -1.5rem;
+  padding-block: 1rem;
+  overflow: hidden;
+}
+.sh-track {
+  display: flex;
+  width: max-content;
+  gap: 2.5rem;
+  white-space: nowrap;
+  animation: sh-slide 28s linear infinite;
+}
+.sh-track span { display: flex; align-items: center; gap: 2.5rem; }
+.sh-track span::after { content: "✦"; color: var(--as-secondary); }
+@keyframes sh-slide {
+  to { transform: translateX(50%); }
+}
+.sh-root[data-mode="builder"] .sh-track { animation: none; }
+
+/* steps line */
+.sh-steps { position: relative; }
+@container (min-width: 48rem) {
+  .sh-steps::before {
+    content: "";
+    position: absolute;
+    top: 2.75rem;
+    inset-inline: 16%;
+    border-top: 3px dashed color-mix(in srgb, var(--as-primary) 35%, var(--as-bg));
+  }
+}
+
+/* faq */
+.sh-qa-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+.sh-qa-body > div { overflow: hidden; }
+.sh-qa[data-open] .sh-qa-body { grid-template-rows: 1fr; }
+
+/* the stock bar */
+.sh-bar { height: 0.85rem; border-radius: 999px; background: rgb(0 0 0 / 0.18); overflow: hidden; }
+.sh-bar > div { height: 100%; border-radius: 999px; background: var(--as-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sh-track { animation: none; }
+  .sh-qa-body { transition: none; }
+}

@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
  */
 class ThemeSeeder extends Seeder
 {
-    /** The themes we ship: «بداية» (landing pages) and «أساس» (store) for free, «صوفي» paid (the admin sets its price). */
+    /** The themes we ship: «بداية» (landing pages) and «أساس» (store) for free, «صوفي» and «شابع» paid (the admin sets their prices). */
     private const THEMES = [
         [
             'key' => 'bidaya', 'name' => 'بداية', 'sort_order' => 1, 'price' => 0,
@@ -22,6 +22,13 @@ class ThemeSeeder extends Seeder
             'description' => 'صفحة لمنتج واحد بأقسام تظبطها بنفسك (البداية، المميزات، صور المنتج، آراء العملاء، الأسئلة الشائعة) وفورم طلب بالدفع عند الاستلام، بألوانك وخطك.',
             'features' => ['5 أقسام + فورم الطلب', 'سريعة على الموبايل', 'ألوانك وخطك ولوجو متجرك'],
             'tags' => ['general'],
+        ],
+        [
+            'key' => 'shabe', 'name' => 'شابع', 'sort_order' => 2, 'price' => 100,
+            'short_description' => 'ثيم صفحة هبوط مدفوع للأكل: مطاعم ومطابخ وبوكسات ووجبات جاهزة.',
+            'description' => 'صفحة لمنتج أكل واحد بـ 14 قسم تظبطها بنفسك: بداية بصورة كبيرة وملصقات وسعر وخصم، شريط متحرك، «إيه اللي جوه» بالأصناف والأوزان، ليه إحنا، خطوات الطلب، كروت باقات مربوطة بعروض المنتج، معرض صور، فيديو، جدول مقارنة، آراء العملاء بصور وتقييم إجمالي، عدّاد العرض والكمية الباقية، فورم طلب بالدفع عند الاستلام، ضمان، وأسئلة شائعة. بتشتريه مرة واحدة وبيفضل معاك بكل تحديثاته.',
+            'features' => ['14 قسم معمولين للأكل', 'كروت باقات مربوطة بعروضك', 'عدّاد عرض والكمية الباقية', 'زرار طلب ثابت على الموبايل'],
+            'tags' => ['food'],
         ],
         [
             'key' => 'asas', 'name' => 'أساس', 'sort_order' => 10, 'price' => 0, 'kind' => 'store',
@@ -41,7 +48,7 @@ class ThemeSeeder extends Seeder
 
     private const TAGS = [
         'general' => 'عام', 'fashion' => 'ملابس', 'accessories' => 'إكسسوارات', 'perfumes' => 'عطور',
-        'electronics' => 'إلكترونيات', 'beauty' => 'مستحضرات تجميل', 'home' => 'منزل',
+        'electronics' => 'إلكترونيات', 'beauty' => 'مستحضرات تجميل', 'home' => 'منزل', 'food' => 'أكل',
     ];
 
     public function run(): void

@@ -240,7 +240,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
   );
 }
 
-function CodeBox({ form }: { form: ReturnType<typeof useLandingOrder> }) {
+export function CodeBox({ form }: { form: ReturnType<typeof useLandingOrder> }) {
   const [open, setOpen] = React.useState(false);
   if (form.appliedCode && form.quote?.code) {
     return (
@@ -275,7 +275,7 @@ function CodeBox({ form }: { form: ReturnType<typeof useLandingOrder> }) {
   );
 }
 
-function Summary({ quote, loading }: { quote: ReturnType<typeof useLandingOrder>["quote"]; loading: boolean }) {
+export function Summary({ quote, loading }: { quote: ReturnType<typeof useLandingOrder>["quote"]; loading: boolean }) {
   if (!quote) return null;
   const shipping = quote.shipping;
   return (

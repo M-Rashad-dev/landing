@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  AlarmClock,
   ArrowDown,
   ArrowRight,
   ArrowUp,
@@ -11,26 +12,34 @@ import {
   Eye,
   EyeOff,
   FileCog,
+  Film,
+  Flame,
+  Footprints,
   Images,
   Laptop,
   LayoutList,
   LayoutPanelTop,
   Lock,
   MessageSquareQuote,
+  Package,
   MoreHorizontal,
   Palette,
   PanelBottom,
   Plus,
   Redo2,
   Rocket,
+  Scale,
   Settings2,
+  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Sparkles,
   Tablet,
   Trash2,
   TriangleAlert,
+  Type,
   Undo2,
+  UtensilsCrossed,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -51,20 +60,35 @@ import { ar } from "@/messages/ar";
 import type { MediaUrls } from "@/themes/asas/types";
 import { BidayaPage, type Selection } from "@/themes/bidaya/page";
 import type { Content, LandingData, Section, SectionType, Settings } from "@/themes/bidaya/types";
+import { ShabePage } from "@/themes/shabe/page";
+import { SHABE_KEY, SHABE_MAX_SECTIONS, type ShabeContent, type ShabeSection, type ShabeSectionType, type ShabeSettings } from "@/themes/shabe/types";
 import { pageUrl } from "./api";
 import { ADDABLE, newId, newLandingSection, pageKey, publishLandingPage, saveLandingContent, sectionErrors, settingsErrors, toLandingData, useLandingEditor, type PageDetail } from "./builder-api";
 import { FaqForm, FooterForm, GalleryForm, GeneralForm, HeaderForm, HeroForm, LookForm, OrderFormForm } from "./builder-forms";
 import { PageSettingsForm } from "./page-settings";
+import { newShabeSection, SHABE_ADDABLE, ShabeHeaderExtras, ShabeLookExtras, ShabeSectionForm } from "./shabe-forms";
 
 const t = ar.landings.builder;
 const tb = ar.design.builder;
-const MAX_SECTIONS = 12;
+/** A section of any landing theme the Builder edits («بداية» or «شابع»). */
+type AnySection = Section | ShabeSection;
+type AnyType = SectionType | ShabeSectionType;
+type AnyContent = { version: number; settings: Settings; sections: AnySection[] };
 
 type Edit = Selection | "look" | "general";
 type Tab = "sections" | "theme" | "page";
 
-const LOOK: Record<SectionType, { icon: LucideIcon; tint: string }> = {
+const LOOK: Record<AnyType, { icon: LucideIcon; tint: string }> = {
   hero: { icon: Zap, tint: "bg-violet-100 text-violet-700" },
+  marquee: { icon: Type, tint: "bg-orange-100 text-orange-700" },
+  menu: { icon: UtensilsCrossed, tint: "bg-amber-100 text-amber-700" },
+  why: { icon: Flame, tint: "bg-red-100 text-red-700" },
+  steps: { icon: Footprints, tint: "bg-indigo-100 text-indigo-700" },
+  bundles: { icon: Package, tint: "bg-lime-100 text-lime-700" },
+  video: { icon: Film, tint: "bg-fuchsia-100 text-fuchsia-700" },
+  compare: { icon: Scale, tint: "bg-slate-100 text-slate-700" },
+  urgency: { icon: AlarmClock, tint: "bg-pink-100 text-pink-700" },
+  guarantee: { icon: ShieldCheck, tint: "bg-cyan-100 text-cyan-700" },
   features: { icon: Sparkles, tint: "bg-amber-100 text-amber-700" },
   gallery: { icon: Images, tint: "bg-sky-100 text-sky-700" },
   testimonials: { icon: MessageSquareQuote, tint: "bg-rose-100 text-rose-700" },
@@ -72,7 +96,7 @@ const LOOK: Record<SectionType, { icon: LucideIcon; tint: string }> = {
   order_form: { icon: ShoppingBag, tint: "bg-emerald-100 text-emerald-700" },
 };
 
-function TypeIcon({ type }: { type: SectionType }) {
+function TypeIcon({ type }: { type: AnyType }) {
   const { icon: Icon, tint } = LOOK[type];
   return (
     <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg", tint)} aria-hidden>
@@ -115,14 +139,16 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const [device, setDevice] = React.useState<Device>("desktop");
   const [publishing, setPublishing] = React.useState(false);
   const [blockers, setBlockers] = React.useState<string[]>([]);
-  const [removing, setRemoving] = React.useState<Section | null>(null);
+  const [removing, setRemoving] = React.useState<AnySection | null>(null);
   const [gallery, setGallery] = React.useState(false);
   const frame = React.useRef<HTMLDivElement>(null);
 
-  const editor = useDraftEditor<Content, PageDetail>({
-    initial: initial.draft_content,
+  const shabe = initial.theme_key === SHABE_KEY;
+  const maxSections = shabe ? SHABE_MAX_SECTIONS : 12;
+  const editor = useDraftEditor<AnyContent, PageDetail>({
+    initial: initial.draft_content as AnyContent,
     version: initial.version,
-    save: (content, version) => saveLandingContent(initial.id, content, version),
+    save: (content, version) => saveLandingContent(initial.id, content as Content, version),
     onSaved: (res) => {
       setDetail(res);
       setPublished((p) => ({ ...p, pending: true }));
@@ -137,7 +163,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const pageData: LandingData = { ...data, page: { ...data.page, slug: detail.slug, title: detail.title } };
 
   const setSettings = (settings: Settings) => change({ ...draft, settings }, true);
-  const setSection = (sid: string, props: Section["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === sid ? ({ ...s, props } as Section) : s)) }, true);
+  const setSection = (sid: string, props: AnySection["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === sid ? ({ ...s, props } as AnySection) : s)) }, true);
   const toggle = (sid: string) => change({ ...draft, sections: draft.sections.map((x) => (x.id === sid && x.type !== "order_form" ? { ...x, visible: !x.visible } : x)) });
   const move = (sid: string, by: -1 | 1) => {
     const from = draft.sections.findIndex((s) => s.id === sid);
@@ -148,9 +174,9 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     change({ ...draft, sections });
     window.setTimeout(() => scrollTo(sid), 60);
   };
-  const duplicate = (s: Section) => {
-    if (s.type === "order_form" || draft.sections.length >= MAX_SECTIONS) return;
-    const copy = { ...structuredClone(s), id: newId() } as Section;
+  const duplicate = (s: AnySection) => {
+    if (s.type === "order_form" || draft.sections.length >= maxSections) return;
+    const copy = { ...structuredClone(s), id: newId() } as AnySection;
     const at = draft.sections.indexOf(s) + 1;
     change({ ...draft, sections: [...draft.sections.slice(0, at), copy, ...draft.sections.slice(at)] });
     setSelected(copy.id);
@@ -173,8 +199,9 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     }
   }
 
-  function add(type: Exclude<SectionType, "order_form">) {
-    const section = newLandingSection(type, data.product?.name ?? null);
+  function add(type: Exclude<AnyType, "order_form">) {
+    const productName = data.product?.name ?? null;
+    const section: AnySection = shabe ? newShabeSection(type as Exclude<ShabeSectionType, "order_form">, productName) : newLandingSection(type as Exclude<SectionType, "order_form">, productName);
     // New sections go just above the order form, so the form stays the page's end.
     const formAt = draft.sections.findIndex((s) => s.type === "order_form");
     const at = formAt < 0 ? draft.sections.length : formAt;
@@ -215,8 +242,8 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const live = pageUrl(session.storeUrl, detail.slug);
   const host = live ? live.replace(/^https?:\/\//, "") : detail.slug;
 
-  const title = (s: Section) => {
-    const own = s.type === "hero" ? s.props.title : s.type === "order_form" ? s.props.title : s.props.title;
+  const title = (s: AnySection) => {
+    const own = "title" in s.props ? s.props.title : null;
     return own || t.types[s.type].title;
   };
 
@@ -237,7 +264,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
         <ToolButton icon={ArrowDown} label={tb.moveDown} disabled={i === draft.sections.length - 1} onClick={() => move(s.id, 1)} />
         {form ? null : (
           <>
-            <ToolButton icon={Copy} label={tb.duplicate} disabled={draft.sections.length >= MAX_SECTIONS} onClick={() => duplicate(s)} />
+            <ToolButton icon={Copy} label={tb.duplicate} disabled={draft.sections.length >= maxSections} onClick={() => duplicate(s)} />
             <ToolButton icon={EyeOff} label={tb.hide} onClick={() => toggle(s.id)} />
             <ToolButton icon={Trash2} label={tb.remove} danger onClick={() => setRemoving(s)} />
           </>
@@ -388,15 +415,25 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
               }
             >
               {selected === "look" ? (
-                <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
+                <>
+                  <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
+                  {shabe ? <ShabeLookExtras settings={draft.settings as ShabeSettings} onChange={(s) => setSettings(s as unknown as Settings)} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : selected === "general" ? (
                 <GeneralForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
               ) : selected === "header" ? (
-                <HeaderForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <HeaderForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {shabe ? <ShabeHeaderExtras settings={draft.settings as ShabeSettings} onChange={(s) => setSettings(s as unknown as Settings)} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : selected === "footer" ? (
                 <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
               ) : section ? (
-                <SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
+                shabe ? (
+                  <ShabeSectionForm section={section as ShabeSection} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
+                ) : (
+                  <SectionForm section={section as Section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
+                )
               ) : null}
             </Inspector>
           ) : tab === "sections" ? (
@@ -446,7 +483,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                                   <ArrowDown />
                                   {tb.moveDown}
                                 </MenuItem>
-                                <MenuItem disabled={draft.sections.length >= MAX_SECTIONS} onSelect={() => duplicate(s)}>
+                                <MenuItem disabled={draft.sections.length >= maxSections} onSelect={() => duplicate(s)}>
                                   <Copy />
                                   {tb.duplicate}
                                 </MenuItem>
@@ -467,7 +504,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                 <button
                   type="button"
                   onClick={() => setGallery(true)}
-                  disabled={draft.sections.length >= MAX_SECTIONS}
+                  disabled={draft.sections.length >= maxSections}
                   className="mt-1 flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border-strong text-sm font-semibold text-ink-2 transition hover:border-brand hover:bg-brand-soft/40 hover:text-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Plus className="size-4" />
@@ -499,7 +536,11 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-5">
           <DeviceFrame device={device} host={host}>
             <div ref={frame} className="h-full overflow-y-auto">
-              <BidayaPage content={draft} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
+              {shabe ? (
+                <ShabePage content={draft as unknown as ShabeContent} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
+              ) : (
+                <BidayaPage content={draft as Content} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
+              )}
             </div>
           </DeviceFrame>
         </main>
@@ -510,9 +551,9 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
           <DialogHeader title={t.galleryTitle} description={t.galleryHint} />
           <DialogBody>
             <ul className="grid gap-2 sm:grid-cols-2">
-              {ADDABLE.map((type) => (
+              {(shabe ? SHABE_ADDABLE : ADDABLE).map((type) => (
                 <li key={type}>
-                  <button type="button" onClick={() => add(type as Exclude<SectionType, "order_form">)} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-start transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+                  <button type="button" onClick={() => add(type as Exclude<AnyType, "order_form">)} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-start transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
                     <TypeIcon type={type} />
                     <span className="flex flex-col">
                       <span className="font-semibold">{t.types[type].title}</span>

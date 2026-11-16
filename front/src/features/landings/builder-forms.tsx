@@ -214,7 +214,7 @@ export function LookForm({ settings, onChange, errors, media, onMedia }: Setting
             <button
               key={p.key}
               type="button"
-              onClick={() => onChange({ ...settings, colors: { ...p.colors } })}
+              onClick={() => onChange({ ...settings, colors: { ...settings.colors, ...p.colors } })}
               className={cn("flex flex-col items-center gap-1.5 rounded-lg border p-2 text-xs", same(p.colors) ? "border-brand bg-brand-soft/60" : "border-border hover:bg-surface-2")}
               aria-pressed={same(p.colors)}
             >

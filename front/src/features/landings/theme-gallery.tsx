@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Lock, Sparkles } from "lucide-react";
+import { Eye, ShoppingBag, Sparkles } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -95,9 +95,11 @@ export function ThemeCard({ theme, onUse }: { theme: LandingTheme; onUse?: () =>
           {onUse ? (
             <Button onClick={onUse}>{t.use}</Button>
           ) : (
-            <Button disabled variant="outline">
-              <Lock />
-              {ar.landings.theme.buySoon}
+            <Button asChild>
+              <Link href={buyUrl(theme.key)}>
+                <ShoppingBag />
+                {ar.landings.theme.buy}
+              </Link>
             </Button>
           )}
           <Button asChild variant="ghost">
@@ -111,6 +113,9 @@ export function ThemeCard({ theme, onUse }: { theme: LandingTheme; onUse?: () =>
     </article>
   );
 }
+
+/** Checkout for a paid theme (bought once, kept forever). */
+export const buyUrl = (key: string) => `/dashboard/settings/billing/checkout?theme=${encodeURIComponent(key)}`;
 
 export function ThemePriceTag({ theme }: { theme: LandingTheme }) {
   if (theme.owned && !theme.is_free) return <Badge tone="success">{t.owned}</Badge>;

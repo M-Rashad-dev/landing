@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Clock, Lock } from "lucide-react";
+import { Check, Clock, ShoppingBag } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import { formatDateTime, formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
 import { useLandingTheme } from "./api";
 import { CreateLandingDialog } from "./create-dialog";
-import { LandingSketch, ThemePriceTag } from "./theme-gallery";
+import { buyUrl, LandingSketch, ThemePriceTag } from "./theme-gallery";
 
 const t = ar.landings.theme;
 
@@ -100,12 +101,16 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
             {usable ? (
               <Button onClick={() => setCreating(true)}>{ar.landings.gallery.use}</Button>
             ) : (
-              <Button disabled variant="outline">
-                <Lock />
-                {t.buySoon}
-                {price ? <span className="tabular">· {formatMoney(price.final)}</span> : null}
+              <Button asChild>
+                <Link href={buyUrl(theme.key)}>
+                  <ShoppingBag />
+                  {t.buy}
+                  {price ? <span className="tabular">· {formatMoney(price.final)}</span> : null}
+                </Link>
               </Button>
             )}
+            {usable && theme.can_publish === false ? <p className="text-xs text-warning">{t.needsPlan}</p> : null}
+            {!usable ? <p className="text-xs text-ink-3">{t.oneTime}</p> : null}
           </PanelBody>
         </Panel>
       </div>
