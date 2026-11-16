@@ -83,8 +83,11 @@ export function AppShell({
 
         <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
           <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/40 lg:hidden" />
-            <DialogPrimitive.Content dir="rtl" className="fixed inset-y-0 start-0 z-50 w-[var(--sidebar-width)] lg:hidden data-[state=open]:animate-in data-[state=open]:slide-in-from-right">
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/40 lg:hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+            <DialogPrimitive.Content
+              dir="rtl"
+              className="fixed inset-y-0 start-0 z-50 h-dvh w-[var(--sidebar-width)] max-w-[85vw] overflow-y-auto overscroll-contain shadow-2xl lg:hidden data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=open]:duration-300 data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=closed]:duration-200"
+            >
               <DialogPrimitive.Title className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Title>
               <DialogPrimitive.Description className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Description>
               <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} area={area} badges={badges} />

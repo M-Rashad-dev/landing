@@ -11,6 +11,7 @@ import { activeOffers, offerLabel, unitPriceAfter } from "@/lib/store/offers";
 import type { ProductOption, ProductPage } from "@/lib/store/types";
 import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/feedback";
 import { ar } from "@/messages/ar";
 import { useTheme } from "../context";
 import { Breadcrumb, Container, QuantityStepper, Stars } from "../parts";
@@ -57,6 +58,8 @@ export function ProductView({ page }: { page: ProductPage }) {
   const [quantity, setQuantity] = React.useState(1);
   const [image, setImage] = React.useState(0);
   const [message, setMessage] = React.useState<string | null>(null);
+  // Set when the customer tried to add without the required choices: those choices turn red.
+  const [showMissing, setShowMissing] = React.useState(false);
 
   React.useEffect(() => {
     sendStoreEvent("product_view", String(product.id));
@@ -98,7 +101,10 @@ export function ProductView({ page }: { page: ProductPage }) {
 
   const add = (then: "cart" | "checkout") => {
     if (missing.length) {
+      // Each missing choice is marked where it is, a toast says what's missing, and the page goes to the first one.
+      setShowMissing(true);
       setMessage(t.pickAll);
+      toast.error(t.pickThese(missing.map((o) => o.name).join("، ")));
       document.getElementById(`opt-${missing[0].id}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
       return;
     }
@@ -208,10 +214,13 @@ export function ProductView({ page }: { page: ProductPage }) {
             </div>
           ) : null}
 
-          {product.options.map((option) => (
-            <fieldset key={option.id} id={`opt-${option.id}`} className="flex flex-col gap-2">
+          {product.options.map((option) => {
+            const lacking = showMissing && option.is_required && chosen[option.id] === undefined;
+            return (
+            <fieldset key={option.id} id={`opt-${option.id}`} className={cn("flex flex-col gap-2 rounded-xl transition", lacking && "-m-2 bg-red-500/5 p-2 ring-2 ring-red-500/70")} aria-invalid={lacking || undefined}>
               <legend className="as-sm mb-2 font-bold">
                 {option.name}
+                {option.is_required ? <span className="text-red-600" aria-hidden> *</span> : null}
                 {chosen[option.id] !== undefined ? <span className="as-muted font-normal">: {option.values.find((v) => v.id === chosen[option.id])?.label}</span> : null}
               </legend>
               {option.display_type === "dropdown" ? (
@@ -219,7 +228,7 @@ export function ProductView({ page }: { page: ProductPage }) {
                   value={chosen[option.id] ?? ""}
                   onChange={(e) => choose(option.id, Number(e.target.value))}
                   aria-label={t.choose(option.name)}
-                  className={cn("as-base h-11 rounded-lg border bg-(--as-bg) px-3", message && chosen[option.id] === undefined && option.is_required && "border-red-500")}
+                  className={cn("as-base h-11 rounded-lg border bg-(--as-bg) px-3", lacking && "border-red-500")}
                 >
                   <option value="" disabled>
                     {t.choose(option.name)}
@@ -237,7 +246,8 @@ export function ProductView({ page }: { page: ProductPage }) {
                     const selected = chosen[option.id] === v.id;
                     const out = valueOut(option, v.id);
                     const swatch = option.display_type === "swatch" && v.color_hex;
-                    return (
+                    return swatch ? (
+                      // A color: a round chip; the chosen one gets a ring around it and a check.
                       <button
                         key={v.id}
                         type="button"
@@ -247,21 +257,49 @@ export function ProductView({ page }: { page: ProductPage }) {
                         onClick={() => choose(option.id, v.id)}
                         title={v.label}
                         className={cn(
-                          "as-sm flex items-center gap-2 rounded-lg border-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through",
-                          swatch ? "p-1" : "px-4 py-2",
-                          selected ? "border-(--as-primary) bg-(--as-soft)" : "hover:border-(--as-primary)/50",
+                          "relative flex size-11 items-center justify-center rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-35",
+                          selected ? "border-(--as-primary) ring-2 ring-(--as-primary) ring-offset-2 ring-offset-(--as-bg)" : "border-transparent hover:border-(--as-primary)/50",
                         )}
                       >
-                        {swatch ? <span className="size-8 rounded-md border" style={{ background: v.color_hex! }} aria-hidden /> : null}
-                        <span className={swatch ? "sr-only" : undefined}>{v.label}</span>
-                        {v.price_delta && !swatch ? <span className="as-xs as-muted">{`${v.price_delta > 0 ? "+" : "−"}${formatMoney(Math.abs(v.price_delta))}`}</span> : null}
+                        <span className="size-8 rounded-full border border-black/10" style={{ background: v.color_hex! }} aria-hidden />
+                        {selected ? (
+                          <span className="absolute -end-1 -top-1 flex size-5 items-center justify-center rounded-full bg-(--as-primary) text-(--as-on-primary) shadow" aria-hidden>
+                            <Check className="size-3" strokeWidth={3} />
+                          </span>
+                        ) : null}
+                        <span className="sr-only">{v.label}</span>
+                      </button>
+                    ) : (
+                      // A text choice: the chosen one is filled with the store color and checked.
+                      <button
+                        key={v.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        disabled={out}
+                        onClick={() => choose(option.id, v.id)}
+                        title={v.label}
+                        className={cn(
+                          "as-sm flex items-center gap-2 rounded-lg border-2 px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through",
+                          selected ? "border-(--as-primary) bg-(--as-primary) text-(--as-on-primary) shadow-sm" : "hover:border-(--as-primary)/50",
+                        )}
+                      >
+                        {selected ? <Check className="size-4" strokeWidth={3} aria-hidden /> : null}
+                        <span>{v.label}</span>
+                        {v.price_delta ? <span className={cn("as-xs", selected ? "opacity-85" : "as-muted")}>{`${v.price_delta > 0 ? "+" : "−"}${formatMoney(Math.abs(v.price_delta))}`}</span> : null}
                       </button>
                     );
                   })}
                 </div>
               )}
+              {lacking ? (
+                <p className="as-xs font-bold text-red-600" role="alert">
+                  {t.pickOne(option.name)}
+                </p>
+              ) : null}
             </fieldset>
-          ))}
+            );
+          })}
 
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">

@@ -15,7 +15,7 @@ import { MediaPicker } from "@/features/media/media-picker";
 import type { MediaItem } from "@/features/media/api";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
-import { PRODUCT_LIMITS, pick, type Colors, type LinkType, type MediaUrls } from "@/themes/asas/types";
+import { PRODUCT_LIMITS, pick, type Colors, type LinkType, type MediaUrls, type TestimonialsProps } from "@/themes/asas/types";
 import type {
   BannersProps,
   BrandsProps,
@@ -495,12 +495,25 @@ export function SufiSectionForm({ section, errors, onChange, media, onMedia }: {
 type SettingsProps = { settings: SufiSettings; onChange: (s: SufiSettings) => void; errors: Errors };
 const st = s.settings;
 
-/** Dark colors and the scheme the store opens with (under the shared colors form). */
-export function SufiLookExtras({ settings, onChange, errors }: SettingsProps) {
+const SIZES = ["sm", "md", "lg"] as const;
+
+/** Dark colors, the dark logo and the scheme the store opens with (under the shared colors form). */
+export function SufiLookExtras({ settings, onChange, errors, media, onMedia }: SettingsProps & Media) {
   const setDark = (key: keyof Colors, value: string) => onChange({ ...settings, colors_dark: { ...settings.colors_dark, [key]: value } });
   const labels = ar.design.theme.colors;
+  const darkLogo = settings.logo_dark_media_id ?? null;
+  const darkUrl = darkLogo ? pick(media[String(darkLogo)], "thumb") : null;
   return (
     <div className="flex flex-col gap-4 border-t border-border pt-4">
+      <Field label={st.darkLogo} hint={st.darkLogoHint} error={errors.logo_dark_media_id}>
+        <ImageField
+          value={darkLogo && darkUrl ? { id: darkLogo, url: darkUrl } : null}
+          onChange={(item) => {
+            if (item) onMedia(item);
+            onChange({ ...settings, logo_dark_media_id: item?.id ?? null });
+          }}
+        />
+      </Field>
       <Field label={st.dark} hint={st.darkHint}>
         <div className="grid grid-cols-2 gap-2">
           {(["primary", "secondary", "background", "text"] as Array<keyof Colors>).map((key) => (
@@ -528,6 +541,28 @@ export function SufiHeaderExtras({ settings, onChange }: SettingsProps) {
         <Segmented value={settings.header.layout} onChange={(v) => set({ layout: v })} options={(["center", "start", "end"] as const).map((k) => ({ value: k, label: st.layouts[k] }))} />
       </Field>
       <SwitchRow title={st.topbar} description={st.topbarHint} checked={settings.header.topbar} onCheckedChange={(v) => set({ topbar: v })} />
+      <Field label={st.headerHeight}>
+        <Segmented value={settings.header.height ?? "md"} onChange={(v) => set({ height: v })} options={SIZES.map((k) => ({ value: k, label: st.sizes[k] }))} />
+      </Field>
+      <Field label={st.logoSize}>
+        <Segmented value={settings.header.logo_size ?? "md"} onChange={(v) => set({ logo_size: v })} options={SIZES.map((k) => ({ value: k, label: st.sizes[k] }))} />
+      </Field>
+    </div>
+  );
+}
+
+/** The store logo at the top of the footer, and its size. */
+export function SufiFooterExtras({ settings, onChange }: SettingsProps) {
+  const f = settings.footer;
+  const set = (patch: Partial<SufiSettings["footer"]>) => onChange({ ...settings, footer: { ...f, ...patch } });
+  return (
+    <div className="flex flex-col gap-4 border-t border-border pt-4">
+      <SwitchRow title={st.footerLogo} description={st.footerLogoHint} checked={f.logo ?? true} onCheckedChange={(v) => set({ logo: v })} />
+      {(f.logo ?? true) ? (
+        <Field label={st.logoSize}>
+          <Segmented value={f.logo_size ?? "md"} onChange={(v) => set({ logo_size: v })} options={SIZES.map((k) => ({ value: k, label: st.sizes[k] }))} />
+        </Field>
+      ) : null}
     </div>
   );
 }
@@ -538,7 +573,17 @@ export function SufiGeneralExtras({ settings, onChange, errors }: SettingsProps)
   const tab = g.offers_tab;
   return (
     <div className="flex flex-col gap-4 border-t border-border pt-4">
+      {g.whatsapp_button ? (
+        <Field label={st.whatsappNumber} htmlFor="sf-wa-number" hint={st.numberHint(settings.footer.whatsapp)} error={errors["general.whatsapp_number"]} optional>
+          <Input id="sf-wa-number" dir="ltr" maxLength={30} placeholder="01xxxxxxxxx" value={g.whatsapp_number ?? ""} onChange={(e) => set({ whatsapp_number: e.target.value.trim() === "" ? null : e.target.value })} />
+        </Field>
+      ) : null}
       <SwitchRow title={st.floatingCall} description={st.floatingCallHint} checked={g.floating_call} onCheckedChange={(v) => set({ floating_call: v })} />
+      {g.floating_call ? (
+        <Field label={st.callPhone} htmlFor="sf-call-phone" hint={st.numberHint(settings.footer.phone)} error={errors["general.call_phone"]} optional>
+          <Input id="sf-call-phone" dir="ltr" maxLength={30} placeholder="01xxxxxxxxx" value={g.call_phone ?? ""} onChange={(e) => set({ call_phone: e.target.value.trim() === "" ? null : e.target.value })} />
+        </Field>
+      ) : null}
       <SwitchRow title={st.animations} description={st.animationsHint} checked={g.animations} onCheckedChange={(v) => set({ animations: v })} />
       <SwitchRow title={st.offersTab} description={st.offersTabHint} checked={tab.enabled} onCheckedChange={(v) => set({ offers_tab: { ...tab, enabled: v, label: v && !tab.label ? ar.sufi.offers : tab.label } })} />
       {tab.enabled ? (
@@ -549,6 +594,15 @@ export function SufiGeneralExtras({ settings, onChange, errors }: SettingsProps)
           <LinkField value={tab.link} onChange={(link) => set({ offers_tab: { ...tab, link } })} errors={errors} prefix="general.offers_tab.link" />
         </>
       ) : null}
+    </div>
+  );
+}
+
+/** «صوفي» adds a phone slider to the shared customer reviews section. */
+export function SufiTestimonialsExtras({ props, onChange }: { props: TestimonialsProps; onChange: (p: TestimonialsProps) => void }) {
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <SwitchRow title={st.mobileSlider} description={st.mobileSliderHint} checked={props.mobile_slider ?? true} onCheckedChange={(v) => onChange({ ...props, mobile_slider: v })} />
     </div>
   );
 }

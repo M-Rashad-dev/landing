@@ -4,6 +4,7 @@ import { formatNumber } from "@/lib/format";
 export const sufi = {
   menu: "القايمة",
   closeMenu: "اقفل القايمة",
+  closeSearch: "اقفل البحث",
   search: "دوّر على منتج",
   searchPlaceholder: "اكتب اسم المنتج…",
   account: "حسابي",

@@ -82,3 +82,61 @@ describe("«صوفي»", () => {
     expect(mapEmbed({ name: "x", address: "مدينة نصر", hours: null, phone: null, map_url: "https://maps.app.goo.gl/x" })).toContain(encodeURIComponent("مدينة نصر"));
   });
 });
+
+describe("«صوفي» header, footer and floating buttons", () => {
+  const faq = s("faq", { title: "أسئلة", text: null, whatsapp_button: false, items: [{ question: "س1", answer: "ج1" }, { question: "س2", answer: "ج2" }] });
+
+  it("keeps one question open at a time", () => {
+    render(<SufiStore design={{ settings, sections: [faq] }} data={data} storeName="صوفي" mode="preview" />);
+    const q1 = screen.getByRole("button", { name: /س1/ });
+    const q2 = screen.getByRole("button", { name: /س2/ });
+    expect(q1).toHaveAttribute("aria-expanded", "true");
+    expect(q2).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(q2);
+    expect(q1).toHaveAttribute("aria-expanded", "false");
+    expect(q2).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(q2);
+    expect(q2).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("swipes the reviews on phones unless the merchant turned it off", () => {
+    const reviews = { title: "آراء", source: "manual" as const, items: [{ name: "منة", rating: 5, text: "ممتاز" }, { name: "علي", rating: 4, text: "حلو" }] };
+    const { container, unmount } = render(<SufiStore design={{ settings, sections: [s("testimonials", reviews)] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(container.querySelector(".snap-x")).not.toBeNull();
+    unmount();
+    const off = render(<SufiStore design={{ settings, sections: [s("testimonials", { ...reviews, mobile_slider: false })] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(off.container.querySelector(".snap-x")).toBeNull();
+  });
+
+  it("opens the search over the store and the phone menu as a sliding drawer", () => {
+    const { container } = render(<SufiStore design={{ settings, sections: [] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(container.querySelector(".sf-drawer")?.hasAttribute("data-open")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: t.menu }));
+    expect(container.querySelector(".sf-drawer")?.hasAttribute("data-open")).toBe(true);
+    fireEvent.click(screen.getAllByRole("button", { name: t.closeMenu })[0]);
+    expect(container.querySelector(".sf-drawer")?.hasAttribute("data-open")).toBe(false);
+
+    fireEvent.click(screen.getAllByRole("button", { name: t.search })[0]);
+    expect(screen.getByRole("dialog", { name: t.search })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: t.search })).toBeNull();
+  });
+
+  it("hides «تواصل معانا» without contacts, and the floating buttons use their own numbers", () => {
+    const quiet = { ...settings, footer: { ...settings.footer, phone: null, whatsapp: null, email: null, address: null }, general: { ...settings.general, call_phone: "01112223333", whatsapp_number: "01114445555" } };
+    const { container } = render(<SufiStore design={{ settings: quiet, sections: [] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(screen.queryByText(t.footer.contact)).toBeNull();
+    expect(container.querySelector('.sf-float a[href^="https://wa.me/"]')?.getAttribute("href")).toBe("https://wa.me/201114445555");
+    expect(container.querySelector('.sf-float a[href^="tel:"]')?.getAttribute("href")).toBe("tel:01112223333");
+  });
+
+  it("uses the header height, and the dark logo in the dark scheme", () => {
+    const media = { "5": { thumb: "/l.webp", medium: "/light.webp", large: "/l.webp" }, "6": { thumb: "/d.webp", medium: "/dark.webp", large: "/d.webp" } };
+    const withLogos = { ...settings, logo_media_id: 5, logo_dark_media_id: 6, header: { ...settings.header, height: "lg" as const } };
+    const { container } = render(<SufiStore design={{ settings: withLogos, sections: [] }} data={{ ...data, media } as unknown as DesignData} storeName="صوفي" mode="preview" scheme="dark" />);
+    expect(container.querySelector(".sf-root")?.getAttribute("data-height")).toBe("lg");
+    expect(container.querySelector('header img[src="/dark.webp"]')).not.toBeNull();
+    expect(container.querySelector('header img[src="/light.webp"]')).toBeNull();
+  });
+});

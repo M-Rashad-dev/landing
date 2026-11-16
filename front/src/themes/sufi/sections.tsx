@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, ExternalLink, ImageOff, MapPin, MessageCircle, Phone, Play, Plus, ShoppingBag, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ExternalLink, ImageOff, MapPin, MessageCircle, Phone, Play, Plus, ShoppingBag, Star } from "lucide-react";
+import { toast } from "@/components/ui/feedback";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
@@ -97,6 +98,8 @@ function Hero({ id, props }: { id: string; props: HeroProps }) {
   }, [props.autoplay, count, mode]);
 
   const slide = props.slides[Math.min(on, count - 1)];
+  // Visitors never see the merchant's "add an image" hint: an empty hero simply isn't there.
+  if (count === 0 && mode === "live") return null;
   return (
     <section className="sf-hero" data-height={props.height} data-merge={props.merge_header ? "" : undefined}>
       {count ? (
@@ -173,8 +176,9 @@ function Marquee({ props }: { props: MarqueeProps }) {
 /* ---------- 3. categories ---------- */
 
 function Categories({ id, props }: { id: string; props: CategoriesProps }) {
-  const { data } = useSufi();
+  const { data, mode } = useSufi();
   const tiles = data.category_tiles?.[id] ?? [];
+  if (tiles.length === 0 && mode === "live") return null;
   const shape = props.shape;
   const grid = props.layout === "grid";
   const style = { "--sf-cols": props.columns_mobile, "--sf-cols-lg": props.columns_desktop } as React.CSSProperties;
@@ -386,6 +390,7 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
   const [quantity, setQuantity] = React.useState(1);
   const [image, setImage] = React.useState(0);
   const [message, setMessage] = React.useState<string | null>(null);
+  const [showMissing, setShowMissing] = React.useState(false);
 
   const deltas = product.options.reduce((sum, o) => sum + (o.values.find((v) => v.id === chosen[o.id])?.price_delta ?? 0), 0);
   const price = Math.round((product.price + deltas) * 100) / 100;
@@ -408,8 +413,11 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
       setMessage(t.featured.previewOnly);
       return;
     }
-    if (product.options.some((o) => o.is_required && chosen[o.id] === undefined)) {
+    const missing = product.options.filter((o) => o.is_required && chosen[o.id] === undefined);
+    if (missing.length) {
+      setShowMissing(true);
       setMessage(t.featured.pickAll);
+      toast.error(ar.storefront.product.pickThese(missing.map((o) => o.name).join("، ")));
       return;
     }
     if (soldOut) return;
@@ -467,27 +475,52 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
             {compare && offerPrice === null ? <span className="as-xs rounded-full bg-[#fbe3dd] px-3 py-1 font-bold text-[#d9472b]">{t.featured.save(formatMoney(compare - price))}</span> : null}
           </p>
           {product.short_description ? <p className="as-base mt-4 leading-8 opacity-75">{product.short_description}</p> : null}
-          {product.options.map((o) => (
-            <div key={o.id} className="mt-6">
-              <p className="as-sm mb-2.5 font-bold">
-                {o.name}
-                {chosen[o.id] ? <span className="font-normal opacity-60">: {o.values.find((v) => v.id === chosen[o.id])?.label}</span> : null}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {o.values.map((v) => {
-                  const out = valueOut(o.id, v.id);
-                  const on = chosen[o.id] === v.id;
-                  return v.color_hex ? (
-                    <button key={v.id} type="button" disabled={out} onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))} className={cn("size-9 rounded-full shadow-[inset_0_0_0_3px_var(--as-bg)] disabled:opacity-30", on ? "ring-2 ring-(--as-text)" : "ring-1 ring-(--as-line)")} style={{ background: v.color_hex }} aria-label={v.label} aria-pressed={on} />
-                  ) : (
-                    <button key={v.id} type="button" disabled={out} onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))} className={cn("as-sm h-11 min-w-12 rounded-xl border-[1.5px] px-3 font-bold disabled:line-through disabled:opacity-35", on ? "border-(--as-text) bg-(--as-text) text-(--as-bg)" : "bg-(--as-bg)")} aria-pressed={on}>
-                      {v.label}
-                    </button>
-                  );
-                })}
+          {product.options.map((o) => {
+            const lacking = showMissing && o.is_required && chosen[o.id] === undefined;
+            return (
+              <div key={o.id} className={cn("mt-6 rounded-xl transition", lacking && "-mx-2 bg-red-500/5 p-2 ring-2 ring-red-500/70")}>
+                <p className="as-sm mb-2.5 font-bold">
+                  {o.name}
+                  {o.is_required ? <span className="text-red-600" aria-hidden> *</span> : null}
+                  {chosen[o.id] ? <span className="font-normal opacity-60">: {o.values.find((v) => v.id === chosen[o.id])?.label}</span> : null}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {o.values.map((v) => {
+                    const out = valueOut(o.id, v.id);
+                    const on = chosen[o.id] === v.id;
+                    return v.color_hex ? (
+                      <button
+                        key={v.id}
+                        type="button"
+                        disabled={out}
+                        onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))}
+                        className={cn("relative flex size-11 items-center justify-center rounded-full transition disabled:opacity-30", on ? "ring-2 ring-(--as-text) ring-offset-2 ring-offset-(--as-bg)" : "ring-1 ring-(--as-line)")}
+                        aria-label={v.label}
+                        aria-pressed={on}
+                      >
+                        <span className="size-9 rounded-full border border-black/10" style={{ background: v.color_hex }} aria-hidden />
+                        {on ? (
+                          <span className="absolute -end-1 -top-1 flex size-5 items-center justify-center rounded-full bg-(--as-text) text-(--as-bg)" aria-hidden>
+                            <Check className="size-3" strokeWidth={3} />
+                          </span>
+                        ) : null}
+                      </button>
+                    ) : (
+                      <button key={v.id} type="button" disabled={out} onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))} className={cn("as-sm flex h-11 min-w-12 items-center justify-center gap-1.5 rounded-xl border-[1.5px] px-3 font-bold transition disabled:line-through disabled:opacity-35", on ? "border-(--as-text) bg-(--as-text) text-(--as-bg) shadow-sm" : "bg-(--as-bg) hover:border-(--as-text)/60")} aria-pressed={on}>
+                        {on ? <Check className="size-4" strokeWidth={3} aria-hidden /> : null}
+                        {v.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {lacking ? (
+                  <p className="as-xs mt-2 font-bold text-red-600" role="alert">
+                    {ar.storefront.product.pickOne(o.name)}
+                  </p>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(1, Math.min(MAX_LINE_QUANTITY, left ?? MAX_LINE_QUANTITY))} label={t.featured.quantity} />
             <button type="button" onClick={() => add("cart")} disabled={soldOut} className="sf-btn sf-btn-ink h-14 min-w-48 flex-1 disabled:opacity-50">
@@ -693,14 +726,21 @@ function Features({ props }: { props: FeaturesProps }) {
 function Testimonials({ props }: { props: TestimonialsProps }) {
   const { data } = useSufi();
   const items = props.source === "auto" ? data.reviews : props.items;
+  const slider = (props.mobile_slider ?? true) && items.length > 1;
   if (items.length === 0) return null;
   return (
     <section className="sf-section">
       <div className="sf-wrap">
         <Heading title={props.title} />
-        <div className="grid gap-5 @3xl:grid-cols-2 @5xl:grid-cols-3">
+        <div
+          className={cn(
+            "gap-5 @3xl:grid @3xl:grid-cols-2 @5xl:grid-cols-3",
+            // Phones: one review at a time, swiped sideways (the next one peeks in).
+            slider ? "no-scrollbar -mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 pb-2 @3xl:mx-0 @3xl:overflow-visible @3xl:px-0 @3xl:pb-0" : "grid",
+          )}
+        >
           {items.slice(0, 6).map((r, i) => (
-            <article key={i} className="sf-reveal rounded-[1.4rem] border bg-(--sf-surface) p-7">
+            <article key={i} className={cn("sf-reveal rounded-[1.4rem] border bg-(--sf-surface) p-7", slider && "w-[85%] shrink-0 snap-center @3xl:w-auto")}>
               <p className="flex gap-0.5" aria-label={ar.storefront.reviews.outOf(r.rating)}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <Star key={n} className={cn("size-4", n <= r.rating ? "fill-amber-400 text-amber-400" : "opacity-25")} aria-hidden />
@@ -749,6 +789,8 @@ function Gallery({ id, props }: { id: string; props: GalleryProps }) {
 
 function Faq({ props }: { props: FaqProps }) {
   const { settings } = useSufi();
+  const [openIndex, setOpenIndex] = React.useState<number | null>(0);
+  const uid = React.useId();
   const wa = props.whatsapp_button && settings.footer.whatsapp ? `https://wa.me/${settings.footer.whatsapp.replace(/\D/g, "").replace(/^0/, "20")}` : null;
   return (
     <section className="sf-section">
@@ -764,17 +806,34 @@ function Faq({ props }: { props: FaqProps }) {
           ) : null}
         </div>
         <div className="sf-reveal">
-          {props.items.map((item, i) => (
-            <details key={i} className="sf-qa border-b py-5" open={i === 0}>
-              <summary className="as-base flex items-center justify-between gap-4 font-bold">
-                {item.question}
-                <span className="sf-qa-icon flex size-9 shrink-0 items-center justify-center rounded-full border">
-                  <Plus className="size-4" aria-hidden />
-                </span>
-              </summary>
-              <p className="as-sm mt-3 max-w-2xl leading-8 whitespace-pre-line opacity-75">{item.answer}</p>
-            </details>
-          ))}
+          {props.items.map((item, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={i} className="sf-qa border-b" data-open={isOpen ? "" : undefined}>
+                <h3>
+                  <button
+                    type="button"
+                    id={`${uid}-q${i}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`${uid}-a${i}`}
+                    onClick={() => setOpenIndex(isOpen ? null : i)}
+                    className="as-base flex w-full cursor-pointer items-center justify-between gap-4 py-5 text-start font-bold"
+                  >
+                    {item.question}
+                    <span className="sf-qa-icon flex size-9 shrink-0 items-center justify-center rounded-full border">
+                      <Plus className="size-4" aria-hidden />
+                    </span>
+                  </button>
+                </h3>
+                {/* One question open at a time; the answer slides open and shut (grid rows 0fr ↔ 1fr, sufi.css). */}
+                <div id={`${uid}-a${i}`} role="region" aria-labelledby={`${uid}-q${i}`} className="sf-qa-body">
+                  <div className="overflow-hidden">
+                    <p className="as-sm max-w-2xl pb-5 leading-8 whitespace-pre-line opacity-75">{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

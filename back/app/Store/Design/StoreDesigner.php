@@ -106,7 +106,7 @@ final class StoreDesigner
         $links = [];
         $tiles = [];
         $featured = [];
-        $mediaIds = array_filter([$design['settings']['logo_media_id'] ?? null, $design['settings']['favicon_media_id'] ?? null]);
+        $mediaIds = array_filter([$design['settings']['logo_media_id'] ?? null, $design['settings']['logo_dark_media_id'] ?? null, $design['settings']['favicon_media_id'] ?? null]);
 
         foreach ($design['sections'] as $section) {
             $id = (string) $section['id'];

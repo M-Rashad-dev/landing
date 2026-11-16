@@ -149,3 +149,40 @@ it('validates the «صوفي» sections', function () {
         'draft.sections.3.props.tabs.0.product_ids',
     ]);
 });
+
+it('saves the header and footer sizes, the dark logo and the floating buttons\' own numbers', function () {
+    $owner = sufiOwner();
+    $logo = asTenant($owner, fn () => Media::factory()->create());
+
+    saveDesign(designDraft(['settings' => [
+        'logo_dark_media_id' => $logo->id,
+        'header' => ['height' => 'lg', 'logo_size' => 'sm'],
+        'footer' => ['logo' => false, 'logo_size' => 'lg'],
+        'general' => ['call_phone' => '01011112222', 'whatsapp_number' => '+20 100 333 4444'],
+    ]]))->assertOk();
+
+    $this->getJson('/api/v1/dashboard/store/design')->assertOk()
+        ->assertJsonPath('data.draft.settings.logo_dark_media_id', $logo->id)
+        ->assertJsonPath('data.draft.settings.header.height', 'lg')
+        ->assertJsonPath('data.draft.settings.header.logo_size', 'sm')
+        ->assertJsonPath('data.draft.settings.footer.logo', false)
+        ->assertJsonPath('data.draft.settings.footer.logo_size', 'lg')
+        ->assertJsonPath('data.draft.settings.general.call_phone', '01011112222')
+        ->assertJsonPath('data.draft.settings.general.whatsapp_number', '+20 100 333 4444');
+
+    saveDesign(designDraft(['settings' => ['header' => ['height' => 'huge'], 'general' => ['call_phone' => 'call me']]]))
+        ->assertStatus(422)->assertJsonValidationErrors(['draft.settings.header.height', 'draft.settings.general.call_phone']);
+});
+
+it('keeps designs saved before these settings valid, with the defaults', function () {
+    sufiOwner();
+    $draft = designDraft();
+    unset($draft['settings']['header']['height'], $draft['settings']['header']['logo_size'], $draft['settings']['footer']['logo'], $draft['settings']['general']['call_phone'], $draft['settings']['logo_dark_media_id']);
+
+    saveDesign($draft)->assertOk();
+    $this->getJson('/api/v1/dashboard/store/design')->assertOk()
+        ->assertJsonPath('data.draft.settings.header.height', 'md')
+        ->assertJsonPath('data.draft.settings.footer.logo', true)
+        ->assertJsonPath('data.draft.settings.general.call_phone', null)
+        ->assertJsonPath('data.draft.settings.logo_dark_media_id', null);
+});

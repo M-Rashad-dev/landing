@@ -137,6 +137,7 @@ export function SufiRoot({
           data-scheme={scheme}
           data-layout={settings.header.layout}
           data-topbar={settings.header.topbar ? "" : undefined}
+          data-height={settings.header.height ?? "md"}
           style={{ colorScheme: scheme }}
         >
           {children}

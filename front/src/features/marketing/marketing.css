@@ -326,6 +326,11 @@
 .mk-js [data-reveal="side"] {
   transform: translate3d(-40px, 0, 0);
 }
+/* Inside a sideways scroller (phones) a card only fades in: rising from below would be cut by the
+   scroller's edge, and cards revealed while swiping looked like they jump up and down. */
+.mk-js .overflow-x-auto > [data-reveal] {
+  transform: none;
+}
 .mk-js [data-reveal].is-in {
   opacity: 1;
   transform: none;

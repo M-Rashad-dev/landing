@@ -7,11 +7,25 @@ export type Link = { type: LinkType; target_id: number | null; url: string | nul
 export type Appearance = "light" | "dark" | "system";
 export type Scheme = "light" | "dark";
 
+/** Small / medium / large (header height, header logo, footer logo). */
+export type Size = "sm" | "md" | "lg";
+
+/** Settings added later are optional: designs saved before them read the defaults. */
 export type SufiSettings = Settings & {
   colors_dark: Colors;
   appearance: { default: Appearance; toggle: boolean };
-  header: Settings["header"] & { layout: "center" | "start" | "end"; topbar: boolean };
-  general: Settings["general"] & { floating_call: boolean; animations: boolean; offers_tab: { enabled: boolean; label: string | null; link: Link } };
+  /** A logo for the dark scheme (a black logo would vanish on a dark header). */
+  logo_dark_media_id?: number | null;
+  header: Settings["header"] & { layout: "center" | "start" | "end"; topbar: boolean; height?: Size; logo_size?: Size };
+  footer: Settings["footer"] & { logo?: boolean; logo_size?: Size };
+  general: Settings["general"] & {
+    floating_call: boolean;
+    /** Numbers of the floating buttons; empty = the footer's phone / WhatsApp. */
+    call_phone?: string | null;
+    whatsapp_number?: string | null;
+    animations: boolean;
+    offers_tab: { enabled: boolean; label: string | null; link: Link };
+  };
 };
 
 export type HeroProps = BannerProps & { height: "full" | "large" | "medium"; merge_header: boolean; shade: number; kicker: string | null };

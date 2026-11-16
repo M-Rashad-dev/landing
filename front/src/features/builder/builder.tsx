@@ -45,7 +45,7 @@ import type { Design, DesignData, MediaUrls, Section, Settings } from "@/themes/
 import { copySection, designKey, newSection, newSufiSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type AnySection, type DesignPayload } from "./api";
 import { SECTION_TYPES, SectionGallery, SectionIcon, SUFI_SECTION_TYPES, type AnySectionType } from "./section-gallery";
 import { BannerForm, FeaturesForm, ProductsForm, TestimonialsForm } from "./section-forms";
-import { SufiGeneralExtras, SufiHeaderExtras, SufiLookExtras, SufiSectionForm } from "./sufi-forms";
+import { SufiFooterExtras, SufiGeneralExtras, SufiHeaderExtras, SufiLookExtras, SufiSectionForm, SufiTestimonialsExtras } from "./sufi-forms";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "./kit";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "./theme-forms";
 
@@ -324,7 +324,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
               {selected === "look" ? (
                 <>
                   <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
-                  {isSufi ? <SufiLookExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
+                  {isSufi ? <SufiLookExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} /> : null}
                 </>
               ) : selected === "general" ? (
                 <>
@@ -337,9 +337,12 @@ function Editor({ initial }: { initial: DesignPayload }) {
                   {isSufi ? <SufiHeaderExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
                 </>
               ) : selected === "footer" ? (
-                <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {isSufi ? <SufiFooterExtras settings={draft.settings as SufiSettings} onChange={setSettings} errors={settingsErrors(errors)} /> : null}
+                </>
               ) : section ? (
-                <SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
+                <SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} sufi={isSufi} />
               ) : null}
             </Inspector>
           ) : tab === "sections" ? (
@@ -488,7 +491,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   );
 }
 
-function SectionForm({ section: any, errors, onChange, media, onMedia }: { section: AnySection; errors: Record<string, string>; onChange: (props: AnySection["props"]) => void; media: Record<string, MediaUrls>; onMedia: (item: MediaItem) => void }) {
+function SectionForm({ section: any, errors, onChange, media, onMedia, sufi = false }: { section: AnySection; errors: Record<string, string>; onChange: (props: AnySection["props"]) => void; media: Record<string, MediaUrls>; onMedia: (item: MediaItem) => void; sufi?: boolean }) {
   // Products, features and testimonials are shared: «صوفي» uses the same forms.
   if (!(["banner", "products", "features", "testimonials"] as string[]).includes(any.type)) {
     return <SufiSectionForm section={any as SufiSection} errors={errors} onChange={onChange} media={media} onMedia={onMedia} />;
@@ -502,7 +505,12 @@ function SectionForm({ section: any, errors, onChange, media, onMedia }: { secti
     case "features":
       return <FeaturesForm props={section.props} onChange={onChange} errors={errors} />;
     case "testimonials":
-      return <TestimonialsForm props={section.props} onChange={onChange} errors={errors} />;
+      return (
+        <>
+          <TestimonialsForm props={section.props} onChange={onChange} errors={errors} />
+          {sufi ? <SufiTestimonialsExtras props={section.props} onChange={onChange} /> : null}
+        </>
+      );
   }
 }
 

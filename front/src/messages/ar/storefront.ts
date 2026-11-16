@@ -66,6 +66,8 @@ export const storefront = {
     cartFull: "السلة مليانة. كمّل الطلب الأول أو شيل منتج.",
     choose: (name: string) => `اختار ${name}`,
     pickAll: "اختار كل الاختيارات الأول",
+    pickThese: (names: string) => `اختار ${names} الأول عشان تضيف المنتج للسلة`,
+    pickOne: (name: string) => `اختار ${name}`,
     unavailable: "الاختيار ده خلص",
     lowStock: (n: number) => `فاضل ${n} بس`,
     inStock: "متاح",

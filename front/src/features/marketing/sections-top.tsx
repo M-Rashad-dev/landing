@@ -304,7 +304,7 @@ export function Journey() {
         <SectionHead num={j.num} label={j.label} title={j.title} sub={j.sub} dark />
         <div className="relative" data-reveal="fade">
           <div className="mk-draw absolute inset-x-5 top-5 hidden h-0.5 bg-[repeating-linear-gradient(to_left,var(--mk-deep-line)_0_8px,transparent_8px_14px)] lg:block" aria-hidden />
-          <ol className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 lg:mx-0 lg:grid lg:grid-cols-6 lg:overflow-visible lg:px-0">
+          <ol className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-1 pb-4 lg:mx-0 lg:grid lg:grid-cols-6 lg:overflow-visible lg:px-0">
             {j.steps.map((step, i) => (
               <li key={step.title} className="w-[260px] shrink-0 snap-start lg:w-auto" data-reveal style={delay(250 + i * 120)}>
                 <span className="relative flex size-10 items-center justify-center rounded-full border-2 border-brand bg-[var(--mk-deep)] text-sm font-bold text-brand">{i + 1}</span>

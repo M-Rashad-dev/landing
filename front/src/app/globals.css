@@ -124,6 +124,20 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Never a sideways scroll on a phone: a stray wide element is clipped instead of zooming the page out. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Radix keeps a hidden native input next to switches / checkboxes, pushed out with translateX(-100%);
+     in RTL that lands outside the page and widened it (the zoomed-out product page on phones). */
+  button[role="switch"] + input[aria-hidden="true"],
+  button[role="checkbox"] + input[aria-hidden="true"],
+  button[role="radio"] + input[aria-hidden="true"] {
+    transform: none !important;
+  }
+
   body {
     background: var(--bg);
     color: var(--ink);

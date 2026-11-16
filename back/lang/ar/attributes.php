@@ -291,4 +291,11 @@ return [
     'price_delta' => 'فرق السعر',
     'display_type' => 'طريقة العرض',
     'values_list' => 'القيم',
+    'height' => 'الارتفاع',
+    'logo_size' => 'حجم اللوجو',
+    'logo' => 'اللوجو',
+    'call_phone' => 'رقم زرار الاتصال',
+    'whatsapp_number' => 'رقم زرار الواتساب',
+    'logo_dark_media_id' => 'لوجو الوضع الداكن',
+    'mobile_slider' => 'سلايدر على الموبايل',
 ];

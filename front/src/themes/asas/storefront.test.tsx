@@ -183,7 +183,10 @@ describe("product page", () => {
     expect(screen.getByRole("radio", { name: /XL/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.addToCart }));
-    expect(screen.getByRole("alert")).toHaveTextContent(ar.storefront.product.pickAll);
+    // The missing choice is marked where it is, and the general line says why nothing was added.
+    expect(screen.getByText(ar.storefront.product.pickOne("المقاس"))).toBeInTheDocument();
+    expect(screen.getByText(ar.storefront.product.pickAll)).toBeInTheDocument();
+    expect(document.getElementById("opt-1")).toHaveAttribute("aria-invalid", "true");
 
     fireEvent.click(screen.getByRole("radio", { name: "M" }));
     expect(screen.getByText(ar.storefront.product.lowStock(3))).toBeInTheDocument();

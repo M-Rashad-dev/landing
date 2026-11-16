@@ -23,6 +23,31 @@
   .sf-root { --sf-main: 5rem; }
   .sf-root[data-layout="center"] { --sf-nav: 3rem; }
 }
+/* Header height chosen by the merchant (medium = the values above). */
+.sf-root[data-height="sm"] { --sf-main: 3.5rem; }
+.sf-root[data-height="lg"] { --sf-main: 5rem; }
+@container (min-width: 64rem) {
+  .sf-root[data-height="sm"] { --sf-main: 4rem; }
+  .sf-root[data-height="lg"] { --sf-main: 6.5rem; }
+}
+
+/* Phone menu: slides in from the side, the shade fades; both run backwards when it closes. */
+.sf-drawer { visibility: hidden; transition: visibility 0s linear 0.32s; }
+.sf-drawer[data-open] { visibility: visible; transition: none; }
+.sf-drawer-shade { opacity: 0; transition: opacity 0.3s ease; }
+.sf-drawer[data-open] .sf-drawer-shade { opacity: 1; }
+.sf-drawer-panel { transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.sf-drawer[data-open] .sf-drawer-panel { transform: none; }
+
+/* Search: drops from the top over a dimmed store. */
+.sf-search-shade { animation: sf-fade-in 0.2s ease both; }
+.sf-search-panel { animation: sf-drop-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes sf-fade-in { from { opacity: 0; } }
+@keyframes sf-drop-in { from { opacity: 0; transform: translateY(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .sf-drawer-panel, .sf-drawer-shade { transition: none; }
+  .sf-search-shade, .sf-search-panel { animation: none; }
+}
 
 .sf-wrap { width: 100%; max-width: 80rem; margin-inline: auto; padding-inline: 1rem; }
 @container (min-width: 48rem) { .sf-wrap { padding-inline: 2rem; } }
@@ -112,10 +137,11 @@
 }
 
 /* ---------- faq ---------- */
-.sf-qa summary { list-style: none; cursor: pointer; }
-.sf-qa summary::-webkit-details-marker { display: none; }
-.sf-qa[open] .sf-qa-icon { background: var(--as-text); color: var(--as-bg); transform: rotate(45deg); }
-.sf-qa-icon { transition: transform 0.2s, background 0.2s; }
+.sf-qa-body { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease; }
+.sf-qa[data-open] .sf-qa-body { grid-template-rows: 1fr; opacity: 1; }
+.sf-qa[data-open] .sf-qa-icon { background: var(--as-text); color: var(--as-bg); transform: rotate(45deg); }
+.sf-qa-icon { transition: transform 0.25s, background 0.25s; }
+@media (prefers-reduced-motion: reduce) { .sf-qa-body, .sf-qa-icon { transition: none; } }
 
 /* ---------- floating ---------- */
 /* Under the header (z-40), so the phone menu it opens covers them. */

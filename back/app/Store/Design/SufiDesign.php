@@ -35,6 +35,9 @@ final class SufiDesign
 
     public const HEADER_LAYOUTS = ['center', 'start', 'end'];
 
+    /** Header height, header logo, footer logo: small / medium / large. */
+    public const SIZES = ['sm', 'md', 'lg'];
+
     public const HERO_HEIGHTS = ['full', 'large', 'medium'];
 
     public const TAB_SOURCES = ['latest', 'offers', 'category', 'manual'];
@@ -58,8 +61,10 @@ final class SufiDesign
                 'font' => 'almarai',
                 'colors_dark' => self::DARK_COLORS,
                 'appearance' => ['default' => 'light', 'toggle' => true],
-                'header' => [...$base['header'], 'layout' => 'center', 'topbar' => true],
-                'general' => [...$base['general'], 'floating_call' => false, 'animations' => true, 'offers_tab' => ['enabled' => false, 'label' => null, 'link' => ['type' => 'offers', 'target_id' => null, 'url' => null]]],
+                'logo_dark_media_id' => null,
+                'header' => [...$base['header'], 'layout' => 'center', 'topbar' => true, 'height' => 'md', 'logo_size' => 'md'],
+                'footer' => [...$base['footer'], 'logo' => true, 'logo_size' => 'md'],
+                'general' => [...$base['general'], 'floating_call' => false, 'call_phone' => null, 'whatsapp_number' => null, 'animations' => true, 'offers_tab' => ['enabled' => false, 'label' => null, 'link' => ['type' => 'offers', 'target_id' => null, 'url' => null]]],
             ],
             'sections' => [
                 self::section('hero', ['slides' => [], 'autoplay' => true, 'height' => 'full', 'merge_header' => true, 'shade' => 40, 'kicker' => null]),
@@ -70,7 +75,7 @@ final class SufiDesign
                     ['label' => __('sufi.tab_offers'), 'source' => 'offers', 'category_id' => null, 'product_ids' => []],
                 ]]),
                 self::section('features', ['title' => null, 'items' => $features]),
-                self::section('testimonials', ['title' => __('design.testimonials_title'), 'source' => 'auto', 'items' => []]),
+                self::section('testimonials', ['title' => __('design.testimonials_title'), 'source' => 'auto', 'items' => [], 'mobile_slider' => true]),
                 self::section('faq', ['title' => __('sufi.faq_title'), 'text' => null, 'whatsapp_button' => true, 'items' => (array) __('sufi.faq_items')]),
             ],
         ];
@@ -127,6 +132,13 @@ final class SufiDesign
             "{$p}.settings.appearance.toggle" => ['required', 'boolean'],
             "{$p}.settings.header.layout" => ['required', Rule::in(self::HEADER_LAYOUTS)],
             "{$p}.settings.header.topbar" => ['required', 'boolean'],
+            "{$p}.settings.logo_dark_media_id" => ['sometimes', 'nullable', 'integer', TenantExists::table('media')],
+            "{$p}.settings.header.height" => ['sometimes', Rule::in(self::SIZES)],
+            "{$p}.settings.header.logo_size" => ['sometimes', Rule::in(self::SIZES)],
+            "{$p}.settings.footer.logo" => ['sometimes', 'boolean'],
+            "{$p}.settings.footer.logo_size" => ['sometimes', Rule::in(self::SIZES)],
+            "{$p}.settings.general.call_phone" => ['sometimes', 'nullable', 'string', 'max:30', 'regex:/^[0-9+ ()-]{6,30}$/'],
+            "{$p}.settings.general.whatsapp_number" => ['sometimes', 'nullable', 'string', 'max:30', 'regex:/^[0-9+ ()-]{6,30}$/'],
             "{$p}.settings.general.floating_call" => ['required', 'boolean'],
             "{$p}.settings.general.animations" => ['required', 'boolean'],
             "{$p}.settings.general.offers_tab.enabled" => ['required', 'boolean'],
@@ -219,7 +231,7 @@ final class SufiDesign
                     ...$this->linkRules("{$s}.props.link", (array) ($props['link'] ?? [])),
                 ],
                 'features' => $this->asas->featuresRules($s, $text),
-                'testimonials' => $this->asas->testimonialsRules($s, $props, $text),
+                'testimonials' => [...$this->asas->testimonialsRules($s, $props, $text), "{$s}.props.mobile_slider" => ['sometimes', 'boolean']],
                 'gallery' => [
                     "{$s}.props.title" => $text(80),
                     "{$s}.props.description" => $text(200),
@@ -328,10 +340,20 @@ final class SufiDesign
             ...$base,
             'colors_dark' => $color((array) $s['colors_dark']),
             'appearance' => ['default' => (string) $s['appearance']['default'], 'toggle' => (bool) $s['appearance']['toggle']],
-            'header' => [...$base['header'], 'layout' => (string) $s['header']['layout'], 'topbar' => (bool) $s['header']['topbar']],
+            'logo_dark_media_id' => isset($s['logo_dark_media_id']) ? (int) $s['logo_dark_media_id'] : null,
+            'header' => [
+                ...$base['header'],
+                'layout' => (string) $s['header']['layout'],
+                'topbar' => (bool) $s['header']['topbar'],
+                'height' => (string) ($s['header']['height'] ?? 'md'),
+                'logo_size' => (string) ($s['header']['logo_size'] ?? 'md'),
+            ],
+            'footer' => [...$base['footer'], 'logo' => (bool) ($s['footer']['logo'] ?? true), 'logo_size' => (string) ($s['footer']['logo_size'] ?? 'md')],
             'general' => [
                 ...$base['general'],
                 'floating_call' => (bool) $s['general']['floating_call'],
+                'call_phone' => $str($s['general']['call_phone'] ?? null),
+                'whatsapp_number' => $str($s['general']['whatsapp_number'] ?? null),
                 'animations' => (bool) $s['general']['animations'],
                 'offers_tab' => ['enabled' => (bool) $tab['enabled'], 'label' => $str($tab['label'] ?? null), 'link' => AsasDesign::cleanLink((array) $tab['link'])],
             ],
@@ -400,7 +422,8 @@ final class SufiDesign
                 'on_end' => (string) $p['on_end'],
             ],
             'featured_product' => ['product_id' => (int) $p['product_id'], 'kicker' => $str($p['kicker'] ?? null)],
-            'products', 'features', 'testimonials' => $this->asas->cleanProps($type, $p),
+            'products', 'features' => $this->asas->cleanProps($type, $p),
+            'testimonials' => [...$this->asas->cleanProps($type, $p), 'mobile_slider' => (bool) ($p['mobile_slider'] ?? true)],
             'video' => [
                 'url' => trim((string) $p['url']),
                 'title' => $str($p['title'] ?? null),

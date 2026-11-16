@@ -24,7 +24,7 @@ export type Slide = { media_id: number; title: string | null; text: string | nul
 export type BannerProps = { slides: Slide[]; autoplay: boolean };
 export type ProductsProps = { title: string; description: string | null; source: "latest" | "offers" | "category"; category_id: number | null; limit: number; layout: "grid" | "slider"; columns: number; show_view_all: boolean };
 export type FeaturesProps = { title: string | null; items: Array<{ icon: IconKey; title: string; text: string | null }> };
-export type TestimonialsProps = { title: string | null; source: "auto" | "manual"; items: Array<{ name: string; rating: number; text: string }> };
+export type TestimonialsProps = { title: string | null; source: "auto" | "manual"; items: Array<{ name: string; rating: number; text: string }>; /** «صوفي»: swipe the reviews on phones. */ mobile_slider?: boolean };
 
 export type Section =
   | { id: string; type: "banner"; visible: boolean; props: BannerProps }
