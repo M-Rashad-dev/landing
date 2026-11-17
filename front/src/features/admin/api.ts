@@ -112,7 +112,7 @@ export const useAdminPlans = () => useQuery({ queryKey: ["admin", "plans"], quer
 
 /* ---------- a store's themes ---------- */
 
-export type StoreTheme = { theme_key: string; name: string; source: string; price_paid: number; note: string | null; created_at: string | null };
+export type StoreTheme = { theme_key: string; name: string; kind: "store" | "landing" | null; source: string; price_paid: number; note: string | null; created_at: string | null };
 export type AdminTheme = { key: string; name: string; kind: string; is_active: boolean; is_free: boolean };
 
 export const useStoreThemes = (id: number) => useQuery({ queryKey: ["admin", "store-themes", id], queryFn: () => api<StoreTheme[]>(`/admin/tenants/${id}/themes`) });

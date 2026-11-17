@@ -158,7 +158,11 @@ describe("admin themes", () => {
     const e = t.themes.editor;
     fireEvent.change(await screen.findByLabelText(new RegExp(e.discountPercent)), { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
-    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toMatchObject({ name: "سيليا", kind: "landing", price: 100, discount_percent: 20, features: ["سريع"], tag_ids: [], min_plan_key: null }));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toMatchObject({ name: "سيليا", price: 100, discount_percent: 20, features: ["سريع"], tag_ids: [], min_plan_key: null }));
+    // The kind comes from the theme's code: shown, never sent.
+    expect(calls.find((c) => c.method === "PUT")?.body).not.toHaveProperty("kind");
+    expect(screen.getByText(ar.common.themeKinds.landing)).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: ar.common.themeKinds.store })).toBeNull();
   });
 });
 

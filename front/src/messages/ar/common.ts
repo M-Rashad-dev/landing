@@ -1,5 +1,10 @@
+const THEME_KINDS: Record<string, string> = { store: "متجر", landing: "صفحة هبوط" };
+
 /** Words used across the whole dashboard. */
 export const common = {
+  themeKinds: THEME_KINDS,
+  /** «صوفي · متجر»: a store theme and a landing theme can share a design name. */
+  themeName: (name: string, kind?: string | null) => (kind ? `${name} · ${THEME_KINDS[kind] ?? kind}` : name),
   notFound: { title: "الصفحة دي مش موجودة", text: "اتأكد من الرابط، أو ارجع للصفحة الرئيسية." },
   save: "حفظ",
   saving: "جاري الحفظ...",

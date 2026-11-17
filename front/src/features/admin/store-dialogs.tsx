@@ -306,7 +306,7 @@ export function GrantThemeDialog({ storeId, open, onOpenChange, onDone, owned }:
   const form = useForm<z.infer<typeof themeSchema>>({ resolver: zodResolver(themeSchema), defaultValues: { theme_key: "", note: "" } });
   const { errors, isSubmitting } = form.formState;
   const ownedKeys = new Set(owned.map((o) => o.theme_key));
-  const options = (themes.data ?? []).filter((th) => !th.is_free && !ownedKeys.has(th.key)).map((th) => ({ value: th.key, label: th.name }));
+  const options = (themes.data ?? []).filter((th) => !th.is_free && !ownedKeys.has(th.key)).map((th) => ({ value: th.key, label: ar.common.themeName(th.name, th.kind) }));
 
   const submit = form.handleSubmit((v) =>
     run(() => grantTheme(storeId, v.theme_key, v.note.trim() || null), t.themes.done, async () => {

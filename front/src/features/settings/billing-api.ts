@@ -58,7 +58,7 @@ export type Invoice = {
   status: "open" | "pending_review" | "paid" | "cancelled" | "expired" | "refunded";
   type: "subscription" | "theme";
   plan: { key: string; name: string };
-  theme: { key: string; name: string } | null;
+  theme: { key: string; name: string; kind: "store" | "landing" | null } | null;
   period: Period | null;
   days: number | null;
   starts_now: boolean;

@@ -23,7 +23,8 @@ final class ThemeRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'kind' => ['required', Rule::in(['landing', 'store'])],
+            // The kind (store | landing) comes from the theme's code (ThemeSeeder), never from the admin.
+            'kind' => ['prohibited'],
             'short_description' => ['nullable', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:3000'],
             'features' => ['nullable', 'array', 'max:12'],

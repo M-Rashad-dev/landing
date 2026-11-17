@@ -444,3 +444,7 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 ## 2026-11-17 — Theme keys carry their kind
 - `asas` → `asas_store`, `sufi` → `sufi_store`, `bidaya` → `bidaya_landing`, `shabe` → `shabe_landing`; new themes follow `{design}_{kind}` (next: `shabe_store`, `sufi_landing`). Owner: still in trial and every production account is his own, so old keys are renamed, no aliases kept.
 - Migration `rename_theme_keys_with_kind` copies the theme row under the new key, moves images, tags, purchases, invoices, stores, store designs, landing pages (and the theme key inside published page content), then deletes the old row. `deploy.sh` migrates before seeding, so the seeder finds the new rows. `themes:copy` takes the new keys.
+
+## 2026-11-17 — A theme's kind is read-only; shown next to its name
+- The kind (store | landing) belongs to the theme's code: `ThemeSeeder` writes it on every deploy, the admin editor shows it as a badge, and the API refuses `kind` (422).
+- Wherever a theme is named on its own, its kind follows («صوفي · متجر», `ar.common.themeName`): the checkout, the merchant's invoices, admin payments and refunds, a store's themes and the grant dialog. A theme invoice keeps the kind in its snapshot; older invoices take it from the theme.

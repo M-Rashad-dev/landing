@@ -322,6 +322,8 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 `theme` invoice or gifted by admin). `ThemeAccess::owns()` / `canPublish()`.
 Every key ends with its kind (`{design}_store` / `{design}_landing`): a store theme and a landing theme can share a
 design name and are still two themes bought apart. Folders and image paths use the design name under the kind.
+The kind is read-only (written by `ThemeSeeder` from the code, refused by the admin API) and shown next to the name
+wherever a theme is named alone (`ar.common.themeName` → «صوفي · متجر»).
 
 | Key | Kind | Price | Notes |
 |---|---|---|---|

@@ -438,7 +438,7 @@ function ThemesPanel({ storeId }: { storeId: number }) {
           <ul className="flex flex-col gap-2">
             {query.data.map((p) => (
               <li key={p.theme_key} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 font-semibold">{p.name}</span>
+                <span className="flex-1 font-semibold">{ar.common.themeName(p.name, p.kind)}</span>
                 <Badge size="sm" tone={p.source === "admin_grant" ? "brand-soft" : "success"}>
                   {th.sources[p.source] ?? p.source}
                 </Badge>

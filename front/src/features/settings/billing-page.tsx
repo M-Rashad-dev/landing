@@ -176,7 +176,7 @@ function Invoices() {
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold tabular">{inv.number}</span>
                     <span className="block text-xs text-ink-3">
-                      {inv.theme ? inv.theme.name : `${inv.plan.name}${inv.period ? ` · ${inv.period === "monthly" ? t.monthly : t.yearly}` : ""}`} · {formatDateTime(inv.created_at)}
+                      {inv.theme ? ar.common.themeName(inv.theme.name, inv.theme.kind) : `${inv.plan.name}${inv.period ? ` · ${inv.period === "monthly" ? t.monthly : t.yearly}` : ""}`} · {formatDateTime(inv.created_at)}
                     </span>
                   </span>
                   <Badge tone={INVOICE_TONES[status]} dot>

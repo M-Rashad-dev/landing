@@ -64,7 +64,7 @@ export function Summary({ invoice }: { invoice: Invoice }) {
   const periodLabel = invoice.period === "yearly" ? ar.settings.billing.yearly : ar.settings.billing.monthly;
   return (
     <Panel>
-      <PanelHeader title={t.item} description={invoice.theme ? invoice.theme.name : t.plan(invoice.plan.name, periodLabel)} />
+      <PanelHeader title={t.item} description={invoice.theme ? ar.common.themeName(invoice.theme.name, invoice.theme.kind) : t.plan(invoice.plan.name, periodLabel)} />
       <PanelBody>
         <dl className="flex flex-col gap-1.5 text-sm">
           <Row label={t.subtotal} value={formatMoney(invoice.subtotal)} />

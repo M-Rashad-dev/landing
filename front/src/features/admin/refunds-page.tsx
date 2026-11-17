@@ -49,7 +49,7 @@ export function RefundsPage() {
           <span dir="ltr" className="tabular text-start text-sm">
             {r.number}
           </span>
-          <span className="text-xs text-ink-3">{r.plan_name}</span>
+          <span className="text-xs text-ink-3">{ar.common.themeName(r.plan_name, r.theme_kind)}</span>
         </span>
       ),
     },

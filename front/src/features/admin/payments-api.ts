@@ -17,7 +17,7 @@ export type PaymentRow = {
   created_at: string | null;
   reviewed_at: string | null;
   repeated_ref: boolean;
-  invoice: { id: number; number: string; status: string; type: string; plan_name: string; period: "monthly" | "yearly" | null; total: number; starts_now: boolean } | null;
+  invoice: { id: number; number: string; status: string; type: string; plan_name: string; theme_kind: "store" | "landing" | null; period: "monthly" | "yearly" | null; total: number; starts_now: boolean } | null;
 };
 
 export type PaymentFilters = { tab: PaymentTab; q: string; method: string; from: string; to: string; page: number };
@@ -51,6 +51,7 @@ export type RefundRow = {
   number: string;
   tenant: { id: number; name: string };
   plan_name: string;
+  theme_kind: "store" | "landing" | null;
   total: number;
   status: "paid" | "refunded";
   refund_requested_at: string | null;

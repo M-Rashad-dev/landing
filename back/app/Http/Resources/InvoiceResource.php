@@ -24,7 +24,7 @@ final class InvoiceResource extends JsonResource
             'status' => $this->status->value,
             'type' => $this->type,
             'plan' => ['key' => $this->plan_key, 'name' => $snapshot['plan']['name'] ?? $this->plan_key],
-            'theme' => $this->theme_key === null ? null : ['key' => $this->theme_key, 'name' => $snapshot['theme']['name'] ?? $this->theme_key],
+            'theme' => $this->theme_key === null ? null : ['key' => $this->theme_key, 'name' => $snapshot['theme']['name'] ?? $this->theme_key, 'kind' => $this->themeKind()],
             'period' => $this->period?->value,
             'days' => $snapshot['days'] ?? null,
             'starts_now' => $this->starts_now,

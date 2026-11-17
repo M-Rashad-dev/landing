@@ -1,4 +1,5 @@
 import { formatMoney, formatNumber } from "@/lib/format";
+import { common } from "./common";
 
 /** The platform admin area (/admin): the platform owner only. */
 export const admin = {
@@ -403,7 +404,7 @@ export const admin = {
   themes: {
     title: "الثيمات",
     description: "الثيمات اللي التجار بيختاروا منها. تعطيل ثيم مش بيبوّظ المتاجر اللي شغالة بيه، بس بيمنع حد جديد يختاره.",
-    kinds: { store: "متجر", landing: "صفحة هبوط" } as Record<string, string>,
+    kinds: common.themeKinds,
     tabs: { all: "الكل", store: "المتاجر", landing: "صفحات الهبوط" },
     free: "مجاني",
     inUse: (n: number) => (n === 0 ? "مش مستخدم" : `مستخدم في ${formatNumber(n)}`),
@@ -422,6 +423,7 @@ export const admin = {
       name: "الاسم",
       nameRequired: "اكتب الاسم",
       kind: "نوعه",
+      kindHint: "بيتحدد من كود الثيم، ومينفعش يتغير.",
       shortDescription: "وصف قصير",
       description: "الوصف",
       features: "المميزات",

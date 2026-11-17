@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
 import { MethodsPage } from "./methods-page";
 import type { PaymentMethod, PaymentRow, RefundRow } from "./payments-api";
-import { PaymentsPage } from "./payments-page";
+import { itemOf, PaymentsPage } from "./payments-page";
 import { RefundsPage } from "./refunds-page";
 
 const replace = vi.fn();
@@ -25,7 +25,7 @@ const payment = (id: number, store: string, extra: Partial<PaymentRow> = {}): Pa
   created_at: "2026-11-12T10:00:00Z",
   reviewed_at: null,
   repeated_ref: false,
-  invoice: { id, number: `INV-00000${id}`, status: "pending_review", type: "subscription", plan_name: "برو", period: "monthly", total: 299, starts_now: true },
+  invoice: { id, number: `INV-00000${id}`, status: "pending_review", type: "subscription", plan_name: "برو", theme_kind: null, period: "monthly", total: 299, starts_now: true },
   ...extra,
 });
 
@@ -38,7 +38,7 @@ beforeEach(() => {
   calls = [];
   replace.mockReset();
   payments = [payment(1, "متجر سما", { repeated_ref: true }), payment(2, "متجر نور")];
-  refunds = [{ id: 9, number: "INV-000009", tenant: { id: 5, name: "متجر هنا" }, plan_name: "برو", total: 299, status: "paid", refund_requested_at: "2026-11-12T10:00:00Z", refund_reason: "مش محتاجها", refunded_at: null, refund_ref: null }];
+  refunds = [{ id: 9, number: "INV-000009", tenant: { id: 5, name: "متجر هنا" }, plan_name: "برو", theme_kind: null, total: 299, status: "paid", refund_requested_at: "2026-11-12T10:00:00Z", refund_reason: "مش محتاجها", refunded_at: null, refund_ref: null }];
   methods = [{ key: "vodafone_cash", name: "فودافون كاش", kind: "manual", account_label: "رقم المحفظة", account_value: null, instructions: null, is_active: false, sort_order: 2 }];
   vi.stubGlobal(
     "fetch",
@@ -82,6 +82,12 @@ const wrap = (ui: React.ReactNode) =>
   );
 
 describe("admin payments", () => {
+  it("names a theme with its kind, since a store and a landing theme can share a name", () => {
+    const base = payment(1, "متجر");
+    const theme = payment(1, "متجر", { invoice: { ...base.invoice!, type: "theme", plan_name: "صوفي", theme_kind: "store", period: null } });
+    expect(itemOf(theme)).toBe(t.payments.theme("صوفي · متجر"));
+  });
+
   it("reviews the queue: warns about a repeated number, approves, then rejects the next with a reason", async () => {
     wrap(<PaymentsPage />);
     fireEvent.click((await screen.findAllByRole("button", { name: t.payments.review }))[0]);

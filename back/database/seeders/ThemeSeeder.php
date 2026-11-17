@@ -18,14 +18,14 @@ class ThemeSeeder extends Seeder
     /** The themes we ship: «بداية» (landing pages) and «أساس» (store) for free, «صوفي» and «شابع» paid (the admin sets their prices). */
     public const THEMES = [
         [
-            'key' => 'bidaya_landing', 'name' => 'بداية', 'sort_order' => 1, 'price' => 0,
+            'key' => 'bidaya_landing', 'name' => 'بداية', 'sort_order' => 1, 'price' => 0, 'kind' => 'landing',
             'short_description' => 'صفحة هبوط مجانية لمنتج واحد، بفورم طلب بيحوّل الزيارة لأوردر.',
             'description' => 'عندك منتج وعايز تبيعه بالإعلانات؟ «بداية» صفحة واحدة معمولة عشان تحوّل الزيارة لطلب: صورة المنتج والعنوان والتقييم والسعر قبل وبعد في أول الصفحة، ومميزات بأيقونات، وصور المنتج، وآراء العملاء، وأسئلة شائعة بتشيل التردد، وفي الآخر فورم طلب من غير تسجيل بالدفع عند الاستلام. العميل يختار عرض الكمية ويكتب بياناته، والسعر والشحن بيتحسبوا قدامه لحظة بلحظة. زرار «اطلب دلوقتي» ثابت تحت على الموبايل لحد ما يوصل للفورم، وبيكسلات فيسبوك وتيك توك وجوجل بتسجّل كل طلب. كل ده بألوانك وخطك وشكل زرايرك.',
             'features' => ['فورم طلب بالدفع عند الاستلام', 'كروت عروض الكمية في الفورم', 'زرار طلب ثابت على الموبايل', 'آراء العملاء بتظهر لوحدها', 'بيكسلات الإعلانات جاهزة'],
             'tags' => ['general'],
         ],
         [
-            'key' => 'shabe_landing', 'name' => 'شابع', 'sort_order' => 2, 'price' => 100,
+            'key' => 'shabe_landing', 'name' => 'شابع', 'sort_order' => 2, 'price' => 100, 'kind' => 'landing',
             'short_description' => 'صفحة هبوط للأكل تفتح النفس وتجيب الطلب: مطاعم ومطابخ وبوكسات ووجبات جاهزة.',
             'description' => 'الأكل بيتباع بالعين الأول، و«شابع» معمول على ده. بداية بصورة أكل كبيرة عليها ملصقات ودايرة خصم، وعنوان بكلمة ملوّنة، وعداد العرض في شريط الإعلان فوق. «إيه اللي جوه» بيعرض كل صنف بصورته ووزنه والإضافات، و«ليه إحنا» على خلفية غامقة جنب صورة الشيف، وخطوات الطلب لحد ما الأكل يوصل سخن. كروت الباقات مربوطة بعروض منتجك بأسعار حقيقية، والضغطة عليها بتختار العرض في فورم الطلب على طول. فيديو من مطبخك، وجدول مقارنة بينك وبين غيرك، وآراء العملاء بالصور وتقييم إجمالي، وعداد بالكمية الباقية من مخزونك، وضمان يطمّن العميل قبل ما يطلب. 14 قسم تظبطهم بنفسك، وبتشتريه مرة واحدة وبيفضل معاك بكل تحديثاته.',
             'features' => ['14 قسم معمولين للأكل', 'كروت باقات مربوطة بعروضك', 'عداد عرض والكمية الباقية', 'فيديو ومقارنة وضمان', 'آراء بالصور وتقييم إجمالي', 'زرار طلب ثابت على الموبايل'],
@@ -63,16 +63,15 @@ class ThemeSeeder extends Seeder
             $existing = Theme::query()->find($theme['key']);
 
             if ($existing === null) {
-                $existing = Theme::create(['key' => $theme['key'], 'name' => $theme['name'], 'sort_order' => $theme['sort_order'], 'is_active' => true]);
+                $existing = Theme::create(['key' => $theme['key'], 'name' => $theme['name'], 'kind' => $theme['kind'], 'sort_order' => $theme['sort_order'], 'is_active' => true]);
             } else {
-                // Keep the admin's is_active choice; refresh name and order only.
-                $existing->update(['name' => $theme['name'], 'sort_order' => $theme['sort_order']]);
+                // Keep the admin's is_active choice; refresh name, order and the kind (it belongs to the code).
+                $existing->update(['name' => $theme['name'], 'kind' => $theme['kind'], 'sort_order' => $theme['sort_order']]);
             }
 
             // First time only: the store details (afterwards they belong to the admin).
             if ($existing->short_description === null && ! $existing->is_listed) {
                 $existing->update([
-                    'kind' => $theme['kind'] ?? 'landing',
                     'price' => $theme['price'],
                     'is_listed' => true,
                     'released_at' => now(),

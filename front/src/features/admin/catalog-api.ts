@@ -104,7 +104,6 @@ export const toggleTheme = (key: string, is_active: boolean) => api<AdminThemeRo
 
 export type ThemeBody = {
   name: string;
-  kind: "store" | "landing";
   short_description: string | null;
   description: string | null;
   features: string[];

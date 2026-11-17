@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Billing\Themes\ThemeCatalog;
 use App\Enums\BillingPeriod;
 use App\Enums\InvoiceStatus;
 use App\Models\Concerns\BelongsToTenant;
@@ -90,5 +91,15 @@ class Invoice extends Model
     public function isPayable(): bool
     {
         return $this->status->acceptsPayment() && ($this->expires_at === null || $this->expires_at->isFuture());
+    }
+
+    /** store | landing for a theme invoice: kept at purchase time, the theme's own kind for older invoices. */
+    public function themeKind(): ?string
+    {
+        if ($this->theme_key === null) {
+            return null;
+        }
+
+        return $this->snapshot['theme']['kind'] ?? app(ThemeCatalog::class)->theme($this->theme_key)['kind'] ?? null;
     }
 }

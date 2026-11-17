@@ -77,7 +77,6 @@ final class ThemeController extends Controller
 
         $theme->update([
             'name' => $clean($data['name']),
-            'kind' => $data['kind'],
             'short_description' => $clean($data['short_description'] ?? null),
             'description' => $clean($data['description'] ?? null),
             'features' => array_values(array_filter(array_map(fn ($f) => $clean((string) $f), $data['features'] ?? []))),
@@ -165,6 +164,7 @@ final class ThemeController extends Controller
         return $this->ok($rows->map(fn (ThemePurchase $p) => [
             'theme_key' => $p->theme_key,
             'name' => $this->catalog->theme($p->theme_key)['name'] ?? $p->theme_key,
+            'kind' => $this->catalog->theme($p->theme_key)['kind'] ?? null,
             'source' => $p->source,
             'price_paid' => Money::toFloat(Money::toCents((string) $p->price_paid)),
             'note' => $p->note,

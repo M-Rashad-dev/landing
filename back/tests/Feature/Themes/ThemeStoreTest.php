@@ -19,6 +19,7 @@ use App\Models\ThemePurchase;
 use App\Models\ThemeTag;
 use App\Models\User;
 use Database\Factories\LandingPageFactory;
+use Database\Seeders\ThemeSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -118,7 +119,7 @@ it('shows what a theme costs without creating an invoice, and refuses owned them
     themeOwner('pro');
 
     $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'celia'])->assertOk()
-        ->assertJsonPath('data.id', null)->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.total', 100);
+        ->assertJsonPath('data.id', null)->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.theme.kind', 'landing')->assertJsonPath('data.total', 100);
 
     expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
     $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'bidaya_landing'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
@@ -136,15 +137,22 @@ it('owns the theme forever once the admin approves the payment', function () {
 
     themeAdmin();
     $payment = Payment::query()->withoutGlobalScopes()->value('id');
-    $this->getJson('/api/v1/admin/payments')->assertJsonPath('data.0.invoice.type', 'theme')->assertJsonPath('data.0.invoice.plan_name', 'سيليا');
+    $this->getJson('/api/v1/admin/payments')->assertJsonPath('data.0.invoice.type', 'theme')->assertJsonPath('data.0.invoice.plan_name', 'سيليا')->assertJsonPath('data.0.invoice.theme_kind', 'landing');
     $this->postJson("/api/v1/admin/payments/{$payment}/approve")->assertOk();
 
     $purchase = asTenant($owner, fn () => ThemePurchase::query()->first());
     expect($purchase->theme_key)->toBe('celia')->and($purchase->source)->toBe('purchase')->and($purchase->price_paid)->toBe('100.00')
-        ->and($owner->tenant->fresh()->plan_key)->toBe('pro');
+        ->and($owner->tenant->fresh()->plan_key)->toBe('pro')
+        ->and(Invoice::query()->withoutGlobalScopes()->firstOrFail()->snapshot['theme']['kind'])->toBe('landing');
+    $this->getJson("/api/v1/admin/tenants/{$owner->tenant_id}/themes")->assertOk()->assertJsonPath('data.0.kind', 'landing');
 
     Sanctum::actingAs($owner->fresh(['tenant']));
     $this->getJson('/api/v1/dashboard/theme-store/celia')->assertJsonPath('data.owned', true)->assertJsonPath('data.can_publish', true)->assertJsonPath('data.sales', 1);
+
+    // Invoices from before the kind was kept take it from the theme.
+    $invoice = Invoice::query()->withoutGlobalScopes()->firstOrFail();
+    $invoice->forceFill(['snapshot' => ['theme' => ['key' => 'celia', 'name' => 'سيليا']] + $invoice->snapshot])->save();
+    $this->getJson('/api/v1/dashboard/billing/invoices')->assertOk()->assertJsonPath('data.0.theme.kind', 'landing');
 });
 
 // --- using a theme --------------------------------------------------------------------------
@@ -192,7 +200,7 @@ it('edits the store details of a theme, with tags, and audits it', function () {
     themeAdmin();
     $tag = ThemeTag::query()->where('slug', 'beauty')->value('id');
     $body = [
-        'name' => 'سيليا', 'kind' => 'landing', 'short_description' => 'جديد', 'description' => 'وصف', 'features' => ['أ', 'ب'],
+        'name' => 'سيليا', 'short_description' => 'جديد', 'description' => 'وصف', 'features' => ['أ', 'ب'],
         'price' => 120, 'discount_percent' => 25, 'discount_starts_at' => null, 'discount_ends_at' => null, 'min_plan_key' => null,
         'is_featured' => true, 'is_listed' => true, 'version' => '1.1', 'released_at' => null, 'tag_ids' => [$tag],
     ];
@@ -204,6 +212,19 @@ it('edits the store details of a theme, with tags, and audits it', function () {
     $this->putJson('/api/v1/admin/themes/nope', $body)->assertNotFound();
 
     expect(AdminAuditLog::query()->where('action', 'theme.update')->where('target_id', 'celia')->exists())->toBeTrue();
+});
+
+it('never lets the admin change a theme kind (it comes from the code)', function () {
+    themeAdmin();
+    $body = ['name' => 'صوفي', 'price' => 990, 'is_featured' => false, 'is_listed' => true];
+
+    $this->putJson('/api/v1/admin/themes/sufi_store', ['kind' => 'landing'] + $body)->assertStatus(422)->assertJsonValidationErrors(['kind']);
+    $this->putJson('/api/v1/admin/themes/sufi_store', $body)->assertOk()->assertJsonPath('data.kind', 'store');
+
+    // A kind changed by hand in the database goes back to the code's on the next deploy.
+    Theme::query()->whereKey('sufi_store')->update(['kind' => 'landing']);
+    $this->seed(ThemeSeeder::class);
+    expect(Theme::query()->findOrFail('sufi_store')->kind)->toBe('store');
 });
 
 it('uploads, orders and deletes theme images', function () {

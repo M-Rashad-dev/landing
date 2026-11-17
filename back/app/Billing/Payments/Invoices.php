@@ -177,7 +177,7 @@ final class Invoices
             'credit' => Money::toDecimal(0),
             'total' => Money::toDecimal($price->finalCents),
             'currency' => (string) config('landing.billing.currency'),
-            'snapshot' => ['theme' => ['key' => $theme['key'], 'name' => $theme['name']], 'price' => $price->toArray()],
+            'snapshot' => ['theme' => ['key' => $theme['key'], 'name' => $theme['name'], 'kind' => $theme['kind']], 'price' => $price->toArray()],
             'expires_at' => CarbonImmutable::now()->addHours($this->settings->invoiceHours()),
         ];
     }

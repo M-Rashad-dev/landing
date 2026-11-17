@@ -32,7 +32,6 @@ const t = ar.admin.themes.editor;
 const schema = z
   .object({
     name: z.string().trim().min(1, t.nameRequired).max(100),
-    kind: z.enum(["store", "landing"]),
     short_description: z.string().max(200),
     description: z.string().max(3000),
     features: z.array(z.string().max(120)).max(12),
@@ -51,7 +50,6 @@ type Values = z.infer<typeof schema>;
 
 const toValues = (th: AdminThemeRow): Values => ({
   name: th.name,
-  kind: th.kind,
   short_description: th.short_description ?? "",
   description: th.description ?? "",
   features: th.features ?? [],
@@ -89,7 +87,6 @@ function ThemeEditor({ theme, tags }: { theme: AdminThemeRow; tags: ThemeTag[] }
     try {
       const saved = await saveTheme(theme.key, {
         name: v.name.trim(),
-        kind: v.kind,
         short_description: v.short_description.trim() || null,
         description: v.description.trim() || null,
         features: v.features,
@@ -191,21 +188,10 @@ function ThemeEditor({ theme, tags }: { theme: AdminThemeRow; tags: ThemeTag[] }
             <Field label={t.name} htmlFor="theme-name" error={errors.name?.message} required>
               <Input id="theme-name" aria-invalid={Boolean(errors.name)} {...form.register("name")} />
             </Field>
-            <Field label={t.kind}>
-              <Controller
-                control={form.control}
-                name="kind"
-                render={({ field }) => (
-                  <Segmented
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={[
-                      { value: "store", label: ar.admin.themes.kinds.store },
-                      { value: "landing", label: ar.admin.themes.kinds.landing },
-                    ]}
-                  />
-                )}
-              />
+            <Field label={t.kind} hint={t.kindHint}>
+              <div className="flex h-10 items-center">
+                <Badge tone={theme.kind === "store" ? "brand-soft" : "info"}>{ar.common.themeKinds[theme.kind]}</Badge>
+              </div>
             </Field>
             <Field label={t.shortDescription} htmlFor="theme-short" className="sm:col-span-2" optional>
               <Input id="theme-short" {...form.register("short_description")} />
