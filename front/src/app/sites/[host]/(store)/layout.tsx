@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { loadStore, storeMetadata } from "@/lib/public/store";
 import { serverEnv } from "@/lib/env";
-import { StoreNotReady, StorePaused } from "@/themes/asas/pages/info";
-import { AsasShell } from "@/themes/asas/shop";
+import { StoreNotReady, StorePaused } from "@/themes/store/asas/pages/info";
+import { AsasShell } from "@/themes/store/asas/shop";
 
 type Props = { children: React.ReactNode; params: Promise<{ host: string }> };
 

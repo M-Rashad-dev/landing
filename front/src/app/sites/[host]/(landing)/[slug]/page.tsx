@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { landingMetadata, loadLandingPage } from "@/lib/public/landing";
-import { StorePaused } from "@/themes/asas/pages/info";
-import { LandingLive } from "@/themes/bidaya/live";
+import { StorePaused } from "@/themes/store/asas/pages/info";
+import { LandingLive } from "@/themes/landing/live";
 
 type Props = { params: Promise<{ host: string; slug: string }> };
 

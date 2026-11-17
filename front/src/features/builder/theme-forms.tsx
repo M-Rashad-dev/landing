@@ -11,8 +11,8 @@ import { ImageField } from "@/features/media/image-fields";
 import type { MediaItem } from "@/features/media/api";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { SocialIcon } from "@/themes/asas/icons";
-import { FONTS, PALETTES, PER_PAGE, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls, type Settings } from "@/themes/asas/types";
+import { SocialIcon } from "@/themes/store/asas/icons";
+import { FONTS, PALETTES, PER_PAGE, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls, type Settings } from "@/themes/store/asas/types";
 
 const t = ar.design.theme;
 type Errors = Record<string, string>;

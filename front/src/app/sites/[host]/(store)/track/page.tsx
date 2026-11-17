@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { TrackView } from "@/themes/asas/pages/track";
+import { TrackView } from "@/themes/store/asas/pages/track";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

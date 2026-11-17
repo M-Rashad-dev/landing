@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { MyOrderView } from "@/themes/asas/pages/account";
+import { MyOrderView } from "@/themes/store/asas/pages/account";
 
 type Props = { params: Promise<{ host: string; number: string }> };
 

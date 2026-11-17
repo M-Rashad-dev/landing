@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { AccountView } from "@/themes/asas/pages/account";
+import { AccountView } from "@/themes/store/asas/pages/account";
 
 type Props = { params: Promise<{ host: string }> };
 

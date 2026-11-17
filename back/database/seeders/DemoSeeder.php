@@ -28,7 +28,7 @@ use App\Models\ShippingSetting;
 use App\Models\User;
 use App\Services\FormToken;
 use App\Tenancy\Tenancy;
-use App\Themes\BidayaDesign;
+use App\Themes\Landing\BidayaLandingDesign;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -174,7 +174,7 @@ final class DemoSeeder extends Seeder
     /** A landing page on «بداية» with its starter sections and a written hero. */
     private function page(string $title, string $slug, Product $product, int $userId): LandingPage
     {
-        $content = BidayaDesign::defaults($product->name);
+        $content = BidayaLandingDesign::defaults($product->name);
         foreach ($content['sections'] as $i => $section) {
             if ($section['type'] === 'hero') {
                 $content['sections'][$i]['props']['title'] = 'ساعتك الذكية بأقل سعر في مصر';

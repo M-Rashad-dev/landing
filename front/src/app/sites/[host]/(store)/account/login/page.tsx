@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { SignInView } from "@/themes/asas/pages/account";
+import { SignInView } from "@/themes/store/asas/pages/account";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

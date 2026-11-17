@@ -15,7 +15,7 @@ import { MediaPicker } from "@/features/media/media-picker";
 import type { MediaItem } from "@/features/media/api";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
-import { PRODUCT_LIMITS, pick, type Colors, type LinkType, type MediaUrls, type TestimonialsProps } from "@/themes/asas/types";
+import { PRODUCT_LIMITS, pick, type Colors, type LinkType, type MediaUrls, type TestimonialsProps } from "@/themes/store/asas/types";
 import type {
   BannersProps,
   BrandsProps,
@@ -33,7 +33,7 @@ import type {
   SufiSettings,
   TabsProps,
   VideoProps,
-} from "@/themes/sufi/types";
+} from "@/themes/store/sufi/types";
 import { BannerForm, Card, move, nullable } from "./section-forms";
 
 const s = ar.design.sufi;

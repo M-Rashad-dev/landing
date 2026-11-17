@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStoreProducts, listQuery, liveStore, queryKeyOf, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { Listing } from "@/themes/asas/pages/listing";
+import { Listing } from "@/themes/store/asas/pages/listing";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

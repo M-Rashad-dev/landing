@@ -124,7 +124,7 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
   );
 }
 
-/** The pictures shipped with the theme (public/themes/{key}): one big, the rest to pick from. */
+/** The pictures shipped with the theme (public/themes/{store|landing}/{key}): one big, the rest to pick from. */
 function ShippedShots({ shots, name, current, onPick }: { shots: string[]; name: string; current: number; onPick: (i: number) => void }) {
   return (
     <div className="flex flex-col gap-3">

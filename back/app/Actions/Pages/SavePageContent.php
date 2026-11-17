@@ -7,7 +7,7 @@ namespace App\Actions\Pages;
 use App\Exceptions\ApiException;
 use App\Http\Resources\PageDetailResource;
 use App\Models\LandingPage;
-use App\Themes\LandingThemes;
+use App\Themes\Landing\LandingThemes;
 use Illuminate\Support\Facades\DB;
 
 /** Saves the Builder draft with optimistic locking on `version`. */

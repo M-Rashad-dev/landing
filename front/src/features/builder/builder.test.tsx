@@ -3,8 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
-import { AsasStore } from "@/themes/asas/asas-store";
-import { inkOn, type Design, type DesignData } from "@/themes/asas/types";
+import { AsasStore } from "@/themes/store/asas/asas-store";
+import { inkOn, type Design, type DesignData } from "@/themes/store/asas/types";
 import { newSection } from "./api";
 
 vi.mock("@/lib/auth/session-context", () => ({ useSession: () => ({ storeUrl: "https://naanaa.com", store_name: "نعناع" }) }));

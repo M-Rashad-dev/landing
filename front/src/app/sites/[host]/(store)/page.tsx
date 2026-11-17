@@ -1,7 +1,7 @@
 import { liveStore } from "@/lib/public/store";
-import { HomeSections } from "@/themes/asas/asas-store";
-import { SufiHomeSections } from "@/themes/sufi/sufi-store";
-import { SUFI_KEY, type SufiSection } from "@/themes/sufi/types";
+import { HomeSections } from "@/themes/store/asas/asas-store";
+import { SufiHomeSections } from "@/themes/store/sufi/sufi-store";
+import { SUFI_KEY, type SufiSection } from "@/themes/store/sufi/types";
 
 type Props = { params: Promise<{ host: string }> };
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { OrderDone } from "@/themes/asas/pages/info";
+import { OrderDone } from "@/themes/store/asas/pages/info";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

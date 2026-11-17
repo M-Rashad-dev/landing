@@ -2,9 +2,9 @@
 
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { errorMessage } from "@/lib/api/errors";
-import { BidayaPage } from "@/themes/bidaya/page";
-import { ShabePage } from "@/themes/shabe/page";
-import { SHABE_KEY, type ShabeContent } from "@/themes/shabe/types";
+import { BidayaPage } from "@/themes/landing/bidaya/page";
+import { ShabePage } from "@/themes/landing/shabe/page";
+import { SHABE_KEY, type ShabeContent } from "@/themes/landing/shabe/types";
 import { toLandingData, useLandingEditor } from "./builder-api";
 
 /** The saved draft as the page will look, full screen (the order form sends nothing here). */

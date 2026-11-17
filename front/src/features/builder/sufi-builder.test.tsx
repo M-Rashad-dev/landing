@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
-import type { SufiDesign } from "@/themes/sufi/types";
+import type { SufiDesign } from "@/themes/store/sufi/types";
 import { newSufiSection } from "./api";
 
 vi.mock("@/lib/auth/session-context", () => ({ useSession: () => ({ storeUrl: "https://sufi.com", store_name: "صوفي" }) }));
@@ -47,7 +47,7 @@ beforeEach(() => {
 async function open() {
   // React holds a concurrent render until the theme's font stylesheet loads, which jsdom never
   // does; a first direct (synchronous) render registers it, as the «أساس» suite does.
-  const { SufiStore } = await import("@/themes/sufi/sufi-store");
+  const { SufiStore } = await import("@/themes/store/sufi/sufi-store");
   render(<SufiStore design={design} data={data as never} storeName="صوفي" />);
   cleanup();
   const { Builder } = await import("./builder");

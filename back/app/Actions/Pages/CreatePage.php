@@ -10,7 +10,7 @@ use App\Enums\PlanLimit;
 use App\Models\Identity;
 use App\Models\LandingPage;
 use App\Models\Product;
-use App\Themes\LandingThemes;
+use App\Themes\Landing\LandingThemes;
 use Illuminate\Support\Facades\DB;
 
 final class CreatePage

@@ -13,8 +13,8 @@ use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
 use App\Store\Accounts\ProductReviews;
-use App\Store\Design\StoreDesigner;
 use App\Support\Pixels;
+use App\Themes\Store\StoreDesigner;
 use Illuminate\Support\Collection;
 
 /**

@@ -255,27 +255,28 @@ back/                      Laravel 13 API (PHP 8.3, strict_types everywhere)
   app/Actions/             write operations (SaveProduct, CreateOrder, ChangeOrderStatus, AutoBlock, SaveShippingCompany…)
   app/Billing/             Entitlements, plans catalog, invoices/checkout, PlatformSettings, Themes/ThemeAccess + ThemeCatalog
   app/Pricing/             PriceCalculator, PriceMath, Quote, Shipping
-  app/Store/               StoreSite (live store config), StoreSetup (isLive), StoreCatalog, Design/{AsasDesign,SufiDesign,StoreDesigner}, Accounts (customer OTP, reviews)
-  app/Themes/              landing themes (BidayaDesign, ShabeDesign, LandingThemes)
+  app/Store/               StoreSite (live store config), StoreSetup (isLive), StoreCatalog, Accounts (customer OTP, reviews)
+  app/Themes/Store/        store themes (StoreDesigner, AsasStoreDesign, SufiStoreDesign)
+  app/Themes/Landing/      landing themes (LandingThemes, BidayaLandingDesign, ShabeLandingDesign)
   app/Imports/             in-house xlsx/csv reader/writer + product import pipeline
   app/Services/            PublicSite, PublicPageData, Support/* (SupportDesk, SupportFiles), AdminAlerts, Webhooks…
   app/Http/Controllers/Api/V1/{Dashboard,Admin,Public,Auth}/   thin controllers → FormRequest → Action/Service → Resource
   app/Tenancy/             Tenancy, BelongsToTenant, scopes
   config/landing.php       platform settings: limits, fonts, governorates, auto_block, support, platform_admin…
   database/seeders/        ThemeSeeder, PlanSeeder, PaymentMethodSeeder, PlatformPageSeeder, PlatformAdminSeeder, DemoSeeder
-  lang/ar/*.php            server-side Arabic (validation, design attributes, sufi starter texts…)
+  lang/ar/*.php            server-side Arabic (validation, design attributes…); theme starter texts in lang/ar/themes/{store,landing}/{key}.php
   routes/api.php           all API routes (v1); routes/channels.php (Reverb); routes/console.php (schedule)
-  tests/Feature/*          Pest feature tests by area (+ Isolation, FullFlowTest)
+  tests/Feature/*          Pest feature tests by area (+ Isolation, FullFlowTest); theme tests in Themes/{Store,Landing}
 front/                     Next.js 16 (port 3200 locally)
   src/proxy.ts             host routing, A/B split, auth cookie checks (Next 16 "middleware")
   src/app/(auth) (dashboard) (builder) admin platform sites/[host]/{(store),(landing)} api/{auth,bff,public,revalidate,health}
   src/features/<area>/     screens per area (orders, catalog, builder, support, marketing, admin, settings…)
   src/components/          ui/ (button, select, overlay, feedback…), forms/, data/ (table, charts…), layout/, domain/, brand/
-  src/themes/              asas/ (free store theme + shared store frame/pages), sufi/ (paid store theme), bidaya/ (landing), shabe/ (paid landing), registry.ts
+  src/themes/              store/{asas (free store theme + shared store frame/pages), sufi} · landing/{live.tsx (picks the page by theme key), bidaya, shabe} · registry.ts, upsell-offer.tsx (both kinds)
   src/lib/                 api client, auth, public (store loading, SEO), store (cart, quote, events), tracking, realtime, env, format…
-  src/messages/ar.ts + ar/*.ts   every Arabic string (import { ar } from "@/messages/ar")
+  src/messages/ar.ts + ar/*.ts   every Arabic string (import { ar } from "@/messages/ar"); theme strings in ar/themes/{store,landing}/{key}.ts
   src/config/              brand.ts (name «مكسب»), navigation.ts
-  public/themes/           {key}/cover.webp + 1..5.webp (gallery pictures of each shipped theme) + sufi/demo/*.jpg
+  public/themes/           {store,landing}/{key}/cover.webp + 1..5.webp (gallery pictures of each shipped theme) + store/sufi/demo/*.jpg
 deploy/                    Caddyfile, deploy.sh, backup.sh, restore.sh, DEPLOY.md (Arabic guide)
 docker-compose.yml         production stack; docker-compose.dev.yml (optional MySQL/Redis for dev)
 tools/                     env.sh (portable PHP 8.3 on PATH), start-dev.sh, php/ (portable PHP, git-ignored)
@@ -328,7 +329,7 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 | `shabe` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
 
 ### «شابع» (paid food landing theme)
-- Back end `App\Themes\ShabeDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
+- Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
   `display_font` (Lalezar titles), `header.countdown_ends_at|phone|button_label`. Sections: hero (highlighted word,
   2 stickers, discount badge, rating, 2 buttons, trust items), marquee, menu (dishes with weights + extras), why,
   steps, bundles, gallery, video, compare, testimonials (photos, place, overall score), urgency (countdown + real
@@ -336,16 +337,16 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 - Bundles: cards tied to the product's **offers** (`offer_id`, null = one piece); empty list = one card per running
   offer automatically. Card prices are a display estimate with the same rules as `PriceMath` (`dealOf`); the order
   form still shows the server's quote. «اختار ده» sends `shabe:choose-offer` → the form picks that offer.
-- Front `themes/shabe/` reuses «بداية»'s page context (`PageProvider`), order hook, code box and summary; the
+- Front `themes/landing/shabe/` reuses «بداية»'s page context (`PageProvider`), order hook, code box and summary; the
   landing Builder edits both themes (`features/landings/shabe-forms.tsx`). Live, preview, done page pick by theme key.
 
 ### Store theme architecture
-- Back end: `App\Store\Design\AsasDesign` (shared settings rules/cleaning: colors, font, size, logo, favicon, header,
-  footer, general) and `SufiDesign` (extends with `colors_dark`, `appearance {default: light|dark|system, toggle}`,
+- Back end: `App\Themes\Store\AsasStoreDesign` (shared settings rules/cleaning: colors, font, size, logo, favicon, header,
+  footer, general) and `SufiStoreDesign` (extends with `colors_dark`, `appearance {default: light|dark|system, toggle}`,
   `header.layout center|start|end`, `header.topbar`, `general.floating_call|animations|offers_tab`, and its own
   sections). `StoreDesigner` picks the validator/defaults by `theme_key` and builds the section data
   (`products["{id}:{tab}"]`, `category_tiles`, `featured`, `links`, `media`).
-- Front: `themes/asas/` holds the **shared store frame and inner pages** (product, listing, cart, checkout, account,
+- Front: `themes/store/asas/` holds the **shared store frame and inner pages** (product, listing, cart, checkout, account,
   track, info) reading CSS variables `--as-*` on `.as-root`. A theme only provides its **frame (header/footer) and
   home sections**; the inner pages automatically take its colors/font (and Sufi's dark mode, because `SufiRoot`
   feeds the current scheme's colors into the shared `AsasRoot`).
@@ -366,7 +367,7 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
 - Floating WhatsApp/call buttons and an offers side-tab sit under the header's z-index (so the phone menu covers them).
 - Dark mode: visitor's choice stored in `localStorage` (`sf_scheme`) via `useSyncExternalStore` (no hydration
   mismatch); the first paint uses the merchant's default.
-- Showcase store data: `front/src/themes/sufi/demo.ts` + `public/themes/sufi/demo/*.jpg` (Unsplash, free licence).
+- Showcase store data: `front/src/themes/store/sufi/demo.ts` + `public/themes/store/sufi/demo/*.jpg` (Unsplash, free licence).
   Theme pictures (cover + 5, store and landing themes) + which themes have a showcase: `front/src/themes/registry.ts`;
   the admin's own uploads show first. Shipped texts: `ThemeSeeder::THEMES`, written again with `php artisan themes:copy [key]`.
 - Decision: paid themes change the **home, header and footer**; inner pages stay shared for now (future themes may
@@ -374,12 +375,12 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
   guides, delivery estimates and review photos which don't exist yet).
 
 ### Adding a new store theme (checklist)
-1. Back: `App\Store\Design\{Name}Design` (validate + clean + defaults, reuse `AsasDesign` helpers), wire it in
-   `StoreDesigner::defaults()/validate()` and `data()` for any new section data; add a `ThemeSeeder` row; lang strings.
-2. Front: `themes/{key}/` (types, root, chrome, sections, store/frame), wire in `AsasShell`, the store home page,
+1. Back: `App\Themes\Store\{Name}StoreDesign` (validate + clean + defaults, reuse `AsasStoreDesign` helpers), wire it in
+   `StoreDesigner::defaults()/validate()` and `data()` for any new section data; add a `ThemeSeeder` row; lang strings in `lang/ar/themes/store/{key}.php`.
+2. Front: `themes/store/{key}/` (types, root, chrome, sections, store/frame), wire in `AsasShell`, the store home page,
    `builder.tsx`, `preview-page.tsx`; Builder forms + section gallery list; `themes/registry.ts` shots/demo.
 3. Tests: back feature tests (switch after purchase, save every section, validation), front render + Builder tests.
-4. Cover + 5 pictures into `public/themes/{key}/` (1600×1000 WebP), a showcase `demo.ts` if it should have «معاينة الثيم».
+4. Cover + 5 pictures into `public/themes/store/{key}/` (1600×1000 WebP), a showcase `demo.ts` if it should have «معاينة الثيم».
 
 ### Builder
 `front/src/features/builder/`: `builder.tsx` (store), `kit.tsx` (shared editing state: undo/redo, autosave 700 ms,

@@ -12,8 +12,8 @@ use App\Http\Controllers\Controller;
 use App\Models\StoreDesign;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Store\Design\StoreDesigner;
 use App\Store\StoreSetup;
+use App\Themes\Store\StoreDesigner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

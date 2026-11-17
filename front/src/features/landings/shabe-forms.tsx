@@ -15,8 +15,8 @@ import { activeOffers } from "@/lib/store/offers";
 import type { ProductOffer } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { pick, type MediaUrls } from "@/themes/asas/types";
-import { SHABE_ICON_KEYS, SHABE_ICONS } from "@/themes/shabe/icons";
+import { pick, type MediaUrls } from "@/themes/store/asas/types";
+import { SHABE_ICON_KEYS, SHABE_ICONS } from "@/themes/landing/shabe/icons";
 import type {
   BundleCard,
   BundlesProps,
@@ -35,7 +35,7 @@ import type {
   UrgencyProps,
   VideoProps,
   WhyProps,
-} from "@/themes/shabe/types";
+} from "@/themes/landing/shabe/types";
 import { newId } from "./builder-api";
 import { FaqForm, GalleryForm, OrderFormForm } from "./builder-forms";
 

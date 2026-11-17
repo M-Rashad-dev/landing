@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
-import type { Content } from "@/themes/bidaya/types";
+import type { Content } from "@/themes/landing/bidaya/types";
 import { LandingBuilder } from "./builder";
 
 

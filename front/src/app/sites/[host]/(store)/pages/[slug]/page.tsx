@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStorePage, liveStore, storeMetadata } from "@/lib/public/store";
-import { StaticPageView } from "@/themes/asas/pages/info";
+import { StaticPageView } from "@/themes/store/asas/pages/info";
 
 type Props = { params: Promise<{ host: string; slug: string }> };
 

@@ -5,7 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { serverEnv } from "@/lib/env";
 import type { ProductList, ProductPage, StaticPage, StoreConfig } from "@/lib/store/types";
-import { pick } from "@/themes/asas/types";
+import { pick } from "@/themes/store/asas/types";
 import { publicGet } from "./fetch";
 import { parseSiteHost, primaryRedirectUrl, SITE_PATH_HEADER } from "./host";
 import { absoluteUrl, stripMarkdown } from "./seo";

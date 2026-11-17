@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { jsonLdString, productJsonLd } from "@/lib/public/seo";
 import { getStoreProduct, liveStore, storeMetadata } from "@/lib/public/store";
-import { ProductView } from "@/themes/asas/pages/product";
-import { pick } from "@/themes/asas/types";
+import { ProductView } from "@/themes/store/asas/pages/product";
+import { pick } from "@/themes/store/asas/types";
 
 type Props = { params: Promise<{ host: string; slug: string }> };
 

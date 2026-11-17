@@ -11,7 +11,7 @@ use App\Jobs\RevalidateTenantHosts;
 use App\Models\LandingPage;
 use App\Models\Tenant;
 use App\Models\Theme;
-use App\Themes\LandingThemes;
+use App\Themes\Landing\LandingThemes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

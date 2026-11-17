@@ -3,7 +3,7 @@
  * PriceCalculator / CartQuote, TrackController). Shared by the server loaders and the storefront.
  */
 import type { Tracking } from "@/lib/tracking/ids";
-import type { Design, DesignData, ProductCard } from "@/themes/asas/types";
+import type { Design, DesignData, ProductCard } from "@/themes/store/asas/types";
 
 export type StoreImage = { id: number; alt: string | null; width: number | null; height: number | null; urls: Record<string, string> };
 

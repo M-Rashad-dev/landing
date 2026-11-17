@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
 import type { ProductOffer, ShippingConfig, StoreProduct } from "@/lib/store/types";
-import type { Content, LandingData, PageImage, Section, SectionType } from "@/themes/bidaya/types";
+import type { Content, LandingData, PageImage, Section, SectionType } from "@/themes/landing/bidaya/types";
 
 /** GET /dashboard/pages/{id} (PageDetailResource). */
 export type PageDetail = {

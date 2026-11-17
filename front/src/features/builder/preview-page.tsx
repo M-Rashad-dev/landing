@@ -2,9 +2,9 @@
 
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { errorMessage } from "@/lib/api/errors";
-import { AsasStore } from "@/themes/asas/asas-store";
-import { SufiStore } from "@/themes/sufi/sufi-store";
-import { SUFI_KEY, type SufiDesign } from "@/themes/sufi/types";
+import { AsasStore } from "@/themes/store/asas/asas-store";
+import { SufiStore } from "@/themes/store/sufi/sufi-store";
+import { SUFI_KEY, type SufiDesign } from "@/themes/store/sufi/types";
 import { useDesign } from "./api";
 
 /** The saved draft as the store will look, full page (links stay inert until the storefront exists). */

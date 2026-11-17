@@ -5,7 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { serverEnv } from "@/lib/env";
 import type { Tracking } from "@/lib/tracking/ids";
-import type { Content, LandingData } from "@/themes/bidaya/types";
+import type { Content, LandingData } from "@/themes/landing/bidaya/types";
 import { publicGet } from "./fetch";
 import { parseSiteHost, primaryRedirectUrl, SITE_PATH_HEADER } from "./host";
 

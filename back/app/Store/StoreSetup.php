@@ -12,8 +12,8 @@ use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Store;
 use App\Models\Tenant;
-use App\Store\Design\AsasDesign;
-use App\Store\Design\StoreDesigner;
+use App\Themes\Store\AsasStoreDesign;
+use App\Themes\Store\StoreDesigner;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class StoreSetup
 {
-    public const DEFAULT_THEME = AsasDesign::KEY;
+    public const DEFAULT_THEME = AsasStoreDesign::KEY;
 
     public function __construct(
         private readonly Entitlements $entitlements,

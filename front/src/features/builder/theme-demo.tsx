@@ -6,9 +6,9 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { SUFI_DEMO_DATA, SUFI_DEMO_DESIGN } from "@/themes/sufi/demo";
-import { SufiStore } from "@/themes/sufi/sufi-store";
-import type { Scheme } from "@/themes/sufi/types";
+import { SUFI_DEMO_DATA, SUFI_DEMO_DESIGN } from "@/themes/store/sufi/demo";
+import { SufiStore } from "@/themes/store/sufi/sufi-store";
+import type { Scheme } from "@/themes/store/sufi/types";
 import { useStoreTheme } from "./api";
 
 const t = ar.design.page;

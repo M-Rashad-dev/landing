@@ -4,8 +4,8 @@ import { BookOpen, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import type { SectionType } from "@/themes/asas/types";
-import type { SufiSectionType } from "@/themes/sufi/types";
+import type { SectionType } from "@/themes/store/asas/types";
+import type { SufiSectionType } from "@/themes/store/sufi/types";
 
 export type AnySectionType = SectionType | SufiSectionType;
 
