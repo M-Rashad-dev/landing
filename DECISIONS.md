@@ -468,3 +468,9 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - New settings groups only «شابع» has: «كارد المنتج» (image shape, border thickness/color or none, corner radius, shadow, description, rating, «+» or full button) and «صفحة المنتج» (gallery, hover zoom, description, reviews, WhatsApp question, «اطلبه مع» from the same category or similar products, the fixed phone bar — on by default — with «أضف للسلة» (with quantity), both, or «اشتري دلوقتي», and «بيتفرجوا دلوقتي»).
 - «بيتفرجوا دلوقتي» (owner decision): a random number between the merchant's two numbers (1 to 999,000), picked again every N seconds the merchant sets; the Builder says it's random. It isn't a real count.
 - «منتجات مشابهة»: products have no tags yet, so similarity = shared words in the name / short description plus the same category; falls back to the category list.
+
+## 2026-11-17 — «شابع · متجر», part 3 and release
+- Groups «صفحات الأقسام» (columns, category banner, sub-categories as circles or chips, filters shown / behind a button / hidden) and «السلة» (free-delivery bar, «اطلبه معاه» from offers or newest, «ملاحظات للمطبخ» carried to the checkout notes). The cards everywhere follow «كارد المنتج» (no separate setting, owner).
+- Cart suggestions don't depend on the cart's content, so they come with the design data (no extra request); «similar to what's in the cart» was left out for that reason.
+- Own product, category, cart, checkout and thank-you pages on the shared hooks; account and tracking pages stay shared.
+- Released (owner): cover + 5 pictures, selling texts and features, a showcase store («معاينة الثيم», now a registry any theme can join), listed by a migration since the row existed hidden.

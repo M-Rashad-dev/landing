@@ -13,11 +13,11 @@ import { whatsappLink } from "@/themes/store/shared/contact";
 import { StoreLink } from "@/themes/store/shared/context";
 import { useProductBuy } from "@/themes/store/shared/use-product-buy";
 import { useViewers } from "@/themes/store/shared/use-viewers";
-import { Stars } from "../asas/parts";
-import { ProductReviewsSection } from "../asas/pages/reviews";
-import { FoodCard } from "./card";
-import { usePageSettings, useShabe } from "./root";
-import type { PageSettings } from "./types";
+import { Stars } from "../../asas/parts";
+import { ProductReviewsSection } from "../../asas/pages/reviews";
+import { FoodCard } from "../card";
+import { usePageSettings, useShabe } from "../root";
+import type { PageSettings } from "../types";
 
 const t = ar.shabeStore;
 const tp = ar.shabeStore.product;

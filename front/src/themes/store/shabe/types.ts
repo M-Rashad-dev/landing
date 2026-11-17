@@ -55,6 +55,15 @@ export const PAGE_DEFAULTS: PageSettings = {
   viewers: { enabled: false, min: 300, max: 600, every: 15 },
 };
 
+/** Category, all-products and offers pages (back end: ShabeStoreDesign::LISTING_DEFAULTS). */
+export type ListingSettings = { columns_desktop: number; columns_mobile: number; banner: boolean; subcategories: "circles" | "chips"; filters: "open" | "button" | "hidden" };
+
+/** The cart (back end: ShabeStoreDesign::CART_DEFAULTS). */
+export type CartSettings = { free_shipping_bar: boolean; suggestions_enabled: boolean; suggestions: "offers" | "latest"; kitchen_notes: boolean };
+
+export const LISTING_DEFAULTS: ListingSettings = { columns_desktop: 4, columns_mobile: 2, banner: true, subcategories: "circles", filters: "button" };
+export const CART_DEFAULTS: CartSettings = { free_shipping_bar: true, suggestions_enabled: true, suggestions: "offers", kitchen_notes: true };
+
 export type ShabeStoreSettings = Omit<StoreSettings, "colors" | "header" | "footer" | "general"> & {
   colors: StoreSettings["colors"] & { dark: string };
   display_font: boolean;
@@ -65,6 +74,8 @@ export type ShabeStoreSettings = Omit<StoreSettings, "colors" | "header" | "foot
   /** Missing in designs saved before them (read with their defaults). */
   product_card?: CardSettings;
   product_page?: PageSettings;
+  listing?: ListingSettings;
+  cart?: CartSettings;
 };
 
 type IconItem = { icon: FoodIcon; title: string; text: string | null };
@@ -118,4 +129,6 @@ export type BundleData = { offer: ProductOffer; product: ProductCard | null; hre
 export type ShabeStoreData = DesignData & {
   category_tiles?: Record<string, CategoryTile[]>;
   bundles?: Record<string, BundleData[]>;
+  /** The cart's suggestions (offers or newest), when the merchant turned them on. */
+  cart_products?: ProductCard[];
 };

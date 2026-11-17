@@ -55,7 +55,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       title={category.name}
       description={category.description}
       breadcrumb={[...trail.map((c) => ({ name: c.name, href: `/categories/${encodeURIComponent(c.slug)}` })), { name: category.name }]}
-      subcategories={config.categories.filter((c) => c.parent_id === category.id).map((c) => ({ name: c.name, slug: c.slug }))}
+      subcategories={config.categories.filter((c) => c.parent_id === category.id).map((c) => ({ name: c.name, slug: c.slug, image: c.image?.urls ?? null }))}
+      image={category.image?.urls ?? null}
       list={list}
       filters={filters}
       basePath={`/categories/${encodeURIComponent(category.slug)}`}

@@ -16,6 +16,7 @@ import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
+import { clearCartNote, readCartNote } from "./cart-note";
 
 const t = ar.storefront.checkout;
 
@@ -87,6 +88,12 @@ export function useCheckout(config: StoreConfig) {
     setChosenAddress(address ? address.id : "new");
     fillAddress(address);
   };
+
+  // A note written in the cart («ملاحظات للمطبخ») starts the checkout's notes.
+  React.useEffect(() => {
+    const note = readCartNote();
+    if (note && !form.getValues("notes")) form.setValue("notes", note);
+  }, [form]);
 
   React.useEffect(() => {
     if (!me || filled.current) return;
@@ -162,6 +169,7 @@ export function useCheckout(config: StoreConfig) {
       if (response.ok && json.data) {
         track("Purchase", { content_ids: cart.items.map((i) => i.product_id), value: json.data.total, num_items: cart.items.reduce((s, i) => s + i.quantity, 0), transaction_id: json.data.order_number });
         clearCart();
+        clearCartNote();
         resetCartToken();
         saveUpsell(json.data.order_number, json.data.upsell);
         router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}`);

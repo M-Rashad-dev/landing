@@ -20,6 +20,8 @@ import {
   Rocket,
   Settings2,
   SquareStack,
+  LayoutGrid,
+  ShoppingCart,
   FileText,
   Smartphone,
   Tablet,
@@ -64,6 +66,8 @@ const GROUP_META: Record<GroupKey, { icon: LucideIcon; label: string; hint: stri
   general: { icon: Settings2, label: th.tabs.general, hint: t.groups.general },
   product_card: { icon: SquareStack, label: th.tabs.product_card, hint: t.groups.product_card },
   product_page: { icon: FileText, label: th.tabs.product_page, hint: t.groups.product_page },
+  listing: { icon: LayoutGrid, label: th.tabs.listing, hint: t.groups.listing },
+  cart: { icon: ShoppingCart, label: th.tabs.cart, hint: t.groups.cart },
 };
 /** Groups that are also parts of the canvas (clicking the preview selects them). */
 const ON_CANVAS: Edit[] = ["header", "footer"];

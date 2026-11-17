@@ -10,7 +10,11 @@ export const THEME_SHOTS: Record<string, string[]> = {
   sufi_store: shots("store", "sufi"),
   bidaya_landing: shots("landing", "bidaya"),
   shabe_landing: shots("landing", "shabe"),
+  shabe_store: shots("store", "shabe"),
 };
 
-/** Themes with a showcase store (themes/store/{key}/demo.ts). */
-export const THEME_DEMOS = new Set(["sufi_store"]);
+/** Themes with a showcase store (themes/store/demos.ts: the same keys, a test checks it). */
+export const THEME_DEMOS = new Set(["sufi_store", "shabe_store"]);
+
+/** Showcases with a light / dark switch (STORE_DEMOS[key].schemes; a test checks it). */
+export const THEME_DEMO_SCHEMES = new Set(["sufi_store"]);

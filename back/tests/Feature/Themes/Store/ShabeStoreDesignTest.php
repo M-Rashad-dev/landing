@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\Theme;
 use App\Models\User;
 use App\Themes\Store\ShabeStoreDesign;
 use Laravel\Sanctum\Sanctum;
@@ -210,4 +211,35 @@ it('suggests similar products on the product page when the theme asks for them',
     $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
     expect($page())->toBe(['chicken']);
     unset($kofta, $grill);
+});
+
+it('saves the category pages and cart settings, checks them, and sends the cart its suggestions', function () {
+    $owner = shabeStoreOwner();
+    $deal = asTenant($owner, fn () => Product::factory()->create(['name' => 'بوكس', 'slug' => 'deal', 'price' => '100.00', 'compare_at_price' => '150.00']));
+    $listing = ['columns_desktop' => 3, 'columns_mobile' => 1, 'banner' => false, 'subcategories' => 'chips', 'filters' => 'open'];
+    $cart = ['free_shipping_bar' => false, 'suggestions_enabled' => true, 'suggestions' => 'offers', 'kitchen_notes' => false];
+
+    $saved = saveDesign(designDraft(['settings' => ['listing' => $listing, 'cart' => $cart]]))->assertOk();
+    expect($saved->json('data.draft.settings.listing'))->toBe($listing)
+        ->and($saved->json('data.draft.settings.cart'))->toBe($cart)
+        ->and($saved->json('data.data.cart_products.0.id'))->toBe($deal->id);
+
+    saveDesign(designDraft(['settings' => ['cart' => ['suggestions_enabled' => false]]]))->assertOk()->assertJsonPath('data.data.cart_products', []);
+    saveDesign(designDraft(['settings' => [
+        'listing' => ['columns_desktop' => 6, 'columns_mobile' => 3, 'subcategories' => 'tiles', 'filters' => 'side'],
+        'cart' => ['suggestions' => 'random'],
+    ]]))->assertStatus(422)->assertJsonValidationErrors([
+        'draft.settings.listing.columns_desktop', 'draft.settings.listing.columns_mobile', 'draft.settings.listing.subcategories', 'draft.settings.listing.filters', 'draft.settings.cart.suggestions',
+    ]);
+});
+
+it('lists «شابع · متجر» once finished, with its final texts, on a database where it was hidden', function () {
+    Theme::query()->whereKey('shabe_store')->update(['is_listed' => false, 'short_description' => 'قديم']);
+
+    (require database_path('migrations/2026_11_28_100002_list_shabe_store_theme.php'))->up();
+
+    $theme = Theme::query()->findOrFail('shabe_store');
+    expect($theme->is_listed)->toBeTrue()
+        ->and($theme->short_description)->toStartWith('متجر أكل يفتح النفس')
+        ->and($theme->tags()->pluck('slug')->all())->toBe(['food']);
 });

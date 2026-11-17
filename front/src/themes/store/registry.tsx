@@ -11,7 +11,11 @@ import { TrackView } from "./asas/pages/track";
 import { ASAS_KEY, type Design } from "./asas/types";
 import type { ThemeMode } from "./shared/context";
 import type { DesignData } from "./shared/types";
-import { ShabeProductView } from "./shabe/product";
+import { ShabeCartView } from "./shabe/pages/cart";
+import { ShabeCheckoutView } from "./shabe/pages/checkout";
+import { ShabeOrderDone } from "./shabe/pages/done";
+import { ShabeListing } from "./shabe/pages/listing";
+import { ShabeProductView } from "./shabe/pages/product";
 import { ShabeFrame, ShabeHomeSections, ShabeStore } from "./shabe/shabe-store";
 import { SHABE_STORE_KEY, type ShabeStoreDesign, type ShabeStoreSection } from "./shabe/types";
 import { SufiFrame, SufiHomeSections, SufiStore } from "./sufi/sufi-store";
@@ -89,8 +93,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   [ASAS_KEY]: { Frame: AsasFrame, Home: AsasHome, Canvas: AsasCanvas, pages: ASAS_PAGES },
   // «صوفي» draws its own frame and home; its inner pages are «أساس»'s in its colors (for now).
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES },
-  // «شابع · متجر»: its own frame, home and product page; its category pages and cart come next («أساس»'s meanwhile).
-  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView } },
+  // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
+  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone } },
 };
 
 /** Every store theme this front end draws (the Builder's registry must list the same). */

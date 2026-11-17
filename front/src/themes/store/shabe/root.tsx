@@ -9,7 +9,7 @@ import { useTheme } from "@/themes/store/shared/context";
 import type { DesignData, StoreSettings } from "@/themes/store/shared/types";
 import { AsasRoot } from "../asas/root";
 import { FEATURE_ICONS } from "../asas/icons";
-import { CARD_DEFAULTS, PAGE_DEFAULTS, type ButtonShape, type CardSettings, type FoodIcon, type PageSettings, type ShabeStoreData, type ShabeStoreSettings } from "./types";
+import { CARD_DEFAULTS, CART_DEFAULTS, LISTING_DEFAULTS, PAGE_DEFAULTS, type ButtonShape, type CardSettings, type CartSettings, type ListingSettings, type FoodIcon, type PageSettings, type ShabeStoreData, type ShabeStoreSettings } from "./types";
 import "./shabe-store.css";
 
 /** The title font (the merchant can switch titles back to the body font). */
@@ -48,6 +48,18 @@ export function useShabe() {
 export function useCardSettings(): CardSettings {
   const { settings } = useShabe();
   return { ...CARD_DEFAULTS, ...settings.product_card };
+}
+
+/** The category pages settings (their defaults for designs saved before them). */
+export function useListingSettings(): ListingSettings {
+  const { settings } = useShabe();
+  return { ...LISTING_DEFAULTS, ...settings.listing };
+}
+
+/** The cart settings (their defaults for designs saved before them). */
+export function useCartSettings(): CartSettings {
+  const { settings } = useShabe();
+  return { ...CART_DEFAULTS, ...settings.cart };
 }
 
 /** The product page settings (their defaults for designs saved before them). */

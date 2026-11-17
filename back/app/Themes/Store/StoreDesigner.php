@@ -165,6 +165,11 @@ final class StoreDesigner
         if (isset($design['settings']['header']['button_link'])) {
             $links['header_button'] = $this->href($design['settings']['header']['button_link'], $bySlug->all());
         }
+        // The cart's suggestions (a theme with «السلة» settings): the store's offers or newest products.
+        $cart = $design['settings']['cart'] ?? null;
+        $cartProducts = is_array($cart) && ($cart['suggestions_enabled'] ?? false)
+            ? $this->catalog->forSection($cart['suggestions'] === 'latest' ? 'latest' : 'offers', null, 8, ! ($design['settings']['general']['show_out_of_stock'] ?? true))
+            : [];
         if (isset($design['settings']['general']['offers_tab'])) {
             $links['offers_tab'] = $this->href($design['settings']['general']['offers_tab']['link'], $bySlug->all());
         }
@@ -183,6 +188,7 @@ final class StoreDesigner
             'category_tiles' => (object) $tiles,
             'featured' => (object) $featured,
             'bundles' => (object) $bundles,
+            'cart_products' => $cartProducts,
         ];
     }
 

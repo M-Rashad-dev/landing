@@ -11,7 +11,7 @@ import { Segmented } from "@/components/ui/tabs";
 import { useOffers } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
 import { FOOD_ICON_KEYS } from "@/themes/store/shabe/root";
-import { CARD_DEFAULTS, PAGE_DEFAULTS, type BundleCard, type BundlesProps, type CardSettings, type FoodHeroProps, type FoodIcon, type HoursProps, type PageSettings, type ShabeStoreSettings, type StepsProps, type WhyProps } from "@/themes/store/shabe/types";
+import { CARD_DEFAULTS, CART_DEFAULTS, LISTING_DEFAULTS, PAGE_DEFAULTS, type BundleCard, type BundlesProps, type CardSettings, type CartSettings, type FoodHeroProps, type FoodIcon, type HoursProps, type ListingSettings, type PageSettings, type ShabeStoreSettings, type StepsProps, type WhyProps } from "@/themes/store/shabe/types";
 import { ImagePick, LinkField, Text, type Errors, type Media } from "./library-forms";
 import { Card, move } from "./section-forms";
 
@@ -391,6 +391,50 @@ export function ShabePageForm({ settings, onChange, errors }: SettingsProps) {
           </>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/* ---------- «صفحات الأقسام» and «السلة» ---------- */
+
+const sl = s.listing;
+const sct = s.cart;
+
+export function ShabeListingForm({ settings, onChange }: SettingsProps) {
+  const listing: ListingSettings = { ...LISTING_DEFAULTS, ...settings.listing };
+  const set = (patch: Partial<ListingSettings>) => onChange({ ...settings, listing: { ...listing, ...patch } });
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label={sl.columnsDesktop}>
+        <Segmented value={String(listing.columns_desktop)} onChange={(v) => set({ columns_desktop: Number(v) })} options={["2", "3", "4", "5"].map((k) => ({ value: k, label: k }))} />
+      </Field>
+      <Field label={sl.columnsMobile}>
+        <Segmented value={String(listing.columns_mobile)} onChange={(v) => set({ columns_mobile: Number(v) })} options={["1", "2"].map((k) => ({ value: k, label: k }))} />
+      </Field>
+      <SwitchRow title={sl.banner} description={sl.bannerHint} checked={listing.banner} onCheckedChange={(v) => set({ banner: v })} />
+      <Field label={sl.subcategories}>
+        <Segmented value={listing.subcategories} onChange={(v) => set({ subcategories: v })} options={(["circles", "chips"] as const).map((k) => ({ value: k, label: sl.subcategoryLooks[k] }))} />
+      </Field>
+      <Field label={sl.filters}>
+        <Segmented value={listing.filters} onChange={(v) => set({ filters: v })} options={(["open", "button", "hidden"] as const).map((k) => ({ value: k, label: sl.filterLooks[k] }))} />
+      </Field>
+    </div>
+  );
+}
+
+export function ShabeCartForm({ settings, onChange }: SettingsProps) {
+  const cart: CartSettings = { ...CART_DEFAULTS, ...settings.cart };
+  const set = (patch: Partial<CartSettings>) => onChange({ ...settings, cart: { ...cart, ...patch } });
+  return (
+    <div className="flex flex-col gap-4">
+      <SwitchRow title={sct.freeShipping} description={sct.freeShippingHint} checked={cart.free_shipping_bar} onCheckedChange={(v) => set({ free_shipping_bar: v })} />
+      <SwitchRow title={sct.suggestions} checked={cart.suggestions_enabled} onCheckedChange={(v) => set({ suggestions_enabled: v })} />
+      {cart.suggestions_enabled ? (
+        <Field label={sct.suggestions}>
+          <Segmented value={cart.suggestions} onChange={(v) => set({ suggestions: v })} options={(["offers", "latest"] as const).map((k) => ({ value: k, label: sct.suggestionSources[k] }))} />
+        </Field>
+      ) : null}
+      <SwitchRow title={sct.kitchenNotes} description={sct.kitchenNotesHint} checked={cart.kitchen_notes} onCheckedChange={(v) => set({ kitchen_notes: v })} />
     </div>
   );
 }

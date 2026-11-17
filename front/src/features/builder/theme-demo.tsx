@@ -6,20 +6,22 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { SUFI_DEMO_DATA, SUFI_DEMO_DESIGN } from "@/themes/store/sufi/demo";
-import { SufiStore } from "@/themes/store/sufi/sufi-store";
+import { STORE_DEMOS } from "@/themes/store/demos";
+import { storeTheme } from "@/themes/store/registry";
 import type { Scheme } from "@/themes/store/sufi/types";
 import { useStoreTheme } from "./api";
 
 const t = ar.design.page;
 const b = t.demoBar;
 
-/** A theme's showcase store, full screen: computer or phone width, light or dark, and «اشتريه». */
+/** A theme's showcase store, full screen: computer or phone width, light or dark (themes that have it), and «اشتريه». */
 export function ThemeDemo({ themeKey }: { themeKey: string }) {
   const [device, setDevice] = React.useState<"desktop" | "mobile">("desktop");
   const [scheme, setScheme] = React.useState<Scheme>("light");
   const detail = `/dashboard/design/themes/${encodeURIComponent(themeKey)}`;
   const theme = useStoreTheme(themeKey);
+  const demo = STORE_DEMOS[themeKey];
+  const { Canvas } = storeTheme(themeKey);
 
   const toggle = <T extends string>(value: T, current: T, set: (v: T) => void, Icon: typeof Sun, label: string) => (
     <button type="button" onClick={() => set(value)} aria-pressed={current === value} className={cn("flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition", current === value ? "bg-surface text-ink shadow-sm" : "text-ink-3 hover:text-ink")}>
@@ -44,10 +46,12 @@ export function ThemeDemo({ themeKey }: { themeKey: string }) {
             {toggle("desktop", device, setDevice, Laptop, b.desktop)}
             {toggle("mobile", device, setDevice, Smartphone, b.mobile)}
           </div>
-          <div className="flex rounded-lg bg-surface-2 p-0.5">
-            {toggle("light", scheme, setScheme, Sun, b.light)}
-            {toggle("dark", scheme, setScheme, Moon, b.dark)}
-          </div>
+          {demo?.schemes ? (
+            <div className="flex rounded-lg bg-surface-2 p-0.5">
+              {toggle("light", scheme, setScheme, Sun, b.light)}
+              {toggle("dark", scheme, setScheme, Moon, b.dark)}
+            </div>
+          ) : null}
         </div>
         <Button asChild size="sm">
           <Link href={theme.data?.owned || theme.data?.is_free ? "/dashboard/design/theme" : `/dashboard/settings/billing/checkout?theme=${encodeURIComponent(themeKey)}`}>
@@ -61,7 +65,7 @@ export function ThemeDemo({ themeKey }: { themeKey: string }) {
         {/* The transform makes the frame hold the store's fixed parts (floating buttons, phone menu). */}
         <div className={cn("relative mx-auto h-full overflow-hidden bg-white shadow-sm transition-[width] [transform:translateZ(0)]", device === "mobile" ? "w-[390px] max-w-full rounded-[2rem] border-8 border-ink" : "w-full md:rounded-xl")}>
           <div className="h-full overflow-y-auto">
-            <SufiStore design={SUFI_DEMO_DESIGN} data={SUFI_DEMO_DATA} storeName="صُوفي" mode="preview" scheme={scheme} />
+            {demo ? <Canvas design={demo.design} data={demo.data} storeName={demo.storeName} mode="preview" scheme={demo.schemes ? scheme : undefined} /> : null}
           </div>
         </div>
       </div>

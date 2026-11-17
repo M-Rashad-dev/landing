@@ -4,7 +4,7 @@ import type { ShabeStoreSection, ShabeStoreSectionType, ShabeStoreSettings } fro
 import type { SufiSection } from "@/themes/store/sufi/types";
 import { newShabeStoreSection } from "../api";
 import { LibrarySectionForm } from "../library-forms";
-import { BundlesForm, FoodHeroForm, HoursForm, ShabeCardForm, ShabeFooterExtras, ShabeGeneralExtras, ShabeHeaderExtras, ShabeLookExtras, ShabePageForm, StepsForm, WhyForm } from "../shabe-store-forms";
+import { BundlesForm, FoodHeroForm, HoursForm, ShabeCardForm, ShabeCartForm, ShabeFooterExtras, ShabeGeneralExtras, ShabeHeaderExtras, ShabeListingForm, ShabeLookExtras, ShabePageForm, StepsForm, WhyForm } from "../shabe-store-forms";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "../theme-forms";
 import { AsasSectionForm } from "./asas";
 import type { BuilderTheme, GroupFormProps, SectionFormProps } from "./types";
@@ -62,6 +62,8 @@ export const shabeBuilder: BuilderTheme = {
     // Its own groups (no base form: only themes that draw these their way have them).
     { key: "product_card", Form: only(ShabeCardForm) },
     { key: "product_page", Form: only(ShabePageForm) },
+    { key: "listing", Form: only(ShabeListingForm) },
+    { key: "cart", Form: only(ShabeCartForm) },
   ],
   newSection: (type) => newShabeStoreSection(type as ShabeStoreSectionType),
   SectionForm: ShabeForm,

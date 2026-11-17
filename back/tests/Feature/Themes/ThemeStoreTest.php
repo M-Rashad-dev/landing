@@ -77,7 +77,7 @@ it('lists the store themes with what it owns and can publish', function () {
 it('filters, searches and sorts the theme store, hiding unlisted themes', function () {
     themeOwner();
     // «صوفي» and «شابع» (shipped by the seeder) are hidden too: the counts below are about this test's themes.
-    Theme::query()->whereKey(['layali', 'sufi_store', 'shabe_landing'])->update(['is_listed' => false]);
+    Theme::query()->whereKey(['layali', 'sufi_store', 'shabe_landing', 'shabe_store'])->update(['is_listed' => false]);
     ThemeCatalog::flush();
 
     $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('meta.tags.0.slug', 'general');

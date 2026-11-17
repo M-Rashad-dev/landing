@@ -5,6 +5,7 @@ import * as React from "react";
 import type { ProductList } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import type { MediaUrls } from "@/themes/shared/design";
 import { StoreLink } from "@/themes/store/shared/context";
 import { LIST_SORTS, useListing, type ListFilters } from "@/themes/store/shared/use-listing";
 import { Breadcrumb, Container, Empty, inputClass } from "../parts";
@@ -25,7 +26,9 @@ export function Listing({
   title: string;
   description?: string | null;
   breadcrumb: Array<{ name: string; href?: string }>;
-  subcategories?: Array<{ name: string; slug: string }>;
+  subcategories?: Array<{ name: string; slug: string; image?: MediaUrls | null }>;
+  /** The category's picture (themes with a category banner draw it). */
+  image?: MediaUrls | null;
   list: ProductList;
   filters: ListFilters;
   basePath: string;

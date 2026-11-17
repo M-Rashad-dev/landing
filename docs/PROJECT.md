@@ -331,7 +331,7 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 | `sufi_store` «صوفي» | store | paid (990 placeholder) | light luxury theme with dark mode; 16 home sections (≤30); see below |
 | `bidaya_landing` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
 | `shabe_landing` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
-| `shabe_store` «شابع» | store | paid (990 placeholder), hidden until done | food store: 15 home sections (≤30) incl. «مواعيد العمل»; see below |
+| `shabe_store` «شابع» | store | paid (990 placeholder) | food store: 15 home sections (≤30) incl. «مواعيد العمل», own shopping pages and 4 extra settings groups; see below |
 
 ### «شابع» (paid food landing theme)
 - Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
@@ -416,8 +416,17 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   unified) ×3/×1 + same category ×2, falls back to the category list; `StoreSite::relatedMode()` reads it from the
   published design, so the page needs no extra request. The Builder shows only the groups the server lists for the
   theme (`settings_groups`); theme button classes live in `@layer components` so utilities can override them.
-- Builder: `features/builder/themes/shabe.tsx` + `shabe-store-forms.tsx`. The theme row is unlisted
-  (`'listed' => false` in `ThemeSeeder`) until all parts are built; the admin lists it.
+- Part 3: groups `listing` (columns desktop 2–5 / mobile 1–2, category banner, sub-categories circles|chips,
+  filters open|button|hidden) and `cart` (free-shipping bar from `shipping.free_over`, suggestions offers|latest sent
+  as `data.cart_products`, «ملاحظات للمطبخ» → `shared/cart-note.ts`, read by `useCheckout` into the notes and cleared
+  after the order). Own pages in `themes/store/shabe/pages/`: product, listing, cart, checkout, done; account,
+  tracking and static pages stay the shared ones. The category route passes the category picture (`image`) and
+  sub-category pictures to every theme's Listing.
+- Showcase: `themes/store/demos.ts` (STORE_DEMOS: design, data, name, `schemes`), drawn with the theme's own canvas;
+  `themes/registry.ts` lists the same keys (THEME_DEMOS, THEME_DEMO_SCHEMES) and a test checks every gallery picture
+  exists. «شابع» photos in `public/themes/store/shabe/demo/` (free Unsplash photos).
+- Builder: `features/builder/themes/shabe.tsx` + `shabe-store-forms.tsx`. Listed since migration
+  `list_shabe_store_theme` (a fresh database gets it listed from the seeder).
 
 ### Adding a new store theme (checklist)
 1. Back: a class extending `StoreThemeDesign` in `app/Themes/Store/` (its section types from `StoreSections`; a new

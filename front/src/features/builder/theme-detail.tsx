@@ -16,7 +16,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { THEME_DEMOS, THEME_SHOTS } from "@/themes/registry";
+import { THEME_DEMO_SCHEMES, THEME_DEMOS, THEME_SHOTS } from "@/themes/registry";
 import { useStoreTheme } from "./api";
 
 const t = ar.design.page;
@@ -167,7 +167,7 @@ export function StoreThemeDetail({ themeKey }: { themeKey: string }) {
                   {t.demo}
                 </Link>
               </Button>
-              <p className="text-xs text-ink-3">{THEME_DEMOS.has(theme.key) ? d.demoHint : null}</p>
+              <p className="text-xs text-ink-3">{THEME_DEMOS.has(theme.key) ? d.demoHint(THEME_DEMO_SCHEMES.has(theme.key)) : null}</p>
               {!theme.is_free && !owned ? <p className="text-xs text-ink-3">{d.oneTime}</p> : null}
               {owned && theme.can_publish === false ? <p className="text-xs text-warning">{t.needsPlan}</p> : null}
             </div>

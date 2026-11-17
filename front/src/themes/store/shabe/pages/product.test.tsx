@@ -6,8 +6,8 @@ import { ar } from "@/messages/ar";
 import type { DesignData } from "@/themes/store/shared/types";
 import { randomBetween } from "@/themes/store/shared/use-viewers";
 import { ShabeProductView } from "./product";
-import { ShabeStoreRoot } from "./root";
-import { PAGE_DEFAULTS, type PageSettings, type ShabeStoreSettings } from "./types";
+import { ShabeStoreRoot } from "../root";
+import { PAGE_DEFAULTS, type PageSettings, type ShabeStoreSettings } from "../types";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }), usePathname: () => "/", useSearchParams: () => new URLSearchParams() }));
 

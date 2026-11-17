@@ -26,7 +26,7 @@ final class ShabeStoreDesign extends StoreThemeDesign
     public const MAX_SECTIONS = 30;
 
     /** «شابع» draws its product cards and product page its own way, so it has their settings. */
-    public const SETTINGS_GROUPS = ['look', 'header', 'footer', 'general', 'product_card', 'product_page'];
+    public const SETTINGS_GROUPS = ['look', 'header', 'footer', 'general', 'product_card', 'product_page', 'listing', 'cart'];
 
     /** The product card (designs saved before these settings read them). */
     public const CARD_DEFAULTS = [
@@ -57,6 +57,26 @@ final class ShabeStoreDesign extends StoreThemeDesign
     ];
 
     public const VIEWERS_MAX = 999000;
+
+    /** Category, all-products and offers pages (designs saved before these settings read them). */
+    public const LISTING_DEFAULTS = [
+        'columns_desktop' => 4,
+        'columns_mobile' => 2,
+        // The category's picture and description on top of its page.
+        'banner' => true,
+        'subcategories' => 'circles',
+        // open: always shown; button: behind «فلتر»; hidden: none.
+        'filters' => 'button',
+    ];
+
+    /** The cart (designs saved before these settings read them). */
+    public const CART_DEFAULTS = [
+        'free_shipping_bar' => true,
+        'suggestions_enabled' => true,
+        'suggestions' => 'offers',
+        // «ملاحظات للمطبخ»: written in the cart, carried to the checkout's notes.
+        'kitchen_notes' => true,
+    ];
 
     public const DEFAULT_COLORS = ['primary' => '#e4572e', 'secondary' => '#f2b33d', 'background' => '#fffaf2', 'text' => '#1b120c'];
 
@@ -96,6 +116,8 @@ final class ShabeStoreDesign extends StoreThemeDesign
                 'general' => [...$base['general'], 'floating_call' => false, 'call_phone' => null, 'animations' => true],
                 'product_card' => self::CARD_DEFAULTS,
                 'product_page' => self::PAGE_DEFAULTS,
+                'listing' => self::LISTING_DEFAULTS,
+                'cart' => self::CART_DEFAULTS,
             ],
             'sections' => [
                 self::section('food_hero', [
@@ -173,6 +195,17 @@ final class ShabeStoreDesign extends StoreThemeDesign
             "{$p}.settings.product_page.viewers.min" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX],
             "{$p}.settings.product_page.viewers.max" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX, 'gte:'.$p.'.settings.product_page.viewers.min'],
             "{$p}.settings.product_page.viewers.every" => ['sometimes', 'integer', 'between:3,300'],
+            "{$p}.settings.listing" => ['sometimes', 'array'],
+            "{$p}.settings.listing.columns_desktop" => ['sometimes', 'integer', 'between:2,5'],
+            "{$p}.settings.listing.columns_mobile" => ['sometimes', 'integer', 'between:1,2'],
+            "{$p}.settings.listing.banner" => ['sometimes', 'boolean'],
+            "{$p}.settings.listing.subcategories" => ['sometimes', Rule::in(['circles', 'chips'])],
+            "{$p}.settings.listing.filters" => ['sometimes', Rule::in(['open', 'button', 'hidden'])],
+            "{$p}.settings.cart" => ['sometimes', 'array'],
+            "{$p}.settings.cart.free_shipping_bar" => ['sometimes', 'boolean'],
+            "{$p}.settings.cart.suggestions_enabled" => ['sometimes', 'boolean'],
+            "{$p}.settings.cart.suggestions" => ['sometimes', Rule::in(['offers', 'latest'])],
+            "{$p}.settings.cart.kitchen_notes" => ['sometimes', 'boolean'],
         ];
     }
 
@@ -207,6 +240,35 @@ final class ShabeStoreDesign extends StoreThemeDesign
             ],
             'product_card' => $this->cleanCard((array) ($s['product_card'] ?? [])),
             'product_page' => $this->cleanPage((array) ($s['product_page'] ?? [])),
+            'listing' => $this->cleanListing((array) ($s['listing'] ?? [])),
+            'cart' => $this->cleanCart((array) ($s['cart'] ?? [])),
+        ];
+    }
+
+    /** @param array<string, mixed> $l @return array<string, mixed> */
+    private function cleanListing(array $l): array
+    {
+        $l = [...self::LISTING_DEFAULTS, ...$l];
+
+        return [
+            'columns_desktop' => (int) $l['columns_desktop'],
+            'columns_mobile' => (int) $l['columns_mobile'],
+            'banner' => (bool) $l['banner'],
+            'subcategories' => (string) $l['subcategories'],
+            'filters' => (string) $l['filters'],
+        ];
+    }
+
+    /** @param array<string, mixed> $c @return array<string, mixed> */
+    private function cleanCart(array $c): array
+    {
+        $c = [...self::CART_DEFAULTS, ...$c];
+
+        return [
+            'free_shipping_bar' => (bool) $c['free_shipping_bar'],
+            'suggestions_enabled' => (bool) $c['suggestions_enabled'],
+            'suggestions' => (string) $c['suggestions'],
+            'kitchen_notes' => (bool) $c['kitchen_notes'],
         ];
     }
 

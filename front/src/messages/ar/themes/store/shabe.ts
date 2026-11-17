@@ -75,6 +75,18 @@ export const shabeStore = {
     save: (amount: number) => `وفّر ${formatMoney(amount)}`,
     choose: (name: string) => `اختار ${name}`,
   },
+  list: {
+    filters: "فلتر",
+    closeFilters: "اقفل الفلتر",
+  },
+  cartPage: {
+    notes: "ملاحظات للمطبخ",
+    notesHint: "زي «من غير بصل» أو «الصوص لوحده». بتتنقل لصفحة الدفع.",
+    freeLeft: (amount: number) => `فاضل ${formatMoney(amount)} وتاخد التوصيل ببلاش`,
+    freeDone: "مبروك! التوصيل عليك ببلاش",
+    suggestions: "اطلبه معاه",
+    secure: "الدفع عند الاستلام · من غير دفع أونلاين",
+  },
   empty: {
     products: "لسه مفيش أكل هنا.",
     categories: "ضيف أقسام المنيو بصور عشان تظهر هنا.",
