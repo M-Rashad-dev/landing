@@ -297,5 +297,4 @@ return [
     'call_phone' => 'رقم زرار الاتصال',
     'whatsapp_number' => 'رقم زرار الواتساب',
     'logo_dark_media_id' => 'لوجو الوضع الداكن',
-    'mobile_slider' => 'سلايدر على الموبايل',
 ];

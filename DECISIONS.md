@@ -432,3 +432,7 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - New selling texts in `ThemeSeeder::THEMES`. Seeders still write texts only the first time; `php artisan themes:copy [key]` writes them again on purpose (prices, listing and images untouched).
 - «صوفي» showcase: its offer always ends in 2–3 days (a fixed far date showed thousands of days).
 - WhatsApp: the account must be subscribed to the app (`POST /{waba}/subscribed_apps`) for webhooks; done for Mksab on 2026-11-16, step added to DEPLOY.md. Webhook events still don't reach the server (owner chose to leave it for now).
+
+## 2026-11-17 — «صوفي» reviews: slider or list on every screen; Next 16.4.5
+- The reviews section's phone-only switch (`mobile_slider`) is replaced by `layout`: `slider` (default, with arrows and a progress bar, same slider as the product tabs: 1 card on phones, 2 on tablets, 3 on computers) or `list` (a grid), the same on every screen. Designs saved before get the slider.
+- Next.js 16.4.3 → 16.4.5 (and eslint-config-next): `next build` refused to build on a moderate advisory (GHSA-mfr8-8qww-v76h, `'use cache'` through `unstable_cache`, which we don't use). Owner approved. The server build needed it too.

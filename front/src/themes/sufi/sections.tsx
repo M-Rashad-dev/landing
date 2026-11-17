@@ -218,7 +218,12 @@ function Categories({ id, props }: { id: string; props: CategoriesProps }) {
 
 /* ---------- 4. product tabs ---------- */
 
-function Slider({ children, label }: { children: React.ReactNode; label: string }) {
+const SLIDER_COLS = {
+  products: "auto-cols-[72%] @3xl:auto-cols-[calc((100%-2rem)/3)] @5xl:auto-cols-[calc((100%-4.5rem)/4)] @5xl:gap-6",
+  reviews: "auto-cols-[85%] @3xl:auto-cols-[calc((100%-1.25rem)/2)] @5xl:auto-cols-[calc((100%-2.5rem)/3)] gap-5",
+};
+
+function Slider({ children, label, cols = "products" }: { children: React.ReactNode; label: string; cols?: keyof typeof SLIDER_COLS }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [progress, setProgress] = React.useState(0);
   const scroll = (dir: 1 | -1) => {
@@ -234,7 +239,7 @@ function Slider({ children, label }: { children: React.ReactNode; label: string 
   };
   return (
     <div>
-      <div ref={ref} onScroll={onScroll} className="sf-slider auto-cols-[72%] @3xl:auto-cols-[calc((100%-2rem)/3)] @5xl:auto-cols-[calc((100%-4.5rem)/4)] @5xl:gap-6" aria-label={label} tabIndex={0}>
+      <div ref={ref} onScroll={onScroll} className={cn("sf-slider", SLIDER_COLS[cols])} aria-label={label} tabIndex={0}>
         {children}
       </div>
       <div className="mt-8 flex items-center gap-4">
@@ -726,21 +731,11 @@ function Features({ props }: { props: FeaturesProps }) {
 function Testimonials({ props }: { props: TestimonialsProps }) {
   const { data } = useSufi();
   const items = props.source === "auto" ? data.reviews : props.items;
-  const slider = (props.mobile_slider ?? true) && items.length > 1;
   if (items.length === 0) return null;
-  return (
-    <section className="sf-section">
-      <div className="sf-wrap">
-        <Heading title={props.title} />
-        <div
-          className={cn(
-            "gap-5 @3xl:grid @3xl:grid-cols-2 @5xl:grid-cols-3",
-            // Phones: one review at a time, swiped sideways (the next one peeks in).
-            slider ? "no-scrollbar -mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 pb-2 @3xl:mx-0 @3xl:overflow-visible @3xl:px-0 @3xl:pb-0" : "grid",
-          )}
-        >
-          {items.slice(0, 6).map((r, i) => (
-            <article key={i} className={cn("sf-reveal rounded-[1.4rem] border bg-(--sf-surface) p-7", slider && "w-[85%] shrink-0 snap-center @3xl:w-auto")}>
+  // The merchant's choice, on every screen: a slider with arrows, or all of them in a grid.
+  const slider = (props.layout ?? "slider") === "slider" && items.length > 1;
+  const cards = items.slice(0, 12).map((r, i) => (
+    <article key={i} className="sf-reveal h-full rounded-[1.4rem] border bg-(--sf-surface) p-7">
               <p className="flex gap-0.5" aria-label={ar.storefront.reviews.outOf(r.rating)}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <Star key={n} className={cn("size-4", n <= r.rating ? "fill-amber-400 text-amber-400" : "opacity-25")} aria-hidden />
@@ -751,9 +746,19 @@ function Testimonials({ props }: { props: TestimonialsProps }) {
                 <span className="as-base flex size-11 items-center justify-center rounded-full bg-(--sf-soft) font-extrabold text-(--as-primary)">{r.name.trim().charAt(0)}</span>
                 <b className="as-sm">{r.name}</b>
               </p>
-            </article>
-          ))}
-        </div>
+    </article>
+  ));
+  return (
+    <section className="sf-section">
+      <div className="sf-wrap">
+        <Heading title={props.title} />
+        {slider ? (
+          <Slider label={props.title ?? ar.storefront.reviews.title} cols="reviews">
+            {cards}
+          </Slider>
+        ) : (
+          <div className="grid gap-5 @3xl:grid-cols-2 @5xl:grid-cols-3">{cards}</div>
+        )}
       </div>
     </section>
   );

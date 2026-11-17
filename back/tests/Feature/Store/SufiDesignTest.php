@@ -186,3 +186,16 @@ it('keeps designs saved before these settings valid, with the defaults', functio
         ->assertJsonPath('data.draft.settings.general.call_phone', null)
         ->assertJsonPath('data.draft.settings.logo_dark_media_id', null);
 });
+
+it('shows the reviews as a slider by default or as a list, nothing else', function () {
+    sufiOwner();
+    $draft = designDraft();
+    $at = array_search('testimonials', array_column($draft['sections'], 'type'), true);
+    expect($draft['sections'][$at]['props']['layout'])->toBe('slider');
+
+    $draft['sections'][$at]['props']['layout'] = 'list';
+    saveDesign($draft)->assertOk()->assertJsonPath("data.draft.sections.{$at}.props.layout", 'list');
+
+    $draft['sections'][$at]['props']['layout'] = 'carousel';
+    saveDesign($draft)->assertStatus(422)->assertJsonValidationErrors(["draft.sections.{$at}.props.layout"]);
+});

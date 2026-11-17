@@ -268,8 +268,9 @@ export const design = {
       whatsappNumber: "رقم زرار الواتساب",
       callPhone: "رقم زرار الاتصال",
       numberHint: (footer: string | null) => (footer ? `سيبه فاضي عشان يستخدم رقم الفوتر (${footer})` : "مفيش رقم في الفوتر، اكتب الرقم هنا عشان الزرار يظهر"),
-      mobileSlider: "سلايدر على الموبايل",
-      mobileSliderHint: "على الموبايل الآراء بتتقلب بالسحب بدل ما تبقى تحت بعض",
+      reviewsLayout: "طريقة العرض",
+      reviewsLayoutHint: "على الكمبيوتر والموبايل: سلايدر بأسهم يتقلب، أو كل الآراء ظاهرة جنب وتحت بعض.",
+      reviewsLayouts: { slider: "سلايدر", list: "قائمة" },
     },
   },
   theme: {

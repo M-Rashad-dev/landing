@@ -598,11 +598,13 @@ export function SufiGeneralExtras({ settings, onChange, errors }: SettingsProps)
   );
 }
 
-/** «صوفي» adds a phone slider to the shared customer reviews section. */
+/** «صوفي» lets the merchant show the reviews as a slider or as a list (on every screen). */
 export function SufiTestimonialsExtras({ props, onChange }: { props: TestimonialsProps; onChange: (p: TestimonialsProps) => void }) {
   return (
     <div className="mt-4 border-t border-border pt-4">
-      <SwitchRow title={st.mobileSlider} description={st.mobileSliderHint} checked={props.mobile_slider ?? true} onCheckedChange={(v) => onChange({ ...props, mobile_slider: v })} />
+      <Field label={st.reviewsLayout} hint={st.reviewsLayoutHint}>
+        <Segmented value={props.layout ?? "slider"} onChange={(v) => onChange({ ...props, layout: v as "slider" | "list" })} options={(["slider", "list"] as const).map((k) => ({ value: k, label: st.reviewsLayouts[k] }))} />
+      </Field>
     </div>
   );
 }

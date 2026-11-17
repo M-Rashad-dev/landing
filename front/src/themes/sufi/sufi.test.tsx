@@ -100,13 +100,15 @@ describe("«صوفي» header, footer and floating buttons", () => {
     expect(q2).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("swipes the reviews on phones unless the merchant turned it off", () => {
+  it("shows the reviews as a slider with arrows by default, or as a list on every screen", () => {
     const reviews = { title: "آراء", source: "manual" as const, items: [{ name: "منة", rating: 5, text: "ممتاز" }, { name: "علي", rating: 4, text: "حلو" }] };
-    const { container, unmount } = render(<SufiStore design={{ settings, sections: [s("testimonials", reviews)] }} data={data} storeName="صوفي" mode="preview" />);
-    expect(container.querySelector(".snap-x")).not.toBeNull();
+    const { unmount } = render(<SufiStore design={{ settings, sections: [s("testimonials", reviews)] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(screen.getByLabelText("آراء")).toHaveClass("sf-slider");
+    expect(screen.getByRole("button", { name: t.next })).toBeInTheDocument();
     unmount();
-    const off = render(<SufiStore design={{ settings, sections: [s("testimonials", { ...reviews, mobile_slider: false })] }} data={data} storeName="صوفي" mode="preview" />);
-    expect(off.container.querySelector(".snap-x")).toBeNull();
+    render(<SufiStore design={{ settings, sections: [s("testimonials", { ...reviews, layout: "list" })] }} data={data} storeName="صوفي" mode="preview" />);
+    expect(screen.queryByRole("button", { name: t.next })).toBeNull();
+    expect(screen.getByText("ممتاز")).toBeInTheDocument();
   });
 
   it("opens the search over the store and the phone menu as a sliding drawer", () => {

@@ -75,7 +75,7 @@ final class SufiDesign
                     ['label' => __('sufi.tab_offers'), 'source' => 'offers', 'category_id' => null, 'product_ids' => []],
                 ]]),
                 self::section('features', ['title' => null, 'items' => $features]),
-                self::section('testimonials', ['title' => __('design.testimonials_title'), 'source' => 'auto', 'items' => [], 'mobile_slider' => true]),
+                self::section('testimonials', ['title' => __('design.testimonials_title'), 'source' => 'auto', 'items' => [], 'layout' => 'slider']),
                 self::section('faq', ['title' => __('sufi.faq_title'), 'text' => null, 'whatsapp_button' => true, 'items' => (array) __('sufi.faq_items')]),
             ],
         ];
@@ -231,7 +231,7 @@ final class SufiDesign
                     ...$this->linkRules("{$s}.props.link", (array) ($props['link'] ?? [])),
                 ],
                 'features' => $this->asas->featuresRules($s, $text),
-                'testimonials' => [...$this->asas->testimonialsRules($s, $props, $text), "{$s}.props.mobile_slider" => ['sometimes', 'boolean']],
+                'testimonials' => [...$this->asas->testimonialsRules($s, $props, $text), "{$s}.props.layout" => ['sometimes', Rule::in(['slider', 'list'])]],
                 'gallery' => [
                     "{$s}.props.title" => $text(80),
                     "{$s}.props.description" => $text(200),
@@ -423,7 +423,7 @@ final class SufiDesign
             ],
             'featured_product' => ['product_id' => (int) $p['product_id'], 'kicker' => $str($p['kicker'] ?? null)],
             'products', 'features' => $this->asas->cleanProps($type, $p),
-            'testimonials' => [...$this->asas->cleanProps($type, $p), 'mobile_slider' => (bool) ($p['mobile_slider'] ?? true)],
+            'testimonials' => [...$this->asas->cleanProps($type, $p), 'layout' => (string) ($p['layout'] ?? 'slider')],
             'video' => [
                 'url' => trim((string) $p['url']),
                 'title' => $str($p['title'] ?? null),
