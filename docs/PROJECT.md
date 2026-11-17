@@ -204,6 +204,19 @@ rating after close (stars, solved?, comment). Images ≤10 MB, videos ≤50 MB, 
 Realtime via **Laravel Reverb** (private channels `support.tenant.{id}`, `support.admin`, auth through the BFF).
 Works even when the plan expired.
 
+### AI (plan: support assistant → merchant AI wallet → AI sections → AI designer; one step at a time)
+- Provider: **Qwen** on Alibaba Cloud Model Studio (international, Singapore; owner-approved 2026-11-17), behind
+  `App\Ai\AiClient` (`QwenClient`, OpenAI-compatible, the workspace's own address `QWEN_BASE_URL` + `QWEN_API_KEY`;
+  `FakeAiClient` when `AI_DRIVER=fake`: tests and local e2e, nothing sent). Another provider = another client class.
+- Features never call the client: they go through `App\Ai\Ai` (`chat` / `embed` with a feature + a task). It asks only
+  when the feature is on, the keys are set, the AI isn't paused and today's platform spend is under the cap; records
+  every call in `ai_usages` (tokens, cache, USD cost from `config/ai.php` prices); after 3 failures in a row pauses 5
+  minutes and rings the owner's bell (`ai_paused`). Features catch `AiUnavailable` and fall back (support → people).
+- Models per task in `config/ai.php` (`support` = qwen4-max, the strongest, owner's choice; no free quota on it).
+- Admin «الذكاء الاصطناعي» (`/admin/ai`): features on / off (all off by default), daily cap USD (20), support messages
+  per store a day (30), and for the coming merchant wallet the USD rate + margin %; connection state, cost today /
+  this month / by feature / by store, last failures.
+
 ---
 
 ## 4. Architecture

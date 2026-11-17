@@ -493,3 +493,9 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Every landing theme gets «معاينة» like the store themes: a fixed sample page drawn by the theme itself (preview mode, the order form sends nothing). It opens on the phone (owner: landing pages are mostly seen on phones from ads); store showcases keep opening on the computer. Sample content is made from each theme's own starter content; pictures reuse the store showcases' photos, «صوفي» uses unbranded bag photos.
 - Platform pages: the fade-in waited for 12% of a block to be on screen, which a very long article (privacy policy) never reaches, so it stayed invisible. A block now shows as soon as any part of it is on screen.
 
+## 2026-11-17 — AI: Qwen, and the foundation (phase 1 of 5)
+- External service approved by the owner: **Qwen on Alibaba Cloud Model Studio** (international account, Singapore workspace), for every AI feature (support assistant, AI sections, AI designer, images later). The strongest model for every task for now (qwen4-max: $1.5 in / $0.075 cached / $4.5 out per 1M tokens); the owner says where to use a cheaper one. Chosen over Gemini (stronger product-photo editing, free daily tier) for cost; switching later = another `AiClient`.
+- The account has no free quota on these models; a $200 new-user credit was applied for (2026-11-17). Until it lands nothing calls Qwen: every feature is off by default and tests use the fake client.
+- One door for every feature (`App\Ai\Ai`): switches, a platform daily cap in USD (20, editable), a 5-minute pause after 3 failures in a row with a bell alert, and every call's cost recorded (`ai_usages`, a platform log; merchants' own balance comes with the AI wallet in its own tenant table).
+- Deep thinking is off unless a task asks for it (it multiplies the output bill).
+

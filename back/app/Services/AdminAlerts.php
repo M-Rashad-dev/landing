@@ -131,6 +131,20 @@ final class AdminAlerts
         ), $tenant->id);
     }
 
+    /** The AI paused itself after failures in a row (the bell only: support falls back to people meanwhile). */
+    public function aiPaused(string $error, int $minutes): void
+    {
+        $this->center->toPlatform(new Notice(
+            NotificationEvent::AiPaused,
+            __('alerts.ai_paused.subject'),
+            __('alerts.ai_paused.intro', ['minutes' => $minutes]),
+            '/admin/ai',
+            [['label' => __('alerts.ai_paused.error'), 'value' => $error]],
+            __('alerts.ai_paused.action'),
+            dedupeKey: 'ai_paused:'.now()->format('YmdHi'),
+        ));
+    }
+
     /** @param  array{new_stores: int, orders: int, sales: int, revenue: int, pending_payments: int, refund_requests: int, expiring_week: int}  $day */
     public function dailySummary(CarbonImmutable $date, array $day): void
     {

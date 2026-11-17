@@ -24,6 +24,8 @@ enum NotificationEvent: string
     case StoreRegistered = 'store_registered';
     case SupportTicket = 'support_ticket';
     case DailySummary = 'daily_summary';
+    /** The AI paused itself after failures in a row (bell only). */
+    case AiPaused = 'ai_paused';
 
     /** @return list<string> */
     public static function values(): array

@@ -33,6 +33,14 @@ final class PlatformSettings
         'alert_phone' => null,
         'alert_email' => null,
         'alert_events' => ['receipt_submitted', 'refund_requested', 'store_registered', 'daily_summary', 'support_ticket'],
+        // AI (App\Ai\AiSettings): each feature on / off (off until the owner turns it on), the most the
+        // platform spends on the provider a day (USD), and for the merchants' AI balance later: the
+        // dollar in pounds and the margin on the real cost.
+        'ai_features' => ['support' => false],
+        'ai_daily_cap_usd' => 20,
+        'ai_usd_rate' => null,
+        'ai_margin_percent' => 10,
+        'ai_support_daily_messages' => 30,
     ];
 
     /** @var array<string, mixed>|null */

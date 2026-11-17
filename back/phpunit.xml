@@ -36,6 +36,8 @@
         <env name="INTERNAL_API_KEY" value="test-internal-key"/>
         <!-- Never the developer's real WhatsApp keys: tests set their own and fake Meta. -->
         <env name="WHATSAPP_TOKEN" value=""/>
+        <env name="AI_DRIVER" value="fake"/>
+        <env name="QWEN_API_KEY" value=""/>
         <env name="WHATSAPP_PHONE_NUMBER_ID" value=""/>
         <env name="WHATSAPP_WABA_ID" value=""/>
         <env name="WHATSAPP_APP_SECRET" value=""/>

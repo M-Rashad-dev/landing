@@ -1,21 +1,7 @@
 "use client";
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import {
-  Bell,
-  CalendarClock,
-  CheckCheck,
-  Globe,
-  Headset,
-  type LucideIcon,
-  PackageMinus,
-  ReceiptText,
-  ShoppingBag,
-  Store,
-  TableProperties,
-  Undo2,
-  BarChart3,
-} from "lucide-react";
+import { BarChart3, Bell, Bot, CalendarClock, CheckCheck, Globe, Headset, PackageMinus, ReceiptText, ShoppingBag, Store, TableProperties, Undo2, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +30,7 @@ const ICONS: Record<string, { icon: LucideIcon; tone: string }> = {
   store_registered: { icon: Store, tone: "bg-brand-soft text-brand-strong" },
   support_ticket: { icon: Headset, tone: "bg-info-soft text-info" },
   daily_summary: { icon: BarChart3, tone: "bg-surface-2 text-ink-2" },
+  ai_paused: { icon: Bot, tone: "bg-warning-soft text-warning" },
 };
 
 /**

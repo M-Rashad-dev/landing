@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AiController as AdminAiController;
 use App\Http\Controllers\Api\V1\Admin\AlertController as AdminAlertController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\MessageController as AdminMessageController;
@@ -358,6 +359,9 @@ Route::prefix('admin')
         Route::put('plans/{key}', [AdminPlanController::class, 'update']);
         Route::delete('plans/{key}', [AdminPlanController::class, 'destroy']);
         Route::put('billing/settings', [AdminPlanController::class, 'updateSettings']);
+
+        Route::get('ai', [AdminAiController::class, 'show']);
+        Route::put('ai/settings', [AdminAiController::class, 'update']);
 
         Route::get('support/tickets', [AdminSupportController::class, 'index']);
         Route::get('support/unread', [AdminSupportController::class, 'unread']);

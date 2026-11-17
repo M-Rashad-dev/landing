@@ -1,32 +1,4 @@
-import {
-  BadgeDollarSign,
-  BarChart3,
-  CreditCard,
-  History,
-  Layers,
-  ReceiptText,
-  Undo2,
-  Blocks,
-  FileText,
-  FolderTree,
-  Headset,
-  Gift,
-  Home,
-  Megaphone,
-  MessageCircle,
-  Package,
-  Palette,
-  Settings,
-  Store,
-  ShoppingBag,
-  ShoppingCart,
-  Star,
-  Tag,
-  TicketPercent,
-  Truck,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { BadgeDollarSign, BarChart3, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, ShoppingCart, Star, Store, Tag, TicketPercent, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
 import { ar } from "@/messages/ar";
 
 const t = ar.nav;
@@ -117,6 +89,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { href: "/admin/pages", label: a.items.pages, icon: FileText, status: "ready" },
       { href: "/admin/messages", label: a.items.messages, icon: MessageCircle, status: "ready" },
+      { href: "/admin/ai", label: a.items.ai, icon: Bot, status: "ready" },
     ],
   },
 ];
