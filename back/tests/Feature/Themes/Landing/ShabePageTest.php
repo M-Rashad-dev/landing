@@ -23,7 +23,7 @@ function shabeOwner(string $plan = 'pro', bool $owns = true): User
     Domain::factory()->for($tenant)->create();
     asTenant($tenant, fn () => Identity::factory()->default()->create());
     if ($owns) {
-        asTenant($tenant, fn () => ThemePurchase::query()->create(['theme_key' => 'shabe', 'source' => 'purchase', 'price_paid' => 100]));
+        asTenant($tenant, fn () => ThemePurchase::query()->create(['theme_key' => 'shabe_landing', 'source' => 'purchase', 'price_paid' => 100]));
     }
     Sanctum::actingAs($user->fresh(['tenant']));
 
@@ -34,7 +34,7 @@ function shabePage(User $user): array
 {
     $product = asTenant($user, fn () => Product::factory()->create(['name' => 'بوكس مشويات', 'price' => '899.00']));
 
-    return test()->postJson('/api/v1/dashboard/pages', ['title' => 'بوكس العيلة', 'slug' => 'box', 'theme_key' => 'shabe', 'product_id' => $product->id])
+    return test()->postJson('/api/v1/dashboard/pages', ['title' => 'بوكس العيلة', 'slug' => 'box', 'theme_key' => 'shabe_landing', 'product_id' => $product->id])
         ->assertCreated()->json('data');
 }
 
@@ -53,7 +53,7 @@ it('is a paid landing theme at 100 EGP the admin can change', function () {
     $this->getJson('/api/v1/dashboard/theme-store?kind=landing')->assertUnauthorized();
     shabeOwner(owns: false);
 
-    $theme = collect($this->getJson('/api/v1/dashboard/theme-store?kind=landing')->assertOk()->json('data'))->firstWhere('key', 'shabe');
+    $theme = collect($this->getJson('/api/v1/dashboard/theme-store?kind=landing')->assertOk()->json('data'))->firstWhere('key', 'shabe_landing');
     expect($theme)->toMatchArray(['name' => 'شابع', 'is_free' => false, 'owned' => false])
         ->and($theme['price']['final'])->toEqual(100);
 });
@@ -62,7 +62,7 @@ it('needs the theme bought before a page can use it', function () {
     $user = shabeOwner(owns: false);
     $product = asTenant($user, fn () => Product::factory()->create());
 
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'box', 'theme_key' => 'shabe', 'product_id' => $product->id])
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'box', 'theme_key' => 'shabe_landing', 'product_id' => $product->id])
         ->assertStatus(422)->assertJsonValidationErrors(['theme_key']);
 });
 
@@ -70,7 +70,7 @@ it('starts a bought theme with its food sections and the product name', function
     $page = shabePage(shabeOwner());
     $content = $page['draft_content'];
 
-    expect($page['theme_key'])->toBe('shabe')
+    expect($page['theme_key'])->toBe('shabe_landing')
         ->and($content['settings']['colors'])->toHaveKey('dark')
         ->and($content['sections'][0]['props']['title'])->toBe('بوكس مشويات')
         ->and(collect($content['sections'])->where('type', 'order_form'))->toHaveCount(1);
@@ -150,7 +150,7 @@ it('publishes on a plan that allows paid themes and takes orders through its for
 
     $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();
     $data = $this->getJson("/api/v1/public/pages?host={$host}&slug=box", internalHeaders())->assertOk()->json('data');
-    expect($data['theme_key'])->toBe('shabe')->and($data['store_name'])->toBe('مطبخ شابع');
+    expect($data['theme_key'])->toBe('shabe_landing')->and($data['store_name'])->toBe('مطبخ شابع');
 
     $token = app(FormToken::class)->issue($page['id'], time() - 10);
     $number = $this->postJson('/api/v1/public/orders', [

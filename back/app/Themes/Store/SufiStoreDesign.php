@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class SufiStoreDesign
 {
-    public const KEY = 'sufi';
+    public const KEY = 'sufi_store';
 
     public const SECTION_TYPES = [
         'hero', 'marquee', 'categories', 'product_tabs', 'banners', 'countdown', 'featured_product', 'products',

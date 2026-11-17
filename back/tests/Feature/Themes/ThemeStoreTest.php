@@ -67,7 +67,7 @@ it('lists the store themes with what it owns and can publish', function () {
 
     $rows = collect($this->getJson('/api/v1/dashboard/themes')->assertOk()->json('data'))->keyBy('key');
 
-    expect($rows['bidaya']['owned'])->toBeTrue()->and($rows['bidaya']['can_publish'])->toBeTrue()->and($rows['bidaya']['is_free'])->toBeTrue()
+    expect($rows['bidaya_landing']['owned'])->toBeTrue()->and($rows['bidaya_landing']['can_publish'])->toBeTrue()->and($rows['bidaya_landing']['is_free'])->toBeTrue()
         ->and($rows['celia']['owned'])->toBeFalse()->and($rows['celia']['price']['final'])->toEqual(100)
         // Owned on Basic: editable, not published (paid themes need Pro or Max).
         ->and($rows['layali']['owned'])->toBeTrue()->and($rows['layali']['can_publish'])->toBeFalse();
@@ -76,15 +76,15 @@ it('lists the store themes with what it owns and can publish', function () {
 it('filters, searches and sorts the theme store, hiding unlisted themes', function () {
     themeOwner();
     // «صوفي» and «شابع» (shipped by the seeder) are hidden too: the counts below are about this test's themes.
-    Theme::query()->whereKey(['layali', 'sufi', 'shabe'])->update(['is_listed' => false]);
+    Theme::query()->whereKey(['layali', 'sufi_store', 'shabe_landing'])->update(['is_listed' => false]);
     ThemeCatalog::flush();
 
     $this->getJson('/api/v1/dashboard/theme-store')->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('meta.tags.0.slug', 'general');
     $this->getJson('/api/v1/dashboard/theme-store?price=paid')->assertJsonCount(1, 'data');
     $this->getJson('/api/v1/dashboard/theme-store?price=paid&kind=landing')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'celia');
-    $this->getJson('/api/v1/dashboard/theme-store?kind=store')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'asas');
+    $this->getJson('/api/v1/dashboard/theme-store?kind=store')->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'asas_store');
     $this->getJson('/api/v1/dashboard/theme-store?tag=fashion')->assertJsonCount(1, 'data');
-    $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('بداية'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'bidaya');
+    $this->getJson('/api/v1/dashboard/theme-store?q='.urlencode('بداية'))->assertJsonCount(1, 'data')->assertJsonPath('data.0.key', 'bidaya_landing');
     $this->getJson('/api/v1/dashboard/theme-store?sort=price_desc')->assertJsonPath('data.0.key', 'celia');
     $this->getJson('/api/v1/dashboard/theme-store?sort=bad&kind=shop')->assertStatus(422)->assertJsonValidationErrors(['sort', 'kind']);
     $this->getJson('/api/v1/dashboard/theme-store/layali')->assertNotFound();
@@ -121,7 +121,7 @@ it('shows what a theme costs without creating an invoice, and refuses owned them
         ->assertJsonPath('data.id', null)->assertJsonPath('data.type', 'theme')->assertJsonPath('data.theme.name', 'سيليا')->assertJsonPath('data.total', 100);
 
     expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
-    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'bidaya'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
+    $this->postJson('/api/v1/dashboard/billing/checkout/preview', ['type' => 'theme', 'theme_key' => 'bidaya_landing'])->assertStatus(422)->assertJsonPath('code', 'theme_owned');
 });
 
 it('owns the theme forever once the admin approves the payment', function () {
@@ -155,7 +155,7 @@ it('refuses pages and switches to a paid theme the store does not own', function
 
     $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'paid-page', 'theme_key' => 'celia', 'product_id' => $product->id])
         ->assertStatus(422)->assertJsonPath('errors.theme_key.0', __('pages.theme_not_owned'));
-    $id = $this->postJson('/api/v1/dashboard/pages', ['title' => 'y', 'slug' => 'free-page', 'theme_key' => 'bidaya', 'product_id' => $product->id])->assertCreated()->json('data.id');
+    $id = $this->postJson('/api/v1/dashboard/pages', ['title' => 'y', 'slug' => 'free-page', 'theme_key' => 'bidaya_landing', 'product_id' => $product->id])->assertCreated()->json('data.id');
     $this->putJson("/api/v1/dashboard/pages/{$id}/content", ['version' => 1, 'content' => ['version' => 1, 'sections' => []], 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors('theme_key');
 });
 
@@ -221,7 +221,7 @@ it('uploads, orders and deletes theme images', function () {
 
     $this->deleteJson("/api/v1/admin/themes/celia/images/{$ids[0]}")->assertOk()->assertJsonCount(1, 'data.images');
     expect(Storage::disk('public')->exists($first->variants['large']))->toBeFalse();
-    $this->deleteJson("/api/v1/admin/themes/bidaya/images/{$ids[1]}")->assertNotFound();
+    $this->deleteJson("/api/v1/admin/themes/bidaya_landing/images/{$ids[1]}")->assertNotFound();
 });
 
 it('creates and deletes tags', function () {
@@ -249,11 +249,11 @@ it('gives a paid theme to a store and takes back only its own gifts', function (
 // --- shipped texts ---------------------------------------------------------------------------
 
 it('writes the shipped theme texts again on demand, keeping prices and listing', function () {
-    $shabe = Theme::query()->findOrFail('shabe');
+    $shabe = Theme::query()->findOrFail('shabe_landing');
     $shabe->update(['short_description' => 'نص قديم', 'features' => ['قديم'], 'price' => 250, 'is_listed' => false]);
     ThemeCatalog::flush();
 
-    $this->artisan('themes:copy', ['key' => 'shabe'])->assertSuccessful();
+    $this->artisan('themes:copy', ['key' => 'shabe_landing'])->assertSuccessful();
 
     $shabe->refresh();
     expect($shabe->short_description)->toContain('للأكل')

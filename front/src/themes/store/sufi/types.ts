@@ -76,7 +76,7 @@ export type SufiData = DesignData & {
   featured?: Record<string, Featured>;
 };
 
-export const SUFI_KEY = "sufi";
+export const SUFI_KEY = "sufi_store";
 
 /** A YouTube / Vimeo link → its embed address (null when it isn't one we can embed). */
 export function embedUrl(url: string): string | null {

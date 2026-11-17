@@ -22,7 +22,7 @@ it('builds a full demo store through the real actions, once', function () {
         $pages = LandingPage::query()->get();
         expect($pages)->toHaveCount(1)
             ->and($pages->first()->status)->toBe(PageStatus::Published)
-            ->and($pages->first()->theme_key)->toBe('bidaya')
+            ->and($pages->first()->theme_key)->toBe('bidaya_landing')
             ->and($pages->first()->slug)->toBe('smart-watch')
             ->and(collect($pages->first()->published_content['sections'])->pluck('type')->all())->toContain('order_form');
 

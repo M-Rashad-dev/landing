@@ -21,7 +21,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class ShabeLandingDesign
 {
-    public const KEY = 'shabe';
+    public const KEY = 'shabe_landing';
 
     public const SECTION_TYPES = [
         'hero', 'marquee', 'menu', 'why', 'steps', 'bundles', 'gallery', 'video',

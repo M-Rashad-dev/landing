@@ -45,7 +45,7 @@ it('opens «أساس» with the starter design in the mint colors and the four s
     designOwner();
 
     $res = $this->getJson('/api/v1/dashboard/store/design')->assertOk()
-        ->assertJsonPath('data.theme.key', 'asas')
+        ->assertJsonPath('data.theme.key', 'asas_store')
         ->assertJsonPath('data.theme.name', 'أساس')
         ->assertJsonPath('data.draft.settings.colors.primary', '#0b875b')
         ->assertJsonPath('data.draft.settings.font', 'cairo')

@@ -15,7 +15,7 @@ use Illuminate\Console\Command;
  */
 final class ThemesCopyCommand extends Command
 {
-    protected $signature = 'themes:copy {key? : one theme, e.g. shabe (default: all shipped themes)}';
+    protected $signature = 'themes:copy {key? : one theme, e.g. shabe_landing (default: all shipped themes)}';
 
     protected $description = 'Write the shipped theme texts and tags again (prices and images untouched)';
 

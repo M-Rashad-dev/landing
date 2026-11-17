@@ -21,7 +21,7 @@ const page: LandingRow = {
   title: "عرض الساعة",
   slug: "watch",
   status: "published",
-  theme_key: "bidaya",
+  theme_key: "bidaya_landing",
   product_id: 1,
   product: { id: 1, name: "ساعة ذكية", is_active: true, image: null },
   has_unpublished_changes: false,
@@ -30,7 +30,7 @@ const page: LandingRow = {
   updated_at: "2026-11-12T10:00:00Z",
   stats: { views: 200, orders: 8, conversion: 4 },
 };
-const bidaya: LandingTheme = { key: "bidaya", name: "بداية", kind: "landing", short_description: "ثيم مجاني", price: { original: 0, final: 0, discount_percent: 0, discount_ends_at: null }, is_free: true, is_featured: false, is_new: true, cover: null, tags: [], min_plan: null, owned: true, features: ["5 أقسام + فورم الطلب"], images: [], description: "وصف" };
+const bidaya: LandingTheme = { key: "bidaya_landing", name: "بداية", kind: "landing", short_description: "ثيم مجاني", price: { original: 0, final: 0, discount_percent: 0, discount_ends_at: null }, is_free: true, is_featured: false, is_new: true, cover: null, tags: [], min_plan: null, owned: true, features: ["5 أقسام + فورم الطلب"], images: [], description: "وصف" };
 const paid: LandingTheme = { ...bidaya, key: "noor", name: "نور", is_free: false, owned: false, price: { original: 200, final: 160, discount_percent: 20, discount_ends_at: "2026-11-23T10:00:00Z" } };
 
 let calls: Array<{ url: string; method: string; body: unknown }>;

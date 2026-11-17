@@ -70,7 +70,7 @@ describe("ReceiptForm", () => {
 describe("StorePage", () => {
   it("lists what stops the store and offers the fix, with cash on delivery the only live payment", async () => {
     fetchMock.mockResolvedValue(
-      Response.json({ data: { exists: true, is_enabled: false, live: false, theme_key: "asas", design: { published_at: null, has_unpublished_changes: true, updated_at: null }, themes: [{ key: "asas", name: "أساس", short_description: null, active: true, free: true }], counts: { products: 3, categories: 1 } } }),
+      Response.json({ data: { exists: true, is_enabled: false, live: false, theme_key: "asas_store", design: { published_at: null, has_unpublished_changes: true, updated_at: null }, themes: [{ key: "asas_store", name: "أساس", short_description: null, active: true, free: true }], counts: { products: 3, categories: 1 } } }),
     );
     wrap(<StorePage />);
     expect(await screen.findByText(ar.settings.store.reasons.home)).toBeInTheDocument();

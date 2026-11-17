@@ -69,7 +69,7 @@ export function ThemePage() {
             <PanelHeader title={t.mine} />
             <PanelBody>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {(query.data.exists ? query.data.themes : [{ key: "asas", name: "أساس", short_description: null, active: true, free: true }]).map((theme) => {
+                {(query.data.exists ? query.data.themes : [{ key: "asas_store", name: "أساس", short_description: null, active: true, free: true }]).map((theme) => {
                   const design = query.data.exists ? query.data.design : null;
                   return (
                     <article key={theme.key} className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
@@ -129,7 +129,7 @@ export function ThemePage() {
             </PanelBody>
           </Panel>
 
-          <PaidThemes owned={query.data.exists ? query.data.themes.map((x) => x.key) : ["asas"]} />
+          <PaidThemes owned={query.data.exists ? query.data.themes.map((x) => x.key) : ["asas_store"]} />
         </div>
       )}
       <ConfirmDialog

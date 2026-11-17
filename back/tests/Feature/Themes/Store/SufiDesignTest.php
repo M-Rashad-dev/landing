@@ -54,7 +54,7 @@ it('switches a store that bought «صوفي» to its starter design with dark co
     sufiOwner();
 
     $res = $this->getJson('/api/v1/dashboard/store/design')->assertOk()
-        ->assertJsonPath('data.theme.key', 'sufi')
+        ->assertJsonPath('data.theme.key', 'sufi_store')
         ->assertJsonPath('data.draft.settings.colors.primary', '#b9844f')
         ->assertJsonPath('data.draft.settings.colors_dark.background', '#111215')
         ->assertJsonPath('data.draft.settings.appearance', ['default' => 'light', 'toggle' => true])

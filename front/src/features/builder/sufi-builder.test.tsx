@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  const payload = { theme: { key: "sufi", name: "صوفي" }, store_name: "صوفي", draft: design, version: 2, published_at: null, has_unpublished_changes: true, data };
+  const payload = { theme: { key: "sufi_store", name: "صوفي" }, store_name: "صوفي", draft: design, version: 2, published_at: null, has_unpublished_changes: true, data };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {

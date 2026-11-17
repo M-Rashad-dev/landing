@@ -237,7 +237,7 @@ git pull
 **نصوص الثيمات:** الأوصاف والمميزات بتتكتب أول مرة بس، وبعدها بتبقى بتاعة الأدمن. لو التحديث فيه نصوص جديدة للثيمات وعايزها:
 ```bash
 docker compose exec -T back-app php artisan themes:copy          # كل الثيمات
-docker compose exec -T back-app php artisan themes:copy shabe    # ثيم واحد
+docker compose exec -T back-app php artisan themes:copy shabe_landing    # ثيم واحد
 ```
 (الأسعار والصور اللي رفعتها من الأدمن مش بتتلمس.)
 

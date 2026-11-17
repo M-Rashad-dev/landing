@@ -6,11 +6,11 @@
 const shots = (kind: "store" | "landing", key: string) => ["cover", "1", "2", "3", "4", "5"].map((n) => `/themes/${kind}/${key}/${n}.webp`);
 
 export const THEME_SHOTS: Record<string, string[]> = {
-  asas: shots("store", "asas"),
-  sufi: shots("store", "sufi"),
-  bidaya: shots("landing", "bidaya"),
-  shabe: shots("landing", "shabe"),
+  asas_store: shots("store", "asas"),
+  sufi_store: shots("store", "sufi"),
+  bidaya_landing: shots("landing", "bidaya"),
+  shabe_landing: shots("landing", "shabe"),
 };
 
 /** Themes with a showcase store (themes/store/{key}/demo.ts). */
-export const THEME_DEMOS = new Set(["sufi"]);
+export const THEME_DEMOS = new Set(["sufi_store"]);

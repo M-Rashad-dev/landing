@@ -186,7 +186,7 @@ final class DemoSeeder extends Seeder
         $page = app(CreatePage::class)->handle([
             'title' => $title,
             'slug' => $slug,
-            'theme_key' => 'bidaya',
+            'theme_key' => 'bidaya_landing',
             'product_id' => $product->id,
             'content' => $content,
         ], $userId);

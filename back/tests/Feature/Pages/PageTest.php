@@ -50,7 +50,7 @@ it('lists active themes', function () {
 
     $keys = collect($this->getJson('/api/v1/dashboard/themes')->assertOk()->json('data'))->pluck('key');
     expect($keys)->toHaveCount(Theme::query()->where('is_active', true)->count())
-        ->toContain('bidaya', 'layali')
+        ->toContain('bidaya_landing', 'layali')
         ->not->toContain('celia');
 });
 
@@ -65,7 +65,7 @@ it('creates a page with the default identity and starter content', function () {
 });
 
 it('starts a «بداية» page with its five sections and the order form, named after the product', function () {
-    $page = $this->postJson('/api/v1/dashboard/pages', ['title' => 'عرض الساعة', 'slug' => 'watch', 'theme_key' => 'bidaya', 'product_id' => $this->product->id])
+    $page = $this->postJson('/api/v1/dashboard/pages', ['title' => 'عرض الساعة', 'slug' => 'watch', 'theme_key' => 'bidaya_landing', 'product_id' => $this->product->id])
         ->assertCreated()->json('data');
 
     $sections = collect($page['draft_content']['sections']);
@@ -89,7 +89,7 @@ it('lists the pages with their last 30 days and the counts per status', function
 });
 
 it('validates slugs', function (string $slug) {
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => $slug, 'theme_key' => 'bidaya'])
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => $slug, 'theme_key' => 'bidaya_landing'])
         ->assertStatus(422)->assertJsonValidationErrors('slug');
 })->with(['a', 'two--dashes', '-start', 'end-', 'with space', 'admin', 'thank-you', 'x/y', 'emoji🙂', 'offers', 'account', 'products', 'checkout']);
 
@@ -103,7 +103,7 @@ it('lowercases slugs', function () {
 
 it('keeps slugs unique per tenant and frees them on delete', function () {
     $page = createPage(['slug' => 'sale']);
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'sale', 'theme_key' => 'bidaya'])->assertStatus(422)->assertJsonValidationErrors('slug');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'sale', 'theme_key' => 'bidaya_landing'])->assertStatus(422)->assertJsonValidationErrors('slug');
 
     $this->deleteJson("/api/v1/dashboard/pages/{$page['id']}")->assertNoContent();
     expect(LandingPage::withTrashed()->withoutGlobalScopes()->find($page['id'])->slug)->toBe("sale--deleted-{$page['id']}");
@@ -123,8 +123,8 @@ it('rejects inactive themes and identities/products of another tenant', function
     $foreignIdentity = Identity::factory()->create();
 
     $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x1', 'theme_key' => 'celia'])->assertStatus(422)->assertJsonValidationErrors('theme_key');
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x2', 'theme_key' => 'bidaya', 'product_id' => $foreignProduct->id])->assertStatus(422)->assertJsonValidationErrors('product_id');
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x3', 'theme_key' => 'bidaya', 'identity_id' => $foreignIdentity->id])->assertStatus(422)->assertJsonValidationErrors('identity_id');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x2', 'theme_key' => 'bidaya_landing', 'product_id' => $foreignProduct->id])->assertStatus(422)->assertJsonValidationErrors('product_id');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'x3', 'theme_key' => 'bidaya_landing', 'identity_id' => $foreignIdentity->id])->assertStatus(422)->assertJsonValidationErrors('identity_id');
 });
 
 it('saves content with optimistic locking', function () {
@@ -338,7 +338,7 @@ it('enforces the pages limit', function () {
     config(['landing.limits.pages' => 1]);
     createPage();
 
-    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'bidaya'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
+    $this->postJson('/api/v1/dashboard/pages', ['title' => 'x', 'slug' => 'another', 'theme_key' => 'bidaya_landing'])->assertStatus(403)->assertJsonPath('code', 'plan_limit_reached');
 });
 
 it('filters the list by status and search', function () {

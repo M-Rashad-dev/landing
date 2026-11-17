@@ -1,7 +1,7 @@
 /** «شابع» page content (back end: App\Themes\ShabeDesign). Its settings extend «بداية»'s. */
 import type { OrderFormProps as BidayaFormProps, Settings as BidayaSettings } from "@/themes/landing/bidaya/types";
 
-export const SHABE_KEY = "shabe";
+export const SHABE_KEY = "shabe_landing";
 
 export type ShabeIcon =
   | "truck" | "cash" | "return" | "shield" | "support" | "gift" | "star" | "clock" | "tag" | "heart" | "package" | "phone"

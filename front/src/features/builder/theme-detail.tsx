@@ -35,7 +35,7 @@ export function StoreThemeDetail({ themeKey }: { themeKey: string }) {
   if (query.isError) return <ErrorState onRetry={() => void query.refetch()} message={errorMessage(query.error)} />;
 
   const theme = query.data;
-  const mine = store.data?.exists ? store.data.themes.find((x) => x.key === theme.key) : theme.key === "asas" ? { active: true } : undefined;
+  const mine = store.data?.exists ? store.data.themes.find((x) => x.key === theme.key) : theme.key === "asas_store" ? { active: true } : undefined;
   const owned = theme.is_free || theme.owned === true || mine !== undefined;
   const active = mine?.active === true;
   const uploaded = (theme.images ?? []).map((i) => i.urls.large ?? i.urls.medium ?? Object.values(i.urls)[0]).filter(Boolean);

@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class AsasStoreDesign
 {
-    public const KEY = 'asas';
+    public const KEY = 'asas_store';
 
     public const SECTION_TYPES = ['banner', 'products', 'features', 'testimonials'];
 

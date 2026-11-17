@@ -22,7 +22,7 @@ beforeEach(function () {
 
 function bidayaPage(): array
 {
-    return test()->postJson('/api/v1/dashboard/pages', ['title' => 'عرض الساعة', 'slug' => 'watch', 'theme_key' => 'bidaya', 'product_id' => test()->product->id])
+    return test()->postJson('/api/v1/dashboard/pages', ['title' => 'عرض الساعة', 'slug' => 'watch', 'theme_key' => 'bidaya_landing', 'product_id' => test()->product->id])
         ->assertCreated()->json('data');
 }
 
@@ -96,7 +96,7 @@ it('publishes it and serves it with the store name, the product reviews and the 
     saveBidaya($page, $edited)->assertOk()->assertJsonPath('data.has_unpublished_changes', true);
 
     $data = $this->getJson("/api/v1/public/pages?host={$host}&slug=watch", internalHeaders())->assertOk()->json('data');
-    expect($data['theme_key'])->toBe('bidaya')
+    expect($data['theme_key'])->toBe('bidaya_landing')
         ->and($data['store_name'])->toBe('متجر سما')
         ->and($data['content']['settings']['button'])->toBe('rounded')
         ->and($data['reviews'][0])->toMatchArray(['rating' => 5, 'text' => 'ممتازة'])

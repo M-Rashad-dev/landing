@@ -9,19 +9,19 @@ vi.mock("@/lib/auth/session-context", () => ({ usePlanFeature: () => true, useSe
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => "/dashboard/design/theme", useSearchParams: () => new URLSearchParams() }));
 
 const t = ar.design.page;
-let owned: string[] = ["asas"];
+let owned: string[] = ["asas_store"];
 const store = () => ({
   exists: true,
-  themes: owned.map((key) => ({ key, name: key === "asas" ? "أساس" : "صوفي", short_description: null, active: key === "asas", free: key === "asas" })),
+  themes: owned.map((key) => ({ key, name: key === "asas_store" ? "أساس" : "صوفي", short_description: null, active: key === "asas_store", free: key === "asas_store" })),
   design: { published_at: null, has_unpublished_changes: true },
 });
 const themeStore = [
-  { key: "asas", name: "أساس", short_description: null, price: null, is_free: true, cover: null },
-  { key: "sufi", name: "صوفي", short_description: "ثيم متجر فخم", price: { original: 990, final: 990, discount_percent: 0, discount_ends_at: null }, is_free: false, cover: null, features: ["16 قسم للرئيسية"] },
+  { key: "asas_store", name: "أساس", short_description: null, price: null, is_free: true, cover: null },
+  { key: "sufi_store", name: "صوفي", short_description: "ثيم متجر فخم", price: { original: 990, final: 990, discount_percent: 0, discount_ends_at: null }, is_free: false, cover: null, features: ["16 قسم للرئيسية"] },
 ];
 
 beforeEach(() => {
-  owned = ["asas"];
+  owned = ["asas_store"];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -54,9 +54,9 @@ describe("ThemePage", () => {
     expect(within(card).getByText("صوفي")).toBeInTheDocument();
     expect(within(card).getByText("16 قسم للرئيسية")).toBeInTheDocument();
     // The picture, the name and «اشتريه» open the theme's page; «معاينة الثيم» its showcase store.
-    expect(within(card).getByRole("link", { name: t.buy })).toHaveAttribute("href", "/dashboard/design/themes/sufi");
-    expect(within(card).getByRole("link", { name: `صوفي · ${t.details}` })).toHaveAttribute("href", "/dashboard/design/themes/sufi");
-    expect(within(card).getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi/demo");
+    expect(within(card).getByRole("link", { name: t.buy })).toHaveAttribute("href", "/dashboard/design/themes/sufi_store");
+    expect(within(card).getByRole("link", { name: `صوفي · ${t.details}` })).toHaveAttribute("href", "/dashboard/design/themes/sufi_store");
+    expect(within(card).getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi_store/demo");
   });
 
   it("shows a theme's page with its price, what it has, the checkout and the showcase", async () => {
@@ -64,18 +64,18 @@ describe("ThemePage", () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <TooltipProvider>
-          <StoreThemeDetail themeKey="sufi" />
+          <StoreThemeDetail themeKey="sufi_store" />
         </TooltipProvider>
       </QueryClientProvider>,
     );
     expect(await screen.findByText("16 قسم للرئيسية")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: new RegExp(t.buy) })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=sufi");
-    expect(screen.getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi/demo");
+    expect(screen.getByRole("link", { name: new RegExp(t.buy) })).toHaveAttribute("href", "/dashboard/settings/billing/checkout?theme=sufi_store");
+    expect(screen.getByRole("link", { name: t.demo })).toHaveAttribute("href", "/dashboard/design/themes/sufi_store/demo");
     expect(screen.getByText(t.detail.oneTime)).toBeInTheDocument();
   });
 
   it("moves a bought theme to «ثيماتي» and switches the store to it", async () => {
-    owned = ["asas", "sufi"];
+    owned = ["asas_store", "sufi_store"];
     wrap();
     expect(await screen.findByText(t.noPaid)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: t.activate }));
@@ -83,6 +83,6 @@ describe("ThemePage", () => {
     const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "PUT")).toBe(true));
     const put = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "PUT")!;
-    expect(JSON.parse(String((put[1] as RequestInit).body))).toEqual({ theme_key: "sufi" });
+    expect(JSON.parse(String((put[1] as RequestInit).body))).toEqual({ theme_key: "sufi_store" });
   });
 });

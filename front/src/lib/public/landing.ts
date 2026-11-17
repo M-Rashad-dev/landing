@@ -10,7 +10,7 @@ import { publicGet } from "./fetch";
 import { parseSiteHost, primaryRedirectUrl, SITE_PATH_HEADER } from "./host";
 
 /** The landing themes the front end can draw. */
-const LANDING_THEMES = ["bidaya", "shabe"];
+const LANDING_THEMES = ["bidaya_landing", "shabe_landing"];
 
 type ResolvedHost = { host: string; status: "active" | "suspended"; primary_host: string; is_primary: boolean };
 

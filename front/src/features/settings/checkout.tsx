@@ -27,7 +27,7 @@ export function CheckoutPage() {
   const plan = params.get("plan") ?? "";
   const theme = params.get("theme") ?? "";
   const period: Period = params.get("period") === "yearly" ? "yearly" : "monthly";
-  // ?theme=sufi buys a theme; otherwise ?plan=…&period=… a subscription.
+  // ?theme=sufi_store buys a theme; otherwise ?plan=…&period=… a subscription.
   const item: CheckoutItem = theme ? { type: "theme", theme_key: theme } : { type: "subscription", plan_key: plan, period };
   const query = usePreview(item);
 

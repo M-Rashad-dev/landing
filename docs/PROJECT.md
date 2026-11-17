@@ -320,13 +320,15 @@ A theme is **code** (renderer + validator) plus a **`themes` row** (store detail
 images, tags) that the admin edits. `ThemeSeeder` creates rows for code themes and writes store details only the
 first time (admin edits are never overwritten). Ownership: free = everyone; paid = `theme_purchases` (bought via a
 `theme` invoice or gifted by admin). `ThemeAccess::owns()` / `canPublish()`.
+Every key ends with its kind (`{design}_store` / `{design}_landing`): a store theme and a landing theme can share a
+design name and are still two themes bought apart. Folders and image paths use the design name under the kind.
 
 | Key | Kind | Price | Notes |
 |---|---|---|---|
-| `asas` «أساس» | store | free | default store theme; sections: banner, products, features, testimonials (≤20) |
-| `sufi` «صوفي» | store | paid (990 placeholder) | light luxury theme with dark mode; 16 home sections (≤30); see below |
-| `bidaya` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
-| `shabe` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
+| `asas_store` «أساس» | store | free | default store theme; sections: banner, products, features, testimonials (≤20) |
+| `sufi_store` «صوفي» | store | paid (990 placeholder) | light luxury theme with dark mode; 16 home sections (≤30); see below |
+| `bidaya_landing` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
+| `shabe_landing` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
 
 ### «شابع» (paid food landing theme)
 - Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
@@ -350,7 +352,7 @@ first time (admin edits are never overwritten). Ownership: free = everyone; paid
   track, info) reading CSS variables `--as-*` on `.as-root`. A theme only provides its **frame (header/footer) and
   home sections**; the inner pages automatically take its colors/font (and Sufi's dark mode, because `SufiRoot`
   feeds the current scheme's colors into the shared `AsasRoot`).
-- `AsasShell` (live store) picks the frame by `config.theme_key` (`SufiFrame` for sufi). The store home page picks
+- `AsasShell` (live store) picks the frame by `config.theme_key` (`SufiFrame` for sufi_store). The store home page picks
   `SufiHomeSections` / `HomeSections`. The Builder canvas and preview pick `SufiStore` / `AsasStore`.
 - Modes: `live` (real store), `builder` (sections selectable, links inert, no motion), `preview` (links inert, motion
   on — used by the design preview and the theme showcase).

@@ -85,8 +85,8 @@ it('creates the store with the starter design of «أساس», live only once pu
     storeOwner();
 
     $this->postJson('/api/v1/dashboard/store/setup')
-        ->assertOk()->assertJsonPath('data.theme_key', 'asas')->assertJsonPath('data.design.published_at', null)->assertJsonPath('data.live', false)
-        ->assertJsonPath('data.themes.0.key', 'asas')->assertJsonPath('data.themes.0.active', true);
+        ->assertOk()->assertJsonPath('data.theme_key', 'asas_store')->assertJsonPath('data.design.published_at', null)->assertJsonPath('data.live', false)
+        ->assertJsonPath('data.themes.0.key', 'asas_store')->assertJsonPath('data.themes.0.active', true);
     $this->getJson('/api/v1/dashboard/pages')->assertJsonCount(0, 'data');
 
     $this->putJson('/api/v1/dashboard/store', ['is_enabled' => true])->assertOk()->assertJsonPath('data.live', false);
@@ -100,7 +100,7 @@ it('validates store menus and the theme', function () {
 
     $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'url', 'label' => 'x', 'url' => 'javascript:alert(1)']], 'footer' => []]])
         ->assertStatus(422)->assertJsonValidationErrors(['menus.header.0.url']);
-    $this->putJson('/api/v1/dashboard/store', ['theme_key' => 'bidaya'])->assertStatus(422);
+    $this->putJson('/api/v1/dashboard/store', ['theme_key' => 'bidaya_landing'])->assertStatus(422);
     $this->putJson('/api/v1/dashboard/store', ['menus' => ['header' => [['type' => 'all_products', 'label' => '<b>كل المنتجات</b>']], 'footer' => []]])
         ->assertOk()->assertJsonPath('data.menus.header.0.label', 'كل المنتجات');
 });
@@ -177,7 +177,7 @@ it('serves a live store: config, catalog filters, product page, pages; not befor
 
     storePublic('resolve-host')->assertJsonPath('data.store_live', true);
     $listId = asTenant($owner, fn () => collect(Store::query()->first()->design()->published['sections'])->firstWhere('type', 'products')['id']);
-    storePublic('store')->assertOk()->assertJsonPath('data.theme_key', 'asas')->assertJsonPath('data.categories.0.slug', 'shirts')
+    storePublic('store')->assertOk()->assertJsonPath('data.theme_key', 'asas_store')->assertJsonPath('data.categories.0.slug', 'shirts')
         ->assertJsonPath('data.categories.0.products_count', 2)->assertJsonCount(2, 'data.data.products.'.$listId)
         ->assertJsonPath('data.design.settings.colors.primary', '#0b875b')->assertJsonPath('data.branding', true);
     storePublic('store/products')->assertJsonCount(2, 'data')->assertJsonPath('meta.total', 2);

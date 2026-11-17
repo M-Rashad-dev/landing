@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class BidayaLandingDesign
 {
-    public const KEY = 'bidaya';
+    public const KEY = 'bidaya_landing';
 
     public const SECTION_TYPES = ['hero', 'features', 'gallery', 'testimonials', 'faq', 'order_form'];
 
