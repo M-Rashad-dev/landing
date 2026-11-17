@@ -11,7 +11,7 @@ import { Segmented } from "@/components/ui/tabs";
 import { useOffers } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
 import { FOOD_ICON_KEYS } from "@/themes/store/shabe/root";
-import type { BundleCard, BundlesProps, FoodHeroProps, FoodIcon, HoursProps, ShabeStoreSettings, StepsProps, WhyProps } from "@/themes/store/shabe/types";
+import { CARD_DEFAULTS, PAGE_DEFAULTS, type BundleCard, type BundlesProps, type CardSettings, type FoodHeroProps, type FoodIcon, type HoursProps, type PageSettings, type ShabeStoreSettings, type StepsProps, type WhyProps } from "@/themes/store/shabe/types";
 import { ImagePick, LinkField, Text, type Errors, type Media } from "./library-forms";
 import { Card, move } from "./section-forms";
 
@@ -291,3 +291,106 @@ export function ShabeGeneralExtras({ settings, onChange, errors }: SettingsProps
   );
 }
 
+/* ---------- «كارد المنتج» and «صفحة المنتج» (only «شابع» has these groups) ---------- */
+
+const sc = s.card;
+const sp = s.page;
+
+/** Settings saved before a group existed come without it: its defaults fill it. */
+const cardOf = (settings: ShabeStoreSettings): CardSettings => ({ ...CARD_DEFAULTS, ...settings.product_card });
+const pageOf = (settings: ShabeStoreSettings): PageSettings => ({ ...PAGE_DEFAULTS, ...settings.product_page, viewers: { ...PAGE_DEFAULTS.viewers, ...settings.product_page?.viewers } });
+
+export function ShabeCardForm({ settings, onChange, errors }: SettingsProps) {
+  const card = cardOf(settings);
+  const set = (patch: Partial<CardSettings>) => onChange({ ...settings, product_card: { ...card, ...patch } });
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label={sc.image}>
+        <Segmented value={card.image} onChange={(v) => set({ image: v })} options={(["square", "wide", "circle"] as const).map((k) => ({ value: k, label: sc.images[k] }))} />
+      </Field>
+      <SwitchRow title={sc.description} checked={card.show_description} onCheckedChange={(v) => set({ show_description: v })} />
+      <SwitchRow title={sc.rating} checked={card.show_rating} onCheckedChange={(v) => set({ show_rating: v })} />
+      <Field label={sc.button}>
+        <Segmented value={card.button} onChange={(v) => set({ button: v })} options={(["icon", "full"] as const).map((k) => ({ value: k, label: sc.buttons[k] }))} />
+      </Field>
+      <Field label={sc.borderWidth} hint={card.border_width === 0 ? sc.borderNone : sc.borderPx(card.border_width)} error={errors["product_card.border_width"]}>
+        <input type="range" min={0} max={6} step={1} value={card.border_width} onChange={(e) => set({ border_width: Number(e.target.value) })} className="w-full accent-(--brand)" aria-label={sc.borderWidth} />
+      </Field>
+      {card.border_width > 0 ? (
+        <Field label={sc.borderColor} hint={sc.borderColorHint} error={errors["product_card.border_color"]}>
+          <div className="flex items-center gap-2">
+            <Segmented
+              value={card.border_color === null ? "theme" : "own"}
+              onChange={(v) => set({ border_color: v === "theme" ? null : (card.border_color ?? settings.colors.primary) })}
+              options={[
+                { value: "theme", label: sc.borderTheme },
+                { value: "own", label: sc.borderColor },
+              ]}
+            />
+            {card.border_color !== null ? <ColorInput id="ss-card-border" value={card.border_color} onChange={(v) => set({ border_color: v.toLowerCase() })} /> : null}
+          </div>
+        </Field>
+      ) : null}
+      <Field label={sc.radius} hint={sc.radiusHint(card.radius)} error={errors["product_card.radius"]}>
+        <input type="range" min={0} max={40} step={2} value={card.radius} onChange={(e) => set({ radius: Number(e.target.value) })} className="w-full accent-(--brand)" aria-label={sc.radius} />
+      </Field>
+      <SwitchRow title={sc.shadow} checked={card.shadow} onCheckedChange={(v) => set({ shadow: v })} />
+    </div>
+  );
+}
+
+export function ShabePageForm({ settings, onChange, errors }: SettingsProps) {
+  const page = pageOf(settings);
+  const set = (patch: Partial<PageSettings>) => onChange({ ...settings, product_page: { ...page, ...patch } });
+  const setViewers = (patch: Partial<PageSettings["viewers"]>) => set({ viewers: { ...page.viewers, ...patch } });
+  const num = (v: string, min: number, max: number) => Math.min(max, Math.max(min, Math.round(Number(v) || min)));
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label={sp.gallery}>
+        <Segmented value={page.gallery} onChange={(v) => set({ gallery: v })} options={(["thumbs", "slider"] as const).map((k) => ({ value: k, label: sp.galleries[k] }))} />
+      </Field>
+      <SwitchRow title={sp.zoom} description={sp.zoomHint} checked={page.zoom} onCheckedChange={(v) => set({ zoom: v })} />
+      <SwitchRow title={sp.description} checked={page.description} onCheckedChange={(v) => set({ description: v })} />
+      <SwitchRow title={sp.reviews} checked={page.reviews} onCheckedChange={(v) => set({ reviews: v })} />
+      <SwitchRow title={sp.whatsappAsk} description={sp.whatsappAskHint} checked={page.whatsapp_ask} onCheckedChange={(v) => set({ whatsapp_ask: v })} />
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={sp.related} checked={page.related_enabled} onCheckedChange={(v) => set({ related_enabled: v })} />
+        {page.related_enabled ? (
+          <Field label={sp.relatedSource} hint={sp.relatedHint}>
+            <Segmented value={page.related} onChange={(v) => set({ related: v })} options={(["category", "similar"] as const).map((k) => ({ value: k, label: sp.relatedSources[k] }))} />
+          </Field>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={sp.sticky} description={sp.stickyHint} checked={page.sticky_bar} onCheckedChange={(v) => set({ sticky_bar: v })} />
+        {page.sticky_bar ? (
+          <Field label={sp.stickyButtons} hint={page.sticky_buttons !== "buy" ? sp.stickyCartHint : undefined}>
+            <Select aria-label={sp.stickyButtons} value={page.sticky_buttons} onValueChange={(v) => set({ sticky_buttons: v as PageSettings["sticky_buttons"] })} options={(["cart", "both", "buy"] as const).map((k) => ({ value: k, label: sp.stickyChoices[k] }))} searchable={false} />
+          </Field>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={sp.viewers} description={sp.viewersHint} checked={page.viewers.enabled} onCheckedChange={(v) => setViewers({ enabled: v })} />
+        {page.viewers.enabled ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={sp.viewersMin} htmlFor="ss-v-min" error={errors["product_page.viewers.min"]}>
+                <Input id="ss-v-min" type="number" dir="ltr" min={1} max={999000} value={page.viewers.min} onChange={(e) => setViewers({ min: num(e.target.value, 1, 999000) })} />
+              </Field>
+              <Field label={sp.viewersMax} htmlFor="ss-v-max" error={errors["product_page.viewers.max"]}>
+                <Input id="ss-v-max" type="number" dir="ltr" min={1} max={999000} value={page.viewers.max} onChange={(e) => setViewers({ max: num(e.target.value, 1, 999000) })} />
+              </Field>
+            </div>
+            <p className="text-xs text-ink-3">{sp.viewersRange}</p>
+            <Field label={sp.viewersEvery} htmlFor="ss-v-every" error={errors["product_page.viewers.every"]}>
+              <Input id="ss-v-every" type="number" dir="ltr" min={3} max={300} value={page.viewers.every} onChange={(e) => setViewers({ every: num(e.target.value, 3, 300) })} />
+            </Field>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}

@@ -463,3 +463,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Food store theme `shabe_store`, sold apart from the landing «شابع» (990 placeholder price), hidden from the theme store until its three parts are built. 15 home sections; new library types `food_hero`, `why`, `steps`, `bundles` (cards tied to real offers), `hours`.
 - «مواعيد العمل» (owner decision): days and hours set in the section, the open / closed messages too; the status is computed in the visitor's browser by Cairo time (shown only after hydration, so server and browser draw the same page). No prep time per product, no min/max order, no product tags (later, elsewhere).
 - Its look is its own (`ss-` CSS, own header with countdown strip, hotline and order button, own dish card); copying the landing's sections was the starting point, then changed for a store.
+
+## 2026-11-17 — «شابع · متجر», part 2 (product card and product page)
+- New settings groups only «شابع» has: «كارد المنتج» (image shape, border thickness/color or none, corner radius, shadow, description, rating, «+» or full button) and «صفحة المنتج» (gallery, hover zoom, description, reviews, WhatsApp question, «اطلبه مع» from the same category or similar products, the fixed phone bar — on by default — with «أضف للسلة» (with quantity), both, or «اشتري دلوقتي», and «بيتفرجوا دلوقتي»).
+- «بيتفرجوا دلوقتي» (owner decision): a random number between the merchant's two numbers (1 to 999,000), picked again every N seconds the merchant sets; the Builder says it's random. It isn't a real count.
+- «منتجات مشابهة»: products have no tags yet, so similarity = shared words in the name / short description plus the same category; falls back to the category list.

@@ -12,6 +12,49 @@ export type FoodIcon =
 
 export type ButtonShape = "rounded" | "pill" | "square";
 
+/** The product card (back end: ShabeStoreDesign::CARD_DEFAULTS). */
+export type CardSettings = {
+  image: "square" | "wide" | "circle";
+  show_description: boolean;
+  show_rating: boolean;
+  button: "icon" | "full";
+  /** 0 = no border. */
+  border_width: number;
+  /** null: the theme's own line color. */
+  border_color: string | null;
+  /** Corner roundness in px. */
+  radius: number;
+  shadow: boolean;
+};
+
+/** The product page (back end: ShabeStoreDesign::PAGE_DEFAULTS). */
+export type PageSettings = {
+  gallery: "thumbs" | "slider";
+  zoom: boolean;
+  description: boolean;
+  reviews: boolean;
+  whatsapp_ask: boolean;
+  related_enabled: boolean;
+  related: "category" | "similar";
+  sticky_bar: boolean;
+  sticky_buttons: "cart" | "both" | "buy";
+  viewers: { enabled: boolean; min: number; max: number; every: number };
+};
+
+export const CARD_DEFAULTS: CardSettings = { image: "square", show_description: true, show_rating: true, button: "icon", border_width: 1, border_color: null, radius: 24, shadow: false };
+export const PAGE_DEFAULTS: PageSettings = {
+  gallery: "thumbs",
+  zoom: true,
+  description: true,
+  reviews: true,
+  whatsapp_ask: true,
+  related_enabled: true,
+  related: "category",
+  sticky_bar: true,
+  sticky_buttons: "both",
+  viewers: { enabled: false, min: 300, max: 600, every: 15 },
+};
+
 export type ShabeStoreSettings = Omit<StoreSettings, "colors" | "header" | "footer" | "general"> & {
   colors: StoreSettings["colors"] & { dark: string };
   display_font: boolean;
@@ -19,6 +62,9 @@ export type ShabeStoreSettings = Omit<StoreSettings, "colors" | "header" | "foot
   header: StoreSettings["header"] & { layout: "start" | "center"; countdown_ends_at: string | null; hotline: string | null; button_label: string | null; button_link: Link; categories_menu: boolean };
   footer: StoreSettings["footer"] & { dark: boolean; payments: boolean };
   general: StoreSettings["general"] & { floating_call: boolean; call_phone: string | null; animations: boolean };
+  /** Missing in designs saved before them (read with their defaults). */
+  product_card?: CardSettings;
+  product_page?: PageSettings;
 };
 
 type IconItem = { icon: FoodIcon; title: string; text: string | null };

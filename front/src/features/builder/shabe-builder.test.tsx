@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  const payload = { theme: { key: "shabe_store", name: "شابع", section_types: TYPES, max_sections: 30, settings_groups: ["look", "header", "footer", "general"] }, store_name: "شابع", draft: design, version: 2, published_at: null, has_unpublished_changes: true, data };
+  const payload = { theme: { key: "shabe_store", name: "شابع", section_types: TYPES, max_sections: 30, settings_groups: ["look", "header", "footer", "general", "product_card", "product_page"] }, store_name: "شابع", draft: design, version: 2, published_at: null, has_unpublished_changes: true, data };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -90,6 +90,21 @@ describe("Builder on «شابع · متجر»", () => {
     const body = JSON.parse(String((put[1] as RequestInit).body));
     expect(body.draft.settings.header.layout).toBe("center");
     expect(body.draft.settings.colors.dark).toBe("#17110d");
+  });
+
+  it("has «كارد المنتج» and «صفحة المنتج» and saves the border, the corners and the viewers range", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: b.rail.theme }));
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(ar.design.theme.tabs.product_card) }));
+    fireEvent.change(await screen.findByRole("slider", { name: s.card.borderWidth }), { target: { value: "0" } });
+    fireEvent.change(screen.getByRole("slider", { name: s.card.radius }), { target: { value: "8" } });
+
+    const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    const lastPut = () => {
+      const puts = fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "PUT");
+      return puts.length ? JSON.parse(String((puts[puts.length - 1][1] as RequestInit).body)) : null;
+    };
+    await waitFor(() => expect(lastPut()?.draft.settings.product_card).toMatchObject({ border_width: 0, radius: 8 }), { timeout: 3000 });
   });
 
   it("starts each new food section with what its form needs", () => {

@@ -394,7 +394,7 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   restyle inner pages — the owner saw a product-page design for Sufi but it is not built; it also needed size
   guides, delivery estimates and review photos which don't exist yet).
 
-### «شابع · متجر» (food store, part 1 of 3: home, header, footer)
+### «شابع · متجر» (food store: part 1 home/header/footer, part 2 product card + page, part 3 lists + cart)
 - Back `ShabeStoreDesign`: base settings + `colors.dark`, `display_font` (Lalezar titles), `button` shape, header
   `layout start|center`, `countdown_ends_at`, `hotline` (5-digit hotlines allowed), `button_label/button_link`,
   `categories_menu`; footer `dark`, `payments`; general `floating_call`, `call_phone`, `animations`. New library
@@ -405,6 +405,17 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   «أساس»'s until parts 2–3 (product page + card settings, then category pages + cart). Shared logic added:
   `use-quick-add` (card add-to-cart, «صوفي» uses it too), `use-hours` (`isOpenAt`, `cairoNow`: Cairo time, hours
   past midnight count for the day they started), `use-countdown`, `contact` (`whatsappLink`, `telLink`).
+- Part 2: its own groups `product_card` (image square|wide|circle, short description, rating, button icon|full,
+  `border_width` 0–6 (0 = none), `border_color` (null = theme line color), `radius` 0–40 px, shadow) and
+  `product_page` (gallery thumbs|slider, hover zoom, description, reviews, «اسأل واتساب», «اطلبه مع» on/off and
+  `related` category|similar, `sticky_bar` (on by default) with `sticky_buttons` cart|both|buy — the quantity comes
+  with the cart button, `viewers` {enabled, min, max 1–999,000, every 3–300 s}). Both are `sometimes` + defaults
+  (`CARD_DEFAULTS`/`PAGE_DEFAULTS`), so designs saved before them stay valid. Its own product page
+  (`themes/store/shabe/product.tsx`) on `useProductBuy`; `use-viewers` (random number in the range, picked again on
+  the merchant's beat). «مشابهة» = `StoreCatalog::similar()`: shared words of name / short description (Arabic letters
+  unified) ×3/×1 + same category ×2, falls back to the category list; `StoreSite::relatedMode()` reads it from the
+  published design, so the page needs no extra request. The Builder shows only the groups the server lists for the
+  theme (`settings_groups`); theme button classes live in `@layer components` so utilities can override them.
 - Builder: `features/builder/themes/shabe.tsx` + `shabe-store-forms.tsx`. The theme row is unlisted
   (`'listed' => false` in `ThemeSeeder`) until all parts are built; the admin lists it.
 

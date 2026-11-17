@@ -19,6 +19,8 @@ import {
   Redo2,
   Rocket,
   Settings2,
+  SquareStack,
+  FileText,
   Smartphone,
   Tablet,
   Trash2,
@@ -60,6 +62,8 @@ const GROUP_META: Record<GroupKey, { icon: LucideIcon; label: string; hint: stri
   header: { icon: LayoutPanelTop, label: th.tabs.header, hint: t.groups.header },
   footer: { icon: PanelBottom, label: th.tabs.footer, hint: t.groups.footer },
   general: { icon: Settings2, label: th.tabs.general, hint: t.groups.general },
+  product_card: { icon: SquareStack, label: th.tabs.product_card, hint: t.groups.product_card },
+  product_page: { icon: FileText, label: th.tabs.product_page, hint: t.groups.product_page },
 };
 /** Groups that are also parts of the canvas (clicking the preview selects them). */
 const ON_CANVAS: Edit[] = ["header", "footer"];
@@ -103,6 +107,8 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const [removing, setRemoving] = React.useState<AnySection | null>(null);
   const { Canvas } = storeTheme(initial.theme.key);
   const theme = builderTheme(initial.theme.key);
+  // The groups the server keeps for this theme, each drawn with its form here.
+  const groups = theme.groups.filter((g) => initial.theme.settings_groups.includes(g.key));
   const MAX_SECTIONS = initial.theme.max_sections;
   const [gallery, setGallery] = React.useState(false);
   const frame = React.useRef<HTMLDivElement>(null);
@@ -153,7 +159,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
 
   function select(id: Edit) {
     setSelected(id);
-    if (id && !ON_CANVAS.includes(id) && theme.groups.some((g) => g.key === id)) setTab("theme");
+    if (id && !ON_CANVAS.includes(id) && groups.some((g) => g.key === id)) setTab("theme");
     else if (id) {
       setTab("sections");
       scrollTo(id);
@@ -192,7 +198,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
 
   const index = draft.sections.findIndex((s) => s.id === selected);
   const section = index >= 0 ? draft.sections[index] : null;
-  const group = section ? null : (theme.groups.find((g) => g.key === selected) ?? null);
+  const group = section ? null : (groups.find((g) => g.key === selected) ?? null);
   const hasPending = published.pending || status !== "saved" || published.at === null;
   const canPublish = status !== "conflict" && status !== "invalid" && hasPending;
   const host = session.storeUrl ? session.storeUrl.replace(/^https?:\/\//, "") : initial.store_name;
@@ -417,7 +423,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
             <div className="flex min-h-0 flex-1 flex-col">
               <PanelTitle title={t.tabs.theme} hint={t.themeHint} />
               <ul className="flex flex-col gap-1.5 overflow-y-auto px-3 pb-4">
-                {theme.groups.map(({ key }) => (
+                {groups.map(({ key }) => (
                   <li key={key}>
                     <GroupRow icon={GROUP_META[key].icon} label={GROUP_META[key].label} hint={GROUP_META[key].hint} onClick={() => setSelected(key)} />
                   </li>

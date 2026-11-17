@@ -183,6 +183,66 @@ final class StoreCatalog
         return $query->orderByDesc('is_featured')->orderByDesc('id')->limit($limit)->get()->map(fn (Product $p) => $this->card($p))->all();
     }
 
+    /** Words too common to say two products are alike. */
+    private const STOP_WORDS = ['اللي', 'على', 'علي', 'الى', 'الي', 'مع', 'من', 'في', 'عن', 'هذا', 'هذه', 'ده', 'دي', 'كل', 'جدا', 'the', 'and', 'for', 'with'];
+
+    /**
+     * Products like this one, for «اطلبه مع» set to «مشابهة»: the ones sharing words of its name or
+     * short description (Arabic letters unified: أ/إ/آ → ا، ة → ه، ى → ي) and its categories, the best
+     * matches first. Falls back to the same-category list when nothing shares a word.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function similar(Product $product, bool $inStockOnly = false, int $limit = 8): array
+    {
+        $words = self::words($product->name.' '.$product->short_description);
+        $categoryIds = $product->categories->pluck('id')->all();
+        if ($words === []) {
+            return $this->related($product, $inStockOnly, $limit);
+        }
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'categories']))->whereKeyNot($product->id);
+        if ($inStockOnly) {
+            $this->inStock($query);
+        }
+        $query->where(function (Builder $q) use ($words, $categoryIds): void {
+            foreach ($words as $word) {
+                $like = '%'.addcslashes($word, '%_\\').'%';
+                $q->orWhere('name', 'like', $like)->orWhere('short_description', 'like', $like);
+            }
+            if ($categoryIds !== []) {
+                $q->orWhereHas('categories', fn (Builder $c) => $c->whereIn('categories.id', $categoryIds));
+            }
+        });
+        $scored = $query->orderByDesc('id')->limit(200)->get()
+            ->map(function (Product $p) use ($words, $categoryIds): array {
+                $name = self::words($p->name);
+                $about = self::words((string) $p->short_description);
+                $score = 3 * count(array_intersect($words, $name)) + count(array_intersect($words, $about))
+                    + 2 * count(array_intersect($categoryIds, $p->categories->pluck('id')->all()));
+
+                return ['product' => $p, 'score' => $score];
+            })
+            ->filter(fn (array $row) => $row['score'] > 0)
+            ->sortBy([['score', 'desc'], [fn (array $a, array $b) => $b['product']->id <=> $a['product']->id]])
+            ->take($limit);
+
+        return $scored->isEmpty()
+            ? $this->related($product, $inStockOnly, $limit)
+            : $scored->map(fn (array $row) => $this->card($row['product']))->values()->all();
+    }
+
+    /** @return list<string> the distinct meaningful words of a text, letters unified */
+    private static function words(string $text): array
+    {
+        $text = mb_strtolower(strip_tags($text));
+        $text = (string) preg_replace('/[\x{064B}-\x{065F}\x{0640}]/u', '', $text);
+        $text = strtr($text, ['أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ة' => 'ه', 'ى' => 'ي']);
+        $words = preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = array_filter($words, fn (string $w) => mb_strlen($w) >= 3 && ! in_array($w, self::STOP_WORDS, true));
+
+        return array_slice(array_values(array_unique($words)), 0, 8);
+    }
+
     /** @return array<string, mixed> */
     public function card(Product $p): array
     {

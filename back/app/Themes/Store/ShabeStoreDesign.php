@@ -25,6 +25,39 @@ final class ShabeStoreDesign extends StoreThemeDesign
 
     public const MAX_SECTIONS = 30;
 
+    /** «شابع» draws its product cards and product page its own way, so it has their settings. */
+    public const SETTINGS_GROUPS = ['look', 'header', 'footer', 'general', 'product_card', 'product_page'];
+
+    /** The product card (designs saved before these settings read them). */
+    public const CARD_DEFAULTS = [
+        'image' => 'square',
+        'show_description' => true,
+        'show_rating' => true,
+        'button' => 'icon',
+        'border_width' => 1,
+        // null: the theme's own line color.
+        'border_color' => null,
+        'radius' => 24,
+        'shadow' => false,
+    ];
+
+    /** The product page (designs saved before these settings read them). */
+    public const PAGE_DEFAULTS = [
+        'gallery' => 'thumbs',
+        'zoom' => true,
+        'description' => true,
+        'reviews' => true,
+        'whatsapp_ask' => true,
+        'related_enabled' => true,
+        'related' => 'category',
+        'sticky_bar' => true,
+        'sticky_buttons' => 'both',
+        // «يشاهدون هذا المنتج الآن»: a number picked at random between min and max, every few seconds.
+        'viewers' => ['enabled' => false, 'min' => 300, 'max' => 600, 'every' => 15],
+    ];
+
+    public const VIEWERS_MAX = 999000;
+
     public const DEFAULT_COLORS = ['primary' => '#e4572e', 'secondary' => '#f2b33d', 'background' => '#fffaf2', 'text' => '#1b120c'];
 
     /** The background of the dark sections («ليه إحنا»، the footer when dark). */
@@ -61,6 +94,8 @@ final class ShabeStoreDesign extends StoreThemeDesign
                 ],
                 'footer' => [...$base['footer'], 'dark' => true, 'payments' => true],
                 'general' => [...$base['general'], 'floating_call' => false, 'call_phone' => null, 'animations' => true],
+                'product_card' => self::CARD_DEFAULTS,
+                'product_page' => self::PAGE_DEFAULTS,
             ],
             'sections' => [
                 self::section('food_hero', [
@@ -114,6 +149,30 @@ final class ShabeStoreDesign extends StoreThemeDesign
             "{$p}.settings.general.floating_call" => ['required', 'boolean'],
             "{$p}.settings.general.call_phone" => $phone,
             "{$p}.settings.general.animations" => ['required', 'boolean'],
+            // Missing in designs saved before them: their defaults are used.
+            "{$p}.settings.product_card" => ['sometimes', 'array'],
+            "{$p}.settings.product_card.image" => ['sometimes', Rule::in(['square', 'wide', 'circle'])],
+            "{$p}.settings.product_card.show_description" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_card.show_rating" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_card.button" => ['sometimes', Rule::in(['icon', 'full'])],
+            "{$p}.settings.product_card.border_width" => ['sometimes', 'integer', 'between:0,6'],
+            "{$p}.settings.product_card.border_color" => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            "{$p}.settings.product_card.radius" => ['sometimes', 'integer', 'between:0,40'],
+            "{$p}.settings.product_card.shadow" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page" => ['sometimes', 'array'],
+            "{$p}.settings.product_page.gallery" => ['sometimes', Rule::in(['thumbs', 'slider'])],
+            "{$p}.settings.product_page.zoom" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.description" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.reviews" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.whatsapp_ask" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.related_enabled" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.related" => ['sometimes', Rule::in(['category', 'similar'])],
+            "{$p}.settings.product_page.sticky_bar" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.sticky_buttons" => ['sometimes', Rule::in(['cart', 'both', 'buy'])],
+            "{$p}.settings.product_page.viewers.enabled" => ['sometimes', 'boolean'],
+            "{$p}.settings.product_page.viewers.min" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX],
+            "{$p}.settings.product_page.viewers.max" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX, 'gte:'.$p.'.settings.product_page.viewers.min'],
+            "{$p}.settings.product_page.viewers.every" => ['sometimes', 'integer', 'between:3,300'],
         ];
     }
 
@@ -146,6 +205,45 @@ final class ShabeStoreDesign extends StoreThemeDesign
                 'call_phone' => $str($s['general']['call_phone'] ?? null),
                 'animations' => (bool) $s['general']['animations'],
             ],
+            'product_card' => $this->cleanCard((array) ($s['product_card'] ?? [])),
+            'product_page' => $this->cleanPage((array) ($s['product_page'] ?? [])),
+        ];
+    }
+
+    /** @param array<string, mixed> $c @return array<string, mixed> */
+    private function cleanCard(array $c): array
+    {
+        $c = [...self::CARD_DEFAULTS, ...$c];
+
+        return [
+            'image' => (string) $c['image'],
+            'show_description' => (bool) $c['show_description'],
+            'show_rating' => (bool) $c['show_rating'],
+            'button' => (string) $c['button'],
+            'border_width' => (int) $c['border_width'],
+            'border_color' => $c['border_color'] === null ? null : strtolower((string) $c['border_color']),
+            'radius' => (int) $c['radius'],
+            'shadow' => (bool) $c['shadow'],
+        ];
+    }
+
+    /** @param array<string, mixed> $g @return array<string, mixed> */
+    private function cleanPage(array $g): array
+    {
+        $g = [...self::PAGE_DEFAULTS, ...$g];
+        $v = [...self::PAGE_DEFAULTS['viewers'], ...(array) $g['viewers']];
+
+        return [
+            'gallery' => (string) $g['gallery'],
+            'zoom' => (bool) $g['zoom'],
+            'description' => (bool) $g['description'],
+            'reviews' => (bool) $g['reviews'],
+            'whatsapp_ask' => (bool) $g['whatsapp_ask'],
+            'related_enabled' => (bool) $g['related_enabled'],
+            'related' => (string) $g['related'],
+            'sticky_bar' => (bool) $g['sticky_bar'],
+            'sticky_buttons' => (string) $g['sticky_buttons'],
+            'viewers' => ['enabled' => (bool) $v['enabled'], 'min' => (int) $v['min'], 'max' => (int) $v['max'], 'every' => (int) $v['every']],
         ];
     }
 }

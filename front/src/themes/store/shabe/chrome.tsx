@@ -403,7 +403,7 @@ export function Floaters() {
   const call = g.floating_call && callNumber ? telLink(callNumber) : null;
   if (!wa && !call) return null;
   return (
-    <div className="fixed bottom-5 end-5 z-[35] flex flex-col gap-3 [[data-mode=builder]_&]:absolute">
+    <div className="ss-float fixed bottom-5 end-5 z-[35] flex flex-col gap-3 [[data-mode=builder]_&]:absolute">
       {wa ? (
         <a href={wa} target="_blank" rel="noopener noreferrer" className="flex size-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-xl" aria-label={t.whatsapp}>
           <WhatsAppIcon className="size-7" />

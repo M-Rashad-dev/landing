@@ -9,7 +9,7 @@ import { useTheme } from "@/themes/store/shared/context";
 import type { DesignData, StoreSettings } from "@/themes/store/shared/types";
 import { AsasRoot } from "../asas/root";
 import { FEATURE_ICONS } from "../asas/icons";
-import type { ButtonShape, FoodIcon, ShabeStoreData, ShabeStoreSettings } from "./types";
+import { CARD_DEFAULTS, PAGE_DEFAULTS, type ButtonShape, type CardSettings, type FoodIcon, type PageSettings, type ShabeStoreData, type ShabeStoreSettings } from "./types";
 import "./shabe-store.css";
 
 /** The title font (the merchant can switch titles back to the body font). */
@@ -42,6 +42,19 @@ export function FoodIconView({ name, className }: { name: FoodIcon; className?: 
 export function useShabe() {
   const theme = useTheme();
   return { ...theme, settings: theme.settings as unknown as ShabeStoreSettings, data: theme.data as ShabeStoreData };
+}
+
+/** The product card settings (their defaults for designs saved before them). */
+export function useCardSettings(): CardSettings {
+  const { settings } = useShabe();
+  return { ...CARD_DEFAULTS, ...settings.product_card };
+}
+
+/** The product page settings (their defaults for designs saved before them). */
+export function usePageSettings(): PageSettings {
+  const { settings } = useShabe();
+  const page = settings.product_page;
+  return { ...PAGE_DEFAULTS, ...page, viewers: { ...PAGE_DEFAULTS.viewers, ...page?.viewers } };
 }
 
 /** Sections rise in as they reach the screen (when the merchant keeps motion on). */

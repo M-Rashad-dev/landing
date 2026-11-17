@@ -49,6 +49,12 @@ final class StoreSite
         return (bool) ($store->design()?->published['settings']['general']['show_out_of_stock'] ?? true);
     }
 
+    /** What a product page suggests with it: «category» (default) or «similar» (published design). */
+    public static function relatedMode(Store $store): string
+    {
+        return ($store->design()?->published['settings']['product_page']['related'] ?? 'category') === 'similar' ? 'similar' : 'category';
+    }
+
     /** Products per page of the store lists (published design). */
     public static function perPage(Store $store): int
     {
@@ -143,7 +149,10 @@ final class StoreSite
             'offers' => $this->data->offers($product, now()),
             'breadcrumb' => $trail,
             'seo' => SeoDefaults::merge($product->seo, $this->seo->product($product, $this->seo->storeName())),
-            'related' => $this->catalog->related($product, ! self::showsOutOfStock($store)),
+            // «اطلبه مع»: same categories, or similar products when the theme asks for them.
+            'related' => self::relatedMode($store) === 'similar'
+                ? $this->catalog->similar($product, ! self::showsOutOfStock($store))
+                : $this->catalog->related($product, ! self::showsOutOfStock($store)),
             'rating' => $this->reviews->summary($product->id),
             'low_stock_threshold' => $product->low_stock_threshold,
         ];

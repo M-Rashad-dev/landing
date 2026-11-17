@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Promotions\SaveOffer;
 use App\Billing\Themes\ThemeAccess;
 use App\Enums\OfferType;
+use App\Models\Category;
 use App\Models\Domain;
 use App\Models\Identity;
 use App\Models\Media;
@@ -153,4 +154,60 @@ it('checks the food sections and settings', function () {
         'draft.sections.3.type',
     ]);
     unset($owner);
+});
+
+it('saves the product card and product page settings, and gives old designs their defaults', function () {
+    shabeStoreOwner();
+    $card = ['image' => 'circle', 'show_description' => false, 'show_rating' => true, 'button' => 'full', 'border_width' => 0, 'border_color' => '#E4572E', 'radius' => 12, 'shadow' => true];
+    $page = ['gallery' => 'slider', 'zoom' => false, 'description' => true, 'reviews' => false, 'whatsapp_ask' => false, 'related_enabled' => true, 'related' => 'similar', 'sticky_bar' => true, 'sticky_buttons' => 'cart', 'viewers' => ['enabled' => true, 'min' => 1, 'max' => 999000, 'every' => 10]];
+
+    $saved = saveDesign(designDraft(['settings' => ['product_card' => $card, 'product_page' => $page]]))->assertOk();
+    expect($saved->json('data.draft.settings.product_card'))->toBe(array_replace($card, ['border_color' => '#e4572e']))
+        ->and($saved->json('data.draft.settings.product_page'))->toBe($page);
+
+    // A design saved before these groups existed: still valid, with the defaults.
+    $old = designDraft();
+    unset($old['settings']['product_card'], $old['settings']['product_page']);
+    expect(saveDesign($old)->assertOk()->json('data.draft.settings.product_page.sticky_buttons'))->toBe('both');
+});
+
+it('checks the product card and product page settings', function () {
+    shabeStoreOwner();
+    saveDesign(designDraft(['settings' => [
+        'product_card' => ['image' => 'blob', 'button' => 'huge', 'border_width' => 9, 'border_color' => 'red', 'radius' => 50],
+        'product_page' => ['gallery' => 'wall', 'related' => 'random', 'sticky_buttons' => 'all', 'viewers' => ['enabled' => true, 'min' => 500, 'max' => 400, 'every' => 1]],
+    ]]))->assertStatus(422)->assertJsonValidationErrors([
+        'draft.settings.product_card.image', 'draft.settings.product_card.button', 'draft.settings.product_card.border_width', 'draft.settings.product_card.border_color', 'draft.settings.product_card.radius',
+        'draft.settings.product_page.gallery', 'draft.settings.product_page.related', 'draft.settings.product_page.sticky_buttons',
+        'draft.settings.product_page.viewers.max', 'draft.settings.product_page.viewers.every',
+    ]);
+    saveDesign(designDraft(['settings' => ['product_page' => ['viewers' => ['min' => 0, 'max' => 1000000]]]]))->assertStatus(422)
+        ->assertJsonValidationErrors(['draft.settings.product_page.viewers.min', 'draft.settings.product_page.viewers.max']);
+});
+
+it('suggests similar products on the product page when the theme asks for them', function () {
+    $owner = shabeStoreOwner();
+    [$kofta, $grill] = asTenant($owner, function () {
+        $grill = Category::query()->create(['name' => 'مشويات', 'slug' => 'grill', 'is_visible' => true, 'depth' => 0, 'position' => 1]);
+        $sweets = Category::query()->create(['name' => 'حلويات', 'slug' => 'sweets', 'is_visible' => true, 'depth' => 0, 'position' => 2]);
+        $make = fn (string $name, string $slug, ?Category $c) => tap(Product::factory()->create(['name' => $name, 'slug' => $slug]), fn ($p) => $c ? $p->categories()->attach($c->id) : null);
+        $kofta = $make('كفتة مشوية بالبقدونس', 'kofta', $grill);
+        $make('كفته داوود باشا', 'dawood', $sweets);      // shares «كفته» (ة = ه), another category
+        $make('فراخ مشوية', 'chicken', $grill);           // shares «مشويه» and the category
+        $make('كنافة بالقشطة', 'kunafa', $sweets);        // nothing in common
+
+        return [$kofta, $grill];
+    });
+    $this->putJson('/api/v1/dashboard/store', ['is_enabled' => true])->assertOk();
+    $host = 'design-'.$owner->tenant_id.'.localhost';
+    $page = fn () => $this->getJson('/api/v1/public/store/products/kofta?host='.$host, internalHeaders())->assertOk()->json('data.related.*.slug');
+
+    saveDesign(designDraft(['settings' => ['product_page' => ['related' => 'similar']]]))->assertOk();
+    $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
+    expect($page())->toBe(['chicken', 'dawood']);
+
+    saveDesign(designDraft(['settings' => ['product_page' => ['related' => 'category']]]))->assertOk();
+    $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
+    expect($page())->toBe(['chicken']);
+    unset($kofta, $grill);
 });

@@ -44,16 +44,18 @@
 .ss-card { background: color-mix(in srgb, #fff 72%, var(--as-bg)); border: 1px solid var(--as-line); border-radius: var(--ss-radius); }
 .ss-dark .ss-card { background: var(--as-card); }
 
-/* buttons: the merchant's shape */
-.ss-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
-  border-radius: var(--ss-btn-radius); font-weight: 800; padding: 0.65em 1.3em; white-space: nowrap;
-  transition: filter 0.15s, transform 0.15s;
+/* buttons: the merchant's shape (in the components layer, so a utility class on a button wins) */
+@layer components {
+  .ss-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+    border-radius: var(--ss-btn-radius); font-weight: 800; padding: 0.65em 1.3em; white-space: nowrap;
+    transition: filter 0.15s, transform 0.15s;
+  }
+  .ss-btn:active { transform: scale(0.98); }
+  .ss-btn-fire { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 12px 24px -12px color-mix(in srgb, var(--as-primary) 85%, transparent); }
+  .ss-btn-fire:hover { filter: brightness(0.94); }
+  .ss-btn-ghost { border: 2px solid var(--as-line); background: var(--as-bg); }
 }
-.ss-btn:active { transform: scale(0.98); }
-.ss-btn-fire { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 12px 24px -12px color-mix(in srgb, var(--as-primary) 85%, transparent); }
-.ss-btn-fire:hover { filter: brightness(0.94); }
-.ss-btn-ghost { border: 2px solid var(--as-line); background: var(--as-bg); }
 .ss-root .as-btn { border-radius: var(--ss-btn-radius); }
 
 /* ---------- header ---------- */
@@ -107,7 +109,7 @@
 .ss-tab { border-radius: 999px; border: 2px solid var(--as-line); padding: 0.45rem 1.1rem; font-weight: 800; white-space: nowrap; transition: background 0.15s, color 0.15s; }
 .ss-tab[aria-selected="true"] { background: var(--as-text); border-color: var(--as-text); color: var(--as-bg); }
 .ss-food { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-.ss-food .ss-ph { position: relative; aspect-ratio: 1 / 0.86; overflow: hidden; background: var(--ss-soft); }
+.ss-food .ss-ph { position: relative; overflow: hidden; background: var(--ss-soft); }
 .ss-food .ss-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s; }
 .ss-food:hover .ss-ph img { transform: scale(1.05); }
 .ss-add { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; height: 2.5rem; min-width: 2.5rem; padding-inline: 0.85rem; border-radius: var(--ss-btn-radius); background: var(--as-primary); color: var(--as-on-primary); font-weight: 800; }
@@ -134,6 +136,11 @@
 /* hours: the live dot */
 .ss-dot { width: 0.6rem; height: 0.6rem; border-radius: 999px; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: ss-pulse 1.8s ease-out infinite; }
 @keyframes ss-pulse { 70% { box-shadow: 0 0 0 0.6rem transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* phones: the floating WhatsApp / call buttons go up over the product page's fixed bar */
+@container (max-width: 47.99rem) {
+  .ss-root:has(.ss-sticky) .ss-float { bottom: 5.75rem; }
+}
 
 /* motion: sections rise in as they reach the screen */
 .ss-motion .ss-reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
