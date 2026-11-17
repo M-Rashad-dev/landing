@@ -272,7 +272,7 @@ front/                     Next.js 16 (port 3200 locally)
   src/app/(auth) (dashboard) (builder) admin platform sites/[host]/{(store),(landing)} api/{auth,bff,public,revalidate,health}
   src/features/<area>/     screens per area (orders, catalog, builder, support, marketing, admin, settings…)
   src/components/          ui/ (button, select, overlay, feedback…), forms/, data/ (table, charts…), layout/, domain/, brand/
-  src/themes/              store/{asas (free store theme + shared store frame/pages), sufi} · landing/{live.tsx (picks the page by theme key), bidaya, shabe} · registry.ts, upsell-offer.tsx (both kinds)
+  src/themes/              shared/ (design.ts fonts/colors/pick, base.css as-* utilities: both kinds) · store/{shared (logic hooks, context, types), registry.tsx, shell.tsx, asas, sufi} · landing/{live.tsx (picks the page by theme key), bidaya, shabe} · registry.ts (gallery shots), upsell-offer.tsx
   src/lib/                 api client, auth, public (store loading, SEO), store (cart, quote, events), tracking, realtime, env, format…
   src/messages/ar.ts + ar/*.ts   every Arabic string (import { ar } from "@/messages/ar"); theme strings in ar/themes/{store,landing}/{key}.ts
   src/config/              brand.ts (name «مكسب»), navigation.ts
@@ -350,12 +350,22 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   `header.layout center|start|end`, `header.topbar`, `general.floating_call|animations|offers_tab`, and its own
   sections). `StoreDesigner` picks the validator/defaults by `theme_key` and builds the section data
   (`products["{id}:{tab}"]`, `category_tiles`, `featured`, `links`, `media`).
-- Front: `themes/store/asas/` holds the **shared store frame and inner pages** (product, listing, cart, checkout, account,
-  track, info) reading CSS variables `--as-*` on `.as-root`. A theme only provides its **frame (header/footer) and
-  home sections**; the inner pages automatically take its colors/font (and Sufi's dark mode, because `SufiRoot`
-  feeds the current scheme's colors into the shared `AsasRoot`).
-- `AsasShell` (live store) picks the frame by `config.theme_key` (`SufiFrame` for sufi_store). The store home page picks
-  `SufiHomeSections` / `HomeSections`. The Builder canvas and preview pick `SufiStore` / `AsasStore`.
+- Front, **logic apart from look**: `themes/store/shared/` holds what every store theme does, with no look of its own:
+  `use-product-buy` (options, price, stock, add to cart / buy now + pixels), `use-checkout` (form rules, saved
+  addresses, quote, code, shipping company, lead, placing the order), `use-account` (sign in with a code, signed-in
+  guard, sign out, address and profile forms), `use-listing` (search/sort/filters in the link), `use-track`,
+  `use-review-form`; plus `context` (mode, `StoreLink`, `useHydrated`), `shop` (`useShop`) and `types` (base
+  `StoreSettings`, `DesignData`, `ProductCard`). Fonts, colors and `pick` are in `themes/shared/design.ts` and the
+  `as-*` utilities in `themes/shared/base.css` (shared with landing themes on purpose: one file, no clashes).
+  A theme's pages are look only, drawn on these hooks.
+- `themes/store/registry.tsx` is the **only place that picks by theme key**: each store theme gives its `Frame`
+  (header/footer around live pages), `Home` (live home sections), `Canvas` (whole home for the Builder, preview and
+  showcase) and `pages` (Product, Listing, Cart, Checkout, OrderDone, StaticPage, NotFound, Track, SignIn, Account,
+  MyOrder). Unknown keys get «أساس». `StoreShell` (`themes/store/shell.tsx`) is the live layout for every theme
+  (visit count, cart sync, pixels) and draws the theme's `Frame`; every store route takes its page from the registry.
+- «أساس» has its own inner pages (`themes/store/asas/pages/`, CSS variables `--as-*` on `.as-root`). «صوفي» draws its
+  own frame and home and, for now, uses «أساس»'s inner pages in its colors (and dark mode: `SufiRoot` feeds the
+  current scheme's colors into `AsasRoot`). New store themes build their own inner pages (owner decision 2026-11-17).
 - Modes: `live` (real store), `builder` (sections selectable, links inert, no motion), `preview` (links inert, motion
   on — used by the design preview and the theme showcase).
 - Layout is **container-query based** (`@3xl`, `@5xl`), so the Builder's device frames preview exactly.
@@ -381,8 +391,9 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 ### Adding a new store theme (checklist)
 1. Back: `App\Themes\Store\{Name}StoreDesign` (validate + clean + defaults, reuse `AsasStoreDesign` helpers), wire it in
    `StoreDesigner::defaults()/validate()` and `data()` for any new section data; add a `ThemeSeeder` row; lang strings in `lang/ar/themes/store/{key}.php`.
-2. Front: `themes/store/{key}/` (types, root, chrome, sections, store/frame), wire in `AsasShell`, the store home page,
-   `builder.tsx`, `preview-page.tsx`; Builder forms + section gallery list; `themes/registry.ts` shots/demo.
+2. Front: `themes/store/{key}/` (types, root, chrome, sections, frame, and its own inner pages built on the hooks in
+   `themes/store/shared/`), one entry in `themes/store/registry.tsx`; Builder forms + section gallery list;
+   `themes/registry.ts` shots/demo.
 3. Tests: back feature tests (switch after purchase, save every section, validation), front render + Builder tests.
 4. Cover + 5 pictures into `public/themes/store/{key}/` (1600×1000 WebP), a showcase `demo.ts` if it should have «معاينة الثيم».
 

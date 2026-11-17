@@ -57,7 +57,7 @@ import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import type { MediaUrls } from "@/themes/store/asas/types";
+import type { MediaUrls } from "@/themes/shared/design";
 import { BidayaPage, type Selection } from "@/themes/landing/bidaya/page";
 import type { Content, LandingData, Section, SectionType, Settings } from "@/themes/landing/bidaya/types";
 import { ShabePage } from "@/themes/landing/shabe/page";

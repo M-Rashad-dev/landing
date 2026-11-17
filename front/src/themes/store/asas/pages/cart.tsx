@@ -7,7 +7,7 @@ import { lineKey, lineLimit, removeFromCart, setQuantity, useCart, type Cart } f
 import type { QuoteState } from "@/lib/store/quote";
 import { useCartQuote } from "@/lib/store/quote";
 import { ar } from "@/messages/ar";
-import { StoreLink, useHydrated } from "../context";
+import { StoreLink, useHydrated } from "@/themes/store/shared/context";
 import { Breadcrumb, Container, Empty, QuantityStepper } from "../parts";
 
 const t = ar.storefront.cartPage;

@@ -16,7 +16,8 @@ import { useProductChoices } from "@/features/promotions/api";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { FEATURE_ICONS } from "@/themes/store/asas/icons";
-import { COLUMNS, ICON_KEYS, pick, PRODUCT_LIMITS, type BannerProps, type FeaturesProps, type LinkType, type MediaUrls, type ProductsProps, type Slide, type TestimonialsProps } from "@/themes/store/asas/types";
+import { pick, type MediaUrls } from "@/themes/shared/design";
+import { COLUMNS, ICON_KEYS, PRODUCT_LIMITS, type BannerProps, type FeaturesProps, type LinkType, type ProductsProps, type Slide, type TestimonialsProps } from "@/themes/store/asas/types";
 
 const tb = ar.design.banner;
 const tp = ar.design.products;

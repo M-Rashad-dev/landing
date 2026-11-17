@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import "./asas.css";
-import { ThemeProvider, type ThemeMode } from "./context";
-import { FONT_SCALE, FONTS, inkOn, type DesignData, type Settings } from "./types";
+import "@/themes/shared/base.css";
+import { ThemeProvider, type ThemeMode } from "@/themes/store/shared/context";
+import { FONT_SCALE, FONTS, inkOn } from "@/themes/shared/design";
+import { type DesignData, type StoreSettings } from "@/themes/store/shared/types";
 
 /** The theme's frame: colors, font and size from the settings (CSS variables), and the theme context. */
 export function AsasRoot({
@@ -16,7 +17,7 @@ export function AsasRoot({
   className,
   children,
 }: {
-  settings: Settings;
+  settings: StoreSettings;
   data: DesignData;
   storeName: string;
   mode: ThemeMode;

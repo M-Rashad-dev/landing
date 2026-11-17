@@ -7,10 +7,11 @@ import { addToCart, quantityInCart, useCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "./context";
+import { StoreLink, useTheme } from "@/themes/store/shared/context";
 import { Stars } from "./parts";
-import { useShop } from "./shop";
-import { pick, type ProductCard as Card } from "./types";
+import { useShop } from "../shared/shop";
+import { pick } from "@/themes/shared/design";
+import { type ProductCard as Card } from "@/themes/store/shared/types";
 
 const t = ar.storefront;
 

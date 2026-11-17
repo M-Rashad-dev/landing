@@ -7,7 +7,7 @@ import { activeOffers, offerQuantity } from "@/lib/store/offers";
 import type { ProductOffer } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import type { MediaUrls } from "@/themes/store/asas/types";
+import type { MediaUrls } from "@/themes/shared/design";
 import { imageSrc, scrollToOrder, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
 import { usePrice } from "@/themes/landing/bidaya/sections";
 import { embedUrl, youtubePoster } from "@/themes/store/sufi/types";

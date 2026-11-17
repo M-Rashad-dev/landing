@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon, WhatsAppIcon } from "@/themes/store/asas/icons";
-import { SOCIALS, type MediaUrls } from "@/themes/store/asas/types";
+import { SOCIALS, type MediaUrls } from "@/themes/shared/design";
 import { imageSrc, scrollToOrder, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
 import { usePrice } from "@/themes/landing/bidaya/sections";
 import type { LandingData } from "@/themes/landing/bidaya/types";

@@ -448,3 +448,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 ## 2026-11-17 — A theme's kind is read-only; shown next to its name
 - The kind (store | landing) belongs to the theme's code: `ThemeSeeder` writes it on every deploy, the admin editor shows it as a badge, and the API refuses `kind` (422).
 - Wherever a theme is named on its own, its kind follows («صوفي · متجر», `ar.common.themeName`): the checkout, the merchant's invoices, admin payments and refunds, a store's themes and the grant dialog. A theme invoice keeps the kind in its snapshot; older invoices take it from the theme.
+
+## 2026-11-17 — Store theme logic apart from look; one registry
+- What every store theme does now lives in `themes/store/shared/` as hooks with no look (`useProductBuy`, `useCheckout`, `useSignIn` and the account forms, `useListing`, `useTrackOrder`, `useReviewForm`), with the shared context and base types. «أساس»'s pages were rebuilt on them with the same look; a new store theme draws its own pages on the same hooks.
+- `themes/store/registry.tsx` is the only place that picks by theme key (frame, home, Builder canvas, inner pages); `StoreShell` is the live layout for every theme. Adding a store theme = one registry entry.
+- The `as-*` base (CSS variables + small utilities) moved to `themes/shared/base.css`, fonts/colors/`pick` to `themes/shared/design.ts`, used by store and landing themes. A copy for landing themes was considered and dropped: the dashboard loads both kinds, and two files with the same class names would override each other. Each theme's look stays in its own CSS file.

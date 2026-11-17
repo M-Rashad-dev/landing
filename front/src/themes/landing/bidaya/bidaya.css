@@ -1,5 +1,5 @@
 /*
- * «بداية»: the free landing theme. It shares the store theme's utilities (as-*) and adds the
+ * «بداية»: the free landing theme. It draws on the shared base (../../shared/base.css, as-*) and adds the
  * button shape and a few page pieces. Like the store, it reacts to its own width (container
  * queries), so the Builder previews phone and desktop exactly.
  */

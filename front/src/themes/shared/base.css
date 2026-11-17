@@ -1,7 +1,9 @@
 /*
- * «أساس»: the store theme. Every value comes from the merchant's theme settings through
- * CSS variables on .as-root (colors, font, size scale). The layout reacts to the width of
- * the store itself (container queries), so the Builder previews phone and desktop exactly.
+ * The base every theme draws on, store and landing: CSS variables on .as-root (the merchant's
+ * colors, font, size scale) and small utilities (as-sm…, as-btn, as-muted, as-prose…). No look
+ * of its own: each theme's look lives in its own file (sufi.css, bidaya.css, shabe.css…).
+ * The layout reacts to the width of the page itself (container queries), so the Builder
+ * previews phone and desktop exactly.
  */
 .as-root {
   container-type: inline-size;

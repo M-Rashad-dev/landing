@@ -1,99 +1,27 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ImageOff, KeyRound, Loader2, LogOut, MapPin, Package, Pencil, Plus, Star, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import * as React from "react";
-import { errorMessage, isApiError } from "@/lib/api/errors";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { formatPhoneLocal, normalizePhone } from "@/lib/phone";
-import {
-  accountKeys,
-  deleteAddress,
-  saveAddress,
-  sendCode,
-  signOut,
-  updateProfile,
-  useAccount,
-  useMyOrder,
-  useMyOrders,
-  verifyCode,
-  type Address,
-  type OrderDetail,
-} from "@/lib/store/account";
+import { useMyOrder, useMyOrders, type Address, type OrderDetail } from "@/lib/store/account";
 import { GOVERNORATES } from "@/lib/store/governorates";
 import type { TrackStage } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink } from "../context";
+import { StoreLink } from "@/themes/store/shared/context";
+import { useAddressForm, useProfileForm, useRefreshAccount, useRemoveAddress, useSignedIn, useSignIn, useSignOut } from "@/themes/store/shared/use-account";
 import { Breadcrumb, ConfirmDialog, Container, Empty, FormField, inputClass, Stars } from "../parts";
-import { pick } from "../types";
+import { pick } from "@/themes/shared/design";
 import { ReviewForm } from "./review-form";
 
 const t = ar.storefront.account;
 const STAGES = ar.storefront.track.stages;
 
-/** Only paths inside this store (a "next" from the link must never leave it). */
-function safeNext(next: string | null | undefined): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/account";
-}
-
 /* ---------- Sign in ---------- */
 
 export function SignInView({ next }: { next: string | null }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [phone, setPhone] = React.useState("");
-  const [step, setStep] = React.useState<"phone" | "code">("phone");
-  const [code, setCode] = React.useState("");
-  const [shown, setShown] = React.useState<string | null>(null);
-  const [wait, setWait] = React.useState(0);
-  const [error, setError] = React.useState<string | null>(null);
-  const [busy, setBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    if (wait <= 0) return;
-    const timer = window.setTimeout(() => setWait((w) => w - 1), 1000);
-    return () => window.clearTimeout(timer);
-  }, [wait]);
-
-  const request = async () => {
-    setError(null);
-    if (!normalizePhone(phone)) {
-      setError(ar.storefront.checkout.errors.phone);
-      return;
-    }
-    setBusy(true);
-    try {
-      const sent = await sendCode(phone);
-      setShown(sent.code);
-      setWait(sent.resend_in);
-      setCode("");
-      setStep("code");
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!/^\d{6}$/.test(code)) {
-      setError(t.codeError);
-      return;
-    }
-    setBusy(true);
-    try {
-      const { customer } = await verifyCode(phone, code);
-      queryClient.setQueryData(accountKeys.me, customer);
-      router.replace(safeNext(next));
-    } catch (err) {
-      setError(isApiError(err) && err.errors.code?.[0] ? err.errors.code[0] : errorMessage(err));
-      setBusy(false);
-    }
-  };
+  const { phone, setPhone, step, changePhone, code, setCode, shown, wait, error, busy, request, verify } = useSignIn(next);
 
   return (
     <Container className="flex justify-center py-10">
@@ -123,7 +51,14 @@ export function SignInView({ next }: { next: string | null }) {
             </button>
           </form>
         ) : (
-          <form onSubmit={verify} noValidate className="flex flex-col gap-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void verify();
+            }}
+            noValidate
+            className="flex flex-col gap-4"
+          >
             <div className="text-center">
               <h1 className="as-xl font-extrabold">{t.codeTitle}</h1>
               <p className="as-sm as-muted mt-1">{t.codeSentTo(formatPhoneLocal(normalizePhone(phone)))}</p>
@@ -145,7 +80,7 @@ export function SignInView({ next }: { next: string | null }) {
                 dir="ltr"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => setCode(e.target.value)}
                 className={cn(inputClass, "text-center text-2xl tracking-[0.4em]")}
                 aria-invalid={error ? true : undefined}
                 autoFocus
@@ -156,7 +91,7 @@ export function SignInView({ next }: { next: string | null }) {
               {busy ? t.verifying : t.verify}
             </button>
             <div className="as-sm flex items-center justify-between">
-              <button type="button" onClick={() => setStep("phone")} className="font-semibold as-primary hover:underline">
+              <button type="button" onClick={changePhone} className="font-semibold as-primary hover:underline">
                 {t.changePhone}
               </button>
               {wait > 0 ? (
@@ -174,36 +109,18 @@ export function SignInView({ next }: { next: string | null }) {
   );
 }
 
-/** The signed-in customer, or a redirect to the sign-in page. */
-function useSignedIn(path: string) {
-  const router = useRouter();
-  const account = useAccount();
-  React.useEffect(() => {
-    if (account.data === null) router.replace(`/account/login?next=${encodeURIComponent(path)}`);
-  }, [account.data, path, router]);
-  return account;
-}
-
 /* ---------- حسابي ---------- */
 
 type Tab = "orders" | "addresses" | "profile";
 
 export function AccountView() {
   const account = useSignedIn("/account");
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const leave = useSignOut();
   const [tab, setTab] = React.useState<Tab>("orders");
   const [confirmLeave, setConfirmLeave] = React.useState(false);
 
   if (!account.data) return <Container className="min-h-[50vh] py-8">{account.isError ? <p className="as-sm text-red-600">{t.failed}</p> : <div className="h-40 animate-pulse rounded-2xl bg-(--as-soft)" />}</Container>;
   const me = account.data;
-
-  const leave = async () => {
-    await signOut().catch(() => undefined);
-    queryClient.setQueryData(accountKeys.me, null);
-    queryClient.removeQueries({ queryKey: ["store-account", "orders"] });
-    router.replace("/");
-  };
 
   return (
     <Container className="flex flex-col gap-5 py-6 @3xl:py-8">
@@ -296,10 +213,10 @@ function OrdersList() {
 }
 
 function AddressBook({ addresses }: { addresses: Address[] }) {
-  const queryClient = useQueryClient();
   const [editing, setEditing] = React.useState<Address | "new" | null>(null);
   const [removing, setRemoving] = React.useState<Address | null>(null);
-  const refresh = () => queryClient.invalidateQueries({ queryKey: accountKeys.me });
+  const refresh = useRefreshAccount();
+  const remove = useRemoveAddress();
 
   if (editing) {
     return (
@@ -348,9 +265,8 @@ function AddressBook({ addresses }: { addresses: Address[] }) {
           confirmLabel={t.delete}
           danger
           onConfirm={async () => {
-            await deleteAddress(removing.id).catch(() => undefined);
+            await remove(removing);
             setRemoving(null);
-            void refresh();
           }}
           onCancel={() => setRemoving(null)}
         />
@@ -366,29 +282,17 @@ function AddressBook({ addresses }: { addresses: Address[] }) {
 }
 
 function AddressForm({ address, onDone, onCancel }: { address: Address | null; onDone: () => void; onCancel: () => void }) {
-  const [form, setForm] = React.useState({ name: address?.name ?? "", governorate: address?.governorate ?? "", city: address?.city ?? "", address: address?.address ?? "", is_default: address?.is_default ?? false });
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [busy, setBusy] = React.useState(false);
-  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setErrors({});
-    try {
-      await saveAddress({ ...form, city: form.city.trim() || null }, address?.id);
-      onDone();
-    } catch (err) {
-      const fields: Record<string, string> = {};
-      if (isApiError(err)) for (const [k, v] of Object.entries(err.errors)) fields[k] = v[0] ?? "";
-      setErrors(Object.keys(fields).length ? fields : { form: errorMessage(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { values: form, set, errors, busy, submit } = useAddressForm(address, onDone);
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+      noValidate
+      className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5"
+    >
       <h2 className="as-lg font-bold">{address ? t.editAddress : t.addAddress}</h2>
       <div className="grid gap-4 @3xl:grid-cols-2">
         <FormField id="ad-name" label={t.addressName} error={errors.name}>
@@ -429,33 +333,22 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
 }
 
 function ProfileForm({ name, email, phone, channel }: { name: string; email: string; phone: string; channel: "email" | "whatsapp" }) {
-  const queryClient = useQueryClient();
-  const [values, setValues] = React.useState({ name, email, channel });
-  const [errors, setErrors] = React.useState<{ name?: string; email?: string; channel?: string; form?: string }>({});
-  const [state, setState] = React.useState<"idle" | "busy" | "saved">("idle");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setState("busy");
-    setErrors({});
-    try {
-      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null, values.channel));
-      setState("saved");
-    } catch (err) {
-      setState("idle");
-      if (isApiError(err) && (err.errors.name || err.errors.email || err.errors.notify_channel))
-        setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0], channel: err.errors.notify_channel?.[0] });
-      else setErrors({ form: errorMessage(err) });
-    }
-  };
+  const { values, set, errors, state, submit } = useProfileForm({ name, email, channel });
 
   return (
-    <form onSubmit={submit} noValidate className="flex max-w-md flex-col gap-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+      noValidate
+      className="flex max-w-md flex-col gap-4"
+    >
       <FormField id="pf-name" label={t.name} error={errors.name}>
-        <input id="pf-name" maxLength={80} value={values.name} onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))} className={inputClass} />
+        <input id="pf-name" maxLength={80} value={values.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} />
       </FormField>
       <FormField id="pf-email" label={t.email} hint={t.emailHint} error={errors.email} optional>
-        <input id="pf-email" type="email" dir="ltr" autoComplete="email" maxLength={191} value={values.email} onChange={(e) => setValues((v) => ({ ...v, email: e.target.value }))} className={cn(inputClass, "text-end")} />
+        <input id="pf-email" type="email" dir="ltr" autoComplete="email" maxLength={191} value={values.email} onChange={(e) => set({ email: e.target.value })} className={cn(inputClass, "text-end")} />
       </FormField>
       <FormField id="pf-phone" label={t.phone} hint={t.phoneFixed}>
         <input id="pf-phone" dir="ltr" value={formatPhoneLocal(phone)} readOnly className={cn(inputClass, "text-end opacity-70")} />
@@ -464,7 +357,7 @@ function ProfileForm({ name, email, phone, channel }: { name: string; email: str
         <legend className="as-sm mb-2 font-bold">{t.updatesBy}</legend>
         {(["whatsapp", "email"] as const).map((option) => (
           <label key={option} className={cn("as-sm flex cursor-pointer items-center gap-2 rounded-lg border p-3 font-semibold", values.channel === option && "border-(--as-primary) bg-(--as-soft)")}>
-            <input type="radio" name="pf-channel" value={option} checked={values.channel === option} onChange={() => setValues((v) => ({ ...v, channel: option }))} className="size-4 accent-(--as-primary)" />
+            <input type="radio" name="pf-channel" value={option} checked={values.channel === option} onChange={() => set({ channel: option })} className="size-4 accent-(--as-primary)" />
             {option === "whatsapp" ? t.updatesWhatsapp : t.updatesEmail}
           </label>
         ))}

@@ -12,12 +12,13 @@ import type { ProductPage } from "@/lib/store/types";
 import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "../asas/context";
+import { StoreLink, useTheme } from "@/themes/store/shared/context";
 import { FEATURE_ICONS } from "../asas/icons";
 import { QuantityStepper } from "../asas/parts";
-import { unitsLeft, variantKey } from "../asas/pages/product";
-import type { FeaturesProps, MediaUrls, ProductsProps, TestimonialsProps } from "../asas/types";
-import { pick } from "../asas/types";
+import { unitsLeft, variantKey } from "../shared/use-product-buy";
+import type { MediaUrls } from "@/themes/shared/design";
+import type { FeaturesProps, ProductsProps, TestimonialsProps } from "../asas/types";
+import { pick } from "@/themes/shared/design";
 import { ProductCard } from "./card";
 import {
   embedUrl,

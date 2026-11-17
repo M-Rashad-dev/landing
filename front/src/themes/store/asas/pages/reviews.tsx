@@ -6,7 +6,7 @@ import * as React from "react";
 import { fetchReviews, useAccount, useMyReview, type ReviewSummary } from "@/lib/store/account";
 import { formatDateTime } from "@/lib/format";
 import { ar } from "@/messages/ar";
-import { StoreLink } from "../context";
+import { StoreLink } from "@/themes/store/shared/context";
 import { Stars } from "../parts";
 import { ReviewForm } from "./review-form";
 

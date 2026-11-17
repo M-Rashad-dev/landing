@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
-import type { Design, DesignData, Section, SectionType } from "@/themes/store/asas/types";
+import type { DesignData } from "@/themes/store/shared/types";
+import type { Design, Section, SectionType } from "@/themes/store/asas/types";
 import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
 
 /** A section of any store theme («أساس» or «صوفي»). */

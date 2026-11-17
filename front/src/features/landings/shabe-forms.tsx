@@ -15,7 +15,7 @@ import { activeOffers } from "@/lib/store/offers";
 import type { ProductOffer } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { pick, type MediaUrls } from "@/themes/store/asas/types";
+import { pick, type MediaUrls } from "@/themes/shared/design";
 import { SHABE_ICON_KEYS, SHABE_ICONS } from "@/themes/landing/shabe/icons";
 import type {
   BundleCard,

@@ -9,9 +9,11 @@ import { listQuery, storeMetadata } from "@/lib/public/store";
 import { parseSiteHost, primaryRedirectUrl } from "@/lib/public/host";
 import { ar } from "@/messages/ar";
 import { CheckoutView } from "./pages/checkout";
-import { ProductView, unitsLeft, variantKey } from "./pages/product";
+import { unitsLeft, variantKey } from "../shared/use-product-buy";
+import { ProductView } from "./pages/product";
 import { AsasRoot } from "./root";
-import type { Design, DesignData } from "./types";
+import type { DesignData } from "@/themes/store/shared/types";
+import type { Design } from "./types";
 
 const push = vi.fn();
 const replace = vi.fn();

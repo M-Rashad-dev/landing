@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import type { StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { Footer, Header, WhatsappButton } from "./chrome";
-import type { ThemeMode } from "./context";
+import type { ThemeMode } from "@/themes/store/shared/context";
 import { AsasRoot } from "./root";
 import { Banner, Features, ProductList, Testimonials } from "./sections";
-import type { Design, DesignData, Section } from "./types";
+import type { DesignData } from "@/themes/store/shared/types";
+import type { Design, Section } from "./types";
 
 export type Selection = string | "header" | "footer" | null;
 
@@ -67,6 +69,18 @@ export function AsasStore({
         <Footer />
         {toolsOf("footer")}
       </div>
+      <WhatsappButton />
+    </AsasRoot>
+  );
+}
+
+/** The frame of every live «أساس» page: header, the page, footer, the WhatsApp button. */
+export function AsasFrame({ config, children }: { config: StoreConfig; children: React.ReactNode }) {
+  return (
+    <AsasRoot settings={config.design.settings} data={config.data} storeName={config.store_name} mode="live" className="flex min-h-dvh flex-col">
+      <Header />
+      <main className="flex-1">{children}</main>
+      <Footer />
       <WhatsappButton />
     </AsasRoot>
   );

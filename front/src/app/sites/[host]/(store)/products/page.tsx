@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStoreProducts, listQuery, liveStore, queryKeyOf, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { Listing } from "@/themes/store/asas/pages/listing";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -15,7 +15,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
 /** «كل المنتجات», also the search results (?q=). */
 export default async function ProductsPage({ params, searchParams }: Props) {
-  const { host } = await liveStore((await params).host);
+  const { host, config } = await liveStore((await params).host);
+  const { Listing } = storeTheme(config.theme_key).pages;
   const query = listQuery(await searchParams);
   const list = await getStoreProducts(host, queryKeyOf(query));
   if (!list) notFound();

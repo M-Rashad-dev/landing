@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ar } from "@/messages/ar";
-import type { DesignData } from "../asas/types";
+import type { DesignData } from "@/themes/store/shared/types";
 import { SufiStore } from "./sufi-store";
 import { embedUrl, mapEmbed, type SufiDesign, type SufiSection } from "./types";
 

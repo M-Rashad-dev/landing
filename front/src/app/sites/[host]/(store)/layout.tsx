@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { loadStore, storeMetadata } from "@/lib/public/store";
 import { serverEnv } from "@/lib/env";
 import { StoreNotReady, StorePaused } from "@/themes/store/asas/pages/info";
-import { AsasShell } from "@/themes/store/asas/shop";
+import { StoreShell } from "@/themes/store/shell";
 
 type Props = { children: React.ReactNode; params: Promise<{ host: string }> };
 
@@ -25,5 +25,5 @@ export default async function StoreLayout({ children, params }: Props) {
     return <StoreNotReady dashboardUrl={`${env.publicScheme}://${env.appHost}${env.publicPort ? `:${env.publicPort}` : ""}/dashboard`} />;
   }
   if (store.suspended) return <StorePaused />;
-  return <AsasShell config={store.config}>{children}</AsasShell>;
+  return <StoreShell config={store.config}>{children}</StoreShell>;
 }

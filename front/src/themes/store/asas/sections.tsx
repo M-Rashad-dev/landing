@@ -4,11 +4,12 @@ import { ChevronLeft, ChevronRight, ImagePlus, PackageSearch, Quote, Star } from
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "./context";
+import { StoreLink, useTheme } from "@/themes/store/shared/context";
 import { Container } from "./parts";
 import { FEATURE_ICONS } from "./icons";
 import { ProductCard } from "./product-card";
-import { pick, type BannerProps, type FeaturesProps, type ProductsProps, type TestimonialsProps } from "./types";
+import { pick } from "@/themes/shared/design";
+import { type BannerProps, type FeaturesProps, type ProductsProps, type TestimonialsProps } from "./types";
 
 const t = ar.storefront;
 

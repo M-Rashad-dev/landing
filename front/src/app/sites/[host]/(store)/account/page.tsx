@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { AccountView } from "@/themes/store/asas/pages/account";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string }> };
 
@@ -12,6 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** «حسابي»: my orders, saved addresses, my details (signed-in customers only). */
 export default async function AccountPage({ params }: Props) {
-  await liveStore((await params).host);
-  return <AccountView />;
+  const { config } = await liveStore((await params).host);
+  const { Account } = storeTheme(config.theme_key).pages;
+  return <Account />;
 }

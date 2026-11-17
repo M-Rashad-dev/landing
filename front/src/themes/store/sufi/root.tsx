@@ -3,8 +3,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { AsasRoot } from "../asas/root";
-import type { ThemeMode } from "../asas/context";
-import type { DesignData } from "../asas/types";
+import type { ThemeMode } from "@/themes/store/shared/context";
+import type { DesignData } from "@/themes/store/shared/types";
 import type { Scheme, SufiSettings } from "./types";
 import "./sufi.css";
 

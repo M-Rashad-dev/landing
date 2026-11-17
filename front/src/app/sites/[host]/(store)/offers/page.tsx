@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStoreProducts, listQuery, liveStore, queryKeyOf, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { Listing } from "@/themes/store/asas/pages/listing";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -13,7 +13,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
 /** «العروض»: products with a lower price than the old one, or covered by an active offer. */
 export default async function OffersPage({ params, searchParams }: Props) {
-  const { host } = await liveStore((await params).host);
+  const { host, config } = await liveStore((await params).host);
+  const { Listing } = storeTheme(config.theme_key).pages;
   const { category: _category, offers: _offers, ...filters } = listQuery(await searchParams);
   void _category;
   void _offers;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { MyOrderView } from "@/themes/store/asas/pages/account";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string; number: string }> };
 
@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** One of my orders: where it is, what is in it, and reviewing what arrived. */
 export default async function MyOrderPage({ params }: Props) {
   const { host, number } = await params;
-  await liveStore(host);
+  const { config } = await liveStore(host);
+  const { MyOrder } = storeTheme(config.theme_key).pages;
   if (!/^\d{1,9}$/.test(number)) notFound();
-  return <MyOrderView number={Number(number)} />;
+  return <MyOrder number={Number(number)} />;
 }

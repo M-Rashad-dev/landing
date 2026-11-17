@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
-import type { DesignData, Settings } from "./types";
+import type { DesignData, StoreSettings } from "./types";
 
 /** Where the theme is drawn: the live store, the Builder (links inert, sections selectable), or a preview (links inert). */
 export type ThemeMode = "live" | "builder" | "preview";
 
 type Ctx = {
   mode: ThemeMode;
-  settings: Settings;
+  settings: StoreSettings;
   data: DesignData;
   storeName: string;
   /** Extra images the Builder picked before the server knew them. */

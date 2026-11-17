@@ -15,7 +15,8 @@ import { MediaPicker } from "@/features/media/media-picker";
 import type { MediaItem } from "@/features/media/api";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
-import { PRODUCT_LIMITS, pick, type Colors, type LinkType, type MediaUrls, type TestimonialsProps } from "@/themes/store/asas/types";
+import { pick, type Colors, type MediaUrls } from "@/themes/shared/design";
+import { PRODUCT_LIMITS, type LinkType, type TestimonialsProps } from "@/themes/store/asas/types";
 import type {
   BannersProps,
   BrandsProps,

@@ -3,8 +3,8 @@
 import { Check, Loader2, PackageX, Search } from "lucide-react";
 import * as React from "react";
 import { formatDateTime, formatMoney } from "@/lib/format";
-import { normalizePhone } from "@/lib/phone";
 import type { TrackedOrder, TrackStage } from "@/lib/store/types";
+import { useTrackOrder } from "@/themes/store/shared/use-track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { Breadcrumb, Container, FormField, inputClass } from "../parts";
@@ -12,51 +12,9 @@ import { Breadcrumb, Container, FormField, inputClass } from "../parts";
 const t = ar.storefront.track;
 const STEPS: TrackStage[] = ["received", "confirmed", "shipped", "delivered"];
 
-type TrackState = { kind: "idle" | "loading" } | { kind: "error"; message: string } | { kind: "found"; order: TrackedOrder };
-
-async function lookup(body: Record<string, unknown>): Promise<TrackState> {
-  try {
-    const response = await fetch("/api/public/track", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = (await response.json().catch(() => ({}))) as { data?: TrackedOrder };
-    if (response.ok && json.data) return { kind: "found", order: json.data };
-    return { kind: "error", message: response.status === 404 || response.status === 422 ? t.notFound : response.status === 429 ? t.tooMany : t.failed };
-  } catch {
-    return { kind: "error", message: ar.storefront.checkout.errors.network };
-  }
-}
-
 /** Order tracking: number + phone → where the order is (or straight from the private link's token). */
 export function TrackView({ initialNumber, token = null }: { initialNumber: string; token?: string | null }) {
-  const [number, setNumber] = React.useState(initialNumber);
-  const [phone, setPhone] = React.useState("");
-  const [errors, setErrors] = React.useState<{ number?: string; phone?: string }>({});
-  const [state, setState] = React.useState<TrackState>(token ? { kind: "loading" } : { kind: "idle" });
-
-  React.useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    void lookup({ token }).then((next) => {
-      if (!cancelled) setState(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const next: typeof errors = {};
-    if (!/^\d{1,9}$/.test(number.trim().replace(/^#/, ""))) next.number = t.numberError;
-    if (!normalizePhone(phone)) next.phone = ar.storefront.checkout.errors.phone;
-    setErrors(next);
-    if (next.number || next.phone) return;
-    setState({ kind: "loading" });
-    setState(await lookup({ order_number: Number(number.trim().replace(/^#/, "")), phone }));
-  };
+  const { number, setNumber, phone, setPhone, errors, state, submit, reset } = useTrackOrder(initialNumber, token);
 
   return (
     <Container className="flex max-w-2xl flex-col gap-5 py-6 @3xl:py-10">
@@ -69,13 +27,17 @@ export function TrackView({ initialNumber, token = null }: { initialNumber: stri
       {state.kind === "found" ? (
         <OrderStatus
           order={state.order}
-          onAnother={() => {
-            setState({ kind: "idle" });
-            setNumber("");
-          }}
+          onAnother={reset}
         />
       ) : (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+          noValidate
+          className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5"
+        >
           <div className="grid gap-4 @xl:grid-cols-2">
             <FormField id="tr-number" label={t.number} error={errors.number}>
               <input id="tr-number" inputMode="numeric" dir="ltr" value={number} onChange={(e) => setNumber(e.target.value)} className={cn(inputClass, "text-end")} aria-invalid={errors.number ? true : undefined} />

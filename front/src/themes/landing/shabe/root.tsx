@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import "../../store/asas/asas.css";
+import "@/themes/shared/base.css";
 import "../bidaya/bidaya.css";
 import "./shabe.css";
-import { FONT_SCALE, FONTS, inkOn, type MediaUrls } from "@/themes/store/asas/types";
+import { FONT_SCALE, FONTS, inkOn, type MediaUrls } from "@/themes/shared/design";
 import { PageProvider, type PageMode } from "@/themes/landing/bidaya/context";
 import { BUTTON_RADIUS, type LandingData } from "@/themes/landing/bidaya/types";
 import type { ShabeSettings } from "./types";

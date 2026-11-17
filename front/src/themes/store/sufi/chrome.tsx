@@ -5,9 +5,9 @@ import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink, useHydrated, useTheme } from "../asas/context";
+import { StoreLink, useHydrated, useTheme } from "@/themes/store/shared/context";
 import { SocialIcon, WhatsAppIcon } from "../asas/icons";
-import { pick, SOCIALS } from "../asas/types";
+import { pick, SOCIALS } from "@/themes/shared/design";
 import { useScheme } from "./root";
 import type { Size, SufiSettings } from "./types";
 

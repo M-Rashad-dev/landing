@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStorePage, liveStore, storeMetadata } from "@/lib/public/store";
-import { StaticPageView } from "@/themes/store/asas/pages/info";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string; slug: string }> };
 
@@ -25,9 +25,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** A store page written by the merchant (policies, about, …). */
 export default async function StaticPage({ params }: Props) {
   const { host: rawHost, slug: rawSlug } = await params;
-  const { host } = await liveStore(rawHost);
+  const { host, config } = await liveStore(rawHost);
+  const { StaticPage } = storeTheme(config.theme_key).pages;
   const slug = slugOf(rawSlug);
   const page = slug ? await getStorePage(host, slug) : null;
   if (!page) notFound();
-  return <StaticPageView title={page.title} body={page.body} />;
+  return <StaticPage title={page.title} body={page.body} />;
 }

@@ -12,11 +12,12 @@ import type { MediaItem } from "@/features/media/api";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon } from "@/themes/store/asas/icons";
-import { FONTS, PALETTES, PER_PAGE, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls, type Settings } from "@/themes/store/asas/types";
+import { FONTS, PALETTES, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls } from "@/themes/shared/design";
+import { PER_PAGE, type StoreSettings } from "@/themes/store/shared/types";
 
 const t = ar.design.theme;
 type Errors = Record<string, string>;
-type Props = { settings: Settings; onChange: (s: Settings) => void; errors: Errors };
+type Props = { settings: StoreSettings; onChange: (s: StoreSettings) => void; errors: Errors };
 const nullable = (v: string) => (v.trim() === "" ? null : v);
 
 /** Colors, font, size, logo and favicon. */
@@ -87,7 +88,7 @@ export function LookForm({ settings, onChange, errors, media, onMedia }: Props &
 }
 
 export function HeaderForm({ settings, onChange, errors }: Props) {
-  const set = (patch: Partial<Settings["header"]>) => onChange({ ...settings, header: { ...settings.header, ...patch } });
+  const set = (patch: Partial<StoreSettings["header"]>) => onChange({ ...settings, header: { ...settings.header, ...patch } });
   return (
     <div className="flex flex-col gap-4">
       <p className="rounded-md bg-surface-2 px-3 py-2 text-xs text-ink-2">{t.menuNote}</p>
@@ -102,7 +103,7 @@ export function HeaderForm({ settings, onChange, errors }: Props) {
 
 export function FooterForm({ settings, onChange, errors }: Props) {
   const f = settings.footer;
-  const set = (patch: Partial<Settings["footer"]>) => onChange({ ...settings, footer: { ...f, ...patch } });
+  const set = (patch: Partial<StoreSettings["footer"]>) => onChange({ ...settings, footer: { ...f, ...patch } });
   return (
     <div className="flex flex-col gap-4">
       <Field label={t.about} htmlFor={"th-about"} error={errors["footer.about"]} optional>
@@ -141,7 +142,7 @@ export function FooterForm({ settings, onChange, errors }: Props) {
 }
 
 export function GeneralForm({ settings, onChange, errors }: Props) {
-  const set = (patch: Partial<Settings["general"]>) => onChange({ ...settings, general: { ...settings.general, ...patch } });
+  const set = (patch: Partial<StoreSettings["general"]>) => onChange({ ...settings, general: { ...settings.general, ...patch } });
   return (
     <div className="flex flex-col gap-4">
       <SwitchRow title={t.whatsappButton} description={t.whatsappButtonHint} checked={settings.general.whatsapp_button} onCheckedChange={(v) => set({ whatsapp_button: v })} />

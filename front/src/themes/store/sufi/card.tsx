@@ -7,10 +7,10 @@ import { addToCart, quantityInCart, useCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "../asas/context";
+import { StoreLink, useTheme } from "@/themes/store/shared/context";
 import { Stars } from "../asas/parts";
-import { useShop } from "../asas/shop";
-import { pick } from "../asas/types";
+import { useShop } from "../shared/shop";
+import { pick } from "@/themes/shared/design";
 import type { SufiCard } from "./types";
 
 const t = ar.sufi;

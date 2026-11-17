@@ -1,5 +1,6 @@
 import { Banknote, Clock, Gift, Headphones, Heart, Package, Phone, RotateCcw, ShieldCheck, Star, Tag, Truck, type LucideIcon } from "lucide-react";
-import type { IconKey, Social } from "./types";
+import type { Social } from "@/themes/shared/design";
+import type { IconKey } from "./types";
 
 export const FEATURE_ICONS: Record<IconKey, LucideIcon> = {
   truck: Truck,

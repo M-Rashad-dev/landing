@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { jsonLdString, productJsonLd } from "@/lib/public/seo";
 import { getStoreProduct, liveStore, storeMetadata } from "@/lib/public/store";
-import { ProductView } from "@/themes/store/asas/pages/product";
-import { pick } from "@/themes/store/asas/types";
+import { storeTheme } from "@/themes/store/registry";
+import { pick } from "@/themes/shared/design";
 
 type Props = { params: Promise<{ host: string; slug: string }> };
 
@@ -38,10 +38,12 @@ export default async function ProductPage({ params }: Props) {
   if (!page) notFound();
   const canonical = new URL(`/products/${encodeURIComponent(page.product.slug)}`, config.seo.canonical).toString();
 
+  const { Product } = storeTheme(config.theme_key).pages;
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(productJsonLd(page, canonical, config.store_name)) }} />
-      <ProductView key={page.product.id} page={page} />
+      <Product key={page.product.id} page={page} />
     </>
   );
 }

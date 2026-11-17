@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
 import { AsasStore } from "@/themes/store/asas/asas-store";
-import { inkOn, type Design, type DesignData } from "@/themes/store/asas/types";
+import { inkOn } from "@/themes/shared/design";
+import { type DesignData } from "@/themes/store/shared/types";
+import { type Design } from "@/themes/store/asas/types";
 import { newSection } from "./api";
 
 vi.mock("@/lib/auth/session-context", () => ({ useSession: () => ({ storeUrl: "https://naanaa.com", store_name: "نعناع" }) }));

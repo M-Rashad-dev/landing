@@ -1,20 +1,16 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, PackageSearch, Search, SlidersHorizontal, Tag } from "lucide-react";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 import type { ProductList } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink } from "../context";
+import { StoreLink } from "@/themes/store/shared/context";
+import { LIST_SORTS, useListing, type ListFilters } from "@/themes/store/shared/use-listing";
 import { Breadcrumb, Container, Empty, inputClass } from "../parts";
 import { ProductCard } from "../product-card";
 
 const t = ar.storefront.list;
-const SORTS = ["newest", "featured", "best_sellers", "price_asc", "price_desc"] as const;
-
-/** What the visitor chose (search, sort, filters); the page and the category stay in the path. */
-export type ListFilters = { q?: string; sort?: string; min?: string; max?: string; in_stock?: "1"; page?: string };
 
 export function Listing({
   title,
@@ -35,34 +31,18 @@ export function Listing({
   basePath: string;
   kind?: "list" | "offers";
 }) {
-  const router = useRouter();
+  const browse = useListing(filters, basePath);
   const [open, setOpen] = React.useState(Boolean(filters.min || filters.max || filters.in_stock));
-  const filtered = Boolean(filters.q || filters.min || filters.max || filters.in_stock);
-
-  /** Any change of the filters goes back to page 1. */
-  const go = (patch: ListFilters, keepPage = false) => {
-    const next: ListFilters = { ...filters, ...patch };
-    if (!keepPage) delete next.page;
-    const params = new URLSearchParams(Object.entries(next).filter(([, v]) => v) as Array<[string, string]>);
-    const qs = params.toString();
-    router.push(qs ? `${basePath}?${qs}` : basePath);
-  };
-  const href = (page: number) => {
-    const params = new URLSearchParams(Object.entries({ ...filters, page: page > 1 ? String(page) : undefined }).filter(([, v]) => v) as Array<[string, string]>);
-    const qs = params.toString();
-    return qs ? `${basePath}?${qs}` : basePath;
-  };
+  const filtered = browse.filtered;
 
   const onPrice = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const clean = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\d{1,7}$/.test(v.trim()) ? v.trim() : undefined);
-    go({ min: clean(form.get("min")), max: clean(form.get("max")) });
+    browse.price(String(form.get("min") ?? ""), String(form.get("max") ?? ""));
   };
   const onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const q = String(new FormData(e.currentTarget).get("q") ?? "").trim().slice(0, 60);
-    go({ q: q || undefined });
+    browse.search(String(new FormData(e.currentTarget).get("q") ?? ""));
   };
 
   const { meta } = list;
@@ -95,8 +75,8 @@ export function Listing({
           </form>
           <label className="as-sm flex items-center gap-2">
             <span className="as-muted">{t.sort}</span>
-            <select value={filters.sort ?? "newest"} onChange={(e) => go({ sort: e.target.value === "newest" ? undefined : e.target.value })} className="as-sm h-10 rounded-lg border bg-(--as-bg) px-2">
-              {SORTS.map((s) => (
+            <select value={filters.sort ?? "newest"} onChange={(e) => browse.sort(e.target.value)} className="as-sm h-10 rounded-lg border bg-(--as-bg) px-2">
+              {LIST_SORTS.map((s) => (
                 <option key={s} value={s}>
                   {t.sorts[s]}
                 </option>
@@ -125,11 +105,11 @@ export function Listing({
               </button>
             </form>
             <label className="as-sm flex h-10 items-center gap-2 font-semibold">
-              <input type="checkbox" checked={filters.in_stock === "1"} onChange={(e) => go({ in_stock: e.target.checked ? "1" : undefined })} className="size-4 accent-(--as-primary)" />
+              <input type="checkbox" checked={filters.in_stock === "1"} onChange={(e) => browse.inStock(e.target.checked)} className="size-4 accent-(--as-primary)" />
               {t.inStock}
             </label>
             {filtered ? (
-              <button type="button" onClick={() => router.push(basePath)} className="as-sm h-10 px-2 font-semibold as-primary hover:underline">
+              <button type="button" onClick={browse.clear} className="as-sm h-10 px-2 font-semibold as-primary hover:underline">
                 {t.clear}
               </button>
             ) : null}
@@ -148,7 +128,7 @@ export function Listing({
             text={t.emptyHint}
             action={
               filtered ? (
-                <button type="button" onClick={() => router.push(basePath)} className="as-btn as-sm">
+                <button type="button" onClick={browse.clear} className="as-btn as-sm">
                   {t.clear}
                 </button>
               ) : null
@@ -166,13 +146,13 @@ export function Listing({
       {meta.last_page > 1 ? (
         <nav className="flex items-center justify-center gap-2 pt-2" aria-label={t.page(meta.current_page, meta.last_page)}>
           {meta.current_page > 1 ? (
-            <StoreLink href={href(meta.current_page - 1)} className="flex size-10 items-center justify-center rounded-lg border hover:bg-(--as-soft)" aria-label={ar.storefront.previous}>
+            <StoreLink href={browse.pageHref(meta.current_page - 1)} className="flex size-10 items-center justify-center rounded-lg border hover:bg-(--as-soft)" aria-label={ar.storefront.previous}>
               <ChevronRight className="size-4" />
             </StoreLink>
           ) : null}
           <span className="as-sm as-muted px-2">{t.page(meta.current_page, meta.last_page)}</span>
           {meta.current_page < meta.last_page ? (
-            <StoreLink href={href(meta.current_page + 1)} className="flex size-10 items-center justify-center rounded-lg border hover:bg-(--as-soft)" aria-label={ar.storefront.next}>
+            <StoreLink href={browse.pageHref(meta.current_page + 1)} className="flex size-10 items-center justify-center rounded-lg border hover:bg-(--as-soft)" aria-label={ar.storefront.next}>
               <ChevronLeft className="size-4" />
             </StoreLink>
           ) : null}

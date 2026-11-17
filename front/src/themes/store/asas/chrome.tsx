@@ -5,9 +5,9 @@ import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { StoreLink, useHydrated, useTheme } from "./context";
+import { StoreLink, useHydrated, useTheme } from "@/themes/store/shared/context";
 import { SocialIcon } from "./icons";
-import { pick, SOCIALS } from "./types";
+import { pick, SOCIALS } from "@/themes/shared/design";
 
 const t = ar.storefront;
 

@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
 import { UpsellOffer } from "../../../upsell-offer";
-import { StoreLink } from "../context";
+import { StoreLink } from "@/themes/store/shared/context";
 import { Breadcrumb, Container } from "../parts";
 
 const t = ar.storefront;

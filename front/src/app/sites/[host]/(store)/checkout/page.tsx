@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { liveStore, storeMetadata } from "@/lib/public/store";
 import { ar } from "@/messages/ar";
-import { CheckoutView } from "@/themes/store/asas/pages/checkout";
+import { storeTheme } from "@/themes/store/registry";
 
 type Props = { params: Promise<{ host: string }> };
 
@@ -12,5 +12,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CheckoutPage({ params }: Props) {
   const { config } = await liveStore((await params).host);
-  return <CheckoutView config={config} />;
+  const { Checkout } = storeTheme(config.theme_key).pages;
+  return <Checkout config={config} />;
 }

@@ -3,8 +3,8 @@
 import * as React from "react";
 import type { StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
-import type { ThemeMode } from "../asas/context";
-import type { DesignData } from "../asas/types";
+import type { ThemeMode } from "@/themes/store/shared/context";
+import type { DesignData } from "@/themes/store/shared/types";
 import { Floaters, Footer, Header } from "./chrome";
 import { SufiRoot } from "./root";
 import { SectionView } from "./sections";

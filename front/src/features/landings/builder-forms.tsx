@@ -15,7 +15,7 @@ import type { MediaItem } from "@/features/media/api";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon } from "@/themes/store/asas/icons";
-import { FONTS, PALETTES, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls } from "@/themes/store/asas/types";
+import { FONTS, PALETTES, pick, SOCIALS, type Colors, type FontKey, type FontSize, type MediaUrls } from "@/themes/shared/design";
 import { SWITCHABLE, type ButtonShape, type FaqProps, type GalleryProps, type HeroProps, type OrderFormProps, type Settings } from "@/themes/landing/bidaya/types";
 
 const t = ar.landings.builder;

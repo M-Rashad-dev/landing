@@ -1,7 +1,9 @@
 /** «صوفي» design and the data its sections show (back end: App\Store\Design\SufiDesign, StoreDesigner::data). */
 
 import type { ProductOffer, StoreProduct } from "@/lib/store/types";
-import type { BannerProps, Colors, DesignData, FeaturesProps, LinkType, ProductCard, ProductsProps, Settings, TestimonialsProps } from "../asas/types";
+import type { Colors } from "@/themes/shared/design";
+import type { DesignData, ProductCard, StoreSettings } from "@/themes/store/shared/types";
+import type { BannerProps, FeaturesProps, LinkType, ProductsProps, TestimonialsProps } from "../asas/types";
 
 export type Link = { type: LinkType; target_id: number | null; url: string | null };
 export type Appearance = "light" | "dark" | "system";
@@ -11,14 +13,14 @@ export type Scheme = "light" | "dark";
 export type Size = "sm" | "md" | "lg";
 
 /** Settings added later are optional: designs saved before them read the defaults. */
-export type SufiSettings = Settings & {
+export type SufiSettings = StoreSettings & {
   colors_dark: Colors;
   appearance: { default: Appearance; toggle: boolean };
   /** A logo for the dark scheme (a black logo would vanish on a dark header). */
   logo_dark_media_id?: number | null;
-  header: Settings["header"] & { layout: "center" | "start" | "end"; topbar: boolean; height?: Size; logo_size?: Size };
-  footer: Settings["footer"] & { logo?: boolean; logo_size?: Size };
-  general: Settings["general"] & {
+  header: StoreSettings["header"] & { layout: "center" | "start" | "end"; topbar: boolean; height?: Size; logo_size?: Size };
+  footer: StoreSettings["footer"] & { logo?: boolean; logo_size?: Size };
+  general: StoreSettings["general"] & {
     floating_call: boolean;
     /** Numbers of the floating buttons; empty = the footer's phone / WhatsApp. */
     call_phone?: string | null;

@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import "../../store/asas/asas.css";
+import "@/themes/shared/base.css";
 import "./bidaya.css";
-import { FONT_SCALE, FONTS, inkOn, pick, type MediaUrls } from "@/themes/store/asas/types";
+import { FONT_SCALE, FONTS, inkOn, pick, type MediaUrls } from "@/themes/shared/design";
 import { BUTTON_RADIUS, type LandingData, type Settings } from "./types";
 
 /** Where the page is drawn: the live page, the Builder (sections selectable, nothing sent), or a preview. */

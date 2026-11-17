@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStoreProducts, listQuery, liveStore, queryKeyOf, storeMetadata } from "@/lib/public/store";
 import type { StoreCategory, StoreConfig } from "@/lib/store/types";
-import { Listing } from "@/themes/store/asas/pages/listing";
-import { pick } from "@/themes/store/asas/types";
+import { storeTheme } from "@/themes/store/registry";
+import { pick } from "@/themes/shared/design";
 
 type Props = { params: Promise<{ host: string; slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -47,6 +47,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const byId = new Map(config.categories.map((c) => [c.id, c]));
   const trail: StoreCategory[] = [];
   for (let c = category.parent_id ? byId.get(category.parent_id) : undefined; c; c = c.parent_id ? byId.get(c.parent_id) : undefined) trail.unshift(c);
+
+  const { Listing } = storeTheme(config.theme_key).pages;
 
   return (
     <Listing

@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon } from "@/themes/store/asas/icons";
-import { SOCIALS, type MediaUrls } from "@/themes/store/asas/types";
+import { SOCIALS, type MediaUrls } from "@/themes/shared/design";
 import { BidayaRoot, imageSrc, scrollToOrder, useImage, usePage, type PageMode } from "./context";
 import { OrderForm } from "./order-form";
 import { Faq, Features, Gallery, Hero, Testimonials, usePrice } from "./sections";

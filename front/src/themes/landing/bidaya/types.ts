@@ -1,6 +1,7 @@
 /** «بداية» page content and the data it shows (back end: App\Themes\BidayaDesign, PublicSite::payload). */
 import type { ProductOffer, ShippingConfig, StoreProduct } from "@/lib/store/types";
-import type { Colors, FontKey, FontSize, IconKey, MediaUrls, Social } from "@/themes/store/asas/types";
+import type { Colors, FontKey, FontSize, MediaUrls, Social } from "@/themes/shared/design";
+import type { IconKey } from "@/themes/store/asas/types";
 
 export type { Colors, FontKey, FontSize, IconKey, Social };
 

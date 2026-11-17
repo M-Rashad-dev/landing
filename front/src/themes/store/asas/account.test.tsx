@@ -9,7 +9,8 @@ import { ProductReviewsSection } from "./pages/reviews";
 import { CheckoutView } from "./pages/checkout";
 import { TrackView } from "./pages/track";
 import { AsasRoot } from "./root";
-import type { Design, DesignData } from "./types";
+import type { DesignData } from "@/themes/store/shared/types";
+import type { Design } from "./types";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn() }), usePathname: () => "/", useSearchParams: () => new URLSearchParams() }));

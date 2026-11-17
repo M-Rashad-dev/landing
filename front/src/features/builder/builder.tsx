@@ -38,10 +38,12 @@ import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { AsasStore, type Selection } from "@/themes/store/asas/asas-store";
-import { SufiStore } from "@/themes/store/sufi/sufi-store";
-import { SUFI_KEY, type SufiDesign, type SufiSection, type SufiSettings } from "@/themes/store/sufi/types";
-import type { Design, DesignData, MediaUrls, Section, Settings } from "@/themes/store/asas/types";
+import type { Selection } from "@/themes/store/asas/asas-store";
+import { storeTheme } from "@/themes/store/registry";
+import { SUFI_KEY, type SufiSection, type SufiSettings } from "@/themes/store/sufi/types";
+import type { MediaUrls } from "@/themes/shared/design";
+import type { DesignData, StoreSettings } from "@/themes/store/shared/types";
+import type { Design, Section } from "@/themes/store/asas/types";
 import { copySection, designKey, newSection, newSufiSection, publishDesign, saveDesign, sectionErrors, settingsErrors, useDesign, type AnySection, type DesignPayload } from "./api";
 import { SECTION_TYPES, SectionGallery, SectionIcon, SUFI_SECTION_TYPES, type AnySectionType } from "./section-gallery";
 import { BannerForm, FeaturesForm, ProductsForm, TestimonialsForm } from "./section-forms";
@@ -54,7 +56,7 @@ const th = ar.design.theme;
 
 type Edit = Selection | "look" | "general";
 /** The draft of any store theme (sections of «أساس» or «صوفي»). */
-type AnyDesign = { settings: Settings; sections: AnySection[] };
+type AnyDesign = { settings: StoreSettings; sections: AnySection[] };
 type Tab = "sections" | "theme";
 
 export function Builder() {
@@ -92,6 +94,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const [publishing, setPublishing] = React.useState(false);
   const [removing, setRemoving] = React.useState<AnySection | null>(null);
   const isSufi = initial.theme.key === SUFI_KEY;
+  const { Canvas } = storeTheme(initial.theme.key);
   const MAX_SECTIONS = isSufi ? 30 : 20;
   const [gallery, setGallery] = React.useState(false);
   const frame = React.useRef<HTMLDivElement>(null);
@@ -111,7 +114,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const allMedia = React.useMemo(() => ({ ...data.media, ...media }), [data.media, media]);
   const rememberMedia = React.useCallback((item: MediaItem) => setMedia((m) => ({ ...m, [String(item.id)]: item.urls })), []);
 
-  const setSettings = (settings: Settings) => change({ ...draft, settings }, true);
+  const setSettings = (settings: StoreSettings) => change({ ...draft, settings }, true);
   const setSection = (id: string, props: AnySection["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === id ? ({ ...s, props } as AnySection) : s)) }, true);
   const toggle = (id: string) => change({ ...draft, sections: draft.sections.map((x) => (x.id === id ? { ...x, visible: !x.visible } : x)) });
   const move = (id: string, by: -1 | 1) => {
@@ -444,20 +447,8 @@ function Editor({ initial }: { initial: DesignPayload }) {
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-5">
           <DeviceFrame device={device} host={host}>
             <div ref={frame} className="h-full overflow-y-auto">
-              {isSufi ? (
-                <SufiStore
-                  design={draft as unknown as SufiDesign}
-                  data={data}
-                  storeName={initial.store_name}
-                  mode="builder"
-                  selected={selected === "look" || selected === "general" ? null : selected}
-                  onSelect={(id) => select(id)}
-                  media={media}
-                  tools={tools}
-                />
-              ) : (
-              <AsasStore
-                design={draft as Design}
+              <Canvas
+                design={draft}
                 data={data}
                 storeName={initial.store_name}
                 mode="builder"
@@ -466,7 +457,6 @@ function Editor({ initial }: { initial: DesignPayload }) {
                 media={media}
                 tools={tools}
               />
-              )}
             </div>
           </DeviceFrame>
         </main>

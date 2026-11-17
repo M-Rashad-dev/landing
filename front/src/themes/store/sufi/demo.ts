@@ -4,7 +4,7 @@
  * the theme's demo page and never saved to any store.
  */
 import type { StoreProduct } from "@/lib/store/types";
-import type { DesignData } from "../asas/types";
+import type { DesignData } from "@/themes/store/shared/types";
 import type { SufiCard, SufiDesign, SufiSection } from "./types";
 
 const IMAGES = ["hero-1", "rack", "headphones", "watch", "runner", "sneaker", "hoodie", "tshirt", "sunglasses", "camera", "men", "women", "phone", "shop", "knit", "store"] as const;
