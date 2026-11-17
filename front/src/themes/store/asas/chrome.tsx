@@ -5,6 +5,7 @@ import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { whatsappLink } from "@/themes/store/shared/contact";
 import { StoreLink, useHydrated, useTheme } from "@/themes/store/shared/context";
 import { SocialIcon } from "./icons";
 import { pick, SOCIALS } from "@/themes/shared/design";
@@ -139,11 +140,6 @@ export function Header() {
       ) : null}
     </header>
   );
-}
-
-/** wa.me wants the number in international form: Egyptian 01… becomes 201…. */
-function whatsappLink(number: string): string {
-  return `https://wa.me/${number.replace(/\D/g, "").replace(/^0/, "20")}`;
 }
 
 /** About, pages, contact and social, then the copyright and «صنع بواسطة مكسب» (always shown for now). */

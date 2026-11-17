@@ -1,15 +1,11 @@
 "use client";
 
 import { Check, ImageOff, ShoppingBag } from "lucide-react";
-import * as React from "react";
 import { formatMoney } from "@/lib/format";
-import { addToCart, quantityInCart, useCart } from "@/lib/store/cart";
-import { sendStoreEvent } from "@/lib/store/events";
-import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
-import { StoreLink, useTheme } from "@/themes/store/shared/context";
+import { StoreLink } from "@/themes/store/shared/context";
+import { useQuickAdd } from "@/themes/store/shared/use-quick-add";
 import { Stars } from "../asas/parts";
-import { useShop } from "../shared/shop";
 import { pick } from "@/themes/shared/design";
 import type { SufiCard } from "./types";
 
@@ -17,25 +13,9 @@ const t = ar.sufi;
 
 /** «صوفي»'s product card: the second picture on hover, the discount, and «أضف للسلة» over the image. */
 export function ProductCard({ product }: { product: SufiCard }) {
-  const { mode } = useTheme();
-  const shop = useShop();
-  const href = `/products/${encodeURIComponent(product.slug)}`;
+  const { href, direct, inCart, add, note } = useQuickAdd(product);
   const image = pick(product.image?.urls, "medium");
   const second = pick(product.image_2?.urls, "medium");
-  const direct = mode === "live" && shop !== null && product.available && !product.needs_options;
-  const inCart = quantityInCart(useCart(), { product_id: product.id, options: {} });
-  const [note, setNote] = React.useState<string | null>(null);
-
-  const add = () => {
-    const result = addToCart({ product_id: product.id, quantity: 1, options: {}, name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
-    if (result !== "added") {
-      setNote(result === "max" ? ar.storefront.product.maxReached(inCart) : ar.storefront.product.cartFull);
-      return;
-    }
-    setNote(null);
-    sendStoreEvent("add_to_cart");
-    track("AddToCart", { content_ids: [product.id], content_name: product.name, value: product.price, num_items: 1 });
-  };
 
   const button = "sf-btn sf-btn-ink as-sm h-11 w-full";
   return (

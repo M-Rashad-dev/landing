@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Themes\Store;
 
+use App\Enums\PromotionTarget;
 use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Category;
 use App\Models\Identity;
 use App\Models\Media;
+use App\Models\Offer;
 use App\Models\Store;
 use App\Models\StoreDesign;
 use App\Models\StorePage;
@@ -105,6 +107,7 @@ final class StoreDesigner
         $links = [];
         $tiles = [];
         $featured = [];
+        $bundles = [];
         $mediaIds = array_filter([$design['settings']['logo_media_id'] ?? null, $design['settings']['logo_dark_media_id'] ?? null, $design['settings']['favicon_media_id'] ?? null]);
 
         foreach ($design['sections'] as $section) {
@@ -148,6 +151,19 @@ final class StoreDesigner
             if ($section['type'] === 'featured_product') {
                 $featured[$id] = $this->featured((int) $props['product_id']);
             }
+            // «شابع»: the hero's two buttons, and each pack card's offer with where it leads.
+            if ($section['type'] === 'food_hero') {
+                $links["{$id}:primary"] = $this->href($props['primary_link'], $bySlug->all());
+                $links["{$id}:second"] = $this->href($props['second_link'], $bySlug->all());
+            }
+            if ($section['type'] === 'bundles') {
+                array_push($mediaIds, ...array_filter(array_column($props['cards'], 'media_id')));
+                $bundles[$id] = array_map(fn (array $card) => $this->bundle((int) $card['offer_id']), $props['cards']);
+            }
+        }
+        // A header button with a link of its own («شابع»'s «اطلب دلوقتي»).
+        if (isset($design['settings']['header']['button_link'])) {
+            $links['header_button'] = $this->href($design['settings']['header']['button_link'], $bySlug->all());
         }
         if (isset($design['settings']['general']['offers_tab'])) {
             $links['offers_tab'] = $this->href($design['settings']['general']['offers_tab']['link'], $bySlug->all());
@@ -166,6 +182,7 @@ final class StoreDesigner
             // «صوفي»: the category tiles and the featured product of their sections.
             'category_tiles' => (object) $tiles,
             'featured' => (object) $featured,
+            'bundles' => (object) $bundles,
         ];
     }
 
@@ -202,6 +219,35 @@ final class StoreDesigner
             'product' => $this->pageData->product($product),
             'offers' => $this->pageData->offers($product, now()),
             'rating' => $this->reviews->summary($product->id),
+        ];
+    }
+
+    /**
+     * A pack card's offer as visitors see it, the product it is for (when it is for one product) and
+     * where its button leads; null when the offer can't be offered now (stopped, ended, plan-locked).
+     *
+     * @return array{offer: array<string, mixed>, product: array<string, mixed>|null, href: string}|null
+     */
+    private function bundle(int $offerId): ?array
+    {
+        $now = now();
+        $offer = Offer::query()->servable()->whereKey($offerId)
+            ->where(fn ($q) => $q->where(fn ($active) => $active->activeAt($now))->orWhere(fn ($soon) => $soon->upcomingAt($now)))
+            ->with('giftProduct')
+            ->first();
+        if ($offer === null) {
+            return null;
+        }
+        $product = null;
+        if ($offer->applies_to === PromotionTarget::Products) {
+            $ids = $offer->products()->orderBy('offer_products.product_id')->pluck('products.id')->map(fn ($v) => (int) $v)->all();
+            $product = $this->catalog->cards($ids)[0] ?? null;
+        }
+
+        return [
+            'offer' => $this->pageData->offer($offer, $now),
+            'product' => $product,
+            'href' => $product === null ? '/offers' : '/products/'.rawurlencode((string) $product['slug']),
         ];
     }
 

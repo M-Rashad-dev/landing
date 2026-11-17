@@ -5,6 +5,7 @@ import * as React from "react";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { whatsappLink } from "@/themes/store/shared/contact";
 import { StoreLink, useHydrated, useTheme } from "@/themes/store/shared/context";
 import { SocialIcon, WhatsAppIcon } from "../asas/icons";
 import { pick, SOCIALS } from "@/themes/shared/design";
@@ -336,11 +337,6 @@ const FOOTER_LOGO: Record<Size, string> = {
   md: "h-11 max-w-[12rem]",
   lg: "h-16 max-w-[16rem]",
 };
-
-/** A number written by the merchant → a wa.me link (Egyptian 01… numbers get +20). */
-function whatsappLink(number: string): string {
-  return `https://wa.me/${number.replace(/\D/g, "").replace(/^0/, "20")}`;
-}
 
 export function Footer() {
   const { settings, data, media, storeName } = useSufi();

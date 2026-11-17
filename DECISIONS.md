@@ -458,3 +458,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Back: `StoreThemeDesign` (abstract) holds the validation once; each store theme declares its section types, max sections and settings groups (`look`, `header`, `footer`, `general`, later `product_card`, `product_page`, `listing`, `cart` for the themes that draw them). `StoreSections` is the one library of section types; `StoreThemes` the one registry. A store can't switch to a theme row the code doesn't have.
 - Front: `features/builder/themes/` is the Builder's registry (a form per group, a section form, new sections); the Builder has no per-theme conditions. Section types and the limit come from the server payload. Shared section forms moved out of «صوفي»'s file into `library-forms.tsx`.
 - Owner's rule for all future work: the system first — extensible, so a change never breaks other parts.
+
+## 2026-11-17 — «شابع · متجر», part 1 (home, header, footer)
+- Food store theme `shabe_store`, sold apart from the landing «شابع» (990 placeholder price), hidden from the theme store until its three parts are built. 15 home sections; new library types `food_hero`, `why`, `steps`, `bundles` (cards tied to real offers), `hours`.
+- «مواعيد العمل» (owner decision): days and hours set in the section, the open / closed messages too; the status is computed in the visitor's browser by Cairo time (shown only after hydration, so server and browser draw the same page). No prep time per product, no min/max order, no product tags (later, elsewhere).
+- Its look is its own (`ss-` CSS, own header with countdown strip, hotline and order button, own dish card); copying the landing's sections was the starting point, then changed for a store.

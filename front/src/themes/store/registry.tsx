@@ -11,6 +11,8 @@ import { TrackView } from "./asas/pages/track";
 import { ASAS_KEY, type Design } from "./asas/types";
 import type { ThemeMode } from "./shared/context";
 import type { DesignData } from "./shared/types";
+import { ShabeFrame, ShabeHomeSections, ShabeStore } from "./shabe/shabe-store";
+import { SHABE_STORE_KEY, type ShabeStoreDesign, type ShabeStoreSection } from "./shabe/types";
 import { SufiFrame, SufiHomeSections, SufiStore } from "./sufi/sufi-store";
 import { SUFI_KEY, type Scheme, type SufiDesign, type SufiSection } from "./sufi/types";
 
@@ -69,6 +71,15 @@ function SufiCanvas({ design, ...rest }: CanvasProps) {
   return <SufiStore design={design as SufiDesign} {...rest} />;
 }
 
+function ShabeHome({ config }: { config: StoreConfig }) {
+  return <ShabeHomeSections sections={config.design.sections as unknown as ShabeStoreSection[]} />;
+}
+
+function ShabeCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
+  void _scheme;
+  return <ShabeStore design={design as ShabeStoreDesign} {...rest} />;
+}
+
 /**
  * Every store theme by key: what the live store, the Builder and the preview draw. A new store
  * theme is added here once (its frame, home, canvas and pages); nothing else picks by key.
@@ -77,6 +88,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   [ASAS_KEY]: { Frame: AsasFrame, Home: AsasHome, Canvas: AsasCanvas, pages: ASAS_PAGES },
   // «صوفي» draws its own frame and home; its inner pages are «أساس»'s in its colors (for now).
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES },
+  // «شابع · متجر»: its own frame and home; its own inner pages come in its next parts («أساس»'s meanwhile).
+  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: ASAS_PAGES },
 };
 
 /** Every store theme this front end draws (the Builder's registry must list the same). */

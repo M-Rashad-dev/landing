@@ -25,7 +25,15 @@ final class StoreSections
 
     public const ICONS = ['truck', 'cash', 'return', 'shield', 'support', 'gift', 'star', 'clock', 'tag', 'heart', 'package', 'phone'];
 
+    /** Food themes add their own icons to the base ones. */
+    public const FOOD_ICONS = [...self::ICONS, 'flame', 'chef', 'leaf', 'utensils', 'meat', 'timer', 'thermo', 'bike', 'soup', 'sparkle'];
+
     public const LINK_TYPES = ['none', 'all_products', 'offers', 'category', 'product', 'url'];
+
+    /** «مواعيد العمل»: one row per day, Saturday first (the Egyptian week). */
+    public const WEEK_DAYS = 7;
+
+    public const TIME = 'regex:/^([01]\d|2[0-3]):[0-5]\d$/';
 
     public const HERO_HEIGHTS = ['full', 'large', 'medium'];
 
@@ -213,6 +221,60 @@ final class StoreSections
                 "{$s}.props.items.*.question" => $text(160, true),
                 "{$s}.props.items.*.answer" => $text(1000, true),
             ],
+            'food_hero' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(100, true),
+                "{$s}.props.highlight" => $text(40),
+                "{$s}.props.subtitle" => $text(300),
+                "{$s}.props.media_id" => $media(false),
+                "{$s}.props.stickers" => ['present', 'array', 'max:2'],
+                "{$s}.props.stickers.*" => $text(30, true),
+                "{$s}.props.badge" => $text(20),
+                "{$s}.props.primary_label" => $text(30, true),
+                ...self::linkRules("{$s}.props.primary_link", (array) ($props['primary_link'] ?? [])),
+                "{$s}.props.second_label" => $text(30),
+                ...self::linkRules("{$s}.props.second_link", (array) ($props['second_link'] ?? [])),
+                "{$s}.props.trust" => ['present', 'array', 'max:4'],
+                "{$s}.props.trust.*.icon" => ['required', Rule::in(self::FOOD_ICONS)],
+                "{$s}.props.trust.*.text" => $text(40, true),
+            ],
+            'why' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.subtitle" => $text(200),
+                "{$s}.props.media_id" => $media(false),
+                "{$s}.props.quote" => $text(200),
+                ...$this->iconItems($s, 2, 6),
+            ],
+            'steps' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                ...$this->iconItems($s, 2, 5),
+            ],
+            'bundles' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.subtitle" => $text(200),
+                "{$s}.props.cards" => ['required', 'array', 'min:1', 'max:4'],
+                "{$s}.props.cards.*.offer_id" => ['required', 'integer', TenantExists::table('offers')],
+                "{$s}.props.cards.*.media_id" => $media(false),
+                "{$s}.props.cards.*.title" => $text(60, true),
+                "{$s}.props.cards.*.subtitle" => $text(80),
+                "{$s}.props.cards.*.points" => ['present', 'array', 'max:5'],
+                "{$s}.props.cards.*.points.*" => $text(60, true),
+                "{$s}.props.cards.*.ribbon" => $text(24),
+                "{$s}.props.cards.*.button_label" => $text(30),
+            ],
+            'hours' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.subtitle" => $text(200),
+                "{$s}.props.days" => ['required', 'array', 'size:'.self::WEEK_DAYS],
+                "{$s}.props.days.*.open" => ['required', 'boolean'],
+                "{$s}.props.days.*.from" => ['required', 'string', self::TIME],
+                "{$s}.props.days.*.to" => ['required', 'string', self::TIME],
+                "{$s}.props.open_message" => $text(160, true),
+                "{$s}.props.closed_message" => $text(160, true),
+            ],
             'location' => [
                 "{$s}.props.title" => $text(80),
                 "{$s}.props.description" => $text(200),
@@ -355,8 +417,73 @@ final class StoreSections
                     'map_url' => trim((string) $b['map_url']),
                 ], (array) $p['branches'])),
             ],
+            'food_hero' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'highlight' => $str($p['highlight'] ?? null),
+                'subtitle' => $str($p['subtitle'] ?? null),
+                'media_id' => $mediaOrNull($p['media_id'] ?? null),
+                'stickers' => array_values(array_map(fn ($t) => (string) $str($t), (array) $p['stickers'])),
+                'badge' => $str($p['badge'] ?? null),
+                'primary_label' => (string) $str($p['primary_label']),
+                'primary_link' => self::cleanLink((array) $p['primary_link']),
+                'second_label' => $str($p['second_label'] ?? null),
+                'second_link' => self::cleanLink((array) $p['second_link']),
+                'trust' => array_values(array_map(fn (array $t) => ['icon' => (string) $t['icon'], 'text' => (string) $str($t['text'])], (array) $p['trust'])),
+            ],
+            'why' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'subtitle' => $str($p['subtitle'] ?? null),
+                'media_id' => $mediaOrNull($p['media_id'] ?? null),
+                'quote' => $str($p['quote'] ?? null),
+                'items' => $this->cleanIconItems($p),
+            ],
+            'steps' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'items' => $this->cleanIconItems($p),
+            ],
+            'bundles' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'subtitle' => $str($p['subtitle'] ?? null),
+                'cards' => array_values(array_map(fn (array $c) => [
+                    'offer_id' => (int) $c['offer_id'],
+                    'media_id' => $mediaOrNull($c['media_id'] ?? null),
+                    'title' => (string) $str($c['title']),
+                    'subtitle' => $str($c['subtitle'] ?? null),
+                    'points' => array_values(array_map(fn ($t) => (string) $str($t), (array) $c['points'])),
+                    'ribbon' => $str($c['ribbon'] ?? null),
+                    'button_label' => $str($c['button_label'] ?? null),
+                ], (array) $p['cards'])),
+            ],
+            'hours' => [
+                'title' => $str($p['title'] ?? null),
+                'subtitle' => $str($p['subtitle'] ?? null),
+                'days' => array_values(array_map(fn (array $d) => ['open' => (bool) $d['open'], 'from' => (string) $d['from'], 'to' => (string) $d['to']], (array) $p['days'])),
+                'open_message' => (string) $str($p['open_message']),
+                'closed_message' => (string) $str($p['closed_message']),
+            ],
             default => throw new \LogicException("Unknown store section type «{$type}»."),
         };
+    }
+
+    /** Rules of a list of {icon, title, text} items. @return array<string, mixed> */
+    private function iconItems(string $s, int $min, int $max): array
+    {
+        return [
+            "{$s}.props.items" => ['required', 'array', "min:{$min}", "max:{$max}"],
+            "{$s}.props.items.*.icon" => ['required', Rule::in(self::FOOD_ICONS)],
+            "{$s}.props.items.*.title" => self::text(40, true),
+            "{$s}.props.items.*.text" => self::text(160),
+        ];
+    }
+
+    /** @param array<string, mixed> $p @return list<array{icon: string, title: string, text: string|null}> */
+    private function cleanIconItems(array $p): array
+    {
+        return array_values(array_map(fn (array $i) => ['icon' => (string) $i['icon'], 'title' => (string) self::str($i['title']), 'text' => self::str($i['text'] ?? null)], (array) $p['items']));
     }
 
     /** @param array<string, mixed> $props @return array<string, mixed> */

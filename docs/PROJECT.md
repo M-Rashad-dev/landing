@@ -331,6 +331,7 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 | `sufi_store` «صوفي» | store | paid (990 placeholder) | light luxury theme with dark mode; 16 home sections (≤30); see below |
 | `bidaya_landing` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
 | `shabe_landing` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
+| `shabe_store` «شابع» | store | paid (990 placeholder), hidden until done | food store: 15 home sections (≤30) incl. «مواعيد العمل»; see below |
 
 ### «شابع» (paid food landing theme)
 - Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
@@ -392,6 +393,20 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 - Decision: paid themes change the **home, header and footer**; inner pages stay shared for now (future themes may
   restyle inner pages — the owner saw a product-page design for Sufi but it is not built; it also needed size
   guides, delivery estimates and review photos which don't exist yet).
+
+### «شابع · متجر» (food store, part 1 of 3: home, header, footer)
+- Back `ShabeStoreDesign`: base settings + `colors.dark`, `display_font` (Lalezar titles), `button` shape, header
+  `layout start|center`, `countdown_ends_at`, `hotline` (5-digit hotlines allowed), `button_label/button_link`,
+  `categories_menu`; footer `dark`, `payments`; general `floating_call`, `call_phone`, `animations`. New library
+  types in `StoreSections`: `food_hero`, `why`, `steps`, `bundles` (cards tied to offers; `StoreDesigner::data()`
+  sends `bundles[section][card] = {offer, product|null, href}`, null when the offer can't be offered), `hours`
+  (7 days Saturday first, open/from/to, open and closed messages).
+- Front `themes/store/shabe/` (prefix `ss-`, never the landing's `sh-`), own header/footer/card; inner pages are
+  «أساس»'s until parts 2–3 (product page + card settings, then category pages + cart). Shared logic added:
+  `use-quick-add` (card add-to-cart, «صوفي» uses it too), `use-hours` (`isOpenAt`, `cairoNow`: Cairo time, hours
+  past midnight count for the day they started), `use-countdown`, `contact` (`whatsappLink`, `telLink`).
+- Builder: `features/builder/themes/shabe.tsx` + `shabe-store-forms.tsx`. The theme row is unlisted
+  (`'listed' => false` in `ThemeSeeder`) until all parts are built; the admin lists it.
 
 ### Adding a new store theme (checklist)
 1. Back: a class extending `StoreThemeDesign` in `app/Themes/Store/` (its section types from `StoreSections`; a new

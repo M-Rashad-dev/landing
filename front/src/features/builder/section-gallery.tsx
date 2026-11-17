@@ -1,13 +1,14 @@
 "use client";
 
-import { BookOpen, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, MapPin, MessageSquareQuote, PanelsTopLeft, PlaySquare, Sparkles, Star, Text, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListOrdered, MapPin, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { SectionType } from "@/themes/store/asas/types";
+import type { ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSectionType } from "@/themes/store/sufi/types";
 
-export type AnySectionType = SectionType | SufiSectionType;
+export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionType;
 
 const t = ar.design.builder;
 
@@ -34,6 +35,11 @@ export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: stri
   gallery: { icon: GalleryHorizontalEnd, tint: "bg-pink-100 text-pink-700" },
   faq: { icon: CircleHelp, tint: "bg-cyan-100 text-cyan-700" },
   location: { icon: MapPin, tint: "bg-lime-100 text-lime-800" },
+  food_hero: { icon: UtensilsCrossed, tint: "bg-orange-100 text-orange-700" },
+  why: { icon: ChefHat, tint: "bg-stone-200 text-stone-800" },
+  steps: { icon: ListOrdered, tint: "bg-sky-100 text-sky-700" },
+  bundles: { icon: Package, tint: "bg-rose-100 text-rose-700" },
+  hours: { icon: CalendarClock, tint: "bg-emerald-100 text-emerald-700" },
 };
 
 export function SectionIcon({ type, size = "md" }: { type: AnySectionType; size?: "sm" | "md" }) {

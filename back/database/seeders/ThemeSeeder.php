@@ -45,6 +45,14 @@ class ThemeSeeder extends Seeder
             'features' => ['16 قسم للرئيسية', 'وضع ليلي بألوانك', 'بداية بملء الشاشة مع الهيدر', 'عرض بعداد ومنتج مميز', 'فيديو وقصة المتجر وفروعك على الخريطة', 'أزرار واتساب واتصال عائمة'],
             'tags' => ['fashion', 'electronics', 'accessories'],
         ],
+        [
+            // Hidden from the theme store until all its parts are built (the admin lists it then).
+            'key' => 'shabe_store', 'name' => 'شابع', 'sort_order' => 21, 'price' => 990, 'kind' => 'store', 'listed' => false,
+            'short_description' => 'متجر أكل يفتح النفس: مطاعم ومطابخ بيتي وحلويات وبوكسات.',
+            'description' => 'متجر كامل معمول للأكل. بداية بصورة أكل كبيرة وكلمة ملوّنة وملصقات، وهيدر فيه عداد العرض والخط الساخن وزرار «اطلب دلوقتي». المنيو بالأقسام وبالتبويبات، وكروت باقات مربوطة بعروضك، و«ليه إحنا» على خلفية غامقة، وخطوات الطلب، وعداد عرض، وفيديو من مطبخك، ومعرض صور، وآراء عملائك، ومواعيد العمل اللي بتقول للعميل المطبخ شغال ولا مقفول دلوقتي، وفروعك على الخريطة.',
+            'features' => ['15 قسم معمولين للأكل', 'مواعيد العمل: شغال ولا مقفول دلوقتي', 'كروت باقات مربوطة بعروضك', 'هيدر بعداد وخط ساخن', 'فوتر فاتح أو غامق'],
+            'tags' => ['food'],
+        ],
     ];
 
     private const TAGS = [
@@ -73,7 +81,7 @@ class ThemeSeeder extends Seeder
             if ($existing->short_description === null && ! $existing->is_listed) {
                 $existing->update([
                     'price' => $theme['price'],
-                    'is_listed' => true,
+                    'is_listed' => $theme['listed'] ?? true,
                     'released_at' => now(),
                     'version' => '1.0',
                 ]);

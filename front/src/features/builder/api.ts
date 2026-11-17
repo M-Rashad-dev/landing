@@ -5,10 +5,11 @@ import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
 import type { DesignData } from "@/themes/store/shared/types";
 import type { Design, Section, SectionType } from "@/themes/store/asas/types";
+import type { ShabeStoreSection, ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
 
-/** A section of any store theme («أساس» or «صوفي»). */
-export type AnySection = Section | SufiSection;
+/** A section of any store theme. */
+export type AnySection = Section | SufiSection | ShabeStoreSection;
 
 export type DesignPayload = {
   /** The theme, with what the server accepts for it (the Builder offers exactly these). */
@@ -123,6 +124,31 @@ export function newSufiSection(type: SufiSectionType): AnySection {
       return make("location", { title: ds.location.title, description: null, branches: [{ name: "", address: "", hours: null, phone: null, map_url: "" }] });
     default:
       return newSection(type as SectionType);
+  }
+}
+
+const sh = ar.design.shabeStore;
+
+/** A new «شابع · متجر» section, ready to edit (library types come from newSufiSection, «أساس»'s from newSection). */
+export function newShabeStoreSection(type: ShabeStoreSectionType): AnySection {
+  const id = newId();
+  const make = <T extends ShabeStoreSectionType>(t: T, props: Extract<ShabeStoreSection, { type: T }>["props"]) => ({ id, type: t, visible: true, props }) as ShabeStoreSection;
+  const all = { type: "all_products" as const, target_id: null, url: null };
+  switch (type) {
+    case "food_hero":
+      return make("food_hero", { kicker: null, title: ds.food_hero.title, highlight: null, subtitle: null, media_id: null, stickers: [], badge: null, primary_label: ar.shabeStore.allProducts, primary_link: all, second_label: null, second_link: none, trust: [] });
+    case "why":
+      return make("why", { kicker: null, title: ds.why.title, subtitle: null, media_id: null, quote: null, items: [{ icon: "chef", title: d.featureTitle, text: null }, { icon: "leaf", title: d.featureTitle, text: null }] });
+    case "steps":
+      return make("steps", { kicker: null, title: ds.steps.title, items: [{ icon: "utensils", title: d.featureTitle, text: null }, { icon: "bike", title: d.featureTitle, text: null }] });
+    case "bundles":
+      return make("bundles", { kicker: null, title: ds.bundles.title, subtitle: null, cards: [{ offer_id: 0, media_id: null, title: "", subtitle: null, points: [], ribbon: null, button_label: null }] });
+    case "hours":
+      return make("hours", { title: ds.hours.title, subtitle: null, days: sh.hours.days.map(() => ({ open: true, from: "12:00", to: "23:00" })), open_message: ar.shabeStore.hours.openNow, closed_message: ar.shabeStore.hours.closedNow });
+    case "testimonials":
+      return make("testimonials", { title: d.testimonialsTitle, source: "auto", items: [] });
+    default:
+      return newSufiSection(type as SufiSectionType);
   }
 }
 

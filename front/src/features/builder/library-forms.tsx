@@ -70,7 +70,7 @@ export function LinkField({ value, onChange, errors, prefix }: { value: Link; on
   );
 }
 
-function Text({ id, label, value, onChange, error, max, required = false, area = false, hint }: { id: string; label: string; value: string | null; onChange: (v: string | null) => void; error?: string; max: number; required?: boolean; area?: boolean; hint?: string }) {
+export function Text({ id, label, value, onChange, error, max, required = false, area = false, hint }: { id: string; label: string; value: string | null; onChange: (v: string | null) => void; error?: string; max: number; required?: boolean; area?: boolean; hint?: string }) {
   return (
     <Field label={label} htmlFor={id} error={error} required={required} optional={!required} hint={hint}>
       {area ? (
