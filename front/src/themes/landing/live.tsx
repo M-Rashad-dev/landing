@@ -7,12 +7,8 @@ import type { LandingPayload } from "@/lib/public/landing";
 import { TrackingScripts } from "@/lib/tracking/scripts";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
-import { ShabePage } from "./shabe/page";
-import { ShabeRoot } from "./shabe/root";
-import { SHABE_KEY, type ShabeContent } from "./shabe/types";
-import { BidayaRoot } from "./bidaya/context";
-import { BidayaPage } from "./bidaya/page";
 import type { LandingData } from "./bidaya/types";
+import { landingTheme } from "./registry";
 import { UpsellOffer } from "../upsell-offer";
 import { PLACED_KEY, sendPageEvent, type Placed } from "./bidaya/use-order";
 
@@ -42,9 +38,10 @@ export function LandingLive({ payload }: { payload: LandingPayload }) {
     return () => window.clearTimeout(timer);
   }, [payload.page.slug, payload.product]);
 
+  const { Page } = landingTheme(payload.theme_key);
   return (
     <>
-      {payload.theme_key === SHABE_KEY ? <ShabePage content={payload.content as unknown as ShabeContent} data={data} mode="live" /> : <BidayaPage content={payload.content} data={data} mode="live" />}
+      <Page content={payload.content} data={data} mode="live" />
       <TrackingScripts tracking={payload.tracking} />
     </>
   );
@@ -80,10 +77,10 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
   }, [payload.page.slug, payload.tracking, orderNumber]);
 
   const number = placed?.number ?? orderNumber;
-  const Root = payload.theme_key === SHABE_KEY ? ShabeRoot : BidayaRoot;
+  const { Root } = landingTheme(payload.theme_key);
   return (
     <>
-      <Root settings={payload.content.settings as ShabeContent["settings"]} data={data} mode="live" className="flex min-h-dvh items-center justify-center px-4 py-12">
+      <Root settings={payload.content.settings} data={data} mode="live" className="flex min-h-dvh items-center justify-center px-4 py-12">
         <div className="bd-card flex w-full max-w-md flex-col items-center gap-4 p-7 text-center">
           <CheckCircle2 className="size-16 text-green-600" aria-hidden />
           <h1 className="as-2xl font-extrabold">{t.title}</h1>

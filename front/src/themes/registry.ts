@@ -10,6 +10,7 @@ export const THEME_SHOTS: Record<string, string[]> = {
   sufi_store: shots("store", "sufi"),
   bidaya_landing: shots("landing", "bidaya"),
   shabe_landing: shots("landing", "shabe"),
+  sufi_landing: shots("landing", "sufi"),
   shabe_store: shots("store", "shabe"),
 };
 

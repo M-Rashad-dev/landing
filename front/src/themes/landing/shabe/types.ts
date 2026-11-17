@@ -71,6 +71,3 @@ export type ShabeSectionType = ShabeSection["type"];
 export type ShabeContent = { version: number; settings: ShabeSettings; sections: ShabeSection[] };
 
 export const SHABE_MAX_SECTIONS = 20;
-
-/** Asks the order form to pick an offer (0 = one piece) — sent by the pack cards. */
-export const CHOOSE_OFFER_EVENT = "shabe:choose-offer";

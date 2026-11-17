@@ -5,7 +5,7 @@ import type { ProductOffer } from "@/lib/store/types";
 import { ar } from "@/messages/ar";
 import type { LandingData } from "@/themes/landing/bidaya/types";
 import { ShabePage } from "./page";
-import { dealOf } from "./sections";
+import { dealOf } from "@/themes/landing/shared/offers";
 import type { ShabeContent } from "./types";
 
 const push = vi.fn();

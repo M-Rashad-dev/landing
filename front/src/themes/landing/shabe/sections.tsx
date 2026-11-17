@@ -3,17 +3,15 @@
 import { Check, ImageOff, Play, Plus, Star, X } from "lucide-react";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
-import { activeOffers, offerQuantity } from "@/lib/store/offers";
-import type { ProductOffer } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { MediaUrls } from "@/themes/shared/design";
 import { imageSrc, scrollToOrder, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
 import { usePrice } from "@/themes/landing/bidaya/sections";
+import { chooseOffer, highlightedCard, offerCards, useOfferChoice } from "@/themes/landing/shared/offers";
 import { embedUrl, youtubePoster } from "@/themes/store/sufi/types";
 import { SHABE_ICONS } from "./icons";
 import {
-  CHOOSE_OFFER_EVENT,
   type BundlesProps,
   type CompareProps,
   type FaqProps,
@@ -105,42 +103,6 @@ export function timeLeft(endsAt: string, now: number | null): { parts: Array<{ v
 }
 
 export const pad = (n: number) => String(n).padStart(2, "0");
-
-/* ---------- price of an offer (display only: the order form shows the server's price) ---------- */
-
-export type Deal = { offer: ProductOffer | null; quantity: number; total: number; was: number };
-
-/** What a card costs: the offer's quantity at the offer's price (same rules as App\Pricing\PriceMath). */
-export function dealOf(offer: ProductOffer | null, price: number): Deal {
-  const quantity = offer ? offerQuantity(offer) : 1;
-  const was = price * quantity;
-  let total = was;
-  if (offer) {
-    const v = offer.value ?? 0;
-    switch (offer.type) {
-      case "percentage":
-        total = was - Math.round(was * v) / 100;
-        break;
-      case "fixed":
-        total = was - Math.min(v * quantity, was);
-        break;
-      case "bundle": {
-        const size = offer.bundle_quantity ?? 0;
-        if (size >= 2 && quantity >= size) total = Math.floor(quantity / size) * (offer.bundle_price ?? 0) + (quantity % size) * price;
-        break;
-      }
-      case "buy_get": {
-        const buy = Math.max(1, offer.min_quantity ?? 1);
-        const free = offer.free_quantity ?? 0;
-        if (free > 0) total = (quantity - Math.floor(quantity / (buy + free)) * free) * price;
-        break;
-      }
-      case "gift":
-        break;
-    }
-  }
-  return { offer, quantity, total: Math.max(0, Math.round(total * 100) / 100), was };
-}
 
 /* ---------- 1. hero ---------- */
 
@@ -343,35 +305,17 @@ export function Steps({ props }: { props: StepsProps }) {
 
 /* ---------- 6. packs (tied to the product's offers) ---------- */
 
-/** Picks the offer in the order form, then goes to it. */
-function chooseOffer(id: number, mode: string) {
-  if (mode === "builder") return;
-  window.dispatchEvent(new CustomEvent(CHOOSE_OFFER_EVENT, { detail: id }));
-  scrollToOrder("live");
-}
-
 export function Bundles({ props }: { props: BundlesProps }) {
   const { data, mode } = usePage();
   const image = useImages();
   const productImages = useProductImages();
-  const price = data.product?.price ?? 0;
-  const offers = activeOffers(data.offers);
   const [chosen, setChosen] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    const on = (e: Event) => setChosen(Number((e as CustomEvent<number>).detail));
-    window.addEventListener(CHOOSE_OFFER_EVENT, on);
-    return () => window.removeEventListener(CHOOSE_OFFER_EVENT, on);
-  }, []);
+  useOfferChoice(setChosen);
 
   // The merchant's cards, or one per running offer (and the single piece first).
-  const cards = props.cards.length
-    ? props.cards.map((card) => ({ card, deal: card.offer_id === null ? dealOf(null, price) : (() => { const o = offers.find((x) => x.id === card.offer_id); return o ? dealOf(o, price) : null; })() }))
-    : [null, ...offers].map((offer) => ({ card: null, deal: dealOf(offer, price) }));
-  const shown = cards.filter((c) => c.deal !== null || mode === "builder");
+  const shown = offerCards(props.cards, data.offers, data.product?.price ?? 0).filter((c) => c.deal !== null || mode === "builder");
   if (!data.product || (shown.length === 0 && mode === "live")) return null;
-  const best = shown.reduce<number>((at, c, i) => (c.deal && c.deal.total < c.deal.was && (at < 0 || (shown[at].deal?.quantity ?? 0) < c.deal.quantity) ? i : at), -1);
-  const highlighted = props.cards.length ? shown.findIndex((c) => c.card?.ribbon) : best;
+  const highlighted = highlightedCard(shown, props.cards.length > 0);
 
   return (
     <section className="sh-cream sh-section">

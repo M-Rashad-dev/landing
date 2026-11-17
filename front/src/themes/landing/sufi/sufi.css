@@ -1,0 +1,139 @@
+/*
+ * «صوفي · صفحة هبوط»: the luxury landing theme. Built on the store utilities (as-*) and «بداية»'s
+ * button shape; adds a serif title font, thin gold lines, a calm rhythm and the dark mode (the
+ * root swaps the color variables). Like the other themes it reacts to its own width (container
+ * queries), so the Builder's phone frame shows the phone layout.
+ */
+.sl-root {
+  --sl-radius: 1.4rem;
+  --sl-surface: color-mix(in srgb, var(--as-text) 3%, var(--as-bg));
+  --sl-gold: color-mix(in srgb, var(--as-primary) 55%, var(--as-bg));
+  --sl-soft: color-mix(in srgb, var(--as-primary) 10%, var(--as-bg));
+  overflow-x: clip;
+  background: var(--as-bg);
+  color: var(--as-text);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.sl-root[data-scheme="dark"] {
+  --sl-surface: color-mix(in srgb, var(--as-text) 6%, var(--as-bg));
+  --sl-soft: color-mix(in srgb, var(--as-primary) 16%, var(--as-bg));
+}
+
+.sl-display {
+  font-family: var(--sl-display), var(--as-font), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.sl-root[data-display="body"] .sl-display { font-weight: 800; letter-spacing: -0.01em; }
+
+.sl-wrap { width: 100%; max-width: 76rem; margin-inline: auto; padding-inline: 1rem; }
+@container (min-width: 48rem) { .sl-wrap { padding-inline: 2rem; } }
+
+.sl-section { padding-block: 3.75rem; }
+@container (min-width: 48rem) { .sl-section { padding-block: 6rem; } }
+.sl-band { background: var(--sl-surface); border-block: 1px solid var(--as-line); }
+
+.sl-title { font-size: calc(var(--as-fs) * 1.95rem); line-height: 1.3; }
+@container (min-width: 48rem) { .sl-title { font-size: calc(var(--as-fs) * 2.7rem); } }
+.sl-hero-title { font-size: calc(var(--as-fs) * 2.6rem); line-height: 1.15; }
+@container (min-width: 64rem) { .sl-hero-title { font-size: calc(var(--as-fs) * 4.1rem); } }
+
+.sl-kicker {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  font-size: calc(var(--as-fs) * 0.78rem); font-weight: 700; letter-spacing: 0.14em;
+  color: var(--as-primary);
+}
+.sl-kicker::before, .sl-kicker::after { content: ""; width: 1.4rem; height: 1px; background: currentColor; opacity: 0.7; }
+.sl-start .sl-kicker::after { display: none; }
+
+/* a thin line with a diamond under the titles */
+.sl-orn { display: flex; justify-content: center; align-items: center; gap: 0.6rem; }
+.sl-orn i { width: 3.2rem; height: 1px; background: var(--sl-gold); }
+.sl-orn b { width: 0.42rem; height: 0.42rem; background: var(--as-primary); transform: rotate(45deg); }
+
+/* buttons */
+.sl-root .as-btn { border-radius: var(--bd-radius); }
+.sl-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: var(--bd-radius); font-weight: 700; padding-inline: 1.8rem;
+  transition: transform 0.15s, background 0.2s, color 0.2s, box-shadow 0.2s; white-space: nowrap;
+}
+.sl-btn:active { transform: scale(0.98); }
+.sl-btn-gold { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 14px 30px -16px color-mix(in srgb, var(--as-primary) 90%, transparent); }
+.sl-btn-gold:hover { box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--as-primary) 90%, transparent); }
+.sl-btn-ink { background: var(--as-text); color: var(--as-bg); }
+.sl-btn-line { border: 1.5px solid color-mix(in srgb, var(--as-text) 35%, var(--as-bg)); }
+.sl-btn-line:hover { border-color: var(--as-text); }
+.sl-btn-glass { background: rgb(255 255 255 / 0.14); color: #fff; border: 1px solid rgb(255 255 255 / 0.55); backdrop-filter: blur(6px); }
+.sl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sl-card { background: var(--sl-surface); border: 1px solid var(--as-line); border-radius: var(--sl-radius); }
+.sl-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--as-primary) 45%, var(--as-bg));
+  padding: 0.35rem 0.9rem; font-weight: 700; font-size: calc(var(--as-fs) * 0.8rem);
+}
+
+/* header */
+.sl-header { position: relative; z-index: 30; background: var(--as-bg); border-bottom: 1px solid var(--as-line); }
+.sl-announce { background: var(--as-text); color: var(--as-bg); }
+
+/* hero: an arch with a thin frame beside it */
+.sl-arch { position: relative; }
+.sl-arch > .sl-arch-img { border-radius: 999px 999px var(--sl-radius) var(--sl-radius); overflow: hidden; }
+.sl-arch::before {
+  content: ""; position: absolute; inset: -0.85rem 0.85rem 0.85rem -0.85rem;
+  border: 1px solid var(--sl-gold); border-radius: 999px 999px var(--sl-radius) var(--sl-radius); pointer-events: none;
+}
+.sl-cover { position: relative; overflow: hidden; color: #fff; background: #111215; min-height: 34rem; }
+@container (min-width: 64rem) { .sl-cover { min-height: 44rem; } }
+.sl-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sl-cover-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.25) 55%, rgb(0 0 0 / 0.1)); }
+
+/* marquee */
+.sl-marquee { overflow: hidden; background: var(--as-text); color: var(--as-bg); }
+.sl-marquee-track { display: flex; width: max-content; animation: sl-marquee 45s linear infinite; }
+.sl-marquee-track span { display: inline-flex; align-items: center; gap: 2.2rem; padding-inline-end: 2.2rem; }
+.sl-marquee-track span::after { content: "◆"; font-size: 0.55em; color: var(--as-primary); }
+@keyframes sl-marquee { to { transform: translateX(50%); } }
+.sl-root[data-mode="builder"] .sl-marquee-track { animation: none; }
+
+/* details: a big serif number beside each row */
+.sl-num { font-family: var(--sl-display), var(--as-font), serif; font-size: calc(var(--as-fs) * 3.4rem); line-height: 1; color: var(--sl-gold); }
+
+/* specs: dotted line between the name and the value */
+.sl-spec { display: flex; align-items: baseline; gap: 0.75rem; padding-block: 0.85rem; border-bottom: 1px solid var(--as-line); }
+.sl-spec::after { content: none; }
+.sl-spec .sl-dots { flex: 1; border-bottom: 1px dotted color-mix(in srgb, var(--as-text) 30%, var(--as-bg)); transform: translateY(-0.3rem); }
+
+/* gallery hover */
+.sl-zoom { overflow: hidden; }
+.sl-zoom img { transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.sl-zoom:hover img { transform: scale(1.05); }
+
+/* the dark panels (countdown, the picked card): inverted colors of the current scheme */
+.sl-ink { background: var(--as-text); color: var(--as-bg); --as-muted: color-mix(in srgb, var(--as-bg) 70%, var(--as-text)); --as-line: color-mix(in srgb, var(--as-bg) 18%, var(--as-text)); }
+.sl-digit { border: 1px solid color-mix(in srgb, var(--as-primary) 55%, transparent); border-radius: 1rem; }
+.sl-bar { height: 0.4rem; border-radius: 999px; background: color-mix(in srgb, var(--as-bg) 20%, var(--as-text)); overflow: hidden; }
+.sl-bar > div { height: 100%; border-radius: 999px; background: var(--as-primary); }
+
+/* faq */
+.sl-qa-body { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease; }
+.sl-qa-body > div { overflow: hidden; }
+.sl-qa[data-open] .sl-qa-body { grid-template-rows: 1fr; opacity: 1; }
+.sl-qa-icon { transition: transform 0.25s, background 0.25s, color 0.25s; }
+.sl-qa[data-open] .sl-qa-icon { transform: rotate(45deg); background: var(--as-text); color: var(--as-bg); }
+
+/* fields of the order form in this theme's colors */
+.sl-root .bd-field { background: var(--as-bg); color: var(--as-text); border-color: var(--as-line); border-radius: 0.9rem; }
+.sl-root .bd-field:focus { border-color: var(--as-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--as-primary) 22%, transparent); }
+
+/* sections fade in (when the merchant keeps motion on) */
+.sl-motion .sl-reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.sl-motion .sl-reveal[data-in] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-marquee-track { animation: none; }
+  .sl-motion .sl-reveal { opacity: 1; transform: none; transition: none; }
+  .sl-qa-body, .sl-qa-icon, .sl-zoom img { transition: none; }
+}

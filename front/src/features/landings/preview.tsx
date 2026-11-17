@@ -2,9 +2,7 @@
 
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { errorMessage } from "@/lib/api/errors";
-import { BidayaPage } from "@/themes/landing/bidaya/page";
-import { ShabePage } from "@/themes/landing/shabe/page";
-import { SHABE_KEY, type ShabeContent } from "@/themes/landing/shabe/types";
+import { landingTheme } from "@/themes/landing/registry";
 import { toLandingData, useLandingEditor } from "./builder-api";
 
 /** The saved draft as the page will look, full screen (the order form sends nothing here). */
@@ -18,13 +16,10 @@ export function LandingPreview({ id }: { id: number }) {
       </div>
     );
   }
+  const { Page } = landingTheme(page.data.theme_key);
   return (
     <div className="min-h-dvh">
-      {page.data.theme_key === SHABE_KEY ? (
-        <ShabePage content={page.data.draft_content as unknown as ShabeContent} data={toLandingData(preview.data)} mode="preview" />
-      ) : (
-        <BidayaPage content={page.data.draft_content} data={toLandingData(preview.data)} mode="preview" />
-      )}
+      <Page content={page.data.draft_content} data={toLandingData(preview.data)} mode="preview" />
     </div>
   );
 }

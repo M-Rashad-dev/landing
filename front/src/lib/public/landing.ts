@@ -6,11 +6,9 @@ import { cache } from "react";
 import { serverEnv } from "@/lib/env";
 import type { Tracking } from "@/lib/tracking/ids";
 import type { Content, LandingData } from "@/themes/landing/bidaya/types";
+import { LANDING_THEME_KEYS } from "@/themes/landing/keys";
 import { publicGet } from "./fetch";
 import { parseSiteHost, primaryRedirectUrl, SITE_PATH_HEADER } from "./host";
-
-/** The landing themes the front end can draw. */
-const LANDING_THEMES = ["bidaya_landing", "shabe_landing"];
 
 type ResolvedHost = { host: string; status: "active" | "suspended"; primary_host: string; is_primary: boolean };
 
@@ -47,7 +45,7 @@ export const loadLandingPage = cache(async (rawHost: string, slug: string): Prom
     permanentRedirect(primaryRedirectUrl(site.primary_host, path.startsWith("/") ? path : "/", { scheme: env.publicScheme, port: env.publicPort }));
   }
   const page = await getLandingPage(host, slug);
-  if (!page || !LANDING_THEMES.includes(page.theme_key)) notFound();
+  if (!page || !(LANDING_THEME_KEYS as readonly string[]).includes(page.theme_key)) notFound();
   return { host, suspended: false, page };
 });
 

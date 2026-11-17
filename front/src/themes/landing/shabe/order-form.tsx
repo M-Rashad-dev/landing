@@ -12,8 +12,8 @@ import { imageSrc, useImage, usePage, useProductImages } from "@/themes/landing/
 import { CodeBox, Summary } from "@/themes/landing/bidaya/order-form";
 import type { FormFieldKey } from "@/themes/landing/bidaya/types";
 import { PLACED_KEY, useLandingOrder, type Placed } from "@/themes/landing/bidaya/use-order";
-import { dealOf } from "./sections";
-import { CHOOSE_OFFER_EVENT, type OrderFormProps } from "./types";
+import { dealOf, useOfferChoice } from "@/themes/landing/shared/offers";
+import type { OrderFormProps } from "./types";
 
 const f = ar.bidaya.form;
 const c = ar.storefront.checkout;
@@ -43,14 +43,8 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
   );
   const form = useLandingOrder(props, data, mode, placed);
   const q = form.quote;
-  const choose = form.chooseOffer;
-
   // A pack card picked an offer.
-  React.useEffect(() => {
-    const on = (e: Event) => choose(Number((e as CustomEvent<number>).detail));
-    window.addEventListener(CHOOSE_OFFER_EVENT, on);
-    return () => window.removeEventListener(CHOOSE_OFFER_EVENT, on);
-  }, [choose]);
+  useOfferChoice(form.chooseOffer);
 
   return (
     <section id="order" className="sh-section scroll-mt-4">

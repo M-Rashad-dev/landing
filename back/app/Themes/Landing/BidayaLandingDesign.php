@@ -6,8 +6,6 @@ namespace App\Themes\Landing;
 
 use App\Rules\SafeUrl;
 use App\Rules\TenantExists;
-use App\Support\OrderForm;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -17,8 +15,10 @@ use Illuminate\Validation\ValidationException;
  * Same contract as «أساس» (App\Themes\Store\AsasStoreDesign): unknown keys are dropped, texts are
  * trimmed and stripped of tags. Images are *_media_id(s) keys so the page media links follow.
  */
-final class BidayaLandingDesign
+final class BidayaLandingDesign implements LandingThemeDesign
 {
+    use LandingContent;
+
     public const KEY = 'bidaya_landing';
 
     public const SECTION_TYPES = ['hero', 'features', 'gallery', 'testimonials', 'faq', 'order_form'];
@@ -88,32 +88,6 @@ final class BidayaLandingDesign
         ];
     }
 
-    /** @param array<string, mixed> $props @return array<string, mixed> */
-    private static function section(string $type, array $props): array
-    {
-        return ['id' => substr(bin2hex(random_bytes(6)), 0, 12), 'type' => $type, 'visible' => true, 'props' => $props];
-    }
-
-    /**
-     * The order form fields in the shape App\Support\OrderForm reads (name and phone locked on).
-     *
-     * @param  array<string, mixed>  $given
-     * @return array<string, array{enabled: bool, required: bool}>
-     */
-    private static function fields(array $given): array
-    {
-        $out = [];
-        foreach (OrderForm::BUILT_IN as $key) {
-            $default = OrderForm::DEFAULT_FIELDS[$key];
-            $row = is_array($given[$key] ?? null) ? $given[$key] : $default;
-            $locked = in_array($key, OrderForm::LOCKED, true);
-            $enabled = $locked || (bool) ($row['enabled'] ?? false);
-            $out[$key] = ['enabled' => $enabled, 'required' => $locked || ($enabled && (bool) ($row['required'] ?? false))];
-        }
-
-        return $out;
-    }
-
     /**
      * Validates a page content sent by the Builder and returns it cleaned (only known keys).
      *
@@ -123,32 +97,7 @@ final class BidayaLandingDesign
      */
     public function validate(mixed $content, string $prefix = 'content'): array
     {
-        $data = [$prefix => is_array($content) ? $content : []];
-        $validator = Validator::make($data, $this->rules($data[$prefix], $prefix), [], $this->attributes($data[$prefix], $prefix));
-        $validator->after(function ($v) use ($data, $prefix): void {
-            $seen = [];
-            $forms = 0;
-            foreach (array_values((array) ($data[$prefix]['sections'] ?? [])) as $i => $section) {
-                $id = is_array($section) ? ($section['id'] ?? null) : null;
-                if (is_string($id) && isset($seen[$id])) {
-                    $v->errors()->add("{$prefix}.sections.{$i}.id", __('design.duplicate_section'));
-                }
-                $seen[(string) $id] = true;
-                if (is_array($section) && ($section['type'] ?? null) === 'order_form') {
-                    $forms++;
-                    if (($section['visible'] ?? true) !== true) {
-                        $v->errors()->add("{$prefix}.sections.{$i}.visible", __('themes/landing/bidaya.form_hidden'));
-                    }
-                }
-            }
-            // The page sells through its form: exactly one, always shown.
-            if ($forms !== 1) {
-                $v->errors()->add("{$prefix}.sections", __('themes/landing/bidaya.form_count'));
-            }
-        });
-        $validator->validate();
-
-        return $this->clean($validator->validated()[$prefix]);
+        return self::checked($content, $prefix, fn (array $c, string $p) => $this->rules($c, $p), (array) __('design.attributes') + (array) __('themes/landing/bidaya.attributes'), fn (array $d) => $this->clean($d));
     }
 
     /** @param array<string, mixed> $content @return array<string, mixed> */
@@ -232,45 +181,12 @@ final class BidayaLandingDesign
                     "{$s}.props.fields" => ['required', 'array'],
                     "{$s}.props.offer_picker" => ['required', 'boolean'],
                     "{$s}.props.show_quantity" => ['required', 'boolean'],
-                ] + $this->fieldRules("{$s}.props.fields"),
+                ] + self::fieldRules("{$s}.props.fields"),
                 default => null,
             };
         }
 
         return $rules;
-    }
-
-    /** @return array<string, list<string>> */
-    private function fieldRules(string $prefix): array
-    {
-        $rules = [];
-        foreach (self::FORM_FIELDS as $key) {
-            $rules["{$prefix}.{$key}.enabled"] = ['required', 'boolean'];
-            $rules["{$prefix}.{$key}.required"] = ['required', 'boolean'];
-        }
-
-        return $rules;
-    }
-
-    /**
-     * Arabic names for the error messages (by the last key of each field).
-     *
-     * @param  array<string, mixed>  $content
-     * @return array<string, string>
-     */
-    private function attributes(array $content, string $p): array
-    {
-        $names = (array) __('design.attributes') + (array) __('themes/landing/bidaya.attributes');
-        $out = [];
-        foreach (array_keys($this->rules($content, $p)) as $key) {
-            $last = (string) last(explode('.', $key));
-            $name = $last === 'text' && str_contains($key, '.colors.') ? 'text_color' : $last;
-            if (isset($names[$name])) {
-                $out[$key] = (string) $names[$name];
-            }
-        }
-
-        return $out;
     }
 
     /**

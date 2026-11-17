@@ -3,6 +3,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlarmClock,
+  BadgeCheck,
+  ChartNoAxesColumn,
   ArrowDown,
   ArrowRight,
   ArrowUp,
@@ -19,6 +21,7 @@ import {
   Laptop,
   LayoutList,
   LayoutPanelTop,
+  ListChecks,
   Lock,
   MessageSquareQuote,
   Package,
@@ -28,6 +31,7 @@ import {
   Plus,
   Redo2,
   Rocket,
+  ScanSearch,
   Scale,
   Settings2,
   ShieldCheck,
@@ -49,7 +53,6 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
-import { FeaturesForm, TestimonialsForm } from "@/features/builder/section-forms";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "@/features/builder/kit";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
@@ -58,27 +61,24 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { MediaUrls } from "@/themes/shared/design";
-import { BidayaPage, type Selection } from "@/themes/landing/bidaya/page";
-import type { Content, LandingData, Section, SectionType, Settings } from "@/themes/landing/bidaya/types";
-import { ShabePage } from "@/themes/landing/shabe/page";
-import { SHABE_KEY, SHABE_MAX_SECTIONS, type ShabeContent, type ShabeSection, type ShabeSectionType, type ShabeSettings } from "@/themes/landing/shabe/types";
+import type { Content, LandingData, Settings } from "@/themes/landing/bidaya/types";
+import { landingTheme, type Selection } from "@/themes/landing/registry";
 import { pageUrl } from "./api";
-import { ADDABLE, newId, newLandingSection, pageKey, publishLandingPage, saveLandingContent, sectionErrors, settingsErrors, toLandingData, useLandingEditor, type PageDetail } from "./builder-api";
-import { FaqForm, FooterForm, GalleryForm, GeneralForm, HeaderForm, HeroForm, LookForm, OrderFormForm } from "./builder-forms";
+import { newId, pageKey, publishLandingPage, saveLandingContent, sectionErrors, settingsErrors, toLandingData, useLandingEditor, type PageDetail } from "./builder-api";
+import { FooterForm, GeneralForm, HeaderForm, LookForm } from "./builder-forms";
 import { PageSettingsForm } from "./page-settings";
-import { newShabeSection, SHABE_ADDABLE, ShabeHeaderExtras, ShabeLookExtras, ShabeSectionForm } from "./shabe-forms";
+import { landingBuilderTheme, type LandingSection } from "./themes";
 
 const t = ar.landings.builder;
 const tb = ar.design.builder;
-/** A section of any landing theme the Builder edits («بداية» or «شابع»). */
-type AnySection = Section | ShabeSection;
-type AnyType = SectionType | ShabeSectionType;
+/** A section of any landing theme the Builder edits (each theme's own shape, checked by the back end). */
+type AnySection = LandingSection;
 type AnyContent = { version: number; settings: Settings; sections: AnySection[] };
 
 type Edit = Selection | "look" | "general";
 type Tab = "sections" | "theme" | "page";
 
-const LOOK: Record<AnyType, { icon: LucideIcon; tint: string }> = {
+const LOOK: Record<string, { icon: LucideIcon; tint: string }> = {
   hero: { icon: Zap, tint: "bg-violet-100 text-violet-700" },
   marquee: { icon: Type, tint: "bg-orange-100 text-orange-700" },
   menu: { icon: UtensilsCrossed, tint: "bg-amber-100 text-amber-700" },
@@ -94,10 +94,17 @@ const LOOK: Record<AnyType, { icon: LucideIcon; tint: string }> = {
   testimonials: { icon: MessageSquareQuote, tint: "bg-rose-100 text-rose-700" },
   faq: { icon: CircleHelp, tint: "bg-teal-100 text-teal-700" },
   order_form: { icon: ShoppingBag, tint: "bg-emerald-100 text-emerald-700" },
+  details: { icon: ScanSearch, tint: "bg-stone-100 text-stone-700" },
+  specs: { icon: ListChecks, tint: "bg-zinc-100 text-zinc-700" },
+  stats: { icon: ChartNoAxesColumn, tint: "bg-yellow-100 text-yellow-800" },
+  countdown: { icon: AlarmClock, tint: "bg-pink-100 text-pink-700" },
+  promises: { icon: BadgeCheck, tint: "bg-cyan-100 text-cyan-700" },
 };
 
-function TypeIcon({ type }: { type: AnyType }) {
-  const { icon: Icon, tint } = LOOK[type];
+const OTHER = { icon: Sparkles, tint: "bg-slate-100 text-slate-700" };
+
+function TypeIcon({ type }: { type: string }) {
+  const { icon: Icon, tint } = LOOK[type] ?? OTHER;
   return (
     <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg", tint)} aria-hidden>
       <Icon className="size-3.5" />
@@ -143,8 +150,10 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const [gallery, setGallery] = React.useState(false);
   const frame = React.useRef<HTMLDivElement>(null);
 
-  const shabe = initial.theme_key === SHABE_KEY;
-  const maxSections = shabe ? SHABE_MAX_SECTIONS : 12;
+  const theme = landingBuilderTheme(initial.theme_key);
+  const { Page } = landingTheme(initial.theme_key);
+  const extras = theme.extras ?? {};
+  const maxSections = theme.maxSections;
   const editor = useDraftEditor<AnyContent, PageDetail>({
     initial: initial.draft_content as AnyContent,
     version: initial.version,
@@ -199,9 +208,8 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     }
   }
 
-  function add(type: Exclude<AnyType, "order_form">) {
-    const productName = data.product?.name ?? null;
-    const section: AnySection = shabe ? newShabeSection(type as Exclude<ShabeSectionType, "order_form">, productName) : newLandingSection(type as Exclude<SectionType, "order_form">, productName);
+  function add(type: string) {
+    const section = theme.newSection(type, data.product?.name ?? null);
     // New sections go just above the order form, so the form stays the page's end.
     const formAt = draft.sections.findIndex((s) => s.type === "order_form");
     const at = formAt < 0 ? draft.sections.length : formAt;
@@ -243,9 +251,11 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const host = live ? live.replace(/^https?:\/\//, "") : detail.slug;
 
   const title = (s: AnySection) => {
-    const own = "title" in s.props ? s.props.title : null;
-    return own || t.types[s.type].title;
+    const own = typeof s.props.title === "string" ? s.props.title : null;
+    return own || (t.types[s.type]?.title ?? s.type);
   };
+  const typeName = (type: string) => t.types[type]?.title ?? type;
+  const extraProps = { settings: draft.settings, onChange: setSettings, errors: settingsErrors(errors), media: allMedia, onMedia: rememberMedia };
 
   const tools = (target: Selection) => {
     if (target === "header" || target === "footer") return <CanvasChip icon={target === "header" ? LayoutPanelTop : PanelBottom} label={target === "header" ? tb.header : tb.footer} />;
@@ -257,7 +267,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
       <div className="flex items-center gap-0.5 rounded-lg bg-ink p-1 text-white shadow-lg" dir="rtl" onClick={(e) => e.stopPropagation()}>
         <span className="flex items-center gap-1.5 px-2 text-xs font-semibold">
           <TypeIcon type={s.type} />
-          {t.types[s.type].title}
+          {typeName(s.type)}
         </span>
         <span className="mx-0.5 h-5 w-px bg-white/20" aria-hidden />
         <ToolButton icon={ArrowUp} label={tb.moveUp} disabled={i === 0} onClick={() => move(s.id, -1)} />
@@ -417,23 +427,25 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
               {selected === "look" ? (
                 <>
                   <LookForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
-                  {shabe ? <ShabeLookExtras settings={draft.settings as ShabeSettings} onChange={(s) => setSettings(s as unknown as Settings)} errors={settingsErrors(errors)} /> : null}
+                  {extras.look ? <extras.look {...extraProps} /> : null}
                 </>
               ) : selected === "general" ? (
-                <GeneralForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <GeneralForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {extras.general ? <extras.general {...extraProps} /> : null}
+                </>
               ) : selected === "header" ? (
                 <>
                   <HeaderForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
-                  {shabe ? <ShabeHeaderExtras settings={draft.settings as ShabeSettings} onChange={(s) => setSettings(s as unknown as Settings)} errors={settingsErrors(errors)} /> : null}
+                  {extras.header ? <extras.header {...extraProps} /> : null}
                 </>
               ) : selected === "footer" ? (
-                <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                <>
+                  <FooterForm settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} />
+                  {extras.footer ? <extras.footer {...extraProps} /> : null}
+                </>
               ) : section ? (
-                shabe ? (
-                  <ShabeSectionForm section={section as ShabeSection} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
-                ) : (
-                  <SectionForm section={section as Section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
-                )
+                <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
               ) : null}
             </Inspector>
           ) : tab === "sections" ? (
@@ -457,7 +469,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                           </span>
                           <span className="flex min-w-0 flex-col leading-tight">
                             <span className={cn("truncate text-sm font-semibold", !s.visible && "text-ink-3")}>{title(s)}</span>
-                            <span className="truncate text-xs text-ink-3">{form ? `${t.types[s.type].title} · ${t.locked}` : s.visible ? t.types[s.type].title : `${t.types[s.type].title} · ${tb.hidden}`}</span>
+                            <span className="truncate text-xs text-ink-3">{form ? `${typeName(s.type)} · ${t.locked}` : s.visible ? t.types[s.type].title : `${typeName(s.type)} · ${tb.hidden}`}</span>
                           </span>
                         </button>
                         {hasError ? <TriangleAlert className="size-4 shrink-0 text-danger" aria-label={tb.invalid} /> : null}
@@ -536,11 +548,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
         <main className="relative min-w-0 flex-1 overflow-hidden bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-5">
           <DeviceFrame device={device} host={host}>
             <div ref={frame} className="h-full overflow-y-auto">
-              {shabe ? (
-                <ShabePage content={draft as unknown as ShabeContent} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
-              ) : (
-                <BidayaPage content={draft as Content} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
-              )}
+              <Page content={draft as unknown as Content} data={pageData} mode="builder" selected={selected === "look" || selected === "general" ? null : selected} onSelect={(target) => select(target)} media={media} tools={tools} />
             </div>
           </DeviceFrame>
         </main>
@@ -551,13 +559,13 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
           <DialogHeader title={t.galleryTitle} description={t.galleryHint} />
           <DialogBody>
             <ul className="grid gap-2 sm:grid-cols-2">
-              {(shabe ? SHABE_ADDABLE : ADDABLE).map((type) => (
+              {theme.addable.map((type) => (
                 <li key={type}>
-                  <button type="button" onClick={() => add(type as Exclude<AnyType, "order_form">)} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-start transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+                  <button type="button" onClick={() => add(type)} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-start transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
                     <TypeIcon type={type} />
                     <span className="flex flex-col">
-                      <span className="font-semibold">{t.types[type].title}</span>
-                      <span className="text-xs text-ink-3">{t.types[type].description}</span>
+                      <span className="font-semibold">{typeName(type)}</span>
+                      <span className="text-xs text-ink-3">{t.types[type]?.description}</span>
                     </span>
                   </button>
                 </li>
@@ -582,21 +590,4 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
       />
     </div>
   );
-}
-
-function SectionForm({ section, errors, onChange, media, onMedia }: { section: Section; errors: Record<string, string>; onChange: (props: Section["props"]) => void; media: Record<string, MediaUrls>; onMedia: (item: MediaItem) => void }) {
-  switch (section.type) {
-    case "hero":
-      return <HeroForm props={section.props} onChange={onChange} errors={errors} media={media} onMedia={onMedia} />;
-    case "features":
-      return <FeaturesForm props={section.props} onChange={onChange} errors={errors} max={6} />;
-    case "gallery":
-      return <GalleryForm props={section.props} onChange={onChange} errors={errors} media={media} onMedia={onMedia} />;
-    case "testimonials":
-      return <TestimonialsForm props={section.props} onChange={onChange} errors={errors} />;
-    case "faq":
-      return <FaqForm props={section.props} onChange={onChange} errors={errors} />;
-    case "order_form":
-      return <OrderFormForm props={section.props} onChange={onChange} errors={errors} />;
-  }
 }

@@ -258,7 +258,7 @@ back/                      Laravel 13 API (PHP 8.3, strict_types everywhere)
   app/Pricing/             PriceCalculator, PriceMath, Quote, Shipping
   app/Store/               StoreSite (live store config), StoreSetup (isLive), StoreCatalog, Accounts (customer OTP, reviews)
   app/Themes/Store/        store themes (StoreDesigner, AsasStoreDesign, SufiStoreDesign)
-  app/Themes/Landing/      landing themes (LandingThemes, BidayaLandingDesign, ShabeLandingDesign)
+  app/Themes/Landing/      landing themes (LandingThemes registry, LandingThemeDesign contract, Bidaya / Shabe / Sufi)
   app/Imports/             in-house xlsx/csv reader/writer + product import pipeline
   app/Services/            PublicSite, PublicPageData, Support/* (SupportDesk, SupportFiles), AdminAlerts, Webhooks…
   app/Http/Controllers/Api/V1/{Dashboard,Admin,Public,Auth}/   thin controllers → FormRequest → Action/Service → Resource
@@ -333,6 +333,19 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 | `bidaya_landing` «بداية» | landing | free | one-product landing page; sections + exactly one order form (≤12) |
 | `shabe_landing` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
 | `shabe_store` «شابع» | store | paid (990 placeholder) | food store: 15 home sections (≤30) incl. «مواعيد العمل», own shopping pages and 4 extra settings groups; see below |
+| `sufi_landing` «صوفي» | landing | paid (150 starting price) | luxury one-product page with dark mode; 13 section types + one order form (≤20); see below |
+
+### Landing theme architecture
+- Back end: every landing theme implements `App\Themes\Landing\LandingThemeDesign` (`KEY`, static `defaults()`,
+  `validate()`) and uses the `LandingContent` trait (new section, order form fields, one shown order form, Arabic
+  field names, cleaners). `LandingThemes::THEMES` is the only place that picks by key (unknown key = the generic
+  sanitizer); `SufiPageTest` checks every registered theme against the contract.
+- Front: `themes/landing/keys.ts` lists the keys (read by the server loader too); `themes/landing/registry.tsx` gives
+  each key its `Page` and `Root` (live page, preview, «طلبك وصل»); `features/landings/themes/` gives each key its
+  Builder side (`addable`, `newSection`, `SectionForm`, `maxSections`, and its own fields under the shared look /
+  header / footer / general forms). `form-kit.tsx` holds the pieces of the themes' own forms (texts, pictures, icons,
+  lists, dates, offer cards, reviews); `themes/landing/shared/offers.ts` the offer cards ↔ order form link and
+  `dealOf`. A new landing theme = one back-end class + one row in each registry + its ThemeSeeder row.
 
 ### «شابع» (paid food landing theme)
 - Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),
@@ -342,9 +355,18 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   product stock), order_form (+ side card points/image), guarantee, faq.
 - Bundles: cards tied to the product's **offers** (`offer_id`, null = one piece); empty list = one card per running
   offer automatically. Card prices are a display estimate with the same rules as `PriceMath` (`dealOf`); the order
-  form still shows the server's quote. «اختار ده» sends `shabe:choose-offer` → the form picks that offer.
+  form still shows the server's quote. «اختار ده» sends `landing:choose-offer` → the form picks that offer.
 - Front `themes/landing/shabe/` reuses «بداية»'s page context (`PageProvider`), order hook, code box and summary; the
   landing Builder edits both themes (`features/landings/shabe-forms.tsx`). Live, preview, done page pick by theme key.
+
+### «صوفي · صفحة هبوط» (paid luxury landing theme)
+- Back end `App\Themes\Landing\SufiLandingDesign`; settings = «بداية»'s + `colors_dark`, `appearance`
+  (light / dark / system + visitor switch), `display_font` (Amiri titles), `logo_dark_media_id`,
+  `header.button_label`, `general.animations`. Sections: hero (split with an arch or cover, highlighted word,
+  badges), marquee, features, details (picture rows), specs (table), gallery, video, bundles (offer cards),
+  stats, testimonials, countdown (+ real stock), order_form, promises, faq.
+- Front `themes/landing/sufi/`. The visitor's scheme is shared with «صوفي · متجر» (`themes/shared/scheme.ts`,
+  same browser key); the Builder previews dark from the look panel (`setBuilderScheme`, not saved).
 
 ### Store theme architecture
 - Back end, **one contract per store theme**: `App\Themes\Store\StoreThemeDesign` (abstract) does the validation
