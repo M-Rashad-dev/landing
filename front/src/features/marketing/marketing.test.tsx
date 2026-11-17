@@ -7,6 +7,7 @@ import { Faq } from "./faq";
 import type { PublicPlan } from "./plans";
 import { planLines, Pricing } from "./pricing";
 import { MarketingFooter, WhatsAppFloat } from "./sections-bottom";
+import { MotionRoot, REVEAL_OPTIONS } from "./motion";
 
 const t = ar.marketing;
 afterEach(() => {
@@ -137,5 +138,47 @@ describe("footer contacts", () => {
     expect(link.className).toContain("fixed");
     rerender(<WhatsAppFloat phone={null} />);
     expect(screen.queryByRole("link", { name: t.footer.whatsappFloat })).toBeNull();
+  });
+});
+
+describe("reveal motion", () => {
+  it("shows a block as soon as any of it is on screen, however tall it is", () => {
+    expect(REVEAL_OPTIONS.threshold).toBe(0);
+    const seen: Array<IntersectionObserverInit | undefined> = [];
+    const observed: Element[] = [];
+    let report: IntersectionObserverCallback = () => undefined;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+          report = callback;
+          seen.push(options);
+        }
+        observe(el: Element) {
+          observed.push(el);
+        }
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      },
+    );
+    window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => undefined, removeEventListener: () => undefined })) as unknown as typeof window.matchMedia;
+    const { container } = render(
+      <>
+        <article data-reveal="fade" style={{ height: "40000px" }}>
+          سياسة طويلة
+        </article>
+        <MotionRoot />
+      </>,
+    );
+    const article = container.querySelector("article")!;
+    expect(seen[0]).toEqual(REVEAL_OPTIONS);
+    expect(observed).toContain(article);
+    // A sliver of a very tall block on screen (ratio far under any share) is enough.
+    act(() => report([{ target: article, isIntersecting: true, intersectionRatio: 0.01 } as unknown as IntersectionObserverEntry], {} as IntersectionObserver));
+    expect(article.classList.contains("is-in")).toBe(true);
+    vi.unstubAllGlobals();
   });
 });

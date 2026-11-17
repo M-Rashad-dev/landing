@@ -17,5 +17,8 @@ export const THEME_SHOTS: Record<string, string[]> = {
 /** Themes with a showcase store (themes/store/demos.ts: the same keys, a test checks it). */
 export const THEME_DEMOS = new Set(["sufi_store", "shabe_store"]);
 
-/** Showcases with a light / dark switch (STORE_DEMOS[key].schemes; a test checks it). */
-export const THEME_DEMO_SCHEMES = new Set(["sufi_store"]);
+/** Landing themes with a showcase page (themes/landing/demos.ts: the same keys, a test checks it). */
+export const LANDING_THEME_DEMOS = new Set(["bidaya_landing", "shabe_landing", "sufi_landing"]);
+
+/** Showcases with a light / dark switch (STORE_DEMOS / LANDING_DEMOS [key].schemes; a test checks it). */
+export const THEME_DEMO_SCHEMES = new Set(["sufi_store", "sufi_landing"]);

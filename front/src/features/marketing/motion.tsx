@@ -9,6 +9,9 @@ import * as React from "react";
  * - `--mk-hero` (0 → 1 over the first screen) for the hero dashboard tilt.
  * Without JavaScript or with reduced motion everything is simply visible (see the inline script in the page).
  */
+/** When a `[data-reveal]` element counts as on screen: its top passed the bottom 8% of the screen. */
+export const REVEAL_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px -8% 0px", threshold: 0 };
+
 export function MotionRoot() {
   React.useEffect(() => {
     const root = document.documentElement;
@@ -26,7 +29,9 @@ export function MotionRoot() {
           observer.unobserve(entry.target);
         }
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+      // Any part on screen is enough: a share (say 12%) can never show for a block taller than
+      // the screen several times (a long legal page), which then stayed invisible.
+      REVEAL_OPTIONS,
     );
     const watch = () => document.querySelectorAll("[data-reveal]:not(.is-in)").forEach((el) => observer.observe(el));
     watch();

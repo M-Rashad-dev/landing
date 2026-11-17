@@ -191,6 +191,8 @@ Marketing home (`app/platform`, `features/marketing/`): interactive dashboard de
 fixed seed), real prices from `GET /plans`, in-house motion (reveal, count-up, tilt, smooth wheel scroll).
 Platform pages `/about`, `/terms`, `/privacy`, `/refund-policy`, `/acceptable-use` (Markdown from `platform_pages`,
 edited in admin; starting text has company details in [brackets]).
+Motion: `[data-reveal]` blocks show as soon as any part is on screen (threshold 0; a share never shows for a block
+many screens tall, which left long legal pages blank).
 Footer «تواصل معانا» and a fixed WhatsApp button on every platform page: the platform contacts (`support_email`,
 `support_whatsapp`, `support_phone`, `support_address` in `PlatformSettings`, edited in «الباقات» → «التجربة والفواتير»,
 sent as `meta.support` of `GET /plans`). Address → Google Maps search, phone → call, email → mail, WhatsApp → chat.
@@ -348,7 +350,11 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   Builder side (`addable`, `newSection`, `SectionForm`, `maxSections`, and its own fields under the shared look /
   header / footer / general forms). `form-kit.tsx` holds the pieces of the themes' own forms (texts, pictures, icons,
   lists, dates, offer cards, reviews); `themes/landing/shared/offers.ts` the offer cards ↔ order form link and
-  `dealOf`. A new landing theme = one back-end class + one row in each registry + its ThemeSeeder row.
+  `dealOf`. A new landing theme = one back-end class + one row in each registry + its ThemeSeeder row + its
+  showcase (`themes/landing/{theme}/demo.ts`, listed in `themes/landing/demos.ts` and `LANDING_THEME_DEMOS`).
+- «معاينة»: every landing theme has a showcase page (`/dashboard/marketing/landings/themes/{key}/demo`), the theme's
+  own page in preview mode (the form sends nothing) with a fixed sample product; it opens on the phone (store
+  showcases open on the computer), with light/dark for themes that have it. Linked from the theme cards and page.
 
 ### «شابع» (paid food landing theme)
 - Back end `App\Themes\Landing\ShabeLandingDesign` (wired in `LandingThemes`); settings = «بداية»'s + `colors.dark` (dark sections),

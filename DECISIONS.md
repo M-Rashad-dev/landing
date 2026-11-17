@@ -489,3 +489,7 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - The owner's contacts (address in 10th of Ramadan, phone, support@mksab.store, WhatsApp) are platform settings the admin edits, not text in the code: phone and address joined the existing support email / WhatsApp. A migration writes the owner's values once (over older ones, at his request).
 - The address opens a Google Maps search for its text (no map key or embed needed); the WhatsApp button shows on every platform page when a WhatsApp number is set.
 
+## 2026-11-17 — Landing theme showcases; long platform pages blank
+- Every landing theme gets «معاينة» like the store themes: a fixed sample page drawn by the theme itself (preview mode, the order form sends nothing). It opens on the phone (owner: landing pages are mostly seen on phones from ads); store showcases keep opening on the computer. Sample content is made from each theme's own starter content; pictures reuse the store showcases' photos, «صوفي» uses unbranded bag photos.
+- Platform pages: the fade-in waited for 12% of a block to be on screen, which a very long article (privacy policy) never reaches, so it stayed invisible. A block now shows as soon as any part of it is on screen.
+

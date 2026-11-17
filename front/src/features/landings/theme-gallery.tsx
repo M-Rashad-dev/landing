@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/feedback";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { errorMessage } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
-import { THEME_SHOTS } from "@/themes/registry";
+import { LANDING_THEME_DEMOS, THEME_SHOTS } from "@/themes/registry";
 import { ar } from "@/messages/ar";
 import { useLandingThemes, type LandingTheme } from "./api";
 import { CreateLandingDialog } from "./create-dialog";
@@ -103,11 +103,16 @@ export function ThemeCard({ theme, onUse }: { theme: LandingTheme; onUse?: () =>
               </Link>
             </Button>
           )}
+          {LANDING_THEME_DEMOS.has(theme.key) ? (
+            <Button asChild variant="outline">
+              <Link href={`${details}/demo`} target="_blank">
+                <Eye />
+                {ar.landings.theme.demo}
+              </Link>
+            </Button>
+          ) : null}
           <Button asChild variant="ghost">
-            <Link href={details}>
-              <Eye />
-              {t.details}
-            </Link>
+            <Link href={details}>{t.details}</Link>
           </Button>
         </div>
       </div>

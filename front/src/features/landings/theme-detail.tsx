@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, ShoppingBag } from "lucide-react";
+import { Check, Clock, Eye, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -13,7 +13,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
 import { cn } from "@/lib/utils";
-import { THEME_SHOTS } from "@/themes/registry";
+import { LANDING_THEME_DEMOS, THEME_DEMO_SCHEMES, THEME_SHOTS } from "@/themes/registry";
 import { useLandingTheme } from "./api";
 import { CreateLandingDialog } from "./create-dialog";
 import { buyUrl, LandingSketch, ThemePriceTag } from "./theme-gallery";
@@ -114,6 +114,17 @@ export function ThemeDetail({ themeKey }: { themeKey: string }) {
                 </Link>
               </Button>
             )}
+            {LANDING_THEME_DEMOS.has(theme.key) ? (
+              <>
+                <Button asChild variant="outline">
+                  <Link href={`/dashboard/marketing/landings/themes/${encodeURIComponent(theme.key)}/demo`} target="_blank">
+                    <Eye />
+                    {t.demo}
+                  </Link>
+                </Button>
+                <p className="text-xs text-ink-3">{t.demoHint(THEME_DEMO_SCHEMES.has(theme.key))}</p>
+              </>
+            ) : null}
             {usable && theme.can_publish === false ? <p className="text-xs text-warning">{t.needsPlan}</p> : null}
             {!usable ? <p className="text-xs text-ink-3">{t.oneTime}</p> : null}
           </PanelBody>

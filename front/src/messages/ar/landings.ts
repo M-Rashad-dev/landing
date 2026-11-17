@@ -69,6 +69,17 @@ export const landings = {
     shots: { cover: "الغلاف", desktop: "كمبيوتر", mobile: "موبايل" } as Record<string, string>,
     noShots: "صور الثيم جاية قريب",
     shotOf: (n: number) => `صورة ${n}`,
+    demo: "معاينة",
+    demoHint: (dark: boolean) => `اتفرج عليها كأنها صفحة حقيقية على الموبايل والكمبيوتر: بالصور والعروض وفورم الطلب${dark ? "، وجرّب الوضع الليلي" : ""}.`,
+    demoBar: {
+      back: "رجوع للتفاصيل",
+      label: "صفحة تجريبية",
+      mobile: "موبايل",
+      desktop: "كمبيوتر",
+      light: "فاتح",
+      dark: "ليلي",
+      note: "دي صفحة تجريبية لعرض الثيم: المنتج والصور للعرض بس، والفورم مش بيبعت طلبات.",
+    },
   },
 
   builder: {
