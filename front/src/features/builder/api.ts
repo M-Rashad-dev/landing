@@ -11,7 +11,8 @@ import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
 export type AnySection = Section | SufiSection;
 
 export type DesignPayload = {
-  theme: { key: string; name: string };
+  /** The theme, with what the server accepts for it (the Builder offers exactly these). */
+  theme: { key: string; name: string; section_types: string[]; max_sections: number; settings_groups: string[] };
   store_name: string;
   draft: Design;
   version: number;

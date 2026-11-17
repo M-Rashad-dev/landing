@@ -58,7 +58,7 @@ final class StoreSite
     /** @return array<string, mixed> */
     public function config(Store $store, string $primaryHost): array
     {
-        $design = $store->design()?->published ?? StoreDesigner::defaults($store->theme_key);
+        $design = $store->design()?->published ?? $this->designer->defaults($store->theme_key);
         $identity = Identity::query()->where('is_default', true)->first() ?? Identity::query()->first();
         $categories = $this->catalog->categoryRows();
         $pages = StorePage::query()->where('is_published', true)->orderBy('position')->orderBy('id')->get(['id', 'title', 'slug']);

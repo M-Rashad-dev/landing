@@ -89,7 +89,7 @@ describe("«أساس»", () => {
 
 describe("Builder", () => {
   beforeEach(() => {
-    const payload = { theme: { key: "asas_store", name: "أساس" }, store_name: "نعناع", draft: design, version: 3, published_at: null, has_unpublished_changes: true, data };
+    const payload = { theme: { key: "asas_store", name: "أساس", section_types: ["banner", "products", "features", "testimonials"], max_sections: 20, settings_groups: ["look", "header", "footer", "general"] }, store_name: "نعناع", draft: design, version: 3, published_at: null, has_unpublished_changes: true, data };
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_url: string, init?: RequestInit) => {

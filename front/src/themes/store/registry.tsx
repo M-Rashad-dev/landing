@@ -79,6 +79,9 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES },
 };
 
+/** Every store theme this front end draws (the Builder's registry must list the same). */
+export const STORE_THEME_KEYS = Object.keys(STORE_THEMES);
+
 /** The theme of a store (the free «أساس» for a key this front end doesn't know). */
 export function storeTheme(key: string | null | undefined): StoreTheme {
   return (key ? STORE_THEMES[key] : undefined) ?? STORE_THEMES[ASAS_KEY];

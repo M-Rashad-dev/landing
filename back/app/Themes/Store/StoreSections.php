@@ -1,0 +1,425 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Themes\Store;
+
+use App\Rules\SafeUrl;
+use App\Rules\TenantExists;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
+
+/**
+ * Every home section type a store theme can use, in one place: its validation rules and how it is
+ * stored (only known keys, texts without tags). A theme lists the types it offers
+ * (StoreThemeDesign::SECTION_TYPES) and may extend one (e.g. «صوفي»'s reviews add a layout).
+ * A new section type is added here once, then any store theme can offer it.
+ */
+final class StoreSections
+{
+    public const PRODUCT_SOURCES = ['latest', 'offers', 'category'];
+
+    public const PRODUCT_LIMITS = [4, 8, 12, 16, 24, 32];
+
+    public const COLUMNS = [2, 3, 4, 5];
+
+    public const ICONS = ['truck', 'cash', 'return', 'shield', 'support', 'gift', 'star', 'clock', 'tag', 'heart', 'package', 'phone'];
+
+    public const LINK_TYPES = ['none', 'all_products', 'offers', 'category', 'product', 'url'];
+
+    public const HERO_HEIGHTS = ['full', 'large', 'medium'];
+
+    public const TAB_SOURCES = ['latest', 'offers', 'category', 'manual'];
+
+    public const MARQUEE_SPEEDS = ['slow', 'normal', 'fast'];
+
+    public const CATEGORY_SHAPES = ['circle', 'square', 'card'];
+
+    public const VIDEO_HOSTS = '#^https://(www\.|m\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com)/#i';
+
+    public const MAP_HOSTS = '#^https://(www\.)?(google\.[a-z.]+/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl/maps)#i';
+
+    /** A text field: optional (or required) string up to $max characters. */
+    public static function text(int $max, bool $required = false): array
+    {
+        return [$required ? 'required' : 'nullable', 'string', 'max:'.$max];
+    }
+
+    /** A text without tags, null when empty. */
+    public static function str(mixed $v): ?string
+    {
+        return is_string($v) && trim(strip_tags($v)) !== '' ? trim(strip_tags($v)) : null;
+    }
+
+    /** An image of the store's library (required or not). */
+    public static function media(bool $required = true): array
+    {
+        return [$required ? 'required' : 'nullable', 'integer', TenantExists::table('media')];
+    }
+
+    /** @param array<string, mixed> $link @return array<string, mixed> */
+    public static function linkRules(string $k, array $link): array
+    {
+        $type = $link['type'] ?? 'none';
+
+        return [
+            "{$k}.type" => ['required', Rule::in(self::LINK_TYPES)],
+            "{$k}.target_id" => match ($type) {
+                'category' => ['required', 'integer', TenantExists::table('categories')],
+                'product' => ['required', 'integer', TenantExists::table('products')->ignoreTrashed()],
+                default => ['nullable'],
+            },
+            "{$k}.url" => $type === 'url' ? ['required', 'string', 'max:500', new SafeUrl] : ['nullable'],
+        ];
+    }
+
+    /**
+     * @param  array{type: string, target_id?: mixed, url?: mixed}  $link
+     * @return array{type: string, target_id: int|null, url: string|null}
+     */
+    public static function cleanLink(array $link): array
+    {
+        return [
+            'type' => (string) $link['type'],
+            'target_id' => in_array($link['type'], ['category', 'product'], true) ? (int) $link['target_id'] : null,
+            'url' => $link['type'] === 'url' ? trim((string) $link['url']) : null,
+        ];
+    }
+
+    /**
+     * The rules of one section of this type ($s = "draft.sections.3").
+     *
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>
+     */
+    public function rules(string $type, string $s, array $props): array
+    {
+        $text = self::text(...);
+        $media = self::media(...);
+
+        return match ($type) {
+            'banner' => $this->slidesRules($s, $props),
+            'hero' => [
+                ...$this->slidesRules($s, $props),
+                "{$s}.props.height" => ['required', Rule::in(self::HERO_HEIGHTS)],
+                "{$s}.props.merge_header" => ['required', 'boolean'],
+                "{$s}.props.shade" => ['required', 'integer', 'between:0,80'],
+                "{$s}.props.kicker" => $text(40),
+            ],
+            'products' => [
+                "{$s}.props.title" => $text(80, true),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.source" => ['required', Rule::in(self::PRODUCT_SOURCES)],
+                "{$s}.props.category_id" => [($props['source'] ?? null) === 'category' ? 'required' : 'nullable', 'integer', TenantExists::table('categories')],
+                "{$s}.props.limit" => ['required', 'integer', Rule::in(self::PRODUCT_LIMITS)],
+                "{$s}.props.layout" => ['required', Rule::in(['grid', 'slider'])],
+                "{$s}.props.columns" => ['required', 'integer', Rule::in(self::COLUMNS)],
+                "{$s}.props.show_view_all" => ['required', 'boolean'],
+            ],
+            'features' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.items" => ['required', 'array', 'min:2', 'max:4'],
+                "{$s}.props.items.*.icon" => ['required', Rule::in(self::ICONS)],
+                "{$s}.props.items.*.title" => $text(40, true),
+                "{$s}.props.items.*.text" => $text(120),
+            ],
+            'testimonials' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.source" => ['required', Rule::in(['auto', 'manual'])],
+                "{$s}.props.items" => [($props['source'] ?? null) === 'manual' ? 'required' : 'present', 'array', ($props['source'] ?? null) === 'manual' ? 'min:1' : 'min:0', 'max:12'],
+                "{$s}.props.items.*.name" => $text(60, true),
+                "{$s}.props.items.*.rating" => ['required', 'integer', 'between:1,5'],
+                "{$s}.props.items.*.text" => $text(400, true),
+            ],
+            'marquee' => [
+                "{$s}.props.items" => ['required', 'array', 'min:1', 'max:10'],
+                "{$s}.props.items.*" => $text(60, true),
+                "{$s}.props.speed" => ['required', Rule::in(self::MARQUEE_SPEEDS)],
+            ],
+            'categories' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.category_ids" => ['present', 'array', 'max:24'],
+                "{$s}.props.category_ids.*" => ['integer', 'distinct', TenantExists::table('categories')],
+                "{$s}.props.shape" => ['required', Rule::in(self::CATEGORY_SHAPES)],
+                "{$s}.props.layout" => ['required', Rule::in(['grid', 'slider'])],
+                "{$s}.props.columns_desktop" => ['required', 'integer', 'between:3,8'],
+                "{$s}.props.columns_mobile" => ['required', 'integer', 'between:2,4'],
+            ],
+            'product_tabs' => $this->tabsRules($s, $props),
+            'banners' => [
+                "{$s}.props.items" => ['required', 'array', 'min:1', 'max:3'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.media_id" => $media(),
+                    "{$k}.kicker" => $text(40),
+                    "{$k}.title" => $text(80),
+                    "{$k}.button_label" => $text(30),
+                ]),
+            ],
+            'countdown' => [
+                "{$s}.props.media_id" => $media(false),
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80, true),
+                "{$s}.props.text" => $text(200),
+                "{$s}.props.button_label" => $text(30),
+                ...self::linkRules("{$s}.props.link", (array) ($props['link'] ?? [])),
+                "{$s}.props.ends_at" => ['required', 'date'],
+                "{$s}.props.on_end" => ['required', Rule::in(['hide', 'ended'])],
+            ],
+            'featured_product' => [
+                "{$s}.props.product_id" => ['required', 'integer', TenantExists::table('products')->ignoreTrashed()],
+                "{$s}.props.kicker" => $text(40),
+            ],
+            'video' => [
+                "{$s}.props.url" => ['required', 'string', 'max:300', new SafeUrl, 'regex:'.self::VIDEO_HOSTS],
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.text" => $text(200),
+                "{$s}.props.cover_media_id" => $media(false),
+            ],
+            'brands' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.items" => ['required', 'array', 'min:2', 'max:16'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.media_id" => $media(),
+                    "{$k}.name" => $text(40),
+                ]),
+            ],
+            'story' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80, true),
+                "{$s}.props.text" => $text(800),
+                "{$s}.props.media_id" => $media(),
+                "{$s}.props.media2_id" => $media(false),
+                "{$s}.props.stats" => ['present', 'array', 'max:3'],
+                "{$s}.props.stats.*.value" => $text(12, true),
+                "{$s}.props.stats.*.label" => $text(30, true),
+                "{$s}.props.button_label" => $text(30),
+                ...self::linkRules("{$s}.props.link", (array) ($props['link'] ?? [])),
+            ],
+            'gallery' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.items" => ['required', 'array', 'min:3', 'max:12'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.media_id" => $media(),
+                    "{$k}.label" => $text(60),
+                ]),
+            ],
+            'faq' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.text" => $text(300),
+                "{$s}.props.whatsapp_button" => ['required', 'boolean'],
+                "{$s}.props.items" => ['required', 'array', 'min:1', 'max:20'],
+                "{$s}.props.items.*.question" => $text(160, true),
+                "{$s}.props.items.*.answer" => $text(1000, true),
+            ],
+            'location' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.branches" => ['required', 'array', 'min:1', 'max:6'],
+                "{$s}.props.branches.*.name" => $text(60, true),
+                "{$s}.props.branches.*.address" => $text(200, true),
+                "{$s}.props.branches.*.hours" => $text(60),
+                "{$s}.props.branches.*.phone" => $text(30),
+                "{$s}.props.branches.*.map_url" => ['required', 'string', 'max:500', new SafeUrl, 'regex:'.self::MAP_HOSTS],
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * One section of this type as it is stored.
+     *
+     * @param  array<string, mixed>  $p
+     * @return array<string, mixed>
+     */
+    public function clean(string $type, array $p): array
+    {
+        $str = self::str(...);
+        $mediaOrNull = fn (mixed $v): ?int => $v === null || $v === '' ? null : (int) $v;
+        $items = fn (\Closure $map) => array_values(array_map($map, (array) ($p['items'] ?? [])));
+
+        return match ($type) {
+            'banner' => [
+                'slides' => array_values(array_map(fn (array $slide) => [
+                    'media_id' => (int) $slide['media_id'],
+                    'title' => $str($slide['title'] ?? null),
+                    'text' => $str($slide['text'] ?? null),
+                    'button_label' => $str($slide['button_label'] ?? null),
+                    'link' => self::cleanLink((array) $slide['link']),
+                ], (array) ($p['slides'] ?? []))),
+                'autoplay' => (bool) $p['autoplay'],
+            ],
+            'hero' => [
+                ...$this->clean('banner', $p),
+                'height' => (string) $p['height'],
+                'merge_header' => (bool) $p['merge_header'],
+                'shade' => (int) $p['shade'],
+                'kicker' => $str($p['kicker'] ?? null),
+            ],
+            'products' => [
+                'title' => (string) $str($p['title']),
+                'description' => $str($p['description'] ?? null),
+                'source' => (string) $p['source'],
+                'category_id' => $p['source'] === 'category' ? (int) $p['category_id'] : null,
+                'limit' => (int) $p['limit'],
+                'layout' => (string) $p['layout'],
+                'columns' => (int) $p['columns'],
+                'show_view_all' => (bool) $p['show_view_all'],
+            ],
+            'features' => [
+                'title' => $str($p['title'] ?? null),
+                'items' => array_values(array_map(fn (array $i) => ['icon' => (string) $i['icon'], 'title' => (string) $str($i['title']), 'text' => $str($i['text'] ?? null)], (array) $p['items'])),
+            ],
+            'testimonials' => [
+                'title' => $str($p['title'] ?? null),
+                'source' => (string) $p['source'],
+                'items' => array_values(array_map(fn (array $i) => ['name' => (string) $str($i['name']), 'rating' => (int) $i['rating'], 'text' => (string) $str($i['text'])], (array) ($p['items'] ?? []))),
+            ],
+            'marquee' => ['items' => array_values(array_map(fn ($t) => (string) $str($t), (array) $p['items'])), 'speed' => (string) $p['speed']],
+            'categories' => [
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'category_ids' => array_values(array_map('intval', (array) $p['category_ids'])),
+                'shape' => (string) $p['shape'],
+                'layout' => (string) $p['layout'],
+                'columns_desktop' => (int) $p['columns_desktop'],
+                'columns_mobile' => (int) $p['columns_mobile'],
+            ],
+            'product_tabs' => [
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'limit' => (int) $p['limit'],
+                'tabs' => array_values(array_map(fn (array $t) => [
+                    'label' => (string) $str($t['label']),
+                    'source' => (string) $t['source'],
+                    'category_id' => $t['source'] === 'category' ? (int) $t['category_id'] : null,
+                    'product_ids' => $t['source'] === 'manual' ? array_values(array_map('intval', (array) $t['product_ids'])) : [],
+                ], (array) $p['tabs'])),
+            ],
+            'banners' => ['items' => $items(fn (array $i) => [
+                'media_id' => (int) $i['media_id'],
+                'kicker' => $str($i['kicker'] ?? null),
+                'title' => $str($i['title'] ?? null),
+                'button_label' => $str($i['button_label'] ?? null),
+                'link' => self::cleanLink((array) $i['link']),
+            ])],
+            'countdown' => [
+                'media_id' => $mediaOrNull($p['media_id'] ?? null),
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'text' => $str($p['text'] ?? null),
+                'button_label' => $str($p['button_label'] ?? null),
+                'link' => self::cleanLink((array) $p['link']),
+                // Stored in UTC; the Builder sends the merchant's local time with its offset.
+                'ends_at' => Carbon::parse((string) $p['ends_at'])->utc()->toIso8601ZuluString(),
+                'on_end' => (string) $p['on_end'],
+            ],
+            'featured_product' => ['product_id' => (int) $p['product_id'], 'kicker' => $str($p['kicker'] ?? null)],
+            'video' => [
+                'url' => trim((string) $p['url']),
+                'title' => $str($p['title'] ?? null),
+                'text' => $str($p['text'] ?? null),
+                'cover_media_id' => $mediaOrNull($p['cover_media_id'] ?? null),
+            ],
+            'brands' => ['title' => $str($p['title'] ?? null), 'items' => $items(fn (array $i) => ['media_id' => (int) $i['media_id'], 'name' => $str($i['name'] ?? null), 'link' => self::cleanLink((array) $i['link'])])],
+            'story' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'text' => $str($p['text'] ?? null),
+                'media_id' => (int) $p['media_id'],
+                'media2_id' => $mediaOrNull($p['media2_id'] ?? null),
+                'stats' => array_values(array_map(fn (array $x) => ['value' => (string) $str($x['value']), 'label' => (string) $str($x['label'])], (array) $p['stats'])),
+                'button_label' => $str($p['button_label'] ?? null),
+                'link' => self::cleanLink((array) $p['link']),
+            ],
+            'gallery' => [
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'items' => $items(fn (array $i) => ['media_id' => (int) $i['media_id'], 'label' => $str($i['label'] ?? null), 'link' => self::cleanLink((array) $i['link'])]),
+            ],
+            'faq' => [
+                'title' => $str($p['title'] ?? null),
+                'text' => $str($p['text'] ?? null),
+                'whatsapp_button' => (bool) $p['whatsapp_button'],
+                'items' => $items(fn (array $i) => ['question' => (string) $str($i['question']), 'answer' => (string) $str($i['answer'])]),
+            ],
+            'location' => [
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'branches' => array_values(array_map(fn (array $b) => [
+                    'name' => (string) $str($b['name']),
+                    'address' => (string) $str($b['address']),
+                    'hours' => $str($b['hours'] ?? null),
+                    'phone' => $str($b['phone'] ?? null),
+                    'map_url' => trim((string) $b['map_url']),
+                ], (array) $p['branches'])),
+            ],
+            default => throw new \LogicException("Unknown store section type «{$type}»."),
+        };
+    }
+
+    /** @param array<string, mixed> $props @return array<string, mixed> */
+    private function slidesRules(string $s, array $props): array
+    {
+        $rules = [
+            "{$s}.props.slides" => ['present', 'array', 'max:8'],
+            "{$s}.props.autoplay" => ['required', 'boolean'],
+        ];
+        foreach (array_values((array) ($props['slides'] ?? [])) as $j => $slide) {
+            $k = "{$s}.props.slides.{$j}";
+            $rules += [
+                "{$k}.media_id" => self::media(),
+                "{$k}.title" => self::text(80),
+                "{$k}.text" => self::text(200),
+                "{$k}.button_label" => self::text(30),
+                ...self::linkRules("{$k}.link", is_array($slide) ? (array) ($slide['link'] ?? []) : []),
+            ];
+        }
+
+        return $rules;
+    }
+
+    /** @param array<string, mixed> $props @return array<string, mixed> */
+    private function tabsRules(string $s, array $props): array
+    {
+        $text = self::text(...);
+        $rules = [
+            "{$s}.props.title" => $text(80),
+            "{$s}.props.description" => $text(200),
+            "{$s}.props.limit" => ['required', 'integer', Rule::in(self::PRODUCT_LIMITS)],
+            "{$s}.props.tabs" => ['required', 'array', 'min:1', 'max:6'],
+        ];
+        foreach (array_values((array) ($props['tabs'] ?? [])) as $j => $tab) {
+            $k = "{$s}.props.tabs.{$j}";
+            $source = is_array($tab) ? ($tab['source'] ?? null) : null;
+            $rules += [
+                "{$k}.label" => $text(30, true),
+                "{$k}.source" => ['required', Rule::in(self::TAB_SOURCES)],
+                "{$k}.category_id" => [$source === 'category' ? 'required' : 'nullable', 'integer', TenantExists::table('categories')],
+                "{$k}.product_ids" => [$source === 'manual' ? 'required' : 'present', 'array', $source === 'manual' ? 'min:1' : 'min:0', 'max:24'],
+                "{$k}.product_ids.*" => ['integer', 'distinct', TenantExists::table('products')->ignoreTrashed()],
+            ];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Rules of a list of items that each carry a link.
+     *
+     * @param  array<string, mixed>  $props
+     * @param  \Closure(string): array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function itemsWithLinks(string $s, array $props, \Closure $item): array
+    {
+        $rules = [];
+        foreach (array_values((array) ($props['items'] ?? [])) as $j => $row) {
+            $k = "{$s}.props.items.{$j}";
+            $rules += $item($k) + self::linkRules("{$k}.link", is_array($row) ? (array) ($row['link'] ?? []) : []);
+        }
+
+        return $rules;
+    }
+}

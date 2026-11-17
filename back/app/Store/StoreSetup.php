@@ -12,8 +12,8 @@ use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Store;
 use App\Models\Tenant;
-use App\Themes\Store\AsasStoreDesign;
 use App\Themes\Store\StoreDesigner;
+use App\Themes\Store\StoreThemes;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class StoreSetup
 {
-    public const DEFAULT_THEME = AsasStoreDesign::KEY;
+    public const DEFAULT_THEME = StoreThemes::DEFAULT;
 
     public function __construct(
         private readonly Entitlements $entitlements,
@@ -60,7 +60,7 @@ final class StoreSetup
 
         if (isset($data['theme_key']) && $data['theme_key'] !== $store->theme_key) {
             $theme = $this->catalog->theme($data['theme_key']);
-            if ($theme === null || $theme['kind'] !== 'store' || ! $theme['is_active'] || ! $this->themes->owns($tenant, $data['theme_key'])) {
+            if ($theme === null || $theme['kind'] !== 'store' || ! in_array($data['theme_key'], StoreThemes::keys(), true) || ! $theme['is_active'] || ! $this->themes->owns($tenant, $data['theme_key'])) {
                 throw new ApiException(422, 'validation_failed', __('design.theme_not_owned'), ['theme_key' => [__('design.theme_not_owned')]]);
             }
         }

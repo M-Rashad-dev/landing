@@ -345,11 +345,16 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   landing Builder edits both themes (`features/landings/shabe-forms.tsx`). Live, preview, done page pick by theme key.
 
 ### Store theme architecture
-- Back end: `App\Themes\Store\AsasStoreDesign` (shared settings rules/cleaning: colors, font, size, logo, favicon, header,
-  footer, general) and `SufiStoreDesign` (extends with `colors_dark`, `appearance {default: light|dark|system, toggle}`,
-  `header.layout center|start|end`, `header.topbar`, `general.floating_call|animations|offers_tab`, and its own
-  sections). `StoreDesigner` picks the validator/defaults by `theme_key` and builds the section data
-  (`products["{id}:{tab}"]`, `category_tiles`, `featured`, `links`, `media`).
+- Back end, **one contract per store theme**: `App\Themes\Store\StoreThemeDesign` (abstract) does the validation
+  and clean-up once; a theme only declares `KEY`, `SECTION_TYPES`, `MAX_SECTIONS`, `SETTINGS_GROUPS`, `defaults()`,
+  `settingsRules()` / `cleanSettings()` (usually the base settings + its own) and may extend a section type
+  («صوفي»'s reviews add `layout`). `StoreSections` is the **section library**: rules and storage of every home
+  section type, written once, offered by any theme. `StoreThemes` is the only place that picks by key (unknown →
+  «أساس»); `StoreDesigner` asks it. The design payload sends the theme's `section_types`, `max_sections` and
+  `settings_groups`, so the Builder offers exactly what the server accepts. `StoreThemesContractTest` checks every
+  registered theme (starter design validates unchanged, every section type known, a store row exists).
+  `StoreDesigner::data()` builds what sections show by section type (`products["{id}:{tab}"]`, `category_tiles`,
+  `featured`, `links`, `media`).
 - Front, **logic apart from look**: `themes/store/shared/` holds what every store theme does, with no look of its own:
   `use-product-buy` (options, price, stock, add to cart / buy now + pixels), `use-checkout` (form rules, saved
   addresses, quote, code, shipping company, lead, placing the order), `use-account` (sign in with a code, signed-in
@@ -389,13 +394,18 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   guides, delivery estimates and review photos which don't exist yet).
 
 ### Adding a new store theme (checklist)
-1. Back: `App\Themes\Store\{Name}StoreDesign` (validate + clean + defaults, reuse `AsasStoreDesign` helpers), wire it in
-   `StoreDesigner::defaults()/validate()` and `data()` for any new section data; add a `ThemeSeeder` row; lang strings in `lang/ar/themes/store/{key}.php`.
-2. Front: `themes/store/{key}/` (types, root, chrome, sections, frame, and its own inner pages built on the hooks in
-   `themes/store/shared/`), one entry in `themes/store/registry.tsx`; Builder forms + section gallery list;
-   `themes/registry.ts` shots/demo.
-3. Tests: back feature tests (switch after purchase, save every section, validation), front render + Builder tests.
-4. Cover + 5 pictures into `public/themes/store/{key}/` (1600×1000 WebP), a showcase `demo.ts` if it should have «معاينة الثيم».
+1. Back: a class extending `StoreThemeDesign` in `app/Themes/Store/` (its section types from `StoreSections`; a new
+   type goes into `StoreSections` once, plus `StoreDesigner::data()` if it shows store data), added to
+   `StoreThemes::THEMES`; a `ThemeSeeder` row (kind store); lang strings in `lang/ar/themes/store/{design}.php`.
+2. Front storefront: `themes/store/{design}/` (types, root, chrome, sections, frame, and its own inner pages built
+   on the hooks in `themes/store/shared/`), one entry in `themes/store/registry.tsx`.
+3. Front Builder: `features/builder/themes/{design}.tsx` (a form per settings group it has, its section form, new
+   sections; library types use `LibrarySectionForm`), one entry in `features/builder/themes/index.ts`. A test keeps
+   both registries listing the same keys.
+4. Tests: back feature tests (switch after purchase, save every section, validation) + the contract test passes;
+   front render + Builder tests.
+5. Cover + 5 pictures into `public/themes/store/{design}/` (1600×1000 WebP), a showcase `demo.ts` if it should
+   have «معاينة الثيم», shots in `themes/registry.ts`.
 
 ### Builder
 `front/src/features/builder/`: `builder.tsx` (store), `kit.tsx` (shared editing state: undo/redo, autosave 700 ms,

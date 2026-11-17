@@ -11,10 +11,9 @@ export type AnySectionType = SectionType | SufiSectionType;
 
 const t = ar.design.builder;
 
+/** «أساس»'s types: the gallery draws a small sketch of each (other types show their icon). */
 export const SECTION_TYPES: SectionType[] = ["banner", "products", "features", "testimonials"];
 
-/** «صوفي»'s sections, in the order the gallery offers them. */
-export const SUFI_SECTION_TYPES: SufiSectionType[] = ["hero", "marquee", "categories", "product_tabs", "banners", "countdown", "featured_product", "products", "video", "brands", "story", "features", "testimonials", "gallery", "faq", "location"];
 
 /** One icon and one tint per section type, used in the list, the gallery and the canvas. */
 export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: string }> = {
@@ -116,7 +115,7 @@ function Sketch({ type }: { type: AnySectionType }) {
   );
 }
 
-export function SectionGallery({ open, onOpenChange, onPick, types = SECTION_TYPES }: { open: boolean; onOpenChange: (open: boolean) => void; onPick: (type: AnySectionType) => void; types?: AnySectionType[] }) {
+export function SectionGallery({ open, onOpenChange, onPick, types }: { open: boolean; onOpenChange: (open: boolean) => void; onPick: (type: AnySectionType) => void; types: AnySectionType[] }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">

@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Store\StoreSetup;
 use App\Themes\Store\StoreDesigner;
+use App\Themes\Store\StoreThemes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,7 @@ final class StoreDesignController extends Controller
         private readonly StoreDesigner $designer,
         private readonly ThemeCatalog $catalog,
         private readonly Entitlements $entitlements,
+        private readonly StoreThemes $themes,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -65,8 +67,17 @@ final class StoreDesignController extends Controller
         /** @var Tenant|null $tenant */
         $tenant = Tenant::query()->find($design->tenant_id);
 
+        $theme = $this->themes->for($design->theme_key);
+
         return [
-            'theme' => ['key' => $design->theme_key, 'name' => (string) ($this->catalog->theme($design->theme_key)['name'] ?? $design->theme_key)],
+            'theme' => [
+                'key' => $design->theme_key,
+                'name' => (string) ($this->catalog->theme($design->theme_key)['name'] ?? $design->theme_key),
+                // What the server accepts for this theme: the Builder offers exactly these.
+                'section_types' => $theme::SECTION_TYPES,
+                'max_sections' => $theme::MAX_SECTIONS,
+                'settings_groups' => $theme::SETTINGS_GROUPS,
+            ],
             'store_name' => (string) $tenant?->name,
             'draft' => $design->draft,
             'version' => $design->version,

@@ -27,8 +27,7 @@ use Illuminate\Support\Facades\DB;
 final class StoreDesigner
 {
     public function __construct(
-        private readonly AsasStoreDesign $asas,
-        private readonly SufiStoreDesign $sufi,
+        private readonly StoreThemes $themes,
         private readonly StoreCatalog $catalog,
         private readonly ProductReviews $reviews,
         private readonly PublicPageData $pageData,
@@ -39,15 +38,15 @@ final class StoreDesigner
      *
      * @return array{settings: array<string, mixed>, sections: list<array<string, mixed>>}
      */
-    public static function defaults(string $themeKey, ?int $logoMediaId = null): array
+    public function defaults(string $themeKey, ?int $logoMediaId = null): array
     {
-        return $themeKey === SufiStoreDesign::KEY ? SufiStoreDesign::defaults($logoMediaId) : AsasStoreDesign::defaults($logoMediaId);
+        return $this->themes->for($themeKey)->defaults($logoMediaId);
     }
 
     /** @return array{settings: array<string, mixed>, sections: list<array<string, mixed>>} */
     private function validate(string $themeKey, mixed $draft): array
     {
-        return $themeKey === SufiStoreDesign::KEY ? $this->sufi->validate($draft) : $this->asas->validate($draft);
+        return $this->themes->for($themeKey)->validate($draft);
     }
 
     public function for(Store $store): StoreDesign
@@ -60,7 +59,7 @@ final class StoreDesigner
 
         return StoreDesign::query()->firstOrCreate(
             ['theme_key' => $store->theme_key],
-            ['draft' => self::defaults($store->theme_key, $logo === null ? null : (int) $logo), 'version' => 1],
+            ['draft' => $this->defaults($store->theme_key, $logo === null ? null : (int) $logo), 'version' => 1],
         );
     }
 
