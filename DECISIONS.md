@@ -474,3 +474,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Cart suggestions don't depend on the cart's content, so they come with the design data (no extra request); «similar to what's in the cart» was left out for that reason.
 - Own product, category, cart, checkout and thank-you pages on the shared hooks; account and tracking pages stay shared.
 - Released (owner): cover + 5 pictures, selling texts and features, a showcase store («معاينة الثيم», now a registry any theme can join), listed by a migration since the row existed hidden.
+
+## 2026-11-17 — Admin: delete a store for good
+- Owner wanted to clean the test stores on production by hand before launch, without touching platform data (plans, payment methods, themes, platform pages, settings, admin accounts). So: a store-page action «حذف المتجر نهائيًا» that shows what goes with it and runs only after the store's name is typed.
+- The database cascade does most of it; `DeleteTenant` handles the rest (landing pages first because of their restricting keys, notifications, WhatsApp message log, sign-in tokens, files on both disks, cached pages of its hosts). A summary (counts + owner email) stays in the audit log.
+- For real merchants «إيقاف المتجر» stays the normal way; deleting is for test or spam stores.

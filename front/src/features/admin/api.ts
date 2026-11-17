@@ -79,6 +79,12 @@ export function useRefreshStore(id: number) {
   return () => Promise.all([client.invalidateQueries({ queryKey: ["admin", "store", id] }), client.invalidateQueries({ queryKey: ["admin", "billing", id] }), client.invalidateQueries({ queryKey: ["admin", "activity"] }), client.invalidateQueries({ queryKey: ["admin", "stores"] }), client.invalidateQueries({ queryKey: ["admin", "overview"] })]);
 }
 
+/** What deleting a store would delete (counts), shown before the admin confirms. */
+export type DeletionSummary = { name: string; users: number; products: number; orders: number; customers: number; landing_pages: number; invoices: number; payments: number; media: number };
+export const useDeletionSummary = (id: number, enabled: boolean) => useQuery({ queryKey: ["admin", "deletion", id], queryFn: () => api<DeletionSummary>(`/admin/tenants/${id}/deletion`), enabled, staleTime: 0 });
+/** Deletes the store for good; `confirm` is its name, typed by the admin. */
+export const deleteStore = (id: number, confirm: string) => api<void>(`/admin/tenants/${id}`, { method: "DELETE", body: { confirm } });
+
 export const suspendStore = (id: number, reason: string) => api<StoreDetail>(`/admin/tenants/${id}/suspend`, { method: "POST", body: { reason } });
 export const activateStore = (id: number) => api<StoreDetail>(`/admin/tenants/${id}/activate`, { method: "POST" });
 export const resetOwnerPassword = (id: number) => api<{ temporary_password: string }>(`/admin/tenants/${id}/reset-password`, { method: "POST" });

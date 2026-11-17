@@ -1,6 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Ban, CalendarPlus, ExternalLink, Gift, KeyRound, MessageCircle, MoreHorizontal, Plus, Power, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { DescriptionList, Timeline } from "@/components/data/details";
 import { Meter, StatCard } from "@/components/data/stat-card";
@@ -26,7 +28,7 @@ import {
   useStoreThemes,
   type StoreDetail,
 } from "./api";
-import { entitlementLabel, ExtendDialog, GrantPlanDialog, GrantThemeDialog, OverrideDialog, PasswordResultDialog, SuspendDialog, useDialog } from "./store-dialogs";
+import { DeleteStoreDialog, entitlementLabel, ExtendDialog, GrantPlanDialog, GrantThemeDialog, OverrideDialog, PasswordResultDialog, SuspendDialog, useDialog } from "./store-dialogs";
 import { describeLog } from "./activity-page";
 import { PlanCell } from "./stores-page";
 
@@ -37,6 +39,9 @@ export function StorePage({ id }: { id: number }) {
   const query = useStore(id);
   const refresh = useRefreshStore(id);
   const suspend = useDialog();
+  const remove = useDialog();
+  const router = useRouter();
+  const client = useQueryClient();
   const [confirm, setConfirm] = React.useState<"activate" | "password" | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [password, setPassword] = React.useState<string | null>(null);
@@ -127,6 +132,11 @@ export function StorePage({ id }: { id: number }) {
                     {t.suspend.action}
                   </MenuItem>
                 )}
+                <MenuSeparator />
+                <MenuItem destructive onSelect={remove.show}>
+                  <Trash2 />
+                  {t.remove.action}
+                </MenuItem>
               </MenuContent>
             </Menu>
           </>
@@ -170,6 +180,16 @@ export function StorePage({ id }: { id: number }) {
       </div>
 
       <SuspendDialog storeId={s.id} open={suspend.open} onOpenChange={suspend.onOpenChange} onDone={refresh} />
+      <DeleteStoreDialog
+        storeId={s.id}
+        open={remove.open}
+        onOpenChange={remove.onOpenChange}
+        onDone={async () => {
+          router.replace("/admin/stores");
+          client.removeQueries({ queryKey: ["admin", "store", s.id] });
+          await client.invalidateQueries({ queryKey: ["admin"] });
+        }}
+      />
       <ConfirmDialog
         open={confirm !== null}
         onOpenChange={(open) => (open ? undefined : setConfirm(null))}

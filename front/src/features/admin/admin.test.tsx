@@ -84,12 +84,14 @@ beforeEach(() => {
       if (path === "/admin/overview") return Response.json({ data: overview });
       if (path === "/admin/plans") return Response.json({ data: [{ key: "pro", name: "برو", is_archived: false }] });
       if (path === "/admin/tenants") return Response.json({ data: [store], meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 } });
-      if (path === "/admin/tenants/7") return Response.json({ data: store });
+      if (path === "/admin/tenants/7" && method === "GET") return Response.json({ data: store });
       if (path === "/admin/tenants/7/billing") return Response.json({ data: billing });
       if (path === "/admin/tenants/7/themes") return Response.json({ data: [] });
       if (path === "/admin/audit-logs") return Response.json({ data: [], meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
       if (path === "/admin/tenants/7/suspend") return Response.json({ data: { ...store, status: "suspended", suspended_reason: body.reason } });
       if (path === "/admin/tenants/7/reset-password") return Response.json({ data: { temporary_password: "Xy7#pQ2!mN4z" } });
+      if (path === "/admin/tenants/7/deletion") return Response.json({ data: { name: store.name, users: 2, products: 14, orders: 37, customers: 20, landing_pages: 3, invoices: 2, payments: 2, media: 41 } });
+      if (path === "/admin/tenants/7" && method === "DELETE") return new Response(null, { status: 204 });
       if (path === "/admin/alerts" && method === "PUT") {
         alerts = { ...alerts, channel: body.channel, phone: body.phone, email: body.email, events: body.events };
         return Response.json({ data: alerts });
@@ -151,6 +153,27 @@ describe("admin stores", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: t.store.password.action }));
     fireEvent.click(await screen.findByRole("button", { name: t.store.password.confirm }));
     expect(await screen.findByText("Xy7#pQ2!mN4z")).toBeInTheDocument();
+  });
+
+  it("deletes a store for good only after its name is typed, showing what goes with it", async () => {
+    wrap(<StorePage id={7} />);
+    expect(await screen.findByRole("heading", { name: /متجر سما/ })).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole("button", { name: t.store.actions }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: t.store.remove.action }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText(t.store.remove.counts.orders(37))).toBeInTheDocument();
+    const confirm = within(dialog).getByRole("button", { name: t.store.remove.confirm });
+    expect(confirm).toBeDisabled();
+
+    const field = within(dialog).getByRole("textbox");
+    fireEvent.change(field, { target: { value: "متجر تاني" } });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(field, { target: { value: store.name } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(calls.find((c) => c.method === "DELETE")?.body).toEqual({ confirm: store.name }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/admin/stores"));
   });
 });
 

@@ -178,7 +178,8 @@ page counters, A/B split in the proxy.
 
 ### Super admin (`/admin`)
 Overview (stores, subscriptions, money, store sales vs last month), **المتاجر** (filters, store page: numbers, owner,
-domains, subscription — give plan / extend / overrides / history, themes, audit, suspend with reason, temp password),
+domains, subscription — give plan / extend / overrides / history, themes, audit, suspend with reason, temp password, delete for good after typing the store's name — `DeleteTenant`
+removes every row, file and token of that store only and logs a summary in the audit),
 **الدعم** (inbox + performance tab), **المدفوعات** (receipt review with image, repeated transfer warning, approve /
 reject with reasons), **الاسترداد**, **وسائل الدفع**, **الباقات** (editor + trial/grace/invoice/support settings),
 **الثيمات** (store details, price + dated discount, min plan, tags, screenshots), **صفحات المنصة** (Markdown editor),

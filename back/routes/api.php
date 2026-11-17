@@ -338,6 +338,8 @@ Route::prefix('admin')
         Route::post('tenants/{tenant}/suspend', [AdminTenantController::class, 'suspend'])->whereNumber('tenant');
         Route::post('tenants/{tenant}/activate', [AdminTenantController::class, 'activate'])->whereNumber('tenant');
         Route::post('tenants/{tenant}/reset-password', [AdminTenantController::class, 'resetPassword'])->whereNumber('tenant');
+        Route::get('tenants/{tenant}/deletion', [AdminTenantController::class, 'deletionSummary'])->whereNumber('tenant');
+        Route::delete('tenants/{tenant}', [AdminTenantController::class, 'destroy'])->whereNumber('tenant');
         Route::get('themes', [AdminThemeController::class, 'index']);
         Route::patch('themes/{key}', [AdminThemeController::class, 'update']);
         Route::get('themes/{key}', [AdminThemeController::class, 'show']);

@@ -117,6 +117,27 @@ export const admin = {
       custom: "دومين خاص",
       status: { active: "شغال", pending: "مستني التفعيل", failed: "فشل" } as Record<string, string>,
     },
+    remove: {
+      action: "حذف المتجر نهائيًا",
+      title: "حذف المتجر نهائيًا",
+      text: "المتجر هيتمسح بكل حاجة تبعه، ومش هينفع ترجعه. لو عايز توقفه بس، استخدم «إيقاف المتجر».",
+      loading: "بنحسب اللي هيتمسح…",
+      goes: "اللي هيتمسح:",
+      counts: {
+        users: (n: number) => `${formatNumber(n)} حساب (التاجر وفريقه)`,
+        products: (n: number) => `${formatNumber(n)} منتج`,
+        orders: (n: number) => `${formatNumber(n)} طلب`,
+        customers: (n: number) => `${formatNumber(n)} عميل`,
+        landing_pages: (n: number) => `${formatNumber(n)} صفحة`,
+        invoices: (n: number) => `${formatNumber(n)} فاتورة`,
+        payments: (n: number) => `${formatNumber(n)} دفعة وإيصال`,
+        media: (n: number) => `${formatNumber(n)} صورة وملف`,
+      },
+      also: "ومعاهم: الدومينات والثيمات اللي اشتراها وتصميمه والعروض والشحن والدعم والإشعارات. إعدادات المنصة مش بتتلمس.",
+      typeName: (name: string) => `اكتب اسم المتجر «${name}» عشان تأكد`,
+      confirm: "احذف نهائيًا",
+      done: "المتجر اتحذف",
+    },
     suspend: {
       action: "إيقاف المتجر",
       title: "إيقاف المتجر",
@@ -555,6 +576,7 @@ export const admin = {
   /** What each logged action says (sidebar «سجل العمليات» and a store's history). */
   actions: {
     "tenant.suspend": "إيقاف المتجر",
+    "tenant.delete": "حذف متجر نهائيًا",
     "tenant.activate": "تفعيل المتجر",
     "tenant.reset_password": "باسورد مؤقت للمالك",
     "subscription.grant": "إعطاء باقة",

@@ -15,7 +15,7 @@ import { Checkbox, RadioCards } from "@/components/ui/choice";
 import { Select } from "@/components/ui/select";
 import { errorMessage } from "@/lib/api/errors";
 import { ar } from "@/messages/ar";
-import { extendPlan, grantPlan, grantTheme, setOverride, suspendStore, useAdminPlans, useAdminThemes, type StoreTheme } from "./api";
+import { deleteStore, extendPlan, grantPlan, grantTheme, setOverride, suspendStore, useAdminPlans, useAdminThemes, useDeletionSummary, type DeletionSummary, type StoreTheme } from "./api";
 
 const t = ar.admin.store;
 const billingT = ar.settings.billing;
@@ -350,4 +350,80 @@ export function GrantThemeDialog({ storeId, open, onOpenChange, onDone, owned }:
 export function useDialog() {
   const [open, setOpen] = React.useState(false);
   return { open, onOpenChange: setOpen, show: () => setOpen(true) };
+}
+
+/* ---------- delete for good ---------- */
+
+const COUNTS: Array<keyof Omit<DeletionSummary, "name">> = ["users", "products", "orders", "customers", "landing_pages", "invoices", "payments", "media"];
+
+/** Deleting a store: what goes with it, then the admin types its name; nothing happens before that. */
+export function DeleteStoreDialog({ storeId, open, onOpenChange, onDone }: DialogProps) {
+  const r = t.remove;
+  const summary = useDeletionSummary(storeId, open);
+  const [typed, setTyped] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const name = summary.data?.name ?? "";
+  const matches = name !== "" && typed.trim() === name.trim();
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matches) return;
+    setBusy(true);
+    try {
+      await deleteStore(storeId, typed);
+      toast.success(r.done);
+      onOpenChange(false);
+      await onDone();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setTyped("");
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent size="sm">
+        <DialogHeader title={r.title} description={r.text} />
+        <form onSubmit={submit} noValidate>
+          <DialogBody className="flex flex-col gap-4">
+            {summary.isPending ? (
+              <p className="text-sm text-ink-3">{r.loading}</p>
+            ) : summary.isError ? (
+              <Alert tone="danger">{errorMessage(summary.error)}</Alert>
+            ) : (
+              <div className="rounded-xl border border-danger/30 bg-danger-soft/40 p-3 text-sm">
+                <p className="mb-2 font-semibold">{r.goes}</p>
+                <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-ink-2">
+                  {COUNTS.map((key) => (
+                    <li key={key}>{r.counts[key](summary.data[key])}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-ink-3">{r.also}</p>
+              </div>
+            )}
+            {name ? (
+              <Field label={r.typeName(name)} htmlFor="delete-store-name" required>
+                <Input id="delete-store-name" autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} />
+              </Field>
+            ) : null}
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {ar.common.cancel}
+            </Button>
+            <Button type="submit" variant="danger" loading={busy} disabled={!matches}>
+              {r.confirm}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }

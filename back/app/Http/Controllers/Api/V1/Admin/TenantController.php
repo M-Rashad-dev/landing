@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Admin\DeleteTenant;
 use App\Actions\Admin\ManageTenant;
 use App\Billing\PlanCatalog;
 use App\Enums\DomainType;
@@ -22,6 +23,7 @@ use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
@@ -94,6 +96,21 @@ final class TenantController extends Controller
         $action->activate(Tenant::query()->findOrFail($tenant));
 
         return $this->show($request, $tenant);
+    }
+
+    /** What deleting the store would delete (the admin sees it before confirming). */
+    public function deletionSummary(int $tenant, DeleteTenant $action): JsonResponse
+    {
+        return $this->ok($action->summary(Tenant::query()->findOrFail($tenant)));
+    }
+
+    /** Deletes the store for good, with everything that belongs to it; the admin types its name to confirm. */
+    public function destroy(Request $request, int $tenant, DeleteTenant $action): Response
+    {
+        $data = $request->validate(['confirm' => ['required', 'string', 'max:191']]);
+        $action->delete(Tenant::query()->findOrFail($tenant), (string) $data['confirm']);
+
+        return $this->noContent();
     }
 
     public function resetPassword(int $tenant, ManageTenant $action): JsonResponse
