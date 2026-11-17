@@ -485,3 +485,7 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - «صوفي · صفحة هبوط» is for one premium product (perfume, bag, watch, clothes, devices): its own sections (details with pictures, specs table, numbers, promises, countdown) and «صوفي»'s dark mode with the merchant's two palettes. The visitor's light/dark choice is shared with «صوفي · متجر» (one browser key).
 - Starting price 150 EGP (the admin changes it). Released with cover + 5 pictures made from a throwaway store (deleted); the product photos are unbranded on purpose (pictures with visible brand logos were dropped).
 
+## 2026-11-17 — Platform contacts in the site footer + fixed WhatsApp
+- The owner's contacts (address in 10th of Ramadan, phone, support@mksab.store, WhatsApp) are platform settings the admin edits, not text in the code: phone and address joined the existing support email / WhatsApp. A migration writes the owner's values once (over older ones, at his request).
+- The address opens a Google Maps search for its text (no map key or embed needed); the WhatsApp button shows on every platform page when a WhatsApp number is set.
+

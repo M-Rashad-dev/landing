@@ -1,16 +1,18 @@
+import { Mail, MapPin, MessageCircle, Phone, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "@/components/brand/logo";
 import { BRAND } from "@/config/brand";
 import { formatMoney, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { WhatsAppIcon } from "@/themes/store/asas/icons";
 import cups from "../../../public/marketing/cups.jpg";
 import grinder from "../../../public/marketing/grinder.jpg";
 import { DashboardDemo } from "./dashboard-demo";
 import { Faq } from "./faq";
 import { SECTIONS } from "./nav";
 import type { PlatformPageLink } from "./pages";
-import type { PricingData } from "./plans";
+import { mapsUrl, telUrl, whatsappUrl, type PricingData, type SupportContacts } from "./plans";
 import { Pricing } from "./pricing";
 import { delay, Features, SectionHead } from "./sections-top";
 
@@ -283,6 +285,45 @@ export function ClosingCta({ registerUrl }: { registerUrl: string }) {
   );
 }
 
+/** The platform's contacts, each one a link: the map, a call, WhatsApp, an email. */
+function ContactColumn({ support }: { support: SupportContacts }) {
+  const f = m.footer;
+  const rows: Array<{ icon: LucideIcon; label: string; text: string; href: string | null; ltr?: boolean; external?: boolean }> = [];
+  if (support.address) rows.push({ icon: MapPin, label: f.address, text: support.address, href: mapsUrl(support.address), external: true });
+  if (support.phone) rows.push({ icon: Phone, label: f.phone, text: support.phone, href: telUrl(support.phone), ltr: true });
+  if (support.whatsapp) rows.push({ icon: MessageCircle, label: f.whatsapp, text: f.whatsappText, href: whatsappUrl(support.whatsapp), external: true });
+  if (support.email) rows.push({ icon: Mail, label: f.email, text: support.email, href: `mailto:${support.email}`, ltr: true });
+  if (rows.length === 0) return null;
+  return (
+    <div>
+      <p className="mb-3.5 text-sm font-semibold text-white">{f.contact}</p>
+      <ul className="flex flex-col gap-1">
+        {rows.map((row) => (
+          <li key={row.label}>
+            <a href={row.href ?? undefined} aria-label={`${row.label}: ${row.text}`} {...(row.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="flex items-start gap-2.5 py-1.5 text-sm hover:text-white">
+              <row.icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+              <span dir={row.ltr ? "ltr" : undefined} className={row.ltr ? "break-all" : "text-pretty"}>
+                {row.text}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** WhatsApp, always at hand on the platform site (bottom corner, above everything but dialogs). */
+export function WhatsAppFloat({ phone }: { phone: string | null }) {
+  const href = whatsappUrl(phone);
+  if (!href) return null;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={m.footer.whatsappFloat} title={m.footer.whatsappFloat} className="fixed bottom-5 end-5 z-40 flex size-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-[0_12px_30px_-8px_rgb(0_0_0/0.45)] transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25d366] sm:bottom-7 sm:end-7">
+      <WhatsAppIcon className="size-7" />
+    </a>
+  );
+}
+
 export function MarketingFooter({ loginUrl, registerUrl, support, pages, home = "" }: { loginUrl: string; registerUrl: string; support: PricingData["support"] | null; pages: PlatformPageLink[]; home?: string }) {
   const f = m.footer;
   return (
@@ -320,21 +361,7 @@ export function MarketingFooter({ loginUrl, registerUrl, support, pages, home = 
               ))}
             </div>
           ) : null}
-          {support && (support.whatsapp || support.email) ? (
-            <div>
-              <p className="mb-3.5 text-sm font-semibold text-white">{f.contact}</p>
-              {support.whatsapp ? (
-                <p dir="ltr" className="py-1.5 text-end text-sm">
-                  {support.whatsapp}
-                </p>
-              ) : null}
-              {support.email ? (
-                <a href={`mailto:${support.email}`} dir="ltr" className="block py-1.5 text-end text-sm hover:text-white">
-                  {support.email}
-                </a>
-              ) : null}
-            </div>
-          ) : null}
+          {support ? <ContactColumn support={support} /> : null}
         </div>
         <div className="mt-16 flex flex-wrap justify-between gap-2 border-t border-[var(--mk-deep-line)] pt-6 text-[13px]">
           <span>{f.rights(new Date().getFullYear(), BRAND.name)}</span>

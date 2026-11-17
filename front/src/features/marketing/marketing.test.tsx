@@ -6,6 +6,7 @@ import { DEMO_DAYS, demoPeriod } from "./demo-data";
 import { Faq } from "./faq";
 import type { PublicPlan } from "./plans";
 import { planLines, Pricing } from "./pricing";
+import { MarketingFooter, WhatsAppFloat } from "./sections-bottom";
 
 const t = ar.marketing;
 afterEach(() => {
@@ -109,5 +110,32 @@ describe("Faq", () => {
     fireEvent.click(second);
     expect(second).toHaveAttribute("aria-expanded", "true");
     expect(first).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+describe("footer contacts", () => {
+  const support = { email: "support@mksab.store", whatsapp: "01094062024", phone: "01094062024", address: "مصر - الشرقية - العاشر من رمضان" };
+
+  it("links the address to the map, the phone to a call, the email to a message and WhatsApp to a chat", () => {
+    render(<MarketingFooter loginUrl="/login" registerUrl="/register" support={support} pages={[]} />);
+    const f = t.footer;
+    expect(screen.getByRole("link", { name: `${f.address}: ${support.address}` })).toHaveAttribute("href", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(support.address)}`);
+    expect(screen.getByRole("link", { name: `${f.phone}: ${support.phone}` })).toHaveAttribute("href", "tel:+201094062024");
+    expect(screen.getByRole("link", { name: `${f.email}: ${support.email}` })).toHaveAttribute("href", "mailto:support@mksab.store");
+    expect(screen.getByRole("link", { name: `${f.whatsapp}: ${f.whatsappText}` })).toHaveAttribute("href", "https://wa.me/201094062024");
+  });
+
+  it("shows only what the admin filled", () => {
+    render(<MarketingFooter loginUrl="/login" registerUrl="/register" support={{ email: null, whatsapp: null, phone: null, address: null }} pages={[]} />);
+    expect(screen.queryByText(t.footer.contact)).toBeNull();
+  });
+
+  it("keeps a WhatsApp button on screen, and none without a number", () => {
+    const { rerender } = render(<WhatsAppFloat phone="01094062024" />);
+    const link = screen.getByRole("link", { name: t.footer.whatsappFloat });
+    expect(link).toHaveAttribute("href", "https://wa.me/201094062024");
+    expect(link.className).toContain("fixed");
+    rerender(<WhatsAppFloat phone={null} />);
+    expect(screen.queryByRole("link", { name: t.footer.whatsappFloat })).toBeNull();
   });
 });

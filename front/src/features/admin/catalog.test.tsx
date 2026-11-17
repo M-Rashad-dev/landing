@@ -39,7 +39,7 @@ const entitlements = [
   { key: "store", kind: "feature", label: "متجر" },
   { key: "upsells", kind: "feature", label: "عروض بعد الطلب" },
 ];
-const settings = { trial_enabled: true, trial_days: 14, trial_plan_key: "basic", grace_hours: 24, invoice_hours: 48, support_email: null, support_whatsapp: null };
+const settings = { trial_enabled: true, trial_days: 14, trial_plan_key: "basic", grace_hours: 24, invoice_hours: 48, support_email: null, support_whatsapp: null, support_phone: null, support_address: null };
 
 const theme: AdminThemeRow = {
   key: "celia",

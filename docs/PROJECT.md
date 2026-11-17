@@ -191,6 +191,9 @@ Marketing home (`app/platform`, `features/marketing/`): interactive dashboard de
 fixed seed), real prices from `GET /plans`, in-house motion (reveal, count-up, tilt, smooth wheel scroll).
 Platform pages `/about`, `/terms`, `/privacy`, `/refund-policy`, `/acceptable-use` (Markdown from `platform_pages`,
 edited in admin; starting text has company details in [brackets]).
+Footer «تواصل معانا» and a fixed WhatsApp button on every platform page: the platform contacts (`support_email`,
+`support_whatsapp`, `support_phone`, `support_address` in `PlatformSettings`, edited in «الباقات» → «التجربة والفواتير»,
+sent as `meta.support` of `GET /plans`). Address → Google Maps search, phone → call, email → mail, WhatsApp → chat.
 
 ### Support chat (merchant ↔ «الدعم»)
 Tickets numbered id+1000; max 2 open per store, a new one only 12 h after the last open one started (closed ones

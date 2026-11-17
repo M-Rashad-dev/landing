@@ -42,6 +42,8 @@ export type BillingSettings = {
   invoice_hours: number;
   support_email: string | null;
   support_whatsapp: string | null;
+  support_phone: string | null;
+  support_address: string | null;
 };
 
 type PlansResponse = { data: AdminPlanRow[]; meta: { entitlements: Entitlement[]; settings: BillingSettings } };

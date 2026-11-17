@@ -243,6 +243,8 @@ return [
     'summary' => 'الملخص',
     'support_email' => 'إيميل الدعم',
     'support_whatsapp' => 'واتساب الدعم',
+    'support_phone' => 'تليفون الدعم',
+    'support_address' => 'العنوان',
     'tag_ids' => 'الوسوم',
     'tagline' => 'الجملة التعريفية',
     'target_id' => 'الوجهة',

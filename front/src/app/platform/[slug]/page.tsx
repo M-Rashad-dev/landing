@@ -8,7 +8,7 @@ import { MotionRoot } from "@/features/marketing/motion";
 import { pageHeadings, platformPage, platformPageLinks } from "@/features/marketing/pages";
 import { appUrl, pricingData, whatsappUrl } from "@/features/marketing/plans";
 import { Prose } from "@/features/marketing/prose";
-import { MarketingFooter } from "@/features/marketing/sections-bottom";
+import { MarketingFooter, WhatsAppFloat } from "@/features/marketing/sections-bottom";
 import { PLATFORM_PAGE_SLUGS } from "@/lib/host/platform-pages";
 import { ar } from "@/messages/ar";
 
@@ -133,6 +133,7 @@ export default async function PlatformPageView({ params }: Props) {
         </div>
       </main>
       <MarketingFooter loginUrl={appUrl("/login")} registerUrl={appUrl("/register")} support={pricing?.support ?? null} pages={links} home="/" />
+      <WhatsAppFloat phone={pricing?.support.whatsapp ?? null} />
     </div>
   );
 }

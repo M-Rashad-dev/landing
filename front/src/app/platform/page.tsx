@@ -5,7 +5,7 @@ import "@/features/marketing/marketing.css";
 import { MotionRoot } from "@/features/marketing/motion";
 import { platformPageLinks } from "@/features/marketing/pages";
 import { appUrl, pricingData, whatsappUrl } from "@/features/marketing/plans";
-import { ClosingCta, FaqSection, LandingSection, MarketingFooter, OrdersSection, PricingSection, ToolsSection } from "@/features/marketing/sections-bottom";
+import { ClosingCta, FaqSection, LandingSection, MarketingFooter, OrdersSection, PricingSection, ToolsSection, WhatsAppFloat } from "@/features/marketing/sections-bottom";
 import { BuilderSection, Facts, Hero, Journey, StoreSection } from "@/features/marketing/sections-top";
 import { ar } from "@/messages/ar";
 
@@ -60,6 +60,7 @@ export default async function PlatformHome() {
         <ClosingCta registerUrl={registerUrl} />
       </main>
       <MarketingFooter loginUrl={loginUrl} registerUrl={registerUrl} support={data?.support ?? null} pages={pages} />
+      <WhatsAppFloat phone={data?.support.whatsapp ?? null} />
     </div>
   );
 }

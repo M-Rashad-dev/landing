@@ -229,6 +229,32 @@ it('saves the trial settings', function () {
         ->assertStatus(422)->assertJsonValidationErrors(['trial_days', 'trial_plan_key', 'grace_hours']);
 });
 
+it('saves the platform contacts and shows them on the public plans', function () {
+    $this->putJson('/api/v1/admin/billing/settings', ['support_phone' => '01094062024'])->assertUnauthorized();
+    Sanctum::actingAs(User::factory()->superAdmin()->create());
+    $base = ['trial_enabled' => true, 'trial_days' => 14, 'trial_plan_key' => 'basic', 'grace_hours' => 24];
+
+    $this->putJson('/api/v1/admin/billing/settings', $base + ['support_phone' => '01094062024', 'support_address' => 'مصر - الشرقية - العاشر من رمضان', 'support_whatsapp' => '01094062024', 'support_email' => 'support@mksab.store'])
+        ->assertOk()->assertJsonPath('data.support_phone', '01094062024')->assertJsonPath('data.support_address', 'مصر - الشرقية - العاشر من رمضان');
+    $this->putJson('/api/v1/admin/billing/settings', $base + ['support_phone' => 'call me', 'support_address' => str_repeat('ع', 161)])
+        ->assertStatus(422)->assertJsonValidationErrors(['support_phone', 'support_address']);
+
+    $this->getJson('/api/v1/plans')->assertOk()->assertJsonPath('meta.support', [
+        'email' => 'support@mksab.store', 'whatsapp' => '01094062024', 'phone' => '01094062024', 'address' => 'مصر - الشرقية - العاشر من رمضان',
+    ]);
+});
+
+it('writes the platform contacts the owner gave, over older ones', function () {
+    app(PlatformSettings::class)->save(['support_email' => 'help@platform.test']);
+    PlatformSettings::flush();
+
+    (require database_path('migrations/2026_11_28_100003_fill_platform_contacts.php'))->up();
+
+    expect(app(PlatformSettings::class)->support())->toBe([
+        'email' => 'support@mksab.store', 'whatsapp' => '01094062024', 'phone' => '01094062024', 'address' => 'مصر - الشرقية - العاشر من رمضان',
+    ]);
+});
+
 it('grants, extends and overrides one store from the admin', function () {
     $tenant = Tenant::factory()->onPlan('basic')->create();
     Sanctum::actingAs(User::factory()->superAdmin()->create());

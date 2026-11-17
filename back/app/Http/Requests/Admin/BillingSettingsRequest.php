@@ -25,6 +25,8 @@ final class BillingSettingsRequest extends FormRequest
             'invoice_hours' => ['sometimes', 'integer', 'between:1,720'],
             'support_email' => ['sometimes', 'nullable', 'email:rfc', 'max:120'],
             'support_whatsapp' => ['sometimes', 'nullable', 'string', 'regex:/^\+?[0-9]{8,15}$/'],
+            'support_phone' => ['sometimes', 'nullable', 'string', 'regex:/^\+?[0-9]{8,15}$/'],
+            'support_address' => ['sometimes', 'nullable', 'string', 'max:160'],
         ];
     }
 }

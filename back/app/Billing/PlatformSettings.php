@@ -22,9 +22,11 @@ final class PlatformSettings
         'grace_hours' => 24,
         // An unpaid invoice expires (prices and discounts may change meanwhile).
         'invoice_hours' => 48,
-        // Shown on invoices and the legal pages.
+        // The platform's contacts: on invoices, the legal pages and the platform site (footer, WhatsApp button).
         'support_email' => null,
         'support_whatsapp' => null,
+        'support_phone' => null,
+        'support_address' => null,
         // Alerts to the platform owner (AdminAlerts): which ones, and where (WhatsApp by default;
         // empty phone / email = the first super admin's own).
         'alert_channel' => 'whatsapp',
@@ -70,12 +72,17 @@ final class PlatformSettings
         return max(1, (int) $this->all()['invoice_hours']);
     }
 
-    /** @return array{email: string|null, whatsapp: string|null} */
+    /** @return array{email: string|null, whatsapp: string|null, phone: string|null, address: string|null} */
     public function support(): array
     {
         $all = $this->all();
 
-        return ['email' => $all['support_email'] ?: null, 'whatsapp' => $all['support_whatsapp'] ?: null];
+        return [
+            'email' => $all['support_email'] ?: null,
+            'whatsapp' => $all['support_whatsapp'] ?: null,
+            'phone' => $all['support_phone'] ?: null,
+            'address' => $all['support_address'] ?: null,
+        ];
     }
 
     /** @param array<string, mixed> $values known keys only */

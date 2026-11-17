@@ -123,6 +123,8 @@ const settingsSchema = z.object({
   invoice_hours: z.number({ error: s.hoursInvalid }).int(s.hoursInvalid).min(1, s.hoursInvalid).max(720, s.hoursInvalid),
   support_email: z.union([z.literal(""), z.email(s.emailInvalid).max(120)]),
   support_whatsapp: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{8,15}$/, s.phoneInvalid)]),
+  support_phone: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{8,15}$/, s.phoneInvalid)]),
+  support_address: z.string().max(160, s.addressInvalid),
 });
 type SettingsValues = z.infer<typeof settingsSchema>;
 
@@ -134,6 +136,8 @@ const toSettings = (v: BillingSettings): SettingsValues => ({
   invoice_hours: v.invoice_hours,
   support_email: v.support_email ?? "",
   support_whatsapp: v.support_whatsapp ?? "",
+  support_phone: v.support_phone ?? "",
+  support_address: v.support_address ?? "",
 });
 
 function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: AdminPlanRow[] }) {
@@ -143,7 +147,7 @@ function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: 
 
   const submit = form.handleSubmit(async (v) => {
     try {
-      const saved = await saveBillingSettings({ ...v, support_email: v.support_email.trim() || null, support_whatsapp: v.support_whatsapp.trim() || null });
+      const saved = await saveBillingSettings({ ...v, support_email: v.support_email.trim() || null, support_whatsapp: v.support_whatsapp.trim() || null, support_phone: v.support_phone.trim() || null, support_address: v.support_address.trim() || null });
       form.reset(toSettings(saved));
       toast.success(s.saved);
       await client.invalidateQueries({ queryKey: ["admin", "plans"] });
@@ -182,6 +186,12 @@ function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: 
           </Field>
           <Field label={s.supportWhatsapp} htmlFor="support-whatsapp" error={errors.support_whatsapp?.message}>
             <Input id="support-whatsapp" dir="ltr" inputMode="tel" className="tabular" {...form.register("support_whatsapp")} />
+          </Field>
+          <Field label={s.supportPhone} htmlFor="support-phone" error={errors.support_phone?.message}>
+            <Input id="support-phone" dir="ltr" inputMode="tel" className="tabular" {...form.register("support_phone")} />
+          </Field>
+          <Field label={s.supportAddress} htmlFor="support-address" hint={s.supportAddressHint} error={errors.support_address?.message}>
+            <Input id="support-address" maxLength={160} {...form.register("support_address")} />
           </Field>
         </PanelBody>
         <PanelFooter className="flex justify-end">
