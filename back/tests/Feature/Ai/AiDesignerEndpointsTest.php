@@ -12,6 +12,7 @@ use App\Billing\PlatformSettings;
 use App\Models\AiSection;
 use App\Models\AiWalletEntry;
 use App\Models\PlanFeatureValue;
+use App\Models\Product;
 use App\Models\StoreDesign;
 use App\Models\Tenant;
 use App\Models\User;
@@ -175,4 +176,28 @@ it('repairs a broken answer once (two charges), and charges nothing when the AI 
     $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'تاني'])->assertStatus(202);
     $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
     expect(end($messages)['status'])->toBe('failed')->and(charges($owner->tenant_id))->toBe(2);
+});
+
+it('runs a whole design, applies it to the draft, reverts it, and never touches products', function () {
+    $owner = designerOwner(100000);
+    $product = Tenancy::runAs($owner->tenant_id, fn () => Product::factory()->create(['name' => 'منتج ثابت']));
+    $chat = designerChat();
+
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'صمم المتجر كله'])->assertStatus(202);
+    $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
+    $planMessage = end($messages);
+    expect($planMessage['plan'] ?? null)->not->toBeNull();
+
+    $run = $this->postJson("/api/v1/dashboard/ai/designer/messages/{$planMessage['id']}/run", ['custom' => ['c1' => false]])->assertStatus(202)->json('data.id');
+    $this->getJson("/api/v1/dashboard/ai/designer/runs/{$run}")->assertOk()->assertJsonPath('data.status', 'proposed');
+
+    $before = $this->getJson('/api/v1/dashboard/store/design')->json('data');
+    $this->postJson("/api/v1/dashboard/ai/designer/runs/{$run}/apply", ['version' => $before['version'] + 99])->assertStatus(409);
+    $this->postJson("/api/v1/dashboard/ai/designer/runs/{$run}/apply", ['version' => $before['version']])->assertOk();
+    $applied = $this->getJson('/api/v1/dashboard/store/design')->json('data');
+    expect($applied['draft'])->not->toEqual($before['draft']);
+
+    $this->postJson("/api/v1/dashboard/ai/designer/runs/{$run}/revert", ['version' => $applied['version']])->assertOk();
+    expect($this->getJson('/api/v1/dashboard/store/design')->json('data.draft'))->toEqual($before['draft'])
+        ->and(Tenancy::runAs($owner->tenant_id, fn () => $product->fresh()->name))->toBe('منتج ثابت');
 });

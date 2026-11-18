@@ -232,4 +232,20 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
   - the P3 step 5 front test
   - P2 step 3
   - Owner check
+- 2026-11-18: **F6, fifth part done:** a whole-design run test (10 tests in `AiDesignerEndpointsTest`, all passing).
+  - The flow: plan, then run with the custom section switched off, then proposed.
+  - Apply with a stale version gives 409. Apply changes the draft, and revert restores it exactly.
+  - The product is unchanged.
+
+  **Still open in F6:**
+  - the fields tests
+  - the landing-page design test
+  - images (§3.6)
+
+  **Then:**
+  - P2 step 3 (real tries + log)
+  - Owner check
+
+  The phone-frame layout can't be measured in jsdom (no CSS layout), so P3 step 5 becomes an owner check: the CSS
+  conversion itself is unit-tested.
 
