@@ -22,6 +22,7 @@ return [
     // The model of each task (the strongest for production: owner, 2026-11-17).
     'tasks' => [
         'support' => env('AI_MODEL_SUPPORT', 'qwen/qwen4-max'),
+        'designer' => env('AI_MODEL_DESIGNER', 'qwen/qwen4-max'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),

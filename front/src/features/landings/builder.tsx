@@ -53,7 +53,8 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
-import { createAiSectionPlacement, type MyAiSection } from "@/features/ai-designer/api";
+import { createAiSectionPlacement, useDesignerStatus, type MyAiSection } from "@/features/ai-designer/api";
+import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "@/features/builder/kit";
@@ -155,6 +156,11 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const [gallery, setGallery] = React.useState(false);
   const [extraAiSections, setExtraAiSections] = React.useState<Record<string, AiDefinition>>({});
   const [extraAiCurrent, setExtraAiCurrent] = React.useState<Record<string, number>>({});
+  const aiStatus = useDesignerStatus();
+  const aiEnabled = Boolean(aiStatus.data?.enabled);
+  const [designerOpen, setDesignerOpen] = React.useState(false);
+  const [designerInsert, setDesignerInsert] = React.useState<"after_selected" | "end">("end");
+  const [designerFocus, setDesignerFocus] = React.useState<FocusedAiSection | null>(null);
   const frame = React.useRef<HTMLDivElement>(null);
 
   const theme = landingBuilderTheme(initial.theme_key);
@@ -250,6 +256,38 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     setTab("sections");
     toast.success(ar.aiDesigner.mySections.added);
     window.setTimeout(() => scrollTo(placement.id), 80);
+  }
+
+  function handleAiApproved(
+    approvedSection: { id: number; name: string; current: AiDefinition },
+    isNew: boolean,
+  ) {
+    setExtraAiSections((prev) => ({
+      ...prev,
+      [String(approvedSection.current.id)]: approvedSection.current,
+    }));
+    setExtraAiCurrent((prev) => ({
+      ...prev,
+      [String(approvedSection.id)]: approvedSection.current.id,
+    }));
+
+    if (isNew && draft.sections.length < maxSections) {
+      const placement = createAiSectionPlacement(approvedSection.id) as unknown as AnySection;
+      const selectedIdx =
+        designerInsert === "after_selected"
+          ? draft.sections.findIndex((s) => s.id === selected && s.type !== "order_form")
+          : -1;
+      const formAt = draft.sections.findIndex((s) => s.type === "order_form");
+      const defaultAt = formAt < 0 ? draft.sections.length : formAt;
+      const at = selectedIdx >= 0 ? selectedIdx + 1 : defaultAt;
+      change({
+        ...draft,
+        sections: [...draft.sections.slice(0, at), placement, ...draft.sections.slice(at)],
+      });
+      setSelected(placement.id);
+      setTab("sections");
+      window.setTimeout(() => scrollTo(placement.id), 80);
+    }
   }
 
   async function publish() {
@@ -370,6 +408,21 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
 
         <div className="relative ms-auto flex items-center gap-2">
           <SaveStatus status={status} />
+          {aiEnabled ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDesignerInsert("end");
+                setDesignerFocus(null);
+                setDesignerOpen(true);
+              }}
+            >
+              <Sparkles className="size-4 text-violet-600" />
+              {ar.aiDesigner.topButton}
+            </Button>
+          ) : null}
           <Button asChild size="sm" variant="outline">
             <Link href={`/dashboard/landings/${detail.id}/preview`} target="_blank" onClick={() => void flush()}>
               <Eye />
@@ -496,6 +549,17 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                     errors={sectionErrors(errors, index)}
                     media={allMedia}
                     onMedia={rememberMedia}
+                    showEditWithAi={aiEnabled}
+                    onEditWithAi={() => {
+                      const def = aiDefFor(section);
+                      const p = section.props as unknown as AiSectionProps;
+                      setDesignerFocus({
+                        id: p.ai_section_id,
+                        name: def?.name ?? (t.types.ai?.title ?? "قسم بالذكاء الاصطناعي"),
+                        values: p.values ?? {},
+                      });
+                      setDesignerOpen(true);
+                    }}
                   />
                 ) : (
                   <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
@@ -631,10 +695,38 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
               tokens={aiTokens(draft.settings)}
               open={gallery}
               onPickSection={addMySection}
+              showAiCard={aiEnabled}
+              onOpenAiDesigner={() => {
+                setGallery(false);
+                setDesignerInsert("after_selected");
+                setDesignerFocus(null);
+                setDesignerOpen(true);
+              }}
             />
           </DialogBody>
         </DialogContent>
       </Dialog>
+      <DesignerDialog
+        open={designerOpen}
+        onOpenChange={setDesignerOpen}
+        kind="landing"
+        themeKey={initial.theme_key}
+        landingPageId={detail.id}
+        focusSection={designerFocus}
+        tokens={aiTokens(draft.settings)}
+        data={{
+          media: allMedia,
+          landingProduct: data.product
+            ? {
+                name: data.product.name,
+                price: data.product.price,
+                compare_at_price: data.product.compare_at_price,
+                image: data.product.images?.[0]?.urls?.large ?? data.product.images?.[0]?.urls?.medium ?? null,
+              }
+            : null,
+        }}
+        onApproved={handleAiApproved}
+      />
       <ConfirmDialog
         open={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}

@@ -28,6 +28,11 @@ final class Ai
     /** The usage row of the last successful call (a paid feature charges it). */
     private ?AiUsage $last = null;
 
+    public function lastUsage(): ?AiUsage
+    {
+        return $this->last;
+    }
+
     public function __construct(
         private readonly AiClient $client,
         private readonly AiSettings $settings,

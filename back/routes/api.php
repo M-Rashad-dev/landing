@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AbTestController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\AiDesignerController;
 use App\Http\Controllers\Api\V1\Dashboard\AiSectionController;
 use App\Http\Controllers\Api\V1\Dashboard\AiWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
@@ -125,6 +126,17 @@ Route::prefix('dashboard')
         Route::get('ai/wallet/entries', [AiWalletController::class, 'entries'])->withoutMiddleware('plan.writable');
         Route::get('ai/sections', [AiSectionController::class, 'index']);
         Route::delete('ai/sections/{aiSection}', [AiSectionController::class, 'destroy'])->whereNumber('aiSection');
+
+        Route::prefix('ai/designer')->group(function (): void {
+            Route::get('status', [AiDesignerController::class, 'status']);
+            Route::post('chat', [AiDesignerController::class, 'chat']);
+            Route::post('chat/new', [AiDesignerController::class, 'newChat']);
+            Route::get('chats/{chat}', [AiDesignerController::class, 'showChat'])->whereNumber('chat');
+            Route::post('chats/{chat}/messages', [AiDesignerController::class, 'sendMessage'])->whereNumber('chat')->middleware('throttle:support');
+            Route::post('versions/{version}/approve', [AiDesignerController::class, 'approveVersion'])->whereNumber('version');
+            Route::post('versions/{version}/reject', [AiDesignerController::class, 'rejectVersion'])->whereNumber('version');
+        });
+
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);

@@ -24,6 +24,7 @@ import {
   ShoppingCart,
   FileText,
   Smartphone,
+  Sparkles,
   Tablet,
   Trash2,
   TriangleAlert,
@@ -36,7 +37,8 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
-import { createAiSectionPlacement, type MyAiSection } from "@/features/ai-designer/api";
+import { createAiSectionPlacement, useDesignerStatus, type MyAiSection } from "@/features/ai-designer/api";
+import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
@@ -118,6 +120,11 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const groups = theme.groups.filter((g) => initial.theme.settings_groups.includes(g.key));
   const MAX_SECTIONS = initial.theme.max_sections;
   const [gallery, setGallery] = React.useState(false);
+  const aiStatus = useDesignerStatus();
+  const aiEnabled = Boolean(aiStatus.data?.enabled);
+  const [designerOpen, setDesignerOpen] = React.useState(false);
+  const [designerInsert, setDesignerInsert] = React.useState<"after_selected" | "end">("end");
+  const [designerFocus, setDesignerFocus] = React.useState<FocusedAiSection | null>(null);
   const frame = React.useRef<HTMLDivElement>(null);
   const editor = useDraftEditor<AnyDesign, DesignPayload>({
     initial: initial.draft as AnyDesign,
@@ -203,6 +210,41 @@ function Editor({ initial }: { initial: DesignPayload }) {
     setTab("sections");
     toast.success(ar.aiDesigner.mySections.added);
     window.setTimeout(() => scrollTo(placement.id), 80);
+  }
+
+  function handleAiApproved(
+    approvedSection: { id: number; name: string; current: AiDefinition },
+    isNew: boolean,
+  ) {
+    setData((prev) => ({
+      ...prev,
+      ai_sections: {
+        ...(prev.ai_sections ?? {}),
+        [String(approvedSection.current.id)]: approvedSection.current,
+      },
+      ai_sections_current: {
+        ...(prev.ai_sections_current ?? {}),
+        [String(approvedSection.id)]: approvedSection.current.id,
+      },
+    }));
+
+    if (isNew && draft.sections.length < MAX_SECTIONS) {
+      const placement = createAiSectionPlacement(approvedSection.id) as AnySection;
+      const selectedIdx =
+        designerInsert === "after_selected"
+          ? draft.sections.findIndex((s) => s.id === selected)
+          : -1;
+      const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : draft.sections.length;
+      const nextSections = [
+        ...draft.sections.slice(0, insertAt),
+        placement,
+        ...draft.sections.slice(insertAt),
+      ];
+      change({ ...draft, sections: nextSections });
+      setSelected(placement.id);
+      setTab("sections");
+      window.setTimeout(() => scrollTo(placement.id), 80);
+    }
   }
 
   async function publish() {
@@ -301,6 +343,21 @@ function Editor({ initial }: { initial: DesignPayload }) {
 
         <div className="relative ms-auto flex items-center gap-2">
           <SaveStatus status={status} />
+          {aiEnabled ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDesignerInsert("end");
+                setDesignerFocus(null);
+                setDesignerOpen(true);
+              }}
+            >
+              <Sparkles className="size-4 text-violet-600" />
+              {ar.aiDesigner.topButton}
+            </Button>
+          ) : null}
           <Button asChild size="sm" variant="outline">
             <Link href="/dashboard/design/preview" target="_blank" onClick={() => void flush()}>
               <ExternalLink />
@@ -381,6 +438,16 @@ function Editor({ initial }: { initial: DesignPayload }) {
                     errors={sectionErrors(errors, index)}
                     media={allMedia}
                     onMedia={rememberMedia}
+                    showEditWithAi={aiEnabled}
+                    onEditWithAi={() => {
+                      const def = aiDefinitionFor(section, data);
+                      setDesignerFocus({
+                        id: section.props.ai_section_id,
+                        name: def?.name ?? t.types.ai.title,
+                        values: section.props.values ?? {},
+                      });
+                      setDesignerOpen(true);
+                    }}
                   />
                 ) : (
                   <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
@@ -502,6 +569,28 @@ function Editor({ initial }: { initial: DesignPayload }) {
         themeKey={initial.theme.key}
         tokens={aiTokens(draft.settings)}
         onPickMySection={addMySection}
+        showAiCard={aiEnabled}
+        onOpenAiDesigner={() => {
+          setGallery(false);
+          setDesignerInsert("after_selected");
+          setDesignerFocus(null);
+          setDesignerOpen(true);
+        }}
+      />
+      <DesignerDialog
+        open={designerOpen}
+        onOpenChange={setDesignerOpen}
+        kind="store"
+        themeKey={initial.theme.key}
+        focusSection={designerFocus}
+        tokens={aiTokens(draft.settings)}
+        data={{
+          products: data.products,
+          categories: data.category_tiles,
+          links: data.links,
+          media: allMedia,
+        }}
+        onApproved={handleAiApproved}
       />
       <ConfirmDialog
         open={removing !== null}

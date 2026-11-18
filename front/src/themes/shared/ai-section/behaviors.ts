@@ -354,3 +354,4 @@ function initQuickAdd(root: HTMLElement, onAdd?: (productId: number) => void): (
   root.addEventListener("click", onClick);
   return () => root.removeEventListener("click", onClick);
 }
+

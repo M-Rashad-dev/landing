@@ -34,8 +34,14 @@ export const admin = {
     models: "الموديلات",
     unpriced: "سعره مش متسجل، فتكلفته بتتحسب صفر",
     features: "الميزات",
-    featureNames: { support: "مساعد خدمة العملاء" } as Record<string, string>,
-    featureHints: { support: "بيرد على التجار في شات الدعم من معلومات المساعد، ويحوّل لموظف وقت اللزوم." } as Record<string, string>,
+    featureNames: {
+      support: "مساعد خدمة العملاء",
+      designer: "المصمم الذكي (الأقسام وتصميم الصفحات)",
+    } as Record<string, string>,
+    featureHints: {
+      support: "بيرد على التجار في شات الدعم من معلومات المساعد، ويحوّل لموظف وقت اللزوم.",
+      designer: "التاجر يصمم أقسام جديدة أو صفحته كلها بالذكاء الاصطناعي، والتكلفة من رصيده.",
+    } as Record<string, string>,
     limits: "الحدود",
     dailyCap: "أقصى صرف في اليوم (دولار)",
     dailyCapHint: "للمنصة كلها. لو اتعدّى، كل ميزات الذكاء الاصطناعي بتقف لحد بكرة.",

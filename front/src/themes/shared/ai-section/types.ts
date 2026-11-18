@@ -77,3 +77,4 @@ export type AiSectionRuntimeData = {
   media?: Record<string, Record<string, string>>;
   landingProduct?: AiRenderProduct | null;
 };
+
