@@ -170,3 +170,18 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
 - 2026-11-18 — **F5 DONE**: `AiDesigner::keepEditedFields()` — an edit that drops existing field keys gets them back (with the merchant's
   values) unless the merchant's message asks to remove something (no extra AI call). **Found: no designer tests at all → P6 / F6 added.**
   Next: F6 (tests), then the P3 step 5 front test, then P2 step 3 (real tries + log).
+- 2026-11-18: **F6, first part done:** `tests/Feature/Ai/AiSectionSafetyTest.php` has 25 tests.
+  - It covers 21 HTML attack vectors removed by `AiSectionSanitizer`, the behaviour allow-list, button type and image
+    sources.
+  - It checks `AiTemplate` refusals and the dangerous CSS dropped and scoped by `AiSectionCss`.
+  - All pass, and no security bug was found. (An unclosed `<embed>` swallows what follows. That's safe, since more
+    is removed.)
+  - **Still open in F6:**
+    - the fields tests
+    - store / landing designs with `ai` sections
+    - every designer endpoint (success / validation / 401 / tenant isolation)
+    - the charging paths
+    - the edit temperature + `keepEditedFields`
+    - images
+    - runs / apply / revert
+
