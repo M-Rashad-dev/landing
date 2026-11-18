@@ -105,7 +105,7 @@ Then run the whole front test suite.
 - Keep keyboard close (Esc) and focus trap.
 - Update the front tests that query the dialog.
 
-## P5. An edit request changes things the merchant didn't ask for (task F5: prompt + temperature DONE; the «missing field key» guard and its test are still open)
+## P5. An edit request changes things the merchant didn't ask for (task F5: DONE; its test goes with F6)
 Example: «make phone show one card» also changed the section header.
 - **Fix in the prompt** (`ai-designer.md`, editing part): add a short, strict rule list.
   - «When editing, copy every part of html, css and fields that the request does not mention **character for
