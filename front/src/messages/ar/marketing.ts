@@ -213,6 +213,7 @@ export const marketing = {
       abandoned_leads: "الطلبات المتروكة",
       advanced_analytics: "تحليلات متقدمة",
       buy_themes: "ثيمات مدفوعة",
+      ai: "ميزات الذكاء الاصطناعي",
       remove_branding: "من غير «صنع بواسطة مكسب»",
     },
   },

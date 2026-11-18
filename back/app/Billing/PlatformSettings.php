@@ -41,6 +41,14 @@ final class PlatformSettings
         'ai_usd_rate' => null,
         'ai_margin_percent' => 10,
         'ai_support_daily_messages' => 30,
+        // Merchants' AI balance: top-up packages and the least free amount (EGP), top-up offers
+        // ([{min, bonus}]: topping up at least `min` adds `bonus` free), the welcome credit of a new
+        // store (any plan, to try), and the balance under which the merchant is told once.
+        'ai_topup_packages' => [100, 250, 500, 1000],
+        'ai_topup_min' => 50,
+        'ai_topup_offers' => [],
+        'ai_welcome_credit' => 10,
+        'ai_low_balance' => 10,
     ];
 
     /** @var array<string, mixed>|null */

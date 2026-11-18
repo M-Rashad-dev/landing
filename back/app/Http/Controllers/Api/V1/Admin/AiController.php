@@ -9,12 +9,16 @@ use App\Ai\Ai;
 use App\Ai\AiCost;
 use App\Ai\AiSettings;
 use App\Billing\PlatformSettings;
+use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AiSettingsRequest;
 use App\Jobs\EmbedKnowledge;
 use App\Models\AiUsage;
+use App\Models\AiWallet;
+use App\Models\Invoice;
 use App\Models\Tenant;
+use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 
@@ -54,6 +58,7 @@ final class AiController extends Controller
                 'limit_reached' => $this->ai->spentToday() >= $this->settings->dailyCapUsd(),
             ],
             'models' => array_map(fn (string $model) => ['model' => $model, 'priced' => AiCost::priced($model)], $models),
+            'wallets' => self::wallets($month),
             'usage' => [
                 'today' => self::totals($today),
                 'month' => self::totals($month),
@@ -74,6 +79,11 @@ final class AiController extends Controller
             'ai_usd_rate' => isset($data['usd_rate']) ? (float) $data['usd_rate'] : null,
             'ai_margin_percent' => (float) $data['margin_percent'],
             'ai_support_daily_messages' => (int) $data['support_daily_messages'],
+            'ai_topup_packages' => array_values(array_map('intval', (array) $data['topup_packages'])),
+            'ai_topup_min' => (int) $data['topup_min'],
+            'ai_topup_offers' => array_values(array_map(fn (array $o) => ['min' => (int) $o['min'], 'bonus' => (int) $o['bonus']], (array) $data['topup_offers'])),
+            'ai_welcome_credit' => (int) $data['welcome_credit'],
+            'ai_low_balance' => (int) $data['low_balance'],
         ];
         $platform->save($values);
         // Turning the assistant on prepares the knowledge base pieces still waiting for vectors.
@@ -83,6 +93,27 @@ final class AiController extends Controller
         $audit->audit('ai.settings', 'platform', $values, 'settings');
 
         return $this->show();
+    }
+
+    /**
+     * The merchants' AI balance this month (EGP): topped up (paid invoices), charged for AI, what
+     * those charged calls really cost (USD), and what is left in every store.
+     * Audited bypass: the owner's totals over all stores (sums only, nothing of one store shown).
+     *
+     * @return array<string, float>
+     */
+    private static function wallets(CarbonImmutable $since): array
+    {
+        $topped = Tenancy::withoutTenant(fn () => (float) Invoice::query()->where('type', 'ai_credit')->where('status', InvoiceStatus::Paid->value)->where('paid_at', '>=', $since)->sum('total'));
+        $charged = AiUsage::query()->where('created_at', '>=', $since)->whereNotNull('charged_egp');
+        $left = Tenancy::withoutTenant(fn () => (float) AiWallet::query()->selectRaw('coalesce(sum(paid_balance + free_balance), 0) as total')->value('total'));
+
+        return [
+            'topped_up' => round($topped, 2),
+            'charged' => round((float) (clone $charged)->sum('charged_egp'), 2),
+            'charged_cost_usd' => round((float) (clone $charged)->sum('cost_usd'), 4),
+            'balances_left' => round($left, 2),
+        ];
     }
 
     /** @return array{calls: int, usd: float, failed: int} */

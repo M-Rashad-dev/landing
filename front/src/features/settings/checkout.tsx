@@ -16,7 +16,7 @@ import { errorMessage, isApiError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { IMAGE_ACCEPT, ImageRejected, prepareImage } from "@/lib/media/compress";
 import { ar } from "@/messages/ar";
-import { sendReceipt, usePreview, type CheckoutItem, type Invoice, type PayMethod, type Period } from "./billing-api";
+import { invoiceItem, sendReceipt, usePreview, type CheckoutItem, type Invoice, type PayMethod, type Period } from "./billing-api";
 
 const t = ar.settings.checkout;
 
@@ -26,9 +26,10 @@ export function CheckoutPage() {
   const client = useQueryClient();
   const plan = params.get("plan") ?? "";
   const theme = params.get("theme") ?? "";
+  const ai = Number(params.get("ai") ?? 0);
   const period: Period = params.get("period") === "yearly" ? "yearly" : "monthly";
-  // ?theme=sufi_store buys a theme; otherwise ?plan=…&period=… a subscription.
-  const item: CheckoutItem = theme ? { type: "theme", theme_key: theme } : { type: "subscription", plan_key: plan, period };
+  // ?theme=sufi_store buys a theme, ?ai=250 tops up the AI balance; otherwise ?plan=…&period=… a subscription.
+  const item: CheckoutItem = theme ? { type: "theme", theme_key: theme } : ai > 0 ? { type: "ai_credit", amount: ai } : { type: "subscription", plan_key: plan, period };
   const query = usePreview(item);
 
   async function done(invoice: Invoice) {
@@ -40,7 +41,7 @@ export function CheckoutPage() {
 
   return (
     <>
-      <PageHeader crumbs={[{ label: ar.settings.billing.title, href: "/dashboard/settings/billing" }, { label: t.title }]} title={t.title} />
+      <PageHeader crumbs={[item.type === "ai_credit" ? { label: ar.settings.aiWallet.title, href: "/dashboard/settings/ai" } : { label: ar.settings.billing.title, href: "/dashboard/settings/billing" }, { label: t.title }]} title={t.title} />
       {query.isPending ? (
         <Skeleton className="h-96 max-w-3xl rounded-xl" />
       ) : query.isError ? (
@@ -50,7 +51,7 @@ export function CheckoutPage() {
           <ReceiptForm
             methods={query.data.pay_with ?? []}
             total={query.data.total}
-            submit={(fields, receipt) => sendReceipt("/dashboard/billing/checkout", { ...(item as Record<string, string>), ...fields }, receipt)}
+            submit={(fields, receipt) => sendReceipt("/dashboard/billing/checkout", { ...Object.fromEntries(Object.entries(item).map(([k, v]) => [k, String(v)])), ...fields }, receipt)}
             onDone={done}
           />
           <Summary invoice={query.data} />
@@ -61,10 +62,10 @@ export function CheckoutPage() {
 }
 
 export function Summary({ invoice }: { invoice: Invoice }) {
-  const periodLabel = invoice.period === "yearly" ? ar.settings.billing.yearly : ar.settings.billing.monthly;
+  const bonus = invoice.ai_credit?.bonus ?? 0;
   return (
     <Panel>
-      <PanelHeader title={t.item} description={invoice.theme ? ar.common.themeName(invoice.theme.name, invoice.theme.kind) : t.plan(invoice.plan.name, periodLabel)} />
+      <PanelHeader title={t.item} description={invoiceItem(invoice, (p) => (p === "yearly" ? ar.settings.billing.yearly : ar.settings.billing.monthly))} />
       <PanelBody>
         <dl className="flex flex-col gap-1.5 text-sm">
           <Row label={t.subtotal} value={formatMoney(invoice.subtotal)} />
@@ -74,7 +75,9 @@ export function Summary({ invoice }: { invoice: Invoice }) {
             <dt>{t.total}</dt>
             <dd className="tabular">{formatMoney(invoice.total)}</dd>
           </div>
+          {bonus > 0 ? <Row label={t.aiBonus} value={`+ ${formatMoney(bonus)}`} /> : null}
         </dl>
+        {invoice.ai_credit ? <p className="mt-3 text-xs text-ink-3">{t.aiNote(formatMoney(invoice.ai_credit.amount + bonus))}</p> : null}
       </PanelBody>
     </Panel>
   );

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Ai;
 
+use App\Exceptions\ApiException;
 use App\Models\AiUsage;
+use App\Models\Tenant;
 use App\Services\AdminAlerts;
 use App\Support\CairoTime;
 use Carbon\CarbonImmutable;
@@ -23,10 +25,14 @@ final class Ai
 
     private const PAUSED_KEY = 'ai:paused_until';
 
+    /** The usage row of the last successful call (a paid feature charges it). */
+    private ?AiUsage $last = null;
+
     public function __construct(
         private readonly AiClient $client,
         private readonly AiSettings $settings,
         private readonly AdminAlerts $alerts,
+        private readonly AiWallets $wallets,
     ) {}
 
     /** The model a task uses (config/ai.php). */
@@ -53,9 +59,50 @@ final class Ai
         }
 
         $this->succeeded();
-        $this->record($feature, $reply->model, $tenantId, $reply->inputTokens, $reply->outputTokens, $reply->cachedTokens);
+        $this->last = $this->record($feature, $reply->model, $tenantId, $reply->inputTokens, $reply->outputTokens, $reply->cachedTokens);
 
         return $reply;
+    }
+
+    /**
+     * A call the merchant pays for from the AI balance: refused up front when the balance can't
+     * cover the most it could cost; charged its real cost after (nothing when it fails).
+     *
+     * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $messages
+     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool}  $options
+     *
+     * @throws AiUnavailable|ApiException
+     */
+    public function chatPaid(Tenant $tenant, string $feature, string $task, array $messages, array $options, string $description): AiReply
+    {
+        $this->guard($feature);
+        $this->wallets->ensureCanSpend($tenant, self::estimate(self::model($task), $messages, (int) ($options['max_tokens'] ?? 2000)));
+        $reply = $this->chat($feature, $task, $messages, $options, $tenant->id);
+        if ($this->last !== null) {
+            $this->wallets->charge($tenant, $this->last, $feature, $description);
+        }
+
+        return $reply;
+    }
+
+    /**
+     * The most a call could cost (USD): its text and pictures as input tokens (about 3 characters
+     * a token, ~1500 tokens a picture) and the whole output allowance.
+     *
+     * @param  list<array<string, mixed>>  $messages
+     */
+    public static function estimate(string $model, array $messages, int $maxOutput): float
+    {
+        $chars = 0;
+        $images = 0;
+        foreach ($messages as $message) {
+            $content = $message['content'] ?? '';
+            foreach (is_array($content) ? $content : [['type' => 'text', 'text' => $content]] as $part) {
+                ($part['type'] ?? 'text') === 'image' ? $images++ : $chars += mb_strlen((string) ($part['text'] ?? ''));
+            }
+        }
+
+        return AiCost::usd($model, (int) ceil($chars / 3) + $images * 1500, $maxOutput);
     }
 
     /**
@@ -131,9 +178,9 @@ final class Ai
         }
     }
 
-    private function record(string $feature, string $model, ?int $tenantId, int $input, int $output, int $cached = 0): void
+    private function record(string $feature, string $model, ?int $tenantId, int $input, int $output, int $cached = 0): AiUsage
     {
-        AiUsage::query()->create([
+        return AiUsage::query()->create([
             'tenant_id' => $tenantId,
             'feature' => $feature,
             'model' => $model,

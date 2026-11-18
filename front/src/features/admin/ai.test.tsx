@@ -21,7 +21,8 @@ beforeEach(() => {
   sent = null;
   posted = null;
   overview = {
-    settings: { features: { support: false }, daily_cap_usd: 20, usd_rate: null, margin_percent: 10, support_daily_messages: 30 },
+    settings: { features: { support: false }, daily_cap_usd: 20, usd_rate: null, margin_percent: 10, support_daily_messages: 30, topup_packages: [100, 250, 500, 1000], topup_min: 50, topup_offers: [{ min: 1000, bonus: 100 }], welcome_credit: 10, low_balance: 10 },
+    wallets: { topped_up: 1500, charged: 42.5, charged_cost_usd: 0.7, balances_left: 980.25 },
     status: { configured: false, driver: "qwen", paused_until: null, today_usd: 0.0123, limit_reached: false },
     models: [{ model: "qwen4-max", priced: true }],
     usage: {
@@ -80,7 +81,39 @@ describe("admin AI page", () => {
     fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
 
     await waitFor(() => expect(document.body.textContent).not.toContain(t.invalid));
-    await waitFor(() => expect(sent).toEqual({ features: { support: true }, daily_cap_usd: 20, usd_rate: null, margin_percent: 10, support_daily_messages: 50 }));
+    await waitFor(() => expect(sent).toEqual({ features: { support: true }, daily_cap_usd: 20, usd_rate: null, margin_percent: 10, support_daily_messages: 50, topup_packages: [100, 250, 500, 1000], topup_min: 50, topup_offers: [{ min: 1000, bonus: 100 }], welcome_credit: 10, low_balance: 10 }));
+  });
+
+  it("edits the top-up packages and offers, and shows the merchants' balance totals", async () => {
+    show();
+    expect(await screen.findByText(t.toppedUp)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(t.packages, { exact: false }), { target: { value: "200، 100 , 50" } });
+    fireEvent.click(screen.getByRole("button", { name: t.addOffer }));
+    fireEvent.change(screen.getAllByLabelText(t.offerMin, { exact: false })[1]!, { target: { value: "500" } });
+    fireEvent.change(screen.getAllByLabelText(t.offerBonus, { exact: false })[1]!, { target: { value: "25" } });
+    fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
+
+    await waitFor(() =>
+      expect(sent).toMatchObject({
+        topup_packages: [200, 100, 50],
+        topup_offers: [
+          { min: 1000, bonus: 100 },
+          { min: 500, bonus: 25 },
+        ],
+      }),
+    );
+  });
+
+  it("refuses wrong packages or two offers with the same amount", async () => {
+    show();
+    fireEvent.change(await screen.findByLabelText(t.packages, { exact: false }), { target: { value: "100, abc" } });
+    fireEvent.click(screen.getByRole("button", { name: t.addOffer }));
+    fireEvent.change(screen.getAllByLabelText(t.offerMin, { exact: false })[1]!, { target: { value: "1000" } });
+    fireEvent.change(screen.getAllByLabelText(t.offerBonus, { exact: false })[1]!, { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
+    expect(await screen.findByText(t.packagesInvalid)).toBeInTheDocument();
+    expect(screen.getByText(t.offersDuplicate)).toBeInTheDocument();
+    expect(sent).toBeNull();
   });
 
   it("refuses a wrong limit before sending", async () => {

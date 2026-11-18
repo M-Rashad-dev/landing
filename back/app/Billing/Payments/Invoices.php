@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Billing\Payments;
 
+use App\Ai\AiSettings;
+use App\Ai\AiWallets;
 use App\Billing\BillingPriceCalculator;
 use App\Billing\Entitlements;
 use App\Billing\PlanCatalog;
@@ -37,6 +39,8 @@ final class Invoices
         private readonly ThemeCatalog $themes,
         private readonly ThemeAccess $access,
         private readonly Entitlements $entitlements,
+        private readonly AiSettings $ai,
+        private readonly AiWallets $wallets,
     ) {}
 
     /**
@@ -102,6 +106,67 @@ final class Invoices
         }));
 
         return $invoice->refresh();
+    }
+
+    /**
+     * A top-up of the AI balance (EGP): one of the owner's packages or at least the least
+     * amount, plus the offer it reaches (free, added on approval). Needs a plan with the AI.
+     */
+    public function forAiCredit(Tenant $tenant, int $amount): Invoice
+    {
+        $attributes = $this->aiCreditAttributes($tenant, $amount);
+
+        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($attributes): Invoice {
+            $same = Invoice::query()->where('type', 'ai_credit')->lockForUpdate();
+            if ((clone $same)->where('status', InvoiceStatus::PendingReview)->exists()) {
+                throw new ApiException(422, 'invoice_pending_review', __('ai.wallet.pending'));
+            }
+            (clone $same)->where('status', InvoiceStatus::Open)->get()
+                ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
+
+            $invoice = Invoice::query()->create($attributes);
+            $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
+
+            return $invoice;
+        }));
+
+        return $invoice->refresh();
+    }
+
+    /** What a top-up invoice would be, nothing saved (see draftPlan). */
+    public function draftAiCredit(Tenant $tenant, int $amount): Invoice
+    {
+        $attributes = $this->aiCreditAttributes($tenant, $amount);
+        $this->ensureNoReceiptUnderReview($tenant, 'ai_credit');
+
+        return $this->draft($attributes);
+    }
+
+    /** @return array<string, mixed> */
+    private function aiCreditAttributes(Tenant $tenant, int $amount): array
+    {
+        Entitlements::forget($tenant->id);
+        if (! $this->wallets->paidAllowed($tenant)) {
+            throw ApiException::planFeatureLocked(PlanFeature::Ai, $this->catalog->cheapestWithFeature(PlanFeature::Ai));
+        }
+        if (! in_array($amount, $this->ai->topupPackages(), true) && $amount < $this->ai->topupMin()) {
+            throw new ApiException(422, 'validation_failed', __('ai.wallet.amount_min', ['min' => $this->ai->topupMin()]), ['amount' => [__('ai.wallet.amount_min', ['min' => $this->ai->topupMin()])]]);
+        }
+        $cents = $amount * 100;
+
+        return [
+            'tenant_id' => $tenant->id,
+            'type' => 'ai_credit',
+            'starts_now' => true,
+            'status' => InvoiceStatus::Open,
+            'subtotal' => Money::toDecimal($cents),
+            'discount' => Money::toDecimal(0),
+            'credit' => Money::toDecimal(0),
+            'total' => Money::toDecimal($cents),
+            'currency' => (string) config('landing.billing.currency'),
+            'snapshot' => ['ai_credit' => ['amount' => $amount, 'bonus' => $this->ai->bonusFor($amount)]],
+            'expires_at' => CarbonImmutable::now()->addHours($this->settings->invoiceHours()),
+        ];
     }
 
     /** What a theme invoice would be, nothing saved (see draftPlan). */
@@ -234,6 +299,14 @@ final class Invoices
 
         if ($activated === null) {
             return $invoice->refresh();
+        }
+
+        if ($activated->type === 'ai_credit') {
+            $credit = (array) ($activated->snapshot['ai_credit'] ?? []);
+            $this->wallets->credit($tenant, $activated->totalCents(), 'topup', __('ai.wallet.topup', ['number' => $activated->number]), $activated->id);
+            $this->wallets->credit($tenant, (int) ($credit['bonus'] ?? 0) * 100, 'bonus', __('ai.wallet.bonus', ['number' => $activated->number]), $activated->id);
+
+            return $activated->refresh();
         }
 
         if ($activated->type === 'theme') {

@@ -20,10 +20,12 @@ final class CheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::in(['subscription', 'theme'])],
+            'type' => ['required', Rule::in(['subscription', 'theme', 'ai_credit'])],
             'plan_key' => ['required_if:type,subscription', 'nullable', 'string', 'max:40'],
             'period' => ['required_if:type,subscription', 'nullable', Rule::enum(BillingPeriod::class)],
             'theme_key' => ['required_if:type,theme', 'nullable', 'string', 'max:40'],
+            // AI balance top-up, in EGP (a package or at least the least amount: Invoices::forAiCredit).
+            'amount' => ['required_if:type,ai_credit', 'nullable', 'integer', 'min:1', 'max:100000'],
             // Placing only (the preview ignores them); required when there is something to transfer.
             'method' => ['nullable', 'string', 'max:40'],
             'sender_ref' => ['nullable', 'string', 'min:3', 'max:120'],
@@ -32,7 +34,7 @@ final class CheckoutRequest extends FormRequest
         ];
     }
 
-    /** @return array{type: string, plan_key: string|null, period: string|null, theme_key: string|null} */
+    /** @return array{type: string, plan_key: string|null, period: string|null, theme_key: string|null, amount: int|null} */
     public function item(): array
     {
         return [
@@ -40,6 +42,7 @@ final class CheckoutRequest extends FormRequest
             'plan_key' => $this->validated('plan_key'),
             'period' => $this->validated('period'),
             'theme_key' => $this->validated('theme_key'),
+            'amount' => $this->validated('amount') === null ? null : (int) $this->validated('amount'),
         ];
     }
 

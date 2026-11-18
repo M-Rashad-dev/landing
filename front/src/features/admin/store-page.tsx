@@ -30,6 +30,7 @@ import {
 } from "./api";
 import { DeleteStoreDialog, entitlementLabel, ExtendDialog, GrantPlanDialog, GrantThemeDialog, OverrideDialog, PasswordResultDialog, SuspendDialog, useDialog } from "./store-dialogs";
 import { describeLog } from "./activity-page";
+import { AiWalletPanel } from "./store-ai-wallet";
 import { PlanCell } from "./stores-page";
 
 const t = ar.admin.store;
@@ -175,6 +176,7 @@ export function StorePage({ id }: { id: number }) {
             <OwnerPanel store={s} />
             <DomainsPanel store={s} />
             <ThemesPanel storeId={s.id} />
+            <AiWalletPanel storeId={s.id} />
           </div>
         </div>
       </div>

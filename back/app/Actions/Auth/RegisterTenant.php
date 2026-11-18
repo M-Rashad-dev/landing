@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Ai\AiWallets;
 use App\Billing\SubscriptionManager;
 use App\Enums\DomainStatus;
 use App\Enums\DomainType;
@@ -25,6 +26,7 @@ final class RegisterTenant
         private readonly SubdomainGenerator $subdomains,
         private readonly IssueToken $issueToken,
         private readonly SubscriptionManager $subscriptions,
+        private readonly AiWallets $wallets,
         private readonly AdminAlerts $alerts,
     ) {}
 
@@ -74,6 +76,8 @@ final class RegisterTenant
 
         // Free trial when the admin has it on; otherwise the dashboard opens on the pricing page.
         $this->subscriptions->startTrial($tenant);
+        // The AI welcome credit (any plan), to try the AI features.
+        $this->wallets->welcome($tenant);
         $this->alerts->storeRegistered($tenant, $user, $domain->host);
 
         return [

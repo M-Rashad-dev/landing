@@ -505,3 +505,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Its conversations don't count in the staff limits (2 open, 12 h gap): they exist to protect people's load (owner, decision 7).
 - Embedding model: qwen3.7-text-embedding ($0.07 / 1M tokens). 42 starter articles written from the dashboard screens, for the owner to review.
 
+## 2026-11-18 — AI phase 3: the merchant AI wallet
+- The merchant pays for the AI features from a balance in EGP: the provider's real cost × the admin's USD rate × (1 + the admin's margin), rounded up to the piaster, charged after each call (nothing when it fails). The support assistant stays free (the platform pays).
+- Two pots: free (welcome credit 10 EGP once, owner gifts) works on every plan; paid (top-ups, offer bonuses) works and can be topped up only on plans with the AI feature, chosen in the plan editor. Free is spent first. The balance never expires and is never refunded (owner).
+- Top-ups use the existing receipt checkout as a new invoice type (no new payment flow): packages 100/250/500/1000, any amount from 50, and "top up ≥ X, get Y free" offers, all set by the owner. One top-up under review at a time.
+- A call is refused before it runs when the balance can't cover its maximum; a call already made is charged in full even if that dips a little below zero (simpler and honest than cutting answers). The low-balance alert (10 EGP) rings once until the next credit. No estimated cost is shown before an action (owner).

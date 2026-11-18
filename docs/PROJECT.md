@@ -214,8 +214,9 @@ Works even when the plan expired.
   minutes and rings the owner's bell (`ai_paused`). Features catch `AiUnavailable` and fall back (support → people).
 - Models per task in `config/ai.php` (`support` = qwen4-max, the strongest, owner's choice; no free quota on it).
 - Admin «الذكاء الاصطناعي» (`/admin/ai`): features on / off (all off by default), daily cap USD (20), support messages
-  per store a day (30), and for the coming merchant wallet the USD rate + margin %; connection state, cost today /
-  this month / by feature / by store, last failures.
+  per store a day (30), the merchant wallet (USD rate + margin %, top-up packages, least free amount, offers, welcome
+  credit, low-balance line); connection state, cost today / this month / by feature / by store, the wallets' month
+  (topped up, charged, real cost, balances left), last failures.
 - **Support assistant «مساعد مكسب»** (`App\Ai\SupportAssistant`, job `AnswerSupport`): while the `support` feature is on,
   a new support conversation gets `handler = ai`; every merchant message queues an answer. It reads the merchant's new
   messages (screenshots as data URLs), the 5 nearest knowledge pieces, and `MerchantSnapshot` (the store's own plan,
@@ -229,6 +230,18 @@ Works even when the plan expired.
   every save cuts the article into pieces (`App\Ai\Knowledge`) and `EmbedKnowledge` gives them vectors
   (qwen3.7-text-embedding) while the assistant is on; search = cosine in PHP over the cached vectors. 42 starter
   articles from `AiArticleSeeder` (base data, only into an empty base; the owner reviews and edits them).
+- **Merchant AI wallet** (`App\Ai\AiWallets`; tenant tables `ai_wallets` + `ai_wallet_entries`, EGP decimals, cents in
+  code): two pots. **Free** = welcome credit (admin, 10, once at registration) + owner gifts: usable on every plan.
+  **Paid** = top-ups + offer bonuses: usable, and topping up allowed, only on plans with the `ai` feature (plan
+  editor). Spending takes free first; the balance never expires; no refunds. Paid features call
+  `Ai::chatPaid(tenant, …)`: refused up front (`ai_balance_low` / `plan_feature_locked` / `ai_unavailable` without a
+  USD rate) when the spendable balance can't cover the call's most (`Ai::estimate`: input + whole output allowance),
+  then charged its real cost × USD rate × (1 + margin) rounded up to the piaster, once per `ai_usages` row (a call
+  already made may take the balance a little below zero). Failed calls cost nothing. Low balance (admin, 10) rings
+  the merchant's bell once (`ai_low_balance`) until the next credit. No cost is shown before an action (owner).
+  Top-up = an `ai_credit` invoice through the normal checkout (`?ai=250`): a package or ≥ the least amount, the best
+  offer reached is in its snapshot and credited free on approval. Merchant page: settings «رصيد الذكاء الاصطناعي»
+  (`/dashboard/settings/ai`); admin store page: balance, last moves, gift / deduct with a reason (audited).
 
 ---
 

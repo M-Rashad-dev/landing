@@ -17,6 +17,7 @@ enum NotificationEvent: string
     case SupportReply = 'support_reply';
     case DomainReady = 'domain_ready';
     case ImportDone = 'import_done';
+    case AiLowBalance = 'ai_low_balance';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';

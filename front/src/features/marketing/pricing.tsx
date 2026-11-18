@@ -28,6 +28,7 @@ export function planLines(plan: PublicPlan): Array<{ text: string; on: boolean }
     { text: L.advanced_analytics, on: on("advanced_analytics") },
     { text: L.media(n("media_storage_mb")), on: true },
   ];
+  if (on("ai")) lines.push({ text: L.ai, on: true });
   if (on("remove_branding")) lines.push({ text: L.remove_branding, on: true });
   return lines.filter((l): l is { text: string; on: boolean } => l.text !== null);
 }

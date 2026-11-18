@@ -8,6 +8,12 @@ export type AiSettings = {
   usd_rate: number | null;
   margin_percent: number;
   support_daily_messages: number;
+  /** The merchants' AI balance (EGP): top-up packages, the least free amount, offers (top up ≥ min → bonus free), the welcome credit and the low-balance line. */
+  topup_packages: number[];
+  topup_min: number;
+  topup_offers: Array<{ min: number; bonus: number }>;
+  welcome_credit: number;
+  low_balance: number;
 };
 
 type Totals = { calls: number; usd: number; failed: number };
@@ -17,6 +23,8 @@ export type AiOverview = {
   settings: AiSettings;
   status: { configured: boolean; driver: string; paused_until: string | null; today_usd: number; limit_reached: boolean };
   models: Array<{ model: string; priced: boolean }>;
+  /** This month (EGP): topped up, charged for AI (and what those calls really cost, USD), and what all stores still hold. */
+  wallets: { topped_up: number; charged: number; charged_cost_usd: number; balances_left: number };
   usage: {
     today: Totals;
     month: Totals;
@@ -27,6 +35,19 @@ export type AiOverview = {
 };
 
 export const AI_KEY = ["admin", "ai"] as const;
+
+/** A store's AI balance in the admin (back end: Admin AiWalletController). */
+export type StoreAiWallet = {
+  balance: number;
+  free: number;
+  paid: number;
+  paid_allowed: boolean;
+  entries: Array<{ id: number; type: string; amount: number; balance_after: number; description: string | null; created_at: string }>;
+};
+export const storeAiWalletKey = (tenantId: number) => ["admin", "ai-wallet", tenantId] as const;
+export const useStoreAiWallet = (tenantId: number) => useQuery({ queryKey: storeAiWalletKey(tenantId), queryFn: () => api<StoreAiWallet>(`/admin/tenants/${tenantId}/ai-wallet`) });
+export const adjustStoreAiWallet = (tenantId: number, body: { action: "gift" | "deduct"; amount: number; reason: string }) =>
+  api<StoreAiWallet>(`/admin/tenants/${tenantId}/ai-wallet`, { method: "POST", body });
 export const useAiOverview = () => useQuery({ queryKey: AI_KEY, queryFn: () => api<AiOverview>("/admin/ai") });
 export const saveAiSettings = (settings: AiSettings) => api<AiOverview>("/admin/ai/settings", { method: "PUT", body: settings });
 

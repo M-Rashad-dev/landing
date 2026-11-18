@@ -49,6 +49,57 @@ final class AiSettings
         return max(0, (int) ($this->settings->all()['ai_support_daily_messages'] ?? 0));
     }
 
+    /** @return list<int> top-up packages in EGP, smallest first */
+    public function topupPackages(): array
+    {
+        $packages = array_values(array_unique(array_filter(array_map('intval', (array) ($this->settings->all()['ai_topup_packages'] ?? [])), fn (int $p) => $p > 0)));
+        sort($packages);
+
+        return $packages;
+    }
+
+    public function topupMin(): int
+    {
+        return max(1, (int) ($this->settings->all()['ai_topup_min'] ?? 1));
+    }
+
+    /** @return list<array{min: int, bonus: int}> top-up offers in EGP, smallest first */
+    public function topupOffers(): array
+    {
+        $offers = [];
+        foreach ((array) ($this->settings->all()['ai_topup_offers'] ?? []) as $offer) {
+            if (is_array($offer) && (int) ($offer['min'] ?? 0) > 0 && (int) ($offer['bonus'] ?? 0) > 0) {
+                $offers[] = ['min' => (int) $offer['min'], 'bonus' => (int) $offer['bonus']];
+            }
+        }
+        usort($offers, fn ($a, $b) => $a['min'] <=> $b['min']);
+
+        return $offers;
+    }
+
+    /** The free EGP a top-up of $amount brings (the best offer it reaches). */
+    public function bonusFor(int $amount): int
+    {
+        $bonus = 0;
+        foreach ($this->topupOffers() as $offer) {
+            if ($amount >= $offer['min']) {
+                $bonus = $offer['bonus'];
+            }
+        }
+
+        return $bonus;
+    }
+
+    public function welcomeCredit(): int
+    {
+        return max(0, (int) ($this->settings->all()['ai_welcome_credit'] ?? 0));
+    }
+
+    public function lowBalance(): int
+    {
+        return max(0, (int) ($this->settings->all()['ai_low_balance'] ?? 0));
+    }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {
@@ -58,6 +109,11 @@ final class AiSettings
             'usd_rate' => $this->usdRate(),
             'margin_percent' => $this->marginPercent(),
             'support_daily_messages' => $this->supportDailyMessages(),
+            'topup_packages' => $this->topupPackages(),
+            'topup_min' => $this->topupMin(),
+            'topup_offers' => $this->topupOffers(),
+            'welcome_credit' => $this->welcomeCredit(),
+            'low_balance' => $this->lowBalance(),
         ];
     }
 }

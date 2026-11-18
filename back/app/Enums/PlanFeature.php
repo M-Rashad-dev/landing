@@ -16,6 +16,8 @@ enum PlanFeature: string
     case RemoveBranding = 'remove_branding';
     case BuyThemes = 'buy_themes';
     case Store = 'store';
+    /** Paid AI (topping up and spending the AI balance; the welcome credit works on every plan). */
+    case Ai = 'ai';
 
     public function label(): string
     {
@@ -26,6 +28,7 @@ enum PlanFeature: string
             self::RemoveBranding => 'إخفاء شعار المنصة من الصفحات',
             self::BuyThemes => 'شراء واستخدام الثيمات المدفوعة',
             self::Store => 'متجر إلكتروني كامل',
+            self::Ai => 'الذكاء الاصطناعي (شحن الرصيد)',
         };
     }
 }

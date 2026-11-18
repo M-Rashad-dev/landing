@@ -27,6 +27,7 @@ final class InvoiceResource extends JsonResource
             'theme' => $this->theme_key === null ? null : ['key' => $this->theme_key, 'name' => $snapshot['theme']['name'] ?? $this->theme_key, 'kind' => $this->themeKind()],
             'period' => $this->period?->value,
             'days' => $snapshot['days'] ?? null,
+            'ai_credit' => $snapshot['ai_credit'] ?? null,
             'starts_now' => $this->starts_now,
             'subtotal' => Money::toFloat(Money::toCents((string) $this->subtotal)),
             'discount' => Money::toFloat(Money::toCents((string) $this->discount)),

@@ -14,11 +14,11 @@ import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { shownStatus, useInvoices, usePlans, useUsage, type Period, type ShownStatus } from "./billing-api";
+import { invoiceItem, shownStatus, useInvoices, usePlans, useUsage, type Period, type ShownStatus } from "./billing-api";
 
 const t = ar.settings.billing;
 export const INVOICE_TONES: Record<ShownStatus, Tone> = { pending_review: "attention", paid: "success", rejected: "danger", refunded: "info", expired: "neutral" };
-const FEATURES = ["store", "upsells", "abandoned_leads", "advanced_analytics", "remove_branding", "buy_themes"] as const;
+const FEATURES = ["store", "upsells", "abandoned_leads", "advanced_analytics", "remove_branding", "buy_themes", "ai"] as const;
 const LIMITS = ["products", "landing_pages", "offers", "discount_codes", "custom_domains", "media_storage_mb"] as const;
 
 export function BillingPage() {
@@ -176,7 +176,7 @@ function Invoices() {
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold tabular">{inv.number}</span>
                     <span className="block text-xs text-ink-3">
-                      {inv.theme ? ar.common.themeName(inv.theme.name, inv.theme.kind) : `${inv.plan.name}${inv.period ? ` · ${inv.period === "monthly" ? t.monthly : t.yearly}` : ""}`} · {formatDateTime(inv.created_at)}
+                      {invoiceItem(inv, (p) => (p === "monthly" ? t.monthly : t.yearly))} · {formatDateTime(inv.created_at)}
                     </span>
                   </span>
                   <Badge tone={INVOICE_TONES[status]} dot>

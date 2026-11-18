@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Buying a plan period or a paid theme. Opening the pay page is only a look (a draft, nothing
+ * Buying a plan period, a paid theme or AI balance. Opening the pay page is only a look (a draft, nothing
  * saved); the invoice is created together with the merchant's receipt, so the invoices list
  * only holds what was really paid for. A plan fully covered by the credit has nothing to
  * transfer: confirming creates and activates it at once.
@@ -24,15 +24,17 @@ final class Checkout
         private readonly ManualPayments $payments,
     ) {}
 
-    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null} $item */
+    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null} $item */
     public function preview(Tenant $tenant, array $item): Invoice
     {
-        return $item['type'] === 'theme'
-            ? $this->invoices->draftTheme($tenant, (string) $item['theme_key'])
-            : $this->invoices->draftPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period']));
+        return match ($item['type']) {
+            'theme' => $this->invoices->draftTheme($tenant, (string) $item['theme_key']),
+            'ai_credit' => $this->invoices->draftAiCredit($tenant, (int) ($item['amount'] ?? 0)),
+            default => $this->invoices->draftPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period'])),
+        };
     }
 
-    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null} $item */
+    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null} $item */
     public function place(Tenant $tenant, array $item, ?string $method, ?string $senderRef, ?UploadedFile $receipt): Invoice
     {
         $draft = $this->preview($tenant, $item);
@@ -50,9 +52,11 @@ final class Checkout
 
         // The invoice and its receipt are one step: a refused receipt leaves no invoice behind.
         return DB::transaction(function () use ($tenant, $item, $method, $senderRef, $receipt): Invoice {
-            $invoice = $item['type'] === 'theme'
-                ? $this->invoices->forTheme($tenant, (string) $item['theme_key'])
-                : $this->invoices->forPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period']));
+            $invoice = match ($item['type']) {
+                'theme' => $this->invoices->forTheme($tenant, (string) $item['theme_key']),
+                'ai_credit' => $this->invoices->forAiCredit($tenant, (int) ($item['amount'] ?? 0)),
+                default => $this->invoices->forPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period'])),
+            };
 
             if ($invoice->totalCents() > 0 && $receipt !== null) {
                 $this->payments->submit($invoice, (string) $method, (string) $senderRef, $receipt);

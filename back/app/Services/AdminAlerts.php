@@ -188,6 +188,9 @@ final class AdminAlerts
     private function invoiceFor(Invoice $invoice): string
     {
         $snapshot = $invoice->snapshot;
+        if ($invoice->type === 'ai_credit') {
+            return __('alerts.for_ai_credit');
+        }
         if ($invoice->theme_key !== null) {
             return __('alerts.for_theme', ['theme' => $snapshot['theme']['name'] ?? $invoice->theme_key]);
         }

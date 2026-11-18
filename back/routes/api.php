@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\AiArticleController as AdminAiArticleController;
 use App\Http\Controllers\Api\V1\Admin\AiController as AdminAiController;
+use App\Http\Controllers\Api\V1\Admin\AiWalletController as AdminAiWalletController;
 use App\Http\Controllers\Api\V1\Admin\AlertController as AdminAlertController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\MessageController as AdminMessageController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AbTestController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\AiWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
@@ -117,6 +119,9 @@ Route::prefix('dashboard')
             Route::get('billing/invoices/{invoice}/payments/{payment}/receipt', [InvoiceController::class, 'receipt']);
             Route::post('billing/refund', [InvoiceController::class, 'refund']);
         });
+        // The AI balance: seen (and topped up through the checkout) on an expired plan too.
+        Route::get('ai/wallet', [AiWalletController::class, 'show'])->withoutMiddleware('plan.writable');
+        Route::get('ai/wallet/entries', [AiWalletController::class, 'entries'])->withoutMiddleware('plan.writable');
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);
@@ -364,6 +369,8 @@ Route::prefix('admin')
 
         Route::get('ai', [AdminAiController::class, 'show']);
         Route::put('ai/settings', [AdminAiController::class, 'update']);
+        Route::get('tenants/{tenant}/ai-wallet', [AdminAiWalletController::class, 'show'])->whereNumber('tenant');
+        Route::post('tenants/{tenant}/ai-wallet', [AdminAiWalletController::class, 'adjust'])->whereNumber('tenant');
         Route::get('ai/articles', [AdminAiArticleController::class, 'index']);
         Route::post('ai/articles', [AdminAiArticleController::class, 'store']);
         Route::put('ai/articles/{article}', [AdminAiArticleController::class, 'update'])->whereNumber('article');
