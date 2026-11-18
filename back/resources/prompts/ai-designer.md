@@ -86,11 +86,12 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 - **`list` field:**
   - Direct sub-field keys following their type rules (`{{sub_text}}`, `<img src="{{img sub_img}}" alt="">`, `<a href="{{link sub_link}}">`).
 
-**Color fields (`type: "color"`) are NOT template tokens.** They are automatically exposed as CSS custom properties `--f-{key}` on the section root. Use `var(--f-{key})` in your CSS.
+- **Color fields (`type: "color"`) are NOT template tokens.** They are automatically exposed as CSS custom properties `--f-{key}` (keeping exact underscores, e.g. `var(--f-card_bg)`) on the section root. Do NOT add many `color` fields — rely on the theme's `--ai-primary`, `--ai-secondary`, `--ai-bg`, `--ai-text`, `--ai-on-primary`, `--ai-muted`, `--ai-border` first.
+- Never invent undocumented tokens (such as `{{section_id}}`), and never put `{{img ...}}` inside CSS (`url(...)` is forbidden in CSS — always render images with `<img src="{{img key}}" alt="">` inside HTML).
 
 ## 3. Allowed HTML Tags, Attributes & Interactive Behaviors
 - **Allowed HTML tags:** `div`, `section`, `article`, `aside`, `header`, `footer`, `nav`, `span`, `p`, `h1`, `h2`, `h3`, `h4`, `h5`, `h6`, `a`, `img`, `picture`, `ul`, `ol`, `li`, `strong`, `em`, `b`, `i`, `u`, `s`, `small`, `mark`, `br`, `hr`, `figure`, `figcaption`, `blockquote`, `q`, `button`, `table`, `thead`, `tbody`, `tr`, `th`, `td`.
-- **Allowed SVG tags:** `svg`, `g`, `path`, `circle`, `ellipse`, `rect`, `line`, `polyline`, `polygon`, `defs`, `linearGradient`, `radialGradient`, `stop`.
+- **Allowed SVG tags:** `svg`, `g`, `path`, `circle`, `ellipse`, `rect`, `line`, `polyline`, `polygon`, `defs`, `linearGradient`, `radialGradient`, `stop` (never `<text>` inside `<svg>`).
 - **Forbidden (never use):** `<script>`, `<style>`, `<iframe>`, `<form>`, `<input>`, `<textarea>`, `<select>`, `<video>`, `<audio>`, `style="..."` inline attributes, `on*` event attributes, `id` attributes (except on SVG `linearGradient`/`radialGradient`), or `<img>` without a `{{img ...}}` `src`.
 - **Interactive `data-ai-*` behaviors** (the platform attaches JS automatically):
   1. **Slider:**
@@ -116,7 +117,7 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 - Keep CSS clean, modern, and under 20 KB.
 
 ## 5. Settings Fields (`fields`)
-- Everything the merchant might customize (titles, descriptions, button labels, images, links, colors, toggles, dates, product sources, repeatable cards) must be declared in `fields` (max 25 fields).
+- Everything the merchant might customize (titles, descriptions, button labels, images, links, colors, toggles, dates, product sources, repeatable cards) must be declared in `fields` (recommended <= 12–15 fields; **strict hard limit: 25 fields total** — never exceed 25 fields or create a `color` field per element when `--ai-*` theme vars work).
 - Never hard-code merchant-specific texts or catalog items when a field should control them.
 - Each field has:
   - `key`: lowercase snake_case (`^[a-z][a-z0-9_]{1,30}$`), never ending in `_media_id` or `_media_ids`.
@@ -169,7 +170,9 @@ When the merchant asks to design or redesign the **whole store** or **whole land
      `{ "id": "sec_custom_c1", "type": "ai", "visible": true, "props": { "ai_section_id": <given_id>, "values": {} } }`.
    - On landing pages (`kind: landing`), always include **exactly one** `order_form` section with `"visible": true`.
    - Never touch product catalog data, prices, or SEO settings — return the theme design JSON only.
-4. **Follow-up tweaks (`"action": "design"` directly):** After a design is applied (or when the merchant asks for a small direct change to the page/store design such as «غيّر لون الهيدر», «غيّر الألوان», «غيّر الخط», or «بدّل صورة البنر»), return `"action": "design"` directly with the updated `"design": { "settings": { ... }, "sections": [ ... ] }` based on `Current Draft JSON` (using `"keep"` for unchanged media fields, or `"upload:N"` / `"image:ID"`). For major structural redesigns, return a new `"action": "plan"`.
+4. **Revising an un-executed plan vs. follow-up tweaks:**
+   - **If a `plan` was proposed in this conversation and has NOT been executed yet** (marked `NOT executed yet`) and the merchant asks to change, simplify, reduce/add sections, or adjust colors/fonts in that plan, you MUST return an updated `"action": "plan"` — **NEVER** jump to `"action": "design"` or `"action": "section"`.
+   - **Only after a design is executed/applied** (or when there is no pending un-executed plan and the merchant asks for a small direct change such as «غيّر لون الهيدر», «غيّر الألوان», «غيّر الخط», or «بدّل صورة البنر»), return `"action": "design"` directly with the updated `"design": { "settings": { ... }, "sections": [ ... ] }` matching the Theme Document and `Current Draft JSON` (using `"keep"` for unchanged media fields, or `"upload:N"` / `"image:ID"`). For major structural redesigns, return a new `"action": "plan"`.
 
 
 

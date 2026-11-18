@@ -27,6 +27,7 @@ use App\Themes\Landing\LandingThemes;
 use App\Themes\Store\StoreDesigner;
 use App\Themes\Store\StoreThemes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -436,6 +437,11 @@ final class AiDesignRunner
             }
 
             if ($attempt['errors'] !== [] || ! is_array($attempt['design'])) {
+                Log::warning('ai.design_runner.invalid_output', [
+                    'run_id' => $run->id,
+                    'chat_id' => $chat->id,
+                    'errors' => $attempt['errors'],
+                ]);
                 $this->failRun($run, __('ai.designer.invalid_output'));
 
                 return;
@@ -849,7 +855,7 @@ final class AiDesignRunner
             'المصمم الذكي: قسم خاص ('.$title.')',
         );
 
-        $decoded = json_decode(self::unfence($reply->text), true);
+        $decoded = AiDesigner::decodeJson($reply->text);
         $secData = is_array($decoded['section'] ?? null) ? $decoded['section'] : null;
 
         $built = is_array($secData) ? $this->sectionBuilder->fromAi($secData, $chat, null) : ['Invalid section JSON.'];
@@ -873,12 +879,18 @@ final class AiDesignRunner
                 'المصمم الذكي: إصلاح قسم خاص',
             );
 
-            $decoded2 = json_decode(self::unfence($repairReply->text), true);
+            $decoded2 = AiDesigner::decodeJson($repairReply->text);
             $secData2 = is_array($decoded2['section'] ?? null) ? $decoded2['section'] : null;
             $built = is_array($secData2) ? $this->sectionBuilder->fromAi($secData2, $chat, null) : ['Invalid section JSON.'];
         }
 
         if (is_array($built)) {
+            Log::warning('ai.design_runner.custom_section_failed', [
+                'chat_id' => $chat->id,
+                'title' => $title,
+                'errors' => $built,
+            ]);
+
             return null;
         }
 
@@ -969,7 +981,7 @@ final class AiDesignRunner
         array $chatUploadIds,
         array $imageResults,
     ): array {
-        $decoded = json_decode(self::unfence($rawText), true);
+        $decoded = AiDesigner::decodeJson($rawText);
         if (! is_array($decoded)) {
             return ['design' => null, 'errors' => ['Response is not valid JSON.']];
         }
@@ -1227,12 +1239,5 @@ final class AiDesignRunner
             'status' => 'failed',
             'error' => mb_substr($error, 0, 300, 'UTF-8'),
         ])->save();
-    }
-
-    private static function unfence(string $text): string
-    {
-        $text = trim($text);
-
-        return (string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', $text);
     }
 }

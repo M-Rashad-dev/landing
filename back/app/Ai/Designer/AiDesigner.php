@@ -22,6 +22,7 @@ use App\Models\Store;
 use App\Models\StoreDesign;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -284,6 +285,13 @@ final class AiDesigner
             }
 
             if ($validated['errors'] !== []) {
+                Log::warning('ai.designer.invalid_output', [
+                    'stage' => 'reply_json',
+                    'chat_id' => $chat->id,
+                    'message_id' => $pending->id,
+                    'errors' => $validated['errors'],
+                    'raw_preview' => mb_substr($validated['raw_text'], 0, 500, 'UTF-8'),
+                ]);
                 $this->failMessage($pending, __('ai.designer.invalid_output'));
 
                 return;
@@ -325,6 +333,12 @@ final class AiDesigner
                     $mediaByKey,
                 );
                 if (is_array($directRunResult)) {
+                    Log::warning('ai.designer.invalid_output', [
+                        'stage' => 'direct_design',
+                        'chat_id' => $chat->id,
+                        'message_id' => $pending->id,
+                        'errors' => $directRunResult,
+                    ]);
                     $this->failMessage($pending, __('ai.designer.invalid_output'));
 
                     return;
@@ -349,6 +363,12 @@ final class AiDesigner
 
                 $built = $this->builder->fromAi($sectionData, $chat, $editOf);
                 if (is_array($built)) {
+                    Log::warning('ai.designer.invalid_output', [
+                        'stage' => 'section_build',
+                        'chat_id' => $chat->id,
+                        'message_id' => $pending->id,
+                        'errors' => $built,
+                    ]);
                     $this->failMessage($pending, __('ai.designer.invalid_output'));
 
                     return;
@@ -538,7 +558,7 @@ final class AiDesigner
                 'landing_page_id' => $chat->landing_page_id,
                 'closed_at' => $chat->closed_at?->toIso8601ZuluString(),
             ],
-            'messages' => $messages->map(function (AiChatMessage $m) use ($mediaById): array {
+            'messages' => $messages->map(function (AiChatMessage $m) use ($mediaById, $chat): array {
                 $mediaItems = [];
                 foreach ((array) ($m->media_ids ?? []) as $mid) {
                     $media = $mediaById->get((int) $mid);
@@ -647,7 +667,7 @@ final class AiDesigner
             return [...$empty, 'errors' => ['Response JSON exceeds the 200 KB size limit.']];
         }
 
-        $json = json_decode(self::unfence($rawText), true);
+        $json = self::decodeJson($rawText);
         if (! is_array($json)) {
             return [...$empty, 'errors' => ['Response is not valid JSON.']];
         }
@@ -660,7 +680,9 @@ final class AiDesigner
         }
 
         if ($action === 'design') {
-            if (! is_array($json['design'] ?? null)) {
+            $hasDesignObj = is_array($json['design'] ?? null)
+                || (isset($json['settings'], $json['sections']) && is_array($json['settings']) && is_array($json['sections']));
+            if (! $hasDesignObj) {
                 return [...$empty, 'errors' => ['Field "design" is required when action is "design".']];
             }
             $rawImages = is_array($json['images'] ?? null) ? array_values($json['images']) : [];
@@ -993,14 +1015,24 @@ final class AiDesigner
 
             if ($msg->role === 'user') {
                 $imageUrls = ((int) $msg->id === (int) $newestUserId) ? $this->messageImageDataUrls($msg) : [];
+                $content = null;
                 if ($imageUrls !== []) {
                     $parts = [['type' => 'text', 'text' => $text !== '' ? $text : '(صورة مرجعية)']];
                     foreach ($imageUrls as $dataUrl) {
                         $parts[] = ['type' => 'image', 'url' => $dataUrl];
                     }
-                    $messages[] = ['role' => 'user', 'content' => $parts];
+                    $content = $parts;
                 } elseif ($text !== '') {
-                    $messages[] = ['role' => 'user', 'content' => $text];
+                    $content = $text;
+                }
+
+                if ($content !== null) {
+                    $last = $messages[array_key_last($messages)];
+                    // Collapse identical consecutive user retries (when failed assistant reply was skipped)
+                    if (($last['role'] ?? null) === 'user' && $last['content'] === $content) {
+                        continue;
+                    }
+                    $messages[] = ['role' => 'user', 'content' => $content];
                 }
             } else {
                 $assistantText = $text;
@@ -1008,7 +1040,10 @@ final class AiDesigner
                     $assistantText .= "\n[Proposed section: {$msg->version->name}]";
                 }
                 if (is_array($msg->plan)) {
-                    $assistantText .= "\n[Proposed plan: ".json_encode($msg->plan, JSON_UNESCAPED_UNICODE).']';
+                    $planState = $msg->run_id === null
+                        ? 'Proposed plan (NOT executed yet — if the merchant asks to adjust sections/style/scope, return updated action: "plan")'
+                        : "Proposed plan (run #{$msg->run_id} already started)";
+                    $assistantText .= "\n[{$planState}: ".json_encode($msg->plan, JSON_UNESCAPED_UNICODE).']';
                 }
                 if ($assistantText !== '') {
                     $messages[] = ['role' => 'assistant', 'content' => $assistantText];
@@ -1126,10 +1161,28 @@ final class AiDesigner
         ])->save();
     }
 
-    private static function unfence(string $text): string
+    /**
+     * Decode an LLM JSON response, tolerating markdown code fences or stray leading/trailing prose.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function decodeJson(string $text): ?array
     {
-        $text = trim($text);
+        $stripped = trim((string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($text)));
+        $decoded = json_decode($stripped, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
 
-        return (string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', $text);
+        $start = strpos($stripped, '{');
+        $end = strrpos($stripped, '}');
+        if ($start !== false && $end !== false && $end > $start) {
+            $candidate = json_decode(substr($stripped, $start, $end - $start + 1), true);
+            if (is_array($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }
