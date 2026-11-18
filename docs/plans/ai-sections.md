@@ -158,8 +158,7 @@ uses `var(--f-{key})`.
 
 ### 2.5 CSS rules (`AiSectionCss`)
 - Parse with **`sabberworm/php-css-parser`**: a pure PHP library (MIT, runs locally, not a service). Add it with
-  composer and log it in `DECISIONS.md`. If the owner refuses, write a small in-house tokenizer with the same
-  behaviour.
+  composer and log it in `DECISIONS.md`. The owner approved it on 2026-11-18.
 - **Keep** style rules, `@media`, `@container` and `@supports`.
 - **`@keyframes`:** keep them, but rename each to `ai{versionId}-{name}` and rewrite the `animation` /
   `animation-name` values to match.
