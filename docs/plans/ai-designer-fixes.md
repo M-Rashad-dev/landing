@@ -16,6 +16,31 @@ The owner topped up OpenRouter with $5 and removed the local free-model lines, s
 
 ---
 
+## P0. The front end gates fail (task F0: DO THIS FIRST)
+`pnpm typecheck` and `pnpm lint` fail on code from the AI designer stages. These errors already existed before this
+fix plan; it didn't cause them. Fix every one, without changing behaviour, until
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` are all green.
+
+Typecheck (2026-11-18):
+- `features/ai-designer/designer-dialog.tsx:677`: `SwitchRow` takes `title` (+ optional `description`), not
+  `label`.
+- `features/ai-designer/fields-form.tsx:206` and `:225`: `ImageGallery` expects `MediaItem[]` with no nulls. Filter
+  out nulls with a correct type guard.
+- `features/ai-designer/preview-dialog.tsx:100` and `run-preview-dialog.tsx:115`: `DeviceFrame` needs a `host`
+  prop. Pass the store host or the page address, as the Builders do (see `features/builder/builder.tsx`).
+- `features/builder/builder.tsx:223`, `:261` and `:294`: the `MediaUrls` type mismatch (two different `MediaUrls`
+  types) and a number passed where a string is expected.
+
+Lint:
+- `setState` called synchronously inside effects (designer dialog ~line 129 and ~154): move it to the event
+  handlers, or derive the state.
+- An impure call during render (~line 493): use `Date.now()` / `Math.random()` only in effects or handlers.
+- `cleanAttrs` → `const`.
+- The unused `DialogHeader` import.
+- `window.location.href` to an internal page → `useRouter().push()`.
+
+Then run the whole front test suite.
+
 ## P1. The support assistant hands every question to a person (DONE)
 - **Cause:** the production embedding model returns 4096 numbers per piece. `App\Ai\Knowledge::vectors()` cached all
   vectors in the **database** cache store. The value was too big for MariaDB (`max_allowed_packet`), the cache write
@@ -31,15 +56,15 @@ The owner topped up OpenRouter with $5 and removed the local free-model lines, s
 - **Fix:** `AiDesigner::decodeJson()` unwraps a list to its first object. The support assistant uses the same
   decoder now.
 - **Still to do (task F2):**
-  1. In `back/resources/prompts/ai-designer.md`, near the top, add: «Return exactly ONE JSON object (never an array,
+  1. (DONE) In `back/resources/prompts/ai-designer.md`, near the top, add: «Return exactly ONE JSON object (never an array,
      never text around it).»
-  2. Add a unit test for `decodeJson`: a list-wrapped object, fenced JSON, and prose around the JSON.
+  2. (DONE: `tests/Feature/Ai/AiDesignerFixesTest.php`) Add a unit test for `decodeJson`: a list-wrapped object, fenced JSON, and prose around the JSON.
   3. Try 5–6 real requests with the owner's key (a few cents; tell him first). Then read the new
      `ai.designer.invalid_output` / `ai.design_runner.invalid_output` warnings in the log. For each kind of error
      left, fix the cause (prompt rule, or accept a harmless variation in the validator) and write it in the
      progress list.
 
-## P3. The phone preview shows the desktop layout (task F3)
+## P3. The phone preview shows the desktop layout (task F3: DONE, except step 5's front test)
 - **Cause:**
   - The preview draws the section in a `div` inside `DeviceFrame`, not in an iframe.
   - The AI's CSS uses `@media (min-width: …)`, and media queries read the **browser window** width, not the
@@ -66,7 +91,7 @@ The owner topped up OpenRouter with $5 and removed the local free-model lines, s
   5. **Test:** a version with `@media (min-width: 640px){.grid{grid-template-columns:repeat(3,1fr)}}` renders 1
      column in the phone frame and 3 in the desktop frame. Check the stored CSS contains `@container aisec`.
 
-## P4. The preview modal is too small (task F4)
+## P4. The preview modal is too small (task F4: DONE, check it at 1366×768 and on a phone)
 - **Change** `front/src/features/ai-designer/preview-dialog.tsx` and `run-preview-dialog.tsx`:
   - `DialogContent` covers the **whole screen** on every size: `fixed inset-0`, `w-screen`, `h-dvh`,
     `max-w-none`, `max-h-none`, `rounded-none`, `translate-x-0 translate-y-0`.
@@ -80,7 +105,7 @@ The owner topped up OpenRouter with $5 and removed the local free-model lines, s
 - Keep keyboard close (Esc) and focus trap.
 - Update the front tests that query the dialog.
 
-## P5. An edit request changes things the merchant didn't ask for (task F5)
+## P5. An edit request changes things the merchant didn't ask for (task F5: prompt + temperature DONE; the «missing field key» guard and its test are still open)
 Example: «make phone show one card» also changed the section header.
 - **Fix in the prompt** (`ai-designer.md`, editing part): add a short, strict rule list.
   - «When editing, copy every part of html, css and fields that the request does not mention **character for
@@ -111,3 +136,18 @@ Example: «make phone show one card» also changed the section header.
 ## PROGRESS (update after each task)
 - 2026-11-18: P1 fixed (vectors cache in a file store). P2 main cause fixed (list-wrapped JSON). Old AI tests
   updated for the `designer` feature key. All AI tests pass. Next: F3 (container queries).
+- 2026-11-18: F3 done:
+  - `AiSectionCss` turns width `@media` into `@container aisec (...)`, with tests.
+  - `view.tsx` wraps the HTML in a container (`containerName: "aisec"`).
+  - New command `php artisan ai:rescope-sections` (the owner runs it once).
+  - Prompt asks for container queries.
+- 2026-11-18: F4 done: both preview dialogs are full screen and the frame fills the rest.
+- 2026-11-18: F5 partly done: strict edit rules in the prompt, `AiDesigner::EDIT_TEMPERATURE = 0.2` for focused
+  edits.
+- 2026-11-18: P2 step 1 done (one-object rule in the prompt). Step 3 (real tries + log reading) is open.
+- **Found:** the front gates fail from earlier designer code (see P0). **Next for the other agent:**
+  1. F0
+  2. the P3 step 5 front test
+  3. the F5 guard
+  4. P2 step 3
+  5. Owner check

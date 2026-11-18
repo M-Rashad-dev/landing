@@ -33,6 +33,9 @@ use Throwable;
  */
 final class AiDesigner
 {
+    /** Randomness when editing an existing section (only the asked part should change). */
+    public const EDIT_TEMPERATURE = 0.2;
+
     public const MAX_OUTPUT_TOKENS = 12000;
 
     public const MAX_JSON_BYTES = 200000;
@@ -248,13 +251,18 @@ final class AiDesigner
             }
 
             $messages = $this->buildPromptMessages($tenant, $chat, $pending, $focusSection);
+            // Editing a section: low randomness, so only the asked part changes.
+            $options = ['max_tokens' => self::MAX_OUTPUT_TOKENS, 'json' => true];
+            if ($focusSection !== null) {
+                $options['temperature'] = self::EDIT_TEMPERATURE;
+            }
 
             $reply = $this->ai->chatPaid(
                 $tenant,
                 'designer',
                 'designer',
                 $messages,
-                ['max_tokens' => self::MAX_OUTPUT_TOKENS, 'json' => true],
+                $options,
                 'المصمم الذكي: رد',
             );
 

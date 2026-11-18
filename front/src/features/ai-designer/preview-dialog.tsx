@@ -46,13 +46,13 @@ export function PreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
-        className="flex h-dvh w-screen max-w-none flex-col rounded-none sm:h-auto sm:max-w-5xl sm:rounded-2xl"
+        className="fixed inset-0 start-0 top-0 flex h-dvh max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col rounded-none"
       >
         <DialogHeader
           title={version.name}
           description={t.version.statuses[version.status]}
         />
-        <DialogBody className="flex flex-col gap-4">
+        <DialogBody className="flex min-h-0 flex-col gap-4 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <Badge
               tone={
@@ -96,7 +96,7 @@ export function PreviewDialog({
             </div>
           </div>
 
-          <div className="h-[60vh] overflow-hidden rounded-xl border border-border bg-surface-2 p-3">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface-2 p-3">
             <DeviceFrame device={device}>
               <div className="h-full overflow-y-auto bg-(--ai-bg)">
                 <AiSectionView

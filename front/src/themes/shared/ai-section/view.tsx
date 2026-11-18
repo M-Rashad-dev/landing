@@ -238,7 +238,8 @@ export function AiSectionView({
       style={styleVars as React.CSSProperties}
     >
       <style dangerouslySetInnerHTML={{ __html: definition.css }} />
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      {/* The section answers to its own width (container queries), so device previews match real phones. */}
+      <div style={{ containerType: "inline-size", containerName: "aisec" }} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

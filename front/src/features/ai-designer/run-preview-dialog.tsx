@@ -52,13 +52,13 @@ export function RunPreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
-        className="flex h-dvh w-screen max-w-none flex-col rounded-none sm:h-auto sm:max-w-6xl sm:rounded-2xl"
+        className="fixed inset-0 start-0 top-0 flex h-dvh max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col rounded-none"
       >
         <DialogHeader
           title={t.run.previewButton}
           description={run ? t.run.statuses[run.status] : undefined}
         />
-        <DialogBody className="flex flex-col gap-4">
+        <DialogBody className="flex min-h-0 flex-col gap-4 overflow-hidden">
           {runQuery.isLoading ? (
             <Skeleton className="h-[65vh] w-full rounded-xl" />
           ) : runQuery.isError || !run || !run.proposal ? (
@@ -111,7 +111,7 @@ export function RunPreviewDialog({
                 </div>
               </div>
 
-              <div className="h-[65vh] overflow-hidden rounded-xl border border-border bg-surface-2 p-3">
+              <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface-2 p-3">
                 <DeviceFrame device={device}>
                   <div className="h-full overflow-y-auto">
                     {kind === "store" ? (

@@ -172,9 +172,17 @@ final class AiSectionCss
                     continue;
                 }
                 self::processList($item, $scopeAttr, $keyframesMap, $format, false);
-                if ($item->getContents() !== []) {
-                    $kept[] = $item;
+                if ($item->getContents() === []) {
+                    continue;
                 }
+                // Width media queries answer to the section's own width (previews in device frames, Builder).
+                $container = $atName === 'media' ? self::containerArgs($args) : null;
+                if ($container !== null) {
+                    $converted = new AtRuleBlockList('container', $container);
+                    $converted->setContents($item->getContents());
+                    $item = $converted;
+                }
+                $kept[] = $item;
 
                 continue;
             }
@@ -183,6 +191,21 @@ final class AiSectionCss
         }
 
         $list->setContents($kept);
+    }
+
+    /**
+     * «(min-width: 640px)», «screen and (max-width: 40rem)»… → «aisec (min-width: 640px)»; null when the
+     * media query uses anything but widths (kept as a media query).
+     */
+    public static function containerArgs(string $args): ?string
+    {
+        $query = trim((string) preg_replace('/^\s*(only\s+)?(screen|all)\s+and\s+/i', '', trim($args)));
+        $width = '\(\s*(min|max)-width\s*:\s*[0-9.]+(px|rem|em)\s*\)';
+        if (! preg_match('/^'.$width.'(\s+and\s+'.$width.')*$/i', $query)) {
+            return null;
+        }
+
+        return 'aisec '.$query;
     }
 
     /**
