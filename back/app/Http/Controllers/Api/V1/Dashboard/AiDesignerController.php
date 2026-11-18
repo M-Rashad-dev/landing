@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Ai\Designer\AiDesigner;
+use App\Ai\Images\StockPhotos;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\AiDesignerChatRequest;
 use App\Http\Requests\Dashboard\AiDesignerMessageRequest;
@@ -19,12 +20,16 @@ use Illuminate\Http\JsonResponse;
  */
 final class AiDesignerController extends Controller
 {
-    public function __construct(private readonly AiDesigner $designer) {}
+    public function __construct(
+        private readonly AiDesigner $designer,
+        private readonly StockPhotos $stock,
+    ) {}
 
     public function status(): JsonResponse
     {
         return $this->ok([
             'enabled' => $this->designer->enabled(),
+            'stock' => $this->stock->configured(),
         ]);
     }
 

@@ -102,7 +102,11 @@ export function AiSectionView({
       },
       image: (key: string): string | null => {
         const field = fieldMap.get(key);
-        const mediaId = values[`${key}_media_id`];
+        const mediaId =
+          values[`${key}_media_id`] ??
+          (useSamples
+            ? (field?.sample_media_id ?? (typeof field?.sample === "number" ? field.sample : undefined))
+            : undefined);
         return resolveMediaUrl(mediaId, field?.label);
       },
       images: (key: string): ImageRenderItem[] => {

@@ -91,6 +91,51 @@ final class Ai
     }
 
     /**
+     * An image generation or editing call paid from the merchant's AI balance: refused up front
+     * when the balance can't cover the estimated image price, and charged the real provider cost
+     * (or the configured per-image price) on success. Failures cost nothing.
+     *
+     * @param  callable(AiClient, string): AiImage  $call
+     *
+     * @throws AiUnavailable|ApiException
+     */
+    public function imagePaid(Tenant $tenant, string $feature, string $task, callable $call, string $description): AiImage
+    {
+        $model = self::model($task);
+        $this->guard($feature);
+
+        $estimatedPrice = (float) (AiCost::imagePrice($model) ?? 0.0);
+        $this->wallets->ensureCanSpend($tenant, $estimatedPrice);
+
+        try {
+            /** @var AiImage $image */
+            $image = $call($this->client, $model);
+        } catch (Throwable $e) {
+            $this->failed($feature, $model, $tenant->id, $e);
+        }
+
+        $this->succeeded();
+        $costUsd = $image->costUsd !== null
+            ? round(max(0.0, $image->costUsd), 6)
+            : round((float) (AiCost::imagePrice($image->model) ?? $estimatedPrice), 6);
+
+        $this->last = AiUsage::query()->create([
+            'tenant_id' => $tenant->id,
+            'feature' => $feature,
+            'model' => $image->model,
+            'input_tokens' => 0,
+            'cached_tokens' => 0,
+            'output_tokens' => 0,
+            'images' => 1,
+            'cost_usd' => $costUsd,
+        ]);
+
+        $this->wallets->charge($tenant, $this->last, $feature, $description);
+
+        return $image;
+    }
+
+    /**
      * The most a call could cost (USD): its text and pictures as input tokens (about 3 characters
      * a token, ~1500 tokens a picture) and the whole output allowance.
      *

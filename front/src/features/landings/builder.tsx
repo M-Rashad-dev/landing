@@ -53,7 +53,7 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
-import { createAiSectionPlacement, useDesignerStatus, type MyAiSection } from "@/features/ai-designer/api";
+import { createAiSectionPlacement, useDesignerStatus, type AiMessageMedia, type MyAiSection } from "@/features/ai-designer/api";
 import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
@@ -261,7 +261,14 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   function handleAiApproved(
     approvedSection: { id: number; name: string; current: AiDefinition },
     isNew: boolean,
+    chatMedia?: Record<string, MediaUrls>,
   ) {
+    if (chatMedia) {
+      for (const [mid, urls] of Object.entries(chatMedia)) {
+        rememberMedia({ id: Number(mid), urls });
+      }
+    }
+
     setExtraAiSections((prev) => ({
       ...prev,
       [String(approvedSection.current.id)]: approvedSection.current,
@@ -287,6 +294,65 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
       setSelected(placement.id);
       setTab("sections");
       window.setTimeout(() => scrollTo(placement.id), 80);
+    }
+  }
+
+  function handleUseAiImage(img: AiMessageMedia) {
+    if (img.urls) {
+      rememberMedia({ id: img.id, urls: img.urls });
+    }
+
+    const targetIdx = draft.sections.findIndex((s) => {
+      if (
+        designerFocus &&
+        s.type === "ai" &&
+        (s.props as unknown as AiSectionProps).ai_section_id === designerFocus.id
+      ) {
+        return true;
+      }
+      return s.id === selected;
+    });
+
+    if (targetIdx < 0) return;
+    const target = draft.sections[targetIdx]!;
+
+    if (target.type === "ai") {
+      const aiProps = target.props as unknown as AiSectionProps;
+      const vId =
+        aiProps.version_id ?? pageData.ai_sections_current?.[String(aiProps.ai_section_id)];
+      const def = vId !== undefined ? (pageData.ai_sections?.[String(vId)] ?? null) : null;
+      const imgField = def?.fields.find((f) => f.type === "image" || f.type === "images");
+      if (!imgField) return;
+      const prevVals = aiProps.values ?? {};
+      const nextVals =
+        imgField.type === "images"
+          ? {
+              ...prevVals,
+              [`${imgField.key}_media_ids`]: [
+                ...(Array.isArray(prevVals[`${imgField.key}_media_ids`])
+                  ? (prevVals[`${imgField.key}_media_ids`] as number[])
+                  : []),
+                img.id,
+              ],
+            }
+          : {
+              ...prevVals,
+              [`${imgField.key}_media_id`]: img.id,
+            };
+      setSection(targetIdx, {
+        ...target,
+        props: { ...target.props, values: nextVals },
+      });
+      toast.success(ar.aiDesigner.images.usedToast);
+      return;
+    }
+
+    if ("media_id" in target.props) {
+      setSection(targetIdx, {
+        ...target,
+        props: { ...target.props, media_id: img.id },
+      });
+      toast.success(ar.aiDesigner.images.usedToast);
     }
   }
 
@@ -725,6 +791,15 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
               }
             : null,
         }}
+        canUseImage={Boolean(
+          section &&
+            ((section.type === "ai" &&
+              aiDefFor(section)?.fields.some(
+                (f) => f.type === "image" || f.type === "images",
+              )) ||
+              "media_id" in section.props),
+        )}
+        onUseImage={handleUseAiImage}
         onApproved={handleAiApproved}
       />
       <ConfirmDialog

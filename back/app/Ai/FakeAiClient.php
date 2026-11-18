@@ -52,14 +52,92 @@ final class FakeAiClient implements AiClient
     private static function defaultReply(array $messages): string
     {
         $systemText = '';
+        $lastUserText = '';
         foreach ($messages as $msg) {
-            if (is_array($msg) && ($msg['role'] ?? null) === 'system' && is_string($msg['content'] ?? null)) {
+            if (! is_array($msg)) {
+                continue;
+            }
+            if (($msg['role'] ?? null) === 'system' && is_string($msg['content'] ?? null)) {
                 $systemText = $msg['content'];
+            }
+            if (($msg['role'] ?? null) === 'user') {
+                if (is_string($msg['content'] ?? null)) {
+                    $lastUserText = $msg['content'];
+                } elseif (is_array($msg['content'] ?? null)) {
+                    foreach ($msg['content'] as $part) {
+                        if (is_array($part) && ($part['type'] ?? null) === 'text' && is_string($part['text'] ?? null)) {
+                            $lastUserText = $part['text'];
+                        }
+                    }
+                }
             }
         }
 
         if (! str_contains($systemText, 'MKSAB_AI_DESIGNER')) {
             return 'تمام.';
+        }
+
+        if (! str_contains($lastUserText, 'قسم')) {
+            if (str_contains($lastUserText, 'شيل الخلفية') || str_contains($lastUserText, 'بدون خلفية') || str_contains($lastUserText, 'إزالة الخلفية') || str_contains($lastUserText, 'ازالة الخلفية')) {
+                return (string) json_encode([
+                    'reply' => 'شلت الخلفية من صورة المنتج وحفظتهالك في مكتبة الصور.',
+                    'action' => 'images',
+                    'images' => [
+                        [
+                            'id' => 'i1',
+                            'action' => 'remove_bg',
+                            'upload' => 1,
+                            'use' => 'صورة المنتج بدون خلفية',
+                        ],
+                    ],
+                ], JSON_UNESCAPED_UNICODE);
+            }
+
+            if (str_contains($lastUserText, 'استوديو')) {
+                return (string) json_encode([
+                    'reply' => 'حطيت المنتج على خلفية استوديو احترافية وحفظت الصورة في مكتبتك.',
+                    'action' => 'images',
+                    'images' => [
+                        [
+                            'id' => 'i1',
+                            'action' => 'studio',
+                            'upload' => 1,
+                            'prompt' => 'clean luxury studio podium background with soft commercial lighting',
+                            'use' => 'صورة المنتج في الاستوديو',
+                        ],
+                    ],
+                ], JSON_UNESCAPED_UNICODE);
+            }
+
+            if (str_contains($lastUserText, 'حسن') || str_contains($lastUserText, 'جودة')) {
+                return (string) json_encode([
+                    'reply' => 'حسّنت إضاءة وجودة الصورة وحفظتها في مكتبة الصور.',
+                    'action' => 'images',
+                    'images' => [
+                        [
+                            'id' => 'i1',
+                            'action' => 'enhance',
+                            'upload' => 1,
+                            'use' => 'صورة محسنة',
+                        ],
+                    ],
+                ], JSON_UNESCAPED_UNICODE);
+            }
+
+            if (str_contains($lastUserText, 'صورة')) {
+                return (string) json_encode([
+                    'reply' => 'جهزتلك صورة البنر وحفظتها في مكتبة الصور، تقدر تستخدمها على طول.',
+                    'action' => 'images',
+                    'images' => [
+                        [
+                            'id' => 'i1',
+                            'action' => 'generate',
+                            'prompt' => 'professional commercial product photography banner on warm minimalist studio surface, soft shadows, high resolution',
+                            'use' => 'صورة بنر',
+                        ],
+                    ],
+                ], JSON_UNESCAPED_UNICODE);
+            }
         }
 
         $editOf = null;

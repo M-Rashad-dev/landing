@@ -43,6 +43,11 @@ export const aiDesigner = {
     approvedEditToast: "التعديل اتعمد",
     rejectedToast: "اترفض، القسم زي ما هو",
   },
+  images: {
+    useInSection: "استخدم في القسم",
+    openLibrary: "افتح في مكتبة الصور",
+    usedToast: "الصورة اتضافت للقسم",
+  },
   preview: {
     desktop: "كمبيوتر",
     mobile: "موبايل",

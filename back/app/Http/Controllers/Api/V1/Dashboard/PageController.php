@@ -134,7 +134,10 @@ final class PageController extends Controller
             'identity' => $page->identity ? $data->identity($page->identity) : null,
             'product' => $data->product($page->product),
             'offers' => $data->offers($page->product, now()),
-            'media' => (object) $data->media($page->draft_content),
+            'media' => (object) $data->media([
+                'draft' => $page->draft_content,
+                'ai_definitions' => $aiResolved['definitions'],
+            ]),
             'shipping' => $shipping->publicConfig(now()),
             'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
             'store_name' => (string) $request->user()?->tenant?->name,

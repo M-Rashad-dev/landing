@@ -7,6 +7,7 @@ namespace App\Ai\Designer;
 use App\Ai\Ai;
 use App\Ai\AiUnavailable;
 use App\Ai\AiWallets;
+use App\Ai\Images\StockPhotos;
 use App\Exceptions\ApiException;
 use App\Jobs\DesignerReply;
 use App\Models\AiChat;
@@ -25,14 +26,16 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Core service for «المصمم الذكي» (docs/plans/ai-designer.md §2.4): manages chats, message queuing,
- * AI replies with automatic 1-turn repair, and version approval/rejection.
+ * Core service for «المصمم الذكي» (docs/plans/ai-designer.md §2.4 & §3.5): manages chats, message queuing,
+ * AI replies with automatic 1-turn repair, image processing/generation/stock, and version approval/rejection.
  */
 final class AiDesigner
 {
     public const MAX_OUTPUT_TOKENS = 12000;
 
     public const MAX_JSON_BYTES = 200000;
+
+    public const MAX_REPLY_IMAGES = 6;
 
     private const HISTORY_LIMIT = 12;
 
@@ -44,6 +47,8 @@ final class AiDesigner
         private readonly Ai $ai,
         private readonly AiWallets $wallets,
         private readonly AiSectionBuilder $builder,
+        private readonly AiImages $images,
+        private readonly StockPhotos $stock,
     ) {}
 
     public function enabled(): bool
@@ -252,16 +257,16 @@ final class AiDesigner
             );
 
             $firstUsage = $this->ai->lastUsage();
-            $parsed = $this->parseAndBuild($reply->text, $chat, $focusSection?->id);
+            $validated = $this->validateReplyJson($reply->text, $chat);
 
             // One repair turn when JSON or section validation fails
-            if ($parsed['errors'] !== []) {
+            if ($validated['errors'] !== []) {
                 $repairMessages = [
                     ...$messages,
                     ['role' => 'assistant', 'content' => mb_substr($reply->text, 0, 40000, 'UTF-8')],
                     [
                         'role' => 'user',
-                        'content' => "Your JSON broke these rules:\n- ".implode("\n- ", $parsed['errors'])."\nReturn the corrected full JSON only.",
+                        'content' => "Your JSON broke these rules:\n- ".implode("\n- ", $validated['errors'])."\nReturn the corrected full JSON only.",
                     ],
                 ];
 
@@ -274,24 +279,82 @@ final class AiDesigner
                     'المصمم الذكي: إصلاح',
                 );
 
-                $parsed = $this->parseAndBuild($repairReply->text, $chat, $focusSection?->id);
+                $validated = $this->validateReplyJson($repairReply->text, $chat);
             }
 
-            if ($parsed['errors'] !== []) {
+            if ($validated['errors'] !== []) {
                 $this->failMessage($pending, __('ai.designer.invalid_output'));
 
                 return;
             }
 
-            $version = $parsed['version'];
+            $replyText = $validated['reply'];
+            $imageItems = $validated['images'];
+            $sectionData = $validated['section'];
+
+            // 1. Run image actions first (if any), up to 6 per reply
+            $createdMediaIds = [];
+            $mediaByKey = [];
+            $imageFailures = [];
+
+            if ($imageItems !== []) {
+                $newestUserMsg = AiChatMessage::query()
+                    ->where('chat_id', $chat->id)
+                    ->where('id', '<', $pending->id)
+                    ->where('role', 'user')
+                    ->orderByDesc('id')
+                    ->first();
+
+                $imgResult = $this->executeImageTasks($tenant, $newestUserMsg, $imageItems);
+                $createdMediaIds = $imgResult['media_ids'];
+                $mediaByKey = $imgResult['by_key'];
+                $imageFailures = $imgResult['failures'];
+            }
+
+            // 2. Build the section (if present), linking generated images as `image` field samples
+            $version = null;
+            if (is_array($sectionData)) {
+                if ($createdMediaIds !== [] && is_array($sectionData['fields'] ?? null)) {
+                    $sectionData['fields'] = $this->assignImageSamples($sectionData['fields'], $createdMediaIds, $mediaByKey);
+                }
+
+                $editOf = $focusSection?->id;
+                if ($editOf === null && isset($sectionData['edit_of']) && is_numeric($sectionData['edit_of'])) {
+                    $candidate = AiSection::query()->find((int) $sectionData['edit_of']);
+                    if ($candidate instanceof AiSection && $candidate->kind === $chat->kind && $candidate->theme_key === $chat->theme_key) {
+                        $editOf = $candidate->id;
+                    }
+                }
+
+                $built = $this->builder->fromAi($sectionData, $chat, $editOf);
+                if (is_array($built)) {
+                    $this->failMessage($pending, __('ai.designer.invalid_output'));
+
+                    return;
+                }
+                $version = $built;
+            }
+
             if ($version instanceof AiSectionVersion && $firstUsage !== null) {
                 AiWalletEntry::query()
                     ->where('ai_usage_id', $firstUsage->id)
                     ->update(['description' => 'المصمم الذكي: '.$version->name]);
             }
 
+            if ($imageFailures !== []) {
+                $failureLines = implode("\n", array_values(array_unique($imageFailures)));
+                $replyText = $replyText !== '' ? $replyText."\n\n".$failureLines : $failureLines;
+            }
+
+            if ($replyText === '') {
+                $replyText = $version instanceof AiSectionVersion
+                    ? 'صممتلك القسم، تقدر تعاينه وتعتمده.'
+                    : 'جهزتلك الصور وحفظتها في مكتبة الصور.';
+            }
+
             $pending->forceFill([
-                'text' => $parsed['reply'],
+                'text' => $replyText,
+                'media_ids' => $createdMediaIds === [] ? null : $createdMediaIds,
                 'version_id' => $version?->id,
                 'ai_usage_id' => $this->ai->lastUsage()?->id ?? $firstUsage?->id,
                 'status' => 'done',
@@ -424,6 +487,16 @@ final class AiDesigner
             if (is_array($m->media_ids)) {
                 array_push($allMediaIds, ...array_map('intval', $m->media_ids));
             }
+            if ($m->version instanceof AiSectionVersion && is_array($m->version->fields)) {
+                foreach ($m->version->fields as $f) {
+                    if (is_array($f)) {
+                        $smId = $f['sample_media_id'] ?? $f['sample'] ?? null;
+                        if (is_int($smId) && $smId > 0) {
+                            $allMediaIds[] = $smId;
+                        }
+                    }
+                }
+            }
         }
 
         $mediaById = $allMediaIds === []
@@ -483,6 +556,20 @@ final class AiDesigner
         ];
     }
 
+    public function systemPrompt(): string
+    {
+        $prompt = (string) file_get_contents(resource_path('prompts/ai-designer.md'));
+
+        if (! $this->stock->configured()) {
+            $prompt = (string) preg_replace('/<!--\s*STOCK_START\s*-->.*?<!--\s*STOCK_END\s*-->\s*/s', '', $prompt);
+            $prompt = str_replace('remove_bg | studio | enhance | generate | stock', 'remove_bg | studio | enhance | generate', $prompt);
+        } else {
+            $prompt = (string) preg_replace('/<!--\s*STOCK_(?:START|END)\s*-->\s*/', '', $prompt);
+        }
+
+        return $prompt;
+    }
+
     private function validateTarget(string $kind, string $themeKey, ?int $landingPageId): ?int
     {
         if ($kind === 'store') {
@@ -510,57 +597,292 @@ final class AiDesigner
     }
 
     /**
-     * @return array{reply: string, version: AiSectionVersion|null, errors: list<string>}
+     * Validate the JSON structure and (if present) the section definition before executing any image tasks.
+     *
+     * @return array{
+     *     reply: string,
+     *     action: string,
+     *     section: array<string, mixed>|null,
+     *     images: list<array<string, mixed>>,
+     *     errors: list<string>
+     * }
      */
-    private function parseAndBuild(string $rawText, AiChat $chat, ?int $focusedId): array
+    private function validateReplyJson(string $rawText, AiChat $chat): array
     {
+        $empty = ['reply' => '', 'action' => 'none', 'section' => null, 'images' => [], 'errors' => []];
+
         if (strlen($rawText) > self::MAX_JSON_BYTES) {
-            return ['reply' => '', 'version' => null, 'errors' => ['Response JSON exceeds the 200 KB size limit.']];
+            return [...$empty, 'errors' => ['Response JSON exceeds the 200 KB size limit.']];
         }
 
         $json = json_decode(self::unfence($rawText), true);
         if (! is_array($json)) {
-            return ['reply' => '', 'version' => null, 'errors' => ['Response is not valid JSON.']];
+            return [...$empty, 'errors' => ['Response is not valid JSON.']];
         }
 
         $reply = isset($json['reply']) && is_string($json['reply']) ? trim(strip_tags($json['reply'])) : '';
         $action = isset($json['action']) && is_string($json['action']) ? trim($json['action']) : 'none';
 
-        if (! in_array($action, ['none', 'section'], true)) {
-            return ['reply' => '', 'version' => null, 'errors' => ["Unsupported action '{$action}'."]];
+        if (! in_array($action, ['none', 'section', 'images'], true)) {
+            return [...$empty, 'errors' => ["Unsupported action '{$action}'."]];
         }
 
-        if ($action === 'none') {
+        $rawImages = is_array($json['images'] ?? null) ? array_values($json['images']) : [];
+        $cleanImages = [];
+        foreach (array_slice($rawImages, 0, self::MAX_REPLY_IMAGES) as $item) {
+            if (is_array($item) && isset($item['action']) && is_string($item['action'])) {
+                $cleanImages[] = $item;
+            }
+        }
+
+        $hasSection = is_array($json['section'] ?? null);
+
+        if ($action === 'none' && ! $hasSection && $cleanImages === []) {
             if ($reply === '') {
-                return ['reply' => '', 'version' => null, 'errors' => ['Field "reply" must be a non-empty Arabic string.']];
+                return [...$empty, 'errors' => ['Field "reply" must be a non-empty Arabic string.']];
             }
 
-            return ['reply' => $reply, 'version' => null, 'errors' => []];
+            return [
+                'reply' => $reply,
+                'action' => 'none',
+                'section' => null,
+                'images' => [],
+                'errors' => [],
+            ];
         }
 
-        $sectionData = $json['section'] ?? null;
-        if (! is_array($sectionData)) {
-            return ['reply' => '', 'version' => null, 'errors' => ['Field "section" is required when action is "section".']];
+        if ($action === 'images' && $cleanImages === [] && ! $hasSection) {
+            return [...$empty, 'errors' => ['Field "images" must be a non-empty array when action is "images".']];
         }
 
-        $editOf = $focusedId;
-        if ($editOf === null && isset($sectionData['edit_of']) && is_numeric($sectionData['edit_of'])) {
-            $candidate = AiSection::query()->find((int) $sectionData['edit_of']);
-            if ($candidate instanceof AiSection && $candidate->kind === $chat->kind && $candidate->theme_key === $chat->theme_key) {
-                $editOf = $candidate->id;
+        if ($action === 'section' && ! $hasSection) {
+            return [...$empty, 'errors' => ['Field "section" is required when action is "section".']];
+        }
+
+        $sectionData = $hasSection ? $json['section'] : null;
+
+        if (is_array($sectionData)) {
+            $sectionErrors = $this->validateSectionCandidate($sectionData, $chat->kind);
+            if ($sectionErrors !== []) {
+                return [...$empty, 'errors' => $sectionErrors];
             }
-        }
-
-        $built = $this->builder->fromAi($sectionData, $chat, $editOf);
-        if (is_array($built)) {
-            return ['reply' => '', 'version' => null, 'errors' => $built];
         }
 
         return [
-            'reply' => $reply !== '' ? $reply : 'صممتلك القسم، تقدر تعاينه وتعتمده.',
-            'version' => $built,
+            'reply' => $reply,
+            'action' => $action,
+            'section' => $sectionData,
+            'images' => $cleanImages,
             'errors' => [],
         ];
+    }
+
+    /**
+     * Dry-run validation of a section array before running image tasks.
+     *
+     * @param  array<string, mixed>  $section
+     * @return list<string>
+     */
+    private function validateSectionCandidate(array $section, string $kind): array
+    {
+        $errors = [];
+
+        $rawHtml = isset($section['html']) && is_string($section['html']) ? $section['html'] : '';
+        $rawCss = isset($section['css']) && is_string($section['css']) ? $section['css'] : '';
+        $rawFields = isset($section['fields']) && is_array($section['fields']) ? $section['fields'] : [];
+
+        if (trim($rawHtml) === '') {
+            $errors[] = 'Section html is required.';
+        }
+
+        $schemaResult = AiSectionFields::schema($rawFields, $kind);
+        array_push($errors, ...$schemaResult['errors']);
+
+        if (trim($rawHtml) !== '') {
+            $sanitized = AiSectionSanitizer::clean($rawHtml, $kind);
+            array_push($errors, ...$sanitized['errors']);
+
+            if ($sanitized['errors'] === []) {
+                $tplErrors = AiTemplate::validate($sanitized['html'], $schemaResult['fields'], $kind);
+                array_push($errors, ...$tplErrors);
+            }
+        }
+
+        $cssResult = AiSectionCss::scope($rawCss, '0');
+        array_push($errors, ...$cssResult['errors']);
+
+        return array_values(array_unique($errors));
+    }
+
+    /**
+     * Execute up to 6 image tasks (`remove_bg`, `studio`, `enhance`, `generate`, `stock`).
+     * A failed item does not fail the others; its Arabic reason is returned in `failures`.
+     *
+     * @param  list<array<string, mixed>>  $imageItems
+     * @return array{media_ids: list<int>, by_key: array<string, int>, failures: list<string>}
+     */
+    private function executeImageTasks(Tenant $tenant, ?AiChatMessage $newestUserMsg, array $imageItems): array
+    {
+        $userMediaIds = ($newestUserMsg instanceof AiChatMessage && is_array($newestUserMsg->media_ids))
+            ? array_values(array_map('intval', $newestUserMsg->media_ids))
+            : [];
+
+        $mediaIds = [];
+        $byKey = [];
+        $failures = [];
+
+        foreach (array_slice($imageItems, 0, self::MAX_REPLY_IMAGES) as $idx => $item) {
+            $imgAction = trim((string) ($item['action'] ?? ''));
+            $prompt = trim((string) ($item['prompt'] ?? ''));
+            $use = trim((string) ($item['use'] ?? ''));
+            $id = trim((string) ($item['id'] ?? 'i'.($idx + 1)));
+            $uploadIdx = isset($item['upload']) && is_numeric($item['upload']) ? max(1, (int) $item['upload']) : 1;
+            $fileName = $use !== '' ? $use : ($id !== '' ? $id : $imgAction);
+
+            try {
+                if (in_array($imgAction, ['remove_bg', 'studio', 'enhance'], true)) {
+                    $sourceMediaId = $userMediaIds[$uploadIdx - 1] ?? $userMediaIds[0] ?? null;
+                    $dataUrl = $sourceMediaId !== null ? $this->singleMediaDataUrl($sourceMediaId) : null;
+
+                    if ($dataUrl === null) {
+                        $failures[] = __('ai.designer.image_failed');
+
+                        continue;
+                    }
+
+                    $instruction = match ($imgAction) {
+                        'remove_bg' => 'Isolate the main product and remove the background completely on a clean pure white background. Keep all product details intact.',
+                        'studio' => 'Place this exact product on a professional commercial studio background: '
+                            .($prompt !== '' ? $prompt : 'clean minimalist studio surface with soft commercial lighting')
+                            .'. Keep the product unchanged.',
+                        default => 'Enhance the lighting, sharpness, color balance, and commercial studio quality of this product photo while keeping the product faithful and unchanged.',
+                    };
+
+                    $aiImage = $this->ai->imagePaid(
+                        $tenant,
+                        'designer',
+                        'image_edit',
+                        fn ($client, string $model) => $client->editImage($model, $dataUrl, $instruction),
+                        'المصمم الذكي: تعديل صورة',
+                    );
+
+                    $saved = $this->images->store($tenant, $aiImage, $fileName);
+                } elseif ($imgAction === 'generate') {
+                    if ($prompt === '') {
+                        $failures[] = __('ai.designer.image_failed');
+
+                        continue;
+                    }
+
+                    $aspect = (str_contains(strtolower($use), 'banner') || str_contains(strtolower($use), 'hero'))
+                        ? '16:9'
+                        : '1:1';
+                    $safePrompt = $prompt.'. Strictly photographic, no text, no letters, no numbers, no logos, no brand names.';
+
+                    $aiImage = $this->ai->imagePaid(
+                        $tenant,
+                        'designer',
+                        'image_generate',
+                        fn ($client, string $model) => $client->generateImage($model, $safePrompt, $aspect),
+                        'المصمم الذكي: توليد صورة',
+                    );
+
+                    $saved = $this->images->store($tenant, $aiImage, $fileName);
+                } elseif ($imgAction === 'stock') {
+                    if (! $this->stock->configured() || $prompt === '') {
+                        $failures[] = __('ai.designer.image_failed');
+
+                        continue;
+                    }
+
+                    $orientation = str_contains(strtolower($use), 'portrait') ? 'portrait' : 'landscape';
+                    $photos = $this->stock->search($prompt, 1, $orientation);
+                    if ($photos === []) {
+                        $failures[] = __('ai.designer.image_failed');
+
+                        continue;
+                    }
+
+                    $photo = $photos[0];
+                    $saved = $this->images->store($tenant, $photo->toAiImage(), $fileName, $photo->credit());
+                } else {
+                    $failures[] = __('ai.designer.image_failed');
+
+                    continue;
+                }
+
+                $mediaIds[] = $saved->id;
+                if ($id !== '') {
+                    $byKey[$id] = $saved->id;
+                }
+                if ($use !== '') {
+                    $byKey[$use] = $saved->id;
+                }
+            } catch (ApiException $e) {
+                $failures[] = $e->getMessage();
+            } catch (AiUnavailable) {
+                $failures[] = __('ai.designer.image_failed');
+            } catch (Throwable $e) {
+                report($e);
+                $failures[] = __('ai.designer.image_failed');
+            }
+        }
+
+        return [
+            'media_ids' => $mediaIds,
+            'by_key' => $byKey,
+            'failures' => $failures,
+        ];
+    }
+
+    /**
+     * Link newly generated media IDs as `sample` / `sample_media_id` on the section's `image` fields.
+     *
+     * @param  array<int, mixed>  $fields
+     * @param  list<int>  $mediaIds
+     * @param  array<string, int>  $byKey
+     * @return array<int, mixed>
+     */
+    private function assignImageSamples(array $fields, array $mediaIds, array $byKey): array
+    {
+        $used = [];
+
+        // Pass 1: exact match by field key or sample reference
+        foreach ($fields as $i => $field) {
+            if (! is_array($field) || ($field['type'] ?? null) !== 'image') {
+                continue;
+            }
+            $key = isset($field['key']) && is_string($field['key']) ? trim($field['key']) : '';
+            $sampleRef = isset($field['sample']) && is_string($field['sample']) ? trim($field['sample']) : '';
+
+            $matchedId = $byKey[$key] ?? ($sampleRef !== '' ? ($byKey[$sampleRef] ?? null) : null);
+            if ($matchedId !== null) {
+                $fields[$i]['sample'] = $matchedId;
+                $fields[$i]['sample_media_id'] = $matchedId;
+                $used[$matchedId] = true;
+            }
+        }
+
+        // Pass 2: assign remaining generated images in order to any `image` field without a sample_media_id
+        $remaining = array_values(array_filter($mediaIds, fn (int $id): bool => ! isset($used[$id])));
+        $remIdx = 0;
+
+        foreach ($fields as $i => $field) {
+            if (! is_array($field) || ($field['type'] ?? null) !== 'image') {
+                continue;
+            }
+            if (isset($field['sample_media_id']) && is_int($field['sample_media_id'])) {
+                continue;
+            }
+            $fallbackId = $remaining[$remIdx] ?? $mediaIds[0] ?? null;
+            if ($fallbackId !== null) {
+                $fields[$i]['sample'] = $fallbackId;
+                $fields[$i]['sample_media_id'] = $fallbackId;
+                $remIdx++;
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -619,11 +941,6 @@ final class AiDesigner
         return $messages;
     }
 
-    private function systemPrompt(): string
-    {
-        return (string) file_get_contents(resource_path('prompts/ai-designer.md'));
-    }
-
     private function contextBlock(Tenant $tenant, AiChat $chat, ?AiSection $focusSection): string
     {
         $lines = [
@@ -679,31 +996,40 @@ final class AiDesigner
             return [];
         }
 
-        $mediaItems = Media::query()->whereIn('id', $ids)->get()->keyBy('id');
         $urls = [];
-
         foreach ($ids as $id) {
-            $media = $mediaItems->get($id);
-            if (! $media instanceof Media) {
-                continue;
-            }
-            $relPath = $media->variants['medium'] ?? $media->path;
-            $disk = Storage::disk($media->disk);
-            if ($disk->exists($relPath)) {
-                $bytes = (string) $disk->get($relPath);
-                if ($bytes !== '' && strlen($bytes) <= self::IMAGE_MAX_BYTES) {
-                    $mime = $media->mime !== '' ? $media->mime : 'image/webp';
-                    $urls[] = "data:{$mime};base64,".base64_encode($bytes);
-
-                    continue;
-                }
-            }
-            if (config('ai.driver') === 'fake') {
-                $urls[] = self::FAKE_DATA_URL;
+            $url = $this->singleMediaDataUrl($id);
+            if ($url !== null) {
+                $urls[] = $url;
             }
         }
 
         return $urls;
+    }
+
+    private function singleMediaDataUrl(int $mediaId): ?string
+    {
+        $media = Media::query()->find($mediaId);
+        if (! $media instanceof Media) {
+            return null;
+        }
+
+        $relPath = $media->variants['medium'] ?? $media->path;
+        $disk = Storage::disk($media->disk);
+        if ($disk->exists($relPath)) {
+            $bytes = (string) $disk->get($relPath);
+            if ($bytes !== '' && strlen($bytes) <= self::IMAGE_MAX_BYTES) {
+                $mime = $media->mime !== '' ? $media->mime : 'image/webp';
+
+                return "data:{$mime};base64,".base64_encode($bytes);
+            }
+        }
+
+        if (config('ai.driver') === 'fake') {
+            return self::FAKE_DATA_URL;
+        }
+
+        return null;
     }
 
     private function failMessage(AiChatMessage $pending, string $error): void

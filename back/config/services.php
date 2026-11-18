@@ -48,4 +48,9 @@ return [
         ],
     ],
 
+    // Pexels API v1 for stock photos in the AI designer (free; omitted from prompts when not configured).
+    'pexels' => [
+        'key' => env('PEXELS_API_KEY'),
+    ],
+
 ];

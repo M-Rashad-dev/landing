@@ -37,7 +37,7 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
-import { createAiSectionPlacement, useDesignerStatus, type MyAiSection } from "@/features/ai-designer/api";
+import { createAiSectionPlacement, useDesignerStatus, type AiMessageMedia, type MyAiSection } from "@/features/ai-designer/api";
 import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import type { MediaItem } from "@/features/media/api";
@@ -215,9 +215,17 @@ function Editor({ initial }: { initial: DesignPayload }) {
   function handleAiApproved(
     approvedSection: { id: number; name: string; current: AiDefinition },
     isNew: boolean,
+    chatMedia?: Record<string, MediaUrls>,
   ) {
+    if (chatMedia) {
+      for (const [mid, urls] of Object.entries(chatMedia)) {
+        rememberMedia({ id: Number(mid), urls });
+      }
+    }
+
     setData((prev) => ({
       ...prev,
+      media: chatMedia ? { ...(prev.media ?? {}), ...chatMedia } : prev.media,
       ai_sections: {
         ...(prev.ai_sections ?? {}),
         [String(approvedSection.current.id)]: approvedSection.current,
@@ -244,6 +252,58 @@ function Editor({ initial }: { initial: DesignPayload }) {
       setSelected(placement.id);
       setTab("sections");
       window.setTimeout(() => scrollTo(placement.id), 80);
+    }
+  }
+
+  function handleUseAiImage(img: AiMessageMedia) {
+    if (img.urls) {
+      rememberMedia({ id: img.id, urls: img.urls });
+    }
+
+    const targetIdx = draft.sections.findIndex((s) => {
+      if (designerFocus && s.type === "ai" && s.props.ai_section_id === designerFocus.id) {
+        return true;
+      }
+      return s.id === selected;
+    });
+
+    if (targetIdx < 0) return;
+    const target = draft.sections[targetIdx]!;
+
+    if (target.type === "ai") {
+      const def = aiDefinitionFor(target, data);
+      const imgField = def?.fields.find((f) => f.type === "image" || f.type === "images");
+      if (!imgField) return;
+      const prevVals = target.props.values ?? {};
+      const nextVals =
+        imgField.type === "images"
+          ? {
+              ...prevVals,
+              [`${imgField.key}_media_ids`]: [
+                ...(Array.isArray(prevVals[`${imgField.key}_media_ids`])
+                  ? (prevVals[`${imgField.key}_media_ids`] as number[])
+                  : []),
+                img.id,
+              ],
+            }
+          : {
+              ...prevVals,
+              [`${imgField.key}_media_id`]: img.id,
+            };
+      setSection(targetIdx, {
+        ...target,
+        props: { ...target.props, values: nextVals },
+      });
+      toast.success(ar.aiDesigner.images.usedToast);
+      return;
+    }
+
+    if ("media_id" in target.props) {
+      setSection(targetIdx, {
+        ...target,
+        props: { ...target.props, media_id: img.id },
+      } as AnySection);
+      toast.success(ar.aiDesigner.images.usedToast);
     }
   }
 
@@ -590,6 +650,15 @@ function Editor({ initial }: { initial: DesignPayload }) {
           links: data.links,
           media: allMedia,
         }}
+        canUseImage={Boolean(
+          section &&
+            ((section.type === "ai" &&
+              aiDefinitionFor(section, data)?.fields.some(
+                (f) => f.type === "image" || f.type === "images",
+              )) ||
+              "media_id" in section.props),
+        )}
+        onUseImage={handleUseAiImage}
         onApproved={handleAiApproved}
       />
       <ConfirmDialog

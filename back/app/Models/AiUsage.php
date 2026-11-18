@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $input_tokens
  * @property int $cached_tokens
  * @property int $output_tokens
+ * @property int $images
  * @property string $cost_usd
  * @property bool $ok
  * @property string|null $error
@@ -27,10 +28,10 @@ class AiUsage extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['tenant_id', 'feature', 'model', 'input_tokens', 'cached_tokens', 'output_tokens', 'cost_usd', 'ok', 'error'];
+    protected $fillable = ['tenant_id', 'feature', 'model', 'input_tokens', 'cached_tokens', 'output_tokens', 'images', 'cost_usd', 'ok', 'error'];
 
     protected function casts(): array
     {
-        return ['ok' => 'boolean', 'created_at' => 'datetime', 'input_tokens' => 'integer', 'cached_tokens' => 'integer', 'output_tokens' => 'integer'];
+        return ['ok' => 'boolean', 'created_at' => 'datetime', 'input_tokens' => 'integer', 'cached_tokens' => 'integer', 'output_tokens' => 'integer', 'images' => 'integer'];
     }
 }

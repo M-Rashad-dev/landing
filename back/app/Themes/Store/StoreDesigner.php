@@ -158,6 +158,10 @@ final class StoreDesigner
                             if (isset($values["{$key}_media_id"])) {
                                 $mediaIds[] = (int) $values["{$key}_media_id"];
                             }
+                            $sampleMediaId = $field['sample_media_id'] ?? $field['sample'] ?? null;
+                            if (is_int($sampleMediaId) && $sampleMediaId > 0) {
+                                $mediaIds[] = $sampleMediaId;
+                            }
                         } elseif ($fType === 'images') {
                             if (is_array($values["{$key}_media_ids"] ?? null)) {
                                 array_push($mediaIds, ...array_map('intval', $values["{$key}_media_ids"]));

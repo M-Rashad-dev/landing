@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, ImagePlus, RotateCcw, Send, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, Eye, ImagePlus, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,9 @@ import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader } from "
 import type { MediaItem } from "@/features/media/api";
 import { MediaPicker } from "@/features/media/media-picker";
 import { errorMessage, isApiError } from "@/lib/api/errors";
-import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { AiDefinition, AiSectionRuntimeData, AiTokens } from "@/themes/shared/ai-section/types";
+import type { MediaUrls } from "@/themes/shared/design";
 import {
   approveVersion,
   designerChatKey,
@@ -25,6 +25,7 @@ import {
   sendMessage,
   useChat,
   type AiChatMessagePayload,
+  type AiMessageMedia,
   type AiVersionPayload,
 } from "./api";
 import { PreviewDialog } from "./preview-dialog";
@@ -46,6 +47,8 @@ export function DesignerDialog({
   focusSection: initialFocus = null,
   tokens,
   data,
+  canUseImage = false,
+  onUseImage,
   onApproved,
 }: {
   open: boolean;
@@ -56,7 +59,13 @@ export function DesignerDialog({
   focusSection?: FocusedAiSection | null;
   tokens: AiTokens;
   data?: AiSectionRuntimeData;
-  onApproved: (section: { id: number; name: string; current: AiDefinition }, isNew: boolean) => void;
+  canUseImage?: boolean;
+  onUseImage?: (media: AiMessageMedia) => void;
+  onApproved: (
+    section: { id: number; name: string; current: AiDefinition },
+    isNew: boolean,
+    chatMedia?: Record<string, MediaUrls>,
+  ) => void;
 }) {
   const client = useQueryClient();
   const [chatId, setChatId] = React.useState<number | null>(null);
@@ -113,8 +122,35 @@ export function DesignerDialog({
   }, [open, initChat]);
 
   const chatQuery = useChat(chatId, open && chatId !== null);
-  const messages = chatQuery.data?.messages ?? [];
+  const messages = React.useMemo(() => chatQuery.data?.messages ?? [], [chatQuery.data?.messages]);
   const hasPending = messages.some((m) => m.status === "pending");
+
+  const chatMedia = React.useMemo<Record<string, MediaUrls>>(() => {
+    const out: Record<string, MediaUrls> = {};
+    for (const m of messages) {
+      for (const img of m.media) {
+        if (img.urls) {
+          out[String(img.id)] = img.urls;
+        }
+      }
+    }
+    return out;
+  }, [messages]);
+
+  const mergedData = React.useMemo<AiSectionRuntimeData>(
+    () => ({
+      ...data,
+      media: { ...data?.media, ...chatMedia },
+    }),
+    [data, chatMedia],
+  );
+
+  const chatMediaCount = Object.keys(chatMedia).length;
+  React.useEffect(() => {
+    if (chatMediaCount > 0) {
+      void client.invalidateQueries({ queryKey: ["media"] });
+    }
+  }, [chatMediaCount, client]);
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -217,7 +253,7 @@ export function DesignerDialog({
       await chatQuery.refetch();
       await client.invalidateQueries({ queryKey: mySectionsKey(kind, themeKey) });
       toast.success(isNew ? t.version.approvedNewToast : t.version.approvedEditToast);
-      onApproved(res.section, isNew);
+      onApproved(res.section, isNew, chatMedia);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -361,6 +397,47 @@ export function DesignerDialog({
                           ) : (
                             <>
                               {msg.text ? <p className="whitespace-pre-wrap">{msg.text}</p> : null}
+                              {msg.media.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                  {msg.media.map((img) => {
+                                    const displayUrl = img.urls?.medium ?? img.urls?.large ?? img.url;
+                                    const showUseBtn = Boolean(onUseImage && (focus !== null || canUseImage));
+                                    return (
+                                      <div
+                                        key={img.id}
+                                        className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xs"
+                                      >
+                                        {/* eslint-disable-next-line @next/next/no-img-element -- AI generated/edited media */}
+                                        <img
+                                          src={displayUrl}
+                                          alt=""
+                                          className="h-36 w-full bg-surface-2 object-cover"
+                                        />
+                                        <div className="flex flex-wrap items-center gap-1.5 p-2">
+                                          {showUseBtn ? (
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="primary"
+                                              className="flex-1 text-xs"
+                                              onClick={() => onUseImage?.(img)}
+                                            >
+                                              <Check className="size-3.5" />
+                                              {t.images.useInSection}
+                                            </Button>
+                                          ) : null}
+                                          <Button asChild size="sm" variant="outline" className="flex-1 text-xs">
+                                            <Link href="/dashboard/media" target="_blank">
+                                              <ExternalLink className="size-3.5" />
+                                              {t.images.openLibrary}
+                                            </Link>
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
                               {msg.version ? (
                                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
                                   <div className="flex min-w-0 flex-col gap-1">
@@ -542,7 +619,7 @@ export function DesignerDialog({
             ? (focus.values ?? {})
             : {}
         }
-        data={data}
+        data={mergedData}
         busy={deciding}
         onApprove={(v) => void handleApprove(v)}
         onReject={(v) => void handleReject(v)}
@@ -550,3 +627,4 @@ export function DesignerDialog({
     </>
   );
 }
+

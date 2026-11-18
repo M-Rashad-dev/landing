@@ -22,6 +22,7 @@ export type AiField = {
   label: string;
   hint?: string;
   sample?: unknown;
+  sample_media_id?: number | null;
   max?: number;
   min?: number;
   default?: AiColorDefault;

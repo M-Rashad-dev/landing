@@ -6,6 +6,9 @@ namespace App\Providers;
 
 use App\Ai\AiClient;
 use App\Ai\FakeAiClient;
+use App\Ai\Images\FakeStockPhotos;
+use App\Ai\Images\PexelsStockPhotos;
+use App\Ai\Images\StockPhotos;
 use App\Ai\OpenRouterClient;
 use App\Billing\Entitlements;
 use App\Billing\PlanCatalog;
@@ -44,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(WhatsAppGateway::class, CloudWhatsAppGateway::class);
         // The AI provider (config/ai.php): the fake answers locally (tests, e2e) and is one instance, so a test can queue its answers.
         $this->app->singleton(AiClient::class, fn ($app): AiClient => config('ai.driver') === 'fake' ? new FakeAiClient : $app->make(OpenRouterClient::class));
+        $this->app->singleton(StockPhotos::class, fn ($app): StockPhotos => config('ai.driver') === 'fake' ? new FakeStockPhotos : $app->make(PexelsStockPhotos::class));
         // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
         $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()
             ? $app->make(WhatsAppCodeSender::class)

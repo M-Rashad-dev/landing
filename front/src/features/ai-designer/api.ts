@@ -64,7 +64,7 @@ export const designerChatKey = (chatId: number | null) =>
 export function useDesignerStatus() {
   return useQuery({
     queryKey: designerStatusKey,
-    queryFn: () => api<{ enabled: boolean }>("/dashboard/ai/designer/status"),
+    queryFn: () => api<{ enabled: boolean; stock?: boolean }>("/dashboard/ai/designer/status"),
     staleTime: 30_000,
   });
 }

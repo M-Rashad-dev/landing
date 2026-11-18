@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Designer;
 
+use App\Models\Media;
 use App\Rules\SafeUrl;
 use App\Rules\TenantExists;
 use App\Themes\Store\StoreSections;
@@ -328,7 +329,18 @@ final class AiSectionFields
                 break;
 
             case 'image':
-                $out['sample'] = null;
+                $sampleMediaId = null;
+                if (isset($entry['sample_media_id']) && is_numeric($entry['sample_media_id']) && (int) $entry['sample_media_id'] > 0) {
+                    $sampleMediaId = (int) $entry['sample_media_id'];
+                } elseif (isset($entry['sample']) && is_numeric($entry['sample']) && (int) $entry['sample'] > 0) {
+                    $sampleMediaId = (int) $entry['sample'];
+                }
+                if ($sampleMediaId !== null && Media::query()->whereKey($sampleMediaId)->exists()) {
+                    $out['sample'] = $sampleMediaId;
+                    $out['sample_media_id'] = $sampleMediaId;
+                } else {
+                    $out['sample'] = null;
+                }
                 break;
 
             case 'images':
