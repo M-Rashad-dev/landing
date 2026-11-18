@@ -612,13 +612,11 @@ Each theme registry entry gets `aiTokens(settings: unknown, scheme?: "light" | "
 ### 3.10 Feature, tasks, limits
 - Feature key **`designer`** (in `AiSettings::FEATURES`). Admin label «المصمم الذكي (الأقسام وتصميم الصفحات)»,
   hint «التاجر يصمم أقسام جديدة أو صفحته كلها بالذكاء الاصطناعي، والتكلفة من رصيده.»
-- Tasks in `config/ai.php`: `designer` => `qwen4-max`, `designer_vision` => **the strongest Qwen model that accepts
-  images**.
-  - Check the Alibaba Model Studio docs / the owner's console for the exact name and price, and add the price to
-    `ai.prices`.
-  - If `qwen4-max` itself accepts images, set `designer_vision` => `qwen4-max`.
-  - Write the result in `DECISIONS.md`.
-  - Use `designer_vision` only when the request includes images.
+- Tasks in `config/ai.php`: one task `designer` => `env('AI_MODEL_DESIGNER', 'qwen4-max')`. `qwen4-max` understands
+  images too (text + image input), so **no separate vision task**: the same task is used with or without images.
+- **The provider is decided at the end (Stage 6, most likely OpenRouter).** Until then build and test everything
+  with `AI_DRIVER=fake` (`FakeAiClient`). Never write provider-specific code in Stages 1–5: no Alibaba / DashScope /
+  OpenRouter calls, URLs or request shapes; everything goes through `AiClient`.
 - `max_tokens`: 12000 for section / design replies. `json: true` always.
 - Charged description:
   - «المصمم الذكي: {section name}» when a section was made
@@ -632,7 +630,7 @@ Each theme registry entry gets `aiTokens(settings: unknown, scheme?: "light" | "
 
 ## 4. STAGES AND TASKS
 
-> Stages 1–5. After each stage: gates, commit, push, report to the owner in the §0 shape, **wait for «كمّل»**.
+> Stages 1–6 (Stage 6 = connect the real provider, only when the owner decides). After each stage: gates, commit, push, report to the owner in the §0 shape, **wait for «كمّل»**.
 
 ### STAGE 1: Foundation of AI sections (storage, safety, rendering, settings, «أقسامي»). No AI calls yet.
 
@@ -914,7 +912,7 @@ work, with the detailed list of what was done, and say the first visible test is
 
 **2.1 Feature + config:**
 - `AiSettings::FEATURES = ['support', 'designer']`.
-- `config/ai.php` tasks `designer` / `designer_vision` (§3.10) + prices.
+- `config/ai.php` task `designer` (§3.10). No prices yet (Stage 6).
 - Front admin labels (§3.10).
 - Fix the admin AI tests that list features.
 
@@ -1097,19 +1095,21 @@ inside `Tenancy::runAs($tenantId, ...)` (copy `AnswerSupport`) and calls `AiDesi
 - Add to the `AiClient` interface:
   - `editImage(string $model, string $imageDataUrl, string $instruction): AiImage`
   - `generateImage(string $model, string $prompt, string $size): AiImage`
-- **`QwenClient`:**
-  - Implement them with Alibaba Model Studio's image models (generation + editing). Check the exact model names,
-    request shape (the DashScope API may be async: create a task, then poll its status) and sizes in the Alibaba
-    docs.
-  - Add the env `QWEN_DASHSCOPE_URL` (the owner's key CSV has the DashScope URL) to `back/.env.example`,
-    `deploy/.env.example` (if it exists) and the compose env lists, next to the QWEN_* ones.
-  - Download the result once and return the bytes.
-  - Timeout 120 s.
-- **`FakeAiClient`:** return a small generated PNG (create it with GD: 64×64 solid colour) and record the call.
+- **`QwenClient`: do NOT implement real image calls in this stage.** Its `editImage` / `generateImage` throw
+  `AiError('Image generation is not connected yet')`. The real image provider is connected in **Stage 6**.
+- **`FakeAiClient`:** this is what Stages 3–5 use.
+  - Return a real small image: create it with GD, 512×512.
+    - generate: a soft gradient with the prompt's first word written on it
+    - edit: the input image with a coloured border
+  - Record the call.
+  - This lets the whole flow (chat → images saved to the library → charged → used in sections) be built and
+    tested.
 - **`config/ai.php`:**
-  - tasks `image_edit`, `image_generate` (the strongest models)
-  - `image_prices` => [model => USD per image]
-  - Log the choice in DECISIONS.md.
+  - tasks `image_edit` => `env('AI_MODEL_IMAGE_EDIT')`, `image_generate` => `env('AI_MODEL_IMAGE_GENERATE')`
+    (empty until Stage 6)
+  - `image_prices` => [] (filled in Stage 6)
+  - An image task with no model → `Ai::imagePaid` throws `AiUnavailable(NOT_CONFIGURED)` (the chat says «إنشاء
+    الصور مش متاح دلوقتي»), except when `AI_DRIVER=fake`.
 
 **3.2 `Ai::imagePaid(Tenant $tenant, string $feature, string $task, callable $call, string $description):
 AiImage`:**
@@ -1285,11 +1285,71 @@ admin AI page «حسب الميزة» shows `designer`.
 - `docs/PROJECT.md` «AI»: the whole feature, the tables, the safety, the stages done.
 - `DECISIONS.md`: models chosen, image prices, Pexels.
 
-**5.4** Gates → commit → push → final report with everything the owner must do:
-- the keys in `.env`: `QWEN_API_KEY`, `QWEN_BASE_URL`, `QWEN_DASHSCOPE_URL`, later `PEXELS_API_KEY`
+**5.4** Gates → commit → push → report. Tell the owner that the feature is complete on the fake driver and that
+Stage 6 connects the real provider.
+
+---
+
+### STAGE 6: Connect the real provider (do it ONLY when the owner says which provider; most likely OpenRouter)
+
+> Owner, 2026-11-18: «هنحدد المزود في الآخر، بنسبة كبيرة OpenRouter وناخد منه كل الموديلات ونلغي Alibaba».
+> Alibaba's account is blocked by risk control and will not be used. The knowledge-base embedding stays on
+> Alibaba's free quota until it runs out, then it moves to the same provider.
+
+**Before starting:** ask the owner for the provider's key, and wait until he has added it to `back/.env`. Never ask
+him to paste the key in the chat.
+
+**6.1 OpenRouter for text (chat + JSON + images as input):**
+- Add a client `App\Ai\OpenRouterClient implements AiClient`.
+  - It is OpenAI-compatible: base URL `https://openrouter.ai/api/v1`, `Authorization: Bearer <key>`.
+  - Recommended headers: `HTTP-Referer: https://mksab.store` and `X-Title: Mksab`.
+  - Copy `QwenClient::chat()` (the same message / parts shape; images as `image_url` data URLs) with two changes:
+    - **turn reasoning off** with the OpenRouter body field `"reasoning": {"enabled": false}` (or the current
+      equivalent in the OpenRouter docs), so thinking tokens are not billed
+    - `json: true` → `response_format: {type: "json_object"}`
+- **Model ids on OpenRouter have a vendor prefix** (`qwen/qwen4-max`): put them in `.env`, `AI_MODEL_SUPPORT` and
+  `AI_MODEL_DESIGNER`, and add their prices to `config('ai.prices')` under the same ids.
+- **Driver choice:** `AI_DRIVER=openrouter` binds `OpenRouterClient` in `AppServiceProvider`, next to the existing
+  `qwen` and `fake` bindings.
+- **Env:**
+  - `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL` (default above)
+  - in `back/.env.example`, the root compose env list (`docker-compose.yml`, next to `QWEN_*`) and `deploy/DEPLOY.md`
+
+**6.2 Embedding while Alibaba's free quota lasts:**
+- Embedding calls must keep going to Alibaba.
+- Add a separate binding for embeddings: `AI_EMBED_DRIVER=qwen|openrouter` (default = `AI_DRIVER`).
+  `Ai::embed()` uses that client.
+- When the owner moves embedding to OpenRouter:
+  1. set `AI_EMBED_DRIVER=openrouter` + `AI_MODEL_EMBEDDING=<openrouter embedding model id>`
+  2. **re-embed every knowledge piece**: vectors of different models can't be mixed. Add an artisan command
+     `ai:reembed` that clears the stored vectors and dispatches `EmbedKnowledge`.
+  3. tell the owner to run it once on the server
+
+**6.3 Images on OpenRouter:**
+- Implement `OpenRouterClient::generateImage()` / `editImage()` with OpenRouter's image models: chat completions with
+  `modalities: ["image", "text"]`, or the dedicated Image API `POST /api/v1/images`; check the current official
+  docs.
+- Edit = send the input image as an `image_url` part + the instruction.
+- The response carries the image as a base64 data URL or a URL: decode or download it once and return the bytes.
+- Ask the owner which image model to use. Suggest Google's `gemini-2.5-flash-image` or the current best on
+  OpenRouter's image models list, with its price per image.
+- Set `AI_MODEL_IMAGE_EDIT` / `AI_MODEL_IMAGE_GENERATE` and `ai.image_prices`.
+
+**6.4 Checks with the real key (small, cheap):**
+1. One support question.
+2. One section request in the designer.
+3. One image generate + one edit.
+
+Check the costs recorded in `ai_usages`, then the admin AI page totals. Remove `AI_MODEL_SUPPORT=qwen-plus-character`
+from the owner's `.env` (it was a temporary free model). Then update DECISIONS.md and PROJECT.md «AI», run the gates,
+commit, push and report.
+
+**6.5 Final report to the owner, with everything he must do:**
+- the keys in the server `.env`
 - turn on «المصمم الذكي» in the admin
 - set the dollar rate
 - enable the AI plan feature in the plans he wants
+- `PEXELS_API_KEY` later for stock photos
 - the server deploy commands (only list them; never run them)
 
 ---
@@ -1329,8 +1389,10 @@ admin AI page «حسب الميزة» shows `designer`.
     scrolling must respect the direction.
 11. **No fake data in production code.** Sample content lives only in `sample.ts` (Builder samples) and the
     `FakeAiClient` fallback. Never seed fake sections.
-12. **If the Alibaba API differs** from what this file assumes (image endpoints, model names): follow the real docs,
-    keep everything behind `AiClient`, and write the difference in the progress log + DECISIONS.md.
+12. **Provider:** Alibaba will NOT be used for chat or images (its account is blocked). Stages 1–5 run on
+    `AI_DRIVER=fake`, and the real provider is connected only in Stage 6. If a real provider's API differs from this
+    file, follow its real docs, keep everything behind `AiClient`, and write the difference in the progress log and
+    DECISIONS.md.
 13. **When stuck** for more than a few tries on one thing: write exactly what fails in the progress log, tell the
     owner in Arabic what is blocked, and move to the next independent task if there is one.
 14. **Every finished task:** update the PROGRESS LOG, then send one Arabic line to the owner.
@@ -1373,3 +1435,7 @@ Every endpoint: success, validation, 401, another tenant → 404.
   `sabberworm/php-css-parser` ^9.5 was added (owner approved).
 - 2026-11-18: The owner merged «AI sections» and «AI designer» into ONE feature; this plan replaces the older two.
   **Next: Stage 1, task 1.1** (reshape the tables to §3.1). Wait for the owner's «ابدأ» before starting.
+- 2026-11-18: The provider changed. Alibaba's account is blocked by risk control and won't be used for chat or
+  images. Stages 1–5 are built on `AI_DRIVER=fake`. **Stage 6** (added) connects the real provider at the end, most
+  likely OpenRouter for everything; embedding stays on Alibaba's free quota until it runs out. Locally the support
+  assistant temporarily uses the free `qwen-plus-character` (`AI_MODEL_SUPPORT` in the owner's `back/.env`).
