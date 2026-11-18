@@ -121,7 +121,7 @@ Example: «make phone show one card» also changed the section header.
 
 ---
 
-## P6. The AI designer has NO tests (task F6 — important, security)
+## P6. The AI designer has NO tests (task F6 — DONE 2026-11-18)
 `git grep` finds no tests for the designer from stages 1–5 (only `tests/Feature/Ai/AiDesignerFixesTest.php`, added by these fixes).
 Write the whole test list of `docs/plans/ai-designer.md` §6 (and each task's test list), at least:
 - `AiSectionSanitizer` attack vectors (§1.3 list), `AiSectionCss` (§1.4), `AiTemplate` (§1.2), `AiSectionFields` (§1.5).
@@ -272,4 +272,8 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
   **Then:**
   - P2 step 3 (real tries + log reading, a few cents; tell the owner first)
   - Owner check
+- 2026-11-18 — **F6 DONE**: landing-page design test added (approved section saved in a «بداية» page, one order form kept, publish stamps
+  `version_id`, a store section refused, chat on another landing theme → 422). Totals: `AiSectionSafetyTest` 27 + `AiDesignerEndpointsTest` 12
+  + `AiDesignerFixesTest` 3. Full back suite green. **Remaining:** P2 step 3 (real tries + log reading — costs a few cents, ask the owner
+  first), then the Owner check (P3 phone frame is checked there by eye).
 

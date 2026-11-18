@@ -10,7 +10,10 @@ use App\Ai\FakeAiClient;
 use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Models\AiSection;
+use App\Models\AiUsage;
 use App\Models\AiWalletEntry;
+use App\Models\Identity;
+use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\PlanFeatureValue;
 use App\Models\Product;
@@ -222,10 +225,35 @@ it('edits a merchant photo into the store library, charged, and only from this s
         ->and($reply['media'])->not->toBeEmpty()
         ->and(Tenancy::runAs($owner->tenant_id, fn () => Media::query()->count()))->toBe($before + count($reply['media']))
         // The image call is recorded (the fake costs 0; real calls are charged by OpenRouter's reported cost).
-        ->and(App\Models\AiUsage::query()->where('tenant_id', $owner->tenant_id)->where('images', '>', 0)->where('ok', true)->count())->toBe(count($reply['media']));
+        ->and(AiUsage::query()->where('tenant_id', $owner->tenant_id)->where('images', '>', 0)->where('ok', true)->count())->toBe(count($reply['media']));
 
     // Another store's image can't be attached.
     designerOwner();
     $other = designerChat();
     $this->postJson("/api/v1/dashboard/ai/designer/chats/{$other}/messages", ['text' => 'شيل الخلفية', 'media_ids' => [$media]])->assertStatus(422);
+});
+
+it('puts an approved section in a landing page, stamps it on publish, keeps the order form, refuses another theme\'s', function () {
+    $owner = designerOwner();
+    $product = Tenancy::runAs($owner->tenant_id, fn () => Product::factory()->create());
+    Tenancy::runAs($owner->tenant_id, fn () => Identity::query()->exists() || Identity::factory()->default()->create());
+    $page = $this->postJson('/api/v1/dashboard/pages', ['title' => 'عرض', 'slug' => 'offer', 'theme_key' => 'bidaya_landing', 'product_id' => $product->id])->assertCreated()->json('data');
+
+    $chat = (int) $this->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'landing', 'theme_key' => 'bidaya_landing', 'landing_page_id' => $page['id']])->assertOk()->json('data.chat.id');
+    $this->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'landing', 'theme_key' => 'shabe_landing', 'landing_page_id' => $page['id']])->assertStatus(422);
+    $version = designerSectionVersion($chat);
+    $section = $this->postJson("/api/v1/dashboard/ai/designer/versions/{$version}/approve")->assertOk()->json('data.section.id');
+
+    $content = $page['draft_content'];
+    $content['sections'][] = ['id' => 'aisec0000003', 'type' => 'ai', 'visible' => true, 'props' => ['ai_section_id' => $section, 'values' => []]];
+    $saved = $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => $page['version'], 'content' => $content])->assertOk()->json('data');
+    expect(collect($saved['draft_content']['sections'])->where('type', 'order_form')->count())->toBe(1);
+
+    $this->postJson("/api/v1/dashboard/pages/{$page['id']}/publish")->assertOk();
+    $published = Tenancy::runAs($owner->tenant_id, fn () => LandingPage::query()->find($page['id'])->published_content);
+    expect(collect($published['sections'])->firstWhere('type', 'ai')['props']['version_id'])->toBe($version);
+
+    $other = Tenancy::runAs($owner->tenant_id, fn () => AiSection::query()->create(['kind' => 'store', 'theme_key' => 'asas_store', 'name' => 'x', 'current_version_id' => $version])->id);
+    $content['sections'][] = ['id' => 'aisec0000004', 'type' => 'ai', 'visible' => true, 'props' => ['ai_section_id' => $other, 'values' => []]];
+    $this->putJson("/api/v1/dashboard/pages/{$page['id']}/content", ['version' => $saved['version'], 'content' => $content])->assertStatus(422);
 });
