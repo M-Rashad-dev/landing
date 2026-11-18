@@ -499,3 +499,9 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - One door for every feature (`App\Ai\Ai`): switches, a platform daily cap in USD (20, editable), a 5-minute pause after 3 failures in a row with a bell alert, and every call's cost recorded (`ai_usages`, a platform log; merchants' own balance comes with the AI wallet in its own tenant table).
 - Deep thinking is off unless a task asks for it (it multiplies the output bill).
 
+## 2026-11-18 — AI phase 2: the support assistant
+- Lives inside the existing support chat (not a new place): a new conversation goes to «مساعد مكسب» while the feature is on, answers in seconds, and moves to people for good on «كلّم موظف», on its own call (insults, serious accusations, money disputes: payments not activated, refunds, account deletion), after two answers that couldn't help, at the store's daily limit (30, admin), or on any failure. Staff replying takes over. Agreed with the owner.
+- Answers only from the knowledge base (RAG: embeddings + vectors in our DB, cosine search in PHP: hundreds of pieces need no vector database) and the store's own read-only data (plan, invoice, domains, products, landing pages, store pages, orders; no customer names/phones). Never acts, never promises refunds or discounts; merchant text is data, not instructions.
+- Its conversations don't count in the staff limits (2 open, 12 h gap): they exist to protect people's load (owner, decision 7).
+- Embedding model: qwen3.7-text-embedding ($0.07 / 1M tokens). 42 starter articles written from the dashboard screens, for the owner to review.
+

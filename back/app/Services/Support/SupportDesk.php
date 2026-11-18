@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Support;
 
+use App\Ai\Ai;
 use App\Enums\SupportStatus;
 use App\Enums\SupportTopic;
 use App\Events\SupportUpdated;
 use App\Exceptions\ApiException;
+use App\Jobs\AnswerSupport;
+use App\Jobs\SummarizeHandoff;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
@@ -21,8 +24,11 @@ use Throwable;
 
 /**
  * Every rule of the support chat, run inside the store's tenant:
- * - a store has at most `max_open` open conversations, and opens a new one only `open_gap_hours`
- *   after the last one still open was started (a closed one never blocks);
+ * - a new conversation goes to «مساعد مكسب» (App\Ai\SupportAssistant) while the assistant is on;
+ *   it moves to people on the merchant's request, the assistant's call, or any trouble, and never back;
+ * - a store has at most `max_open` open conversations with people, and opens a new one for people only
+ *   `open_gap_hours` after the last one still open was started (a closed one never blocks; the
+ *   assistant's conversations never count: it isn't the staff's load);
  * - support's reply hands the turn to the merchant; without an answer for `idle_hours` it closes;
  * - support can close and reopen; the merchant can close; a closed conversation is rated once.
  * Each change is broadcast at once (Reverb); a broadcast failure never fails the action.
@@ -34,14 +40,24 @@ final class SupportDesk
         private readonly SupportPresenter $presenter,
         private readonly AdminAlerts $alerts,
         private readonly StoreNotices $notices,
+        private readonly Ai $ai,
     ) {}
+
+    /** Whether a new conversation goes to the assistant now. */
+    public function assistantTakesNew(): bool
+    {
+        return $this->ai->available('support');
+    }
 
     /**
      * Why the store cannot open a conversation now (translated), or null.
      */
     public function cannotOpen(): ?string
     {
-        $open = SupportTicket::query()->where('status', '!=', SupportStatus::Closed->value)->get(['id', 'created_at']);
+        if ($this->assistantTakesNew()) {
+            return null;
+        }
+        $open = SupportTicket::query()->where('status', '!=', SupportStatus::Closed->value)->where('handler', SupportTicket::HANDLER_HUMAN)->get(['id', 'created_at']);
         $max = (int) config('landing.support.max_open');
         if ($open->count() >= $max) {
             return __('support.limit', ['count' => $max]);
@@ -69,11 +85,13 @@ final class SupportDesk
             throw new ApiException(422, 'support_limit', $reason);
         }
 
-        [$ticket, $message] = DB::transaction(function () use ($userId, $topic, $body, $files, $context): array {
+        $assistant = $this->assistantTakesNew();
+        [$ticket, $message] = DB::transaction(function () use ($userId, $topic, $body, $files, $context, $assistant): array {
             $ticket = SupportTicket::query()->create([
                 'user_id' => $userId,
                 'topic' => $topic,
                 'status' => SupportStatus::WaitingSupport,
+                'handler' => $assistant ? SupportTicket::HANDLER_AI : SupportTicket::HANDLER_HUMAN,
                 'context' => $context,
                 'merchant_read_at' => now(),
             ]);
@@ -82,11 +100,12 @@ final class SupportDesk
             return [$ticket->refresh(), $message];
         });
 
-        $tenant = Tenant::query()->find($ticket->tenant_id);
-        if ($tenant !== null) {
-            $this->alerts->supportTicket($tenant, (int) $ticket->number, __('support.topics.'.$topic->value), mb_substr((string) $body, 0, 300) ?: '—');
-        }
         $this->broadcast($ticket, $message);
+        if ($assistant) {
+            AnswerSupport::dispatch($ticket->tenant_id, $ticket->id)->afterCommit();
+        } else {
+            $this->alertStaff($ticket, mb_substr((string) $body, 0, 300) ?: '—');
+        }
 
         return $ticket;
     }
@@ -100,6 +119,11 @@ final class SupportDesk
     {
         if (! $ticket->status->isOpen()) {
             throw new ApiException(422, 'support_closed', __('support.closed'));
+        }
+        // Staff writing in the assistant's conversation takes it over.
+        if ($sender === SupportMessage::SUPPORT && $ticket->handler === SupportTicket::HANDLER_AI) {
+            $this->handOff($ticket, 'staff', null, alert: false);
+            $ticket->refresh();
         }
         $merchantWaited = false;
         $message = DB::transaction(function () use ($ticket, $sender, $userId, $body, $files, &$merchantWaited): SupportMessage {
@@ -117,8 +141,67 @@ final class SupportDesk
         if ($sender === SupportMessage::SUPPORT && $merchantWaited) {
             $this->notices->supportReply($ticket);
         }
+        if ($sender === SupportMessage::MERCHANT && $ticket->handler === SupportTicket::HANDLER_AI) {
+            AnswerSupport::dispatch($ticket->tenant_id, $ticket->id)->afterCommit();
+        }
 
         return $message;
+    }
+
+    /** The assistant's answer (with the knowledge articles it used, shown to support only). */
+    public function assistantReply(SupportTicket $ticket, string $body, array $sources): SupportMessage
+    {
+        $message = DB::transaction(function () use ($ticket, $body, $sources): SupportMessage {
+            $locked = SupportTicket::query()->whereKey($ticket->id)->lockForUpdate()->firstOrFail();
+            $message = SupportMessage::query()->create(['support_ticket_id' => $locked->id, 'sender' => SupportMessage::AI, 'body' => $body, 'sources' => $sources ?: null]);
+            $now = now();
+            $locked->forceFill(['last_message_at' => $now, 'last_support_message_at' => $now, 'status' => SupportStatus::WaitingMerchant])->save();
+
+            return $message->load('attachments');
+        });
+        $ticket->refresh();
+        $this->broadcast($ticket, $message);
+
+        return $message;
+    }
+
+    /**
+     * The conversation moves to people, for good: why, a summary for the staff (written by the
+     * assistant, or later from the conversation), a note in the chat, and the staff told.
+     */
+    public function handOff(SupportTicket $ticket, string $reason, ?string $summary, bool $alert = true): void
+    {
+        if ($ticket->handler !== SupportTicket::HANDLER_AI || ! $ticket->status->isOpen()) {
+            return;
+        }
+        $message = DB::transaction(function () use ($ticket, $reason, $summary): ?SupportMessage {
+            $ticket->forceFill([
+                'handler' => SupportTicket::HANDLER_HUMAN,
+                'handoff_reason' => $reason,
+                'handoff_summary' => $summary,
+                'handed_off_at' => now(),
+                'status' => SupportStatus::WaitingSupport,
+            ])->save();
+
+            // Staff taking over just answers; otherwise the merchant is told a person will answer.
+            return $reason === 'staff' ? null : $this->system($ticket, 'handed_off');
+        });
+        $this->broadcast($ticket, $message);
+        if ($alert) {
+            $preview = __('support.handoff.'.$reason).($summary !== null ? ' — '.$summary : '');
+            $this->alertStaff($ticket, mb_substr($preview, 0, 300));
+        }
+        if ($summary === null && $reason !== 'staff') {
+            SummarizeHandoff::dispatch($ticket->tenant_id, $ticket->id)->afterCommit();
+        }
+    }
+
+    private function alertStaff(SupportTicket $ticket, string $preview): void
+    {
+        $tenant = Tenant::query()->find($ticket->tenant_id);
+        if ($tenant !== null) {
+            $this->alerts->supportTicket($tenant, (int) $ticket->number, __('support.topics.'.$ticket->topic->value), $preview);
+        }
     }
 
     /** The reader saw everything up to now ("اتقرت" on the other side). */

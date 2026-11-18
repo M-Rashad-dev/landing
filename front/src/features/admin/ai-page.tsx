@@ -19,6 +19,7 @@ import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { formatDateTime } from "@/lib/format";
 import { ar } from "@/messages/ar";
 import { AI_KEY, saveAiSettings, useAiOverview, type AiOverview, type AiSettings } from "./ai-api";
+import { KnowledgePanel } from "./ai-knowledge";
 
 const t = ar.admin.ai;
 
@@ -53,6 +54,7 @@ export function AiPage() {
           <Connection data={query.data} />
           <Usage data={query.data} />
           <SettingsForm settings={query.data.settings} />
+          <KnowledgePanel />
           <Tables data={query.data} />
         </div>
       )}

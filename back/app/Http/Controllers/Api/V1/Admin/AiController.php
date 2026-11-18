@@ -12,6 +12,7 @@ use App\Billing\PlatformSettings;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AiSettingsRequest;
+use App\Jobs\EmbedKnowledge;
 use App\Models\AiUsage;
 use App\Models\Tenant;
 use Carbon\CarbonImmutable;
@@ -75,6 +76,10 @@ final class AiController extends Controller
             'ai_support_daily_messages' => (int) $data['support_daily_messages'],
         ];
         $platform->save($values);
+        // Turning the assistant on prepares the knowledge base pieces still waiting for vectors.
+        if ($values['ai_features']['support'] ?? false) {
+            EmbedKnowledge::dispatch();
+        }
         $audit->audit('ai.settings', 'platform', $values, 'settings');
 
         return $this->show();

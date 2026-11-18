@@ -37,6 +37,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $rating_comment
  * @property Carbon|null $rated_at
  * @property array<string, mixed>|null $context
+ * @property string $handler ai | human
+ * @property string|null $handoff_reason why it moved to people (SupportAssistant::REASONS)
+ * @property string|null $handoff_summary for the staff
+ * @property Carbon|null $handed_off_at
+ * @property int $ai_misses
  * @property Carbon|null $created_at
  */
 class SupportTicket extends Model
@@ -45,9 +50,15 @@ class SupportTicket extends Model
 
     public const NUMBER_OFFSET = 1000;
 
+    /** Who answers the conversation now: the assistant, or people (one way: once people, always people). */
+    public const HANDLER_AI = 'ai';
+
+    public const HANDLER_HUMAN = 'human';
+
     protected $fillable = [
         'user_id', 'topic', 'status', 'close_reason', 'closed_at', 'closed_by', 'reopened_count', 'last_message_at', 'last_merchant_message_at',
         'last_support_message_at', 'first_response_at', 'merchant_read_at', 'support_read_at', 'rating', 'rating_resolved', 'rating_comment', 'rated_at', 'context',
+        'handler', 'handoff_reason', 'handoff_summary', 'handed_off_at', 'ai_misses',
     ];
 
     /** Message and read times keep microseconds (other columns simply drop them). */
@@ -69,6 +80,8 @@ class SupportTicket extends Model
             'rating' => 'integer',
             'rating_resolved' => 'boolean',
             'context' => 'array',
+            'handed_off_at' => 'datetime',
+            'ai_misses' => 'integer',
         ];
     }
 

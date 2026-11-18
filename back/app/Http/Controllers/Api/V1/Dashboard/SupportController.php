@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Enums\SupportStatus;
 use App\Enums\SupportTopic;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\SupportMessageRequest;
@@ -85,6 +86,18 @@ final class SupportController extends Controller
         $message = $this->desk->reply($this->find($number), SupportMessage::MERCHANT, (int) $request->user()?->getAuthIdentifier(), $request->body(), $request->uploads());
 
         return $this->created($this->presenter->message($message));
+    }
+
+    /** «كلّم موظف»: the merchant moves the assistant's conversation to people (for good). */
+    public function handOff(int $number): JsonResponse
+    {
+        $ticket = $this->find($number);
+        if ($ticket->handler !== SupportTicket::HANDLER_AI || ! $ticket->status->isOpen()) {
+            throw new ApiException(422, 'support_not_assistant', __('support.not_assistant'));
+        }
+        $this->desk->handOff($ticket, 'request', null);
+
+        return $this->ok($this->presenter->ticket($ticket->refresh()));
     }
 
     public function read(int $number): JsonResponse

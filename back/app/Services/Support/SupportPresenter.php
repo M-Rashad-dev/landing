@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Support;
 
 use App\Enums\SupportStatus;
+use App\Models\AiArticle;
 use App\Models\SupportAttachment;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
@@ -24,6 +25,10 @@ final class SupportPresenter
             'number' => $ticket->number,
             'topic' => $ticket->topic->value,
             'status' => $ticket->status->value,
+            // ai = «مساعد مكسب» answers; human = people (and why it moved to them).
+            'handler' => $ticket->handler,
+            'handoff_reason' => $ticket->handoff_reason,
+            'handed_off_at' => $ticket->handed_off_at?->toIso8601ZuluString(),
             'close_reason' => $ticket->close_reason,
             'store' => ['id' => $ticket->tenant_id, 'name' => $ticket->relationLoaded('tenant') ? $ticket->tenant?->name : null],
             'created_at' => $ticket->created_at?->toIso8601ZuluString(),
@@ -49,10 +54,19 @@ final class SupportPresenter
         ];
     }
 
-    /** @return array<string, mixed> */
-    public function message(SupportMessage $message): array
+    /**
+     * A message; for the staff, the knowledge articles an assistant answer leaned on.
+     *
+     * @return array<string, mixed>
+     */
+    public function message(SupportMessage $message, bool $staff = false): array
     {
+        $sources = $staff && is_array($message->sources) && $message->sources !== []
+            ? AiArticle::query()->whereIn('id', $message->sources)->get(['id', 'title'])->map(fn (AiArticle $a) => ['id' => $a->id, 'title' => $a->title])->values()->all()
+            : null;
+
         return [
+            'sources' => $sources,
             'id' => $message->id,
             'sender' => $message->sender,
             'body' => $message->body,

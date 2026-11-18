@@ -18,6 +18,7 @@ use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -31,7 +32,8 @@ final class SupportController extends Controller
 {
     use RespondsWithJson;
 
-    private const TABS = ['waiting_support', 'waiting_merchant', 'closed', 'all'];
+    /** «ai» = open conversations «مساعد مكسب» is answering (the others are people's work). */
+    private const TABS = ['waiting_support', 'waiting_merchant', 'ai', 'closed', 'all'];
 
     private const PAGE = 50;
 
@@ -54,14 +56,18 @@ final class SupportController extends Controller
 
             $page = $search(SupportTicket::query())
                 ->with('tenant:id,name')->withMax('messages', 'id')
-                ->when($tab !== 'all', fn ($w) => $w->where('status', $tab))
+                ->when($tab === 'ai', fn ($w) => $w->where('handler', SupportTicket::HANDLER_AI)->where('status', '!=', SupportStatus::Closed->value))
+                ->when(in_array($tab, ['waiting_support', 'waiting_merchant'], true), fn ($w) => $w->where('status', $tab)->where('handler', SupportTicket::HANDLER_HUMAN))
+                ->when($tab === 'closed', fn ($w) => $w->where('status', $tab))
                 ->orderBy($tab === 'waiting_support' ? 'last_merchant_message_at' : 'last_message_at', $tab === 'waiting_support' ? 'asc' : 'desc')
                 ->paginate(30);
 
             $counts = [];
             foreach (SupportStatus::cases() as $status) {
-                $counts[$status->value] = SupportTicket::query()->where('status', $status->value)->count();
+                $counts[$status->value] = SupportTicket::query()->where('status', $status->value)
+                    ->when($status->isOpen(), fn ($w) => $w->where('handler', SupportTicket::HANDLER_HUMAN))->count();
             }
+            $counts['ai'] = SupportTicket::query()->where('handler', SupportTicket::HANDLER_AI)->where('status', '!=', SupportStatus::Closed->value)->count();
             $counts['all'] = array_sum($counts);
 
             return $this->ok($this->rows($page->items()), [
@@ -77,7 +83,7 @@ final class SupportController extends Controller
     /** Conversations with a merchant message support has not read (sidebar badge). */
     public function unread(): JsonResponse
     {
-        $count = Tenancy::withoutTenant(fn () => SupportTicket::query()->where('status', SupportStatus::WaitingSupport->value)
+        $count = Tenancy::withoutTenant(fn () => SupportTicket::query()->where('status', SupportStatus::WaitingSupport->value)->where('handler', SupportTicket::HANDLER_HUMAN)
             ->where(fn ($q) => $q->whereNull('support_read_at')->orWhereColumn('support_read_at', '<', 'last_merchant_message_at'))
             ->count());
 
@@ -97,7 +103,7 @@ final class SupportController extends Controller
         $ticket = $this->find($number);
         $message = Tenancy::runAs($ticket->tenant_id, fn () => $this->desk->reply($ticket, SupportMessage::SUPPORT, (int) $request->user()?->getAuthIdentifier(), $request->body(), $request->uploads()));
 
-        return $this->created($this->presenter->message($message));
+        return $this->created($this->presenter->message($message, staff: true));
     }
 
     public function read(int $number): JsonResponse
@@ -168,7 +174,9 @@ final class SupportController extends Controller
                 'opened' => $tickets->count(),
                 'closed' => $tickets->where('status', SupportStatus::Closed)->count(),
                 'auto_closed' => $tickets->where('close_reason', 'auto')->count(),
-                'waiting_now' => SupportTicket::query()->where('status', SupportStatus::WaitingSupport->value)->count(),
+                'waiting_now' => SupportTicket::query()->where('status', SupportStatus::WaitingSupport->value)->where('handler', SupportTicket::HANDLER_HUMAN)->count(),
+                // «مساعد مكسب»: conversations it closed on its own, those moved to people (and why), its ratings.
+                'assistant' => self::assistantStats($tickets),
                 'first_reply_minutes' => $avg($firstReplies),
                 'resolution_minutes' => $avg($resolutions),
                 'rating' => $rated->isEmpty() ? null : round((float) $rated->avg('rating'), 2),
@@ -190,6 +198,26 @@ final class SupportController extends Controller
         });
     }
 
+    /**
+     * @param  Collection<int, SupportTicket>  $tickets
+     * @return array<string, mixed>
+     */
+    private static function assistantStats($tickets): array
+    {
+        $byAssistant = $tickets->filter(fn (SupportTicket $t) => $t->handler === SupportTicket::HANDLER_AI || $t->handoff_reason !== null);
+        $kept = $byAssistant->where('handler', SupportTicket::HANDLER_AI);
+        $rated = $kept->whereNotNull('rating');
+
+        return [
+            'conversations' => $byAssistant->count(),
+            'solved' => $kept->where('status', SupportStatus::Closed)->count(),
+            'handed_off' => $byAssistant->whereNotNull('handoff_reason')->count(),
+            'reasons' => $byAssistant->whereNotNull('handoff_reason')->groupBy('handoff_reason')->map->count()->sortDesc()->all(),
+            'rating' => $rated->isEmpty() ? null : round((float) $rated->avg('rating'), 2),
+            'rated' => $rated->count(),
+        ];
+    }
+
     private function find(int $number): SupportTicket
     {
         return Tenancy::withoutTenant(fn () => SupportTicket::query()->with('tenant:id,name,plan_key')->where('number', $number)->firstOrFail());
@@ -208,8 +236,8 @@ final class SupportController extends Controller
             ->map(fn (SupportTicket $t) => ['number' => $t->number, 'topic' => $t->topic->value, 'status' => $t->status->value, 'rating' => $t->rating, 'created_at' => $t->created_at?->toIso8601ZuluString()])->all();
 
         return [
-            'ticket' => [...$this->presenter->ticket($ticket, $messages->last()), 'context' => $ticket->context, 'plan' => $ticket->tenant?->getAttribute('plan_key')],
-            'messages' => $messages->map(fn (SupportMessage $m) => $this->presenter->message($m))->all(),
+            'ticket' => [...$this->presenter->ticket($ticket, $messages->last()), 'context' => $ticket->context, 'plan' => $ticket->tenant?->getAttribute('plan_key'), 'handoff_summary' => $ticket->handoff_summary],
+            'messages' => $messages->map(fn (SupportMessage $m) => $this->presenter->message($m, staff: true))->all(),
             'has_more' => $more,
             'history' => $history,
         ];

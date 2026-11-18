@@ -32,7 +32,15 @@ class SupportMessage extends Model
 
     public const SYSTEM = 'system';
 
-    protected $fillable = ['support_ticket_id', 'sender', 'user_id', 'body'];
+    /** «مساعد مكسب», the support assistant. */
+    public const AI = 'ai';
+
+    protected $fillable = ['support_ticket_id', 'sender', 'user_id', 'body', 'sources'];
+
+    protected function casts(): array
+    {
+        return ['sources' => 'array'];
+    }
 
     /** @return HasMany<SupportAttachment, $this> */
     public function attachments(): HasMany

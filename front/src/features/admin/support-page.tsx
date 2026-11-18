@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Headset, Loader2, Lock, RotateCcw, Search, Star } from "lucide-react";
+import { Bot, ExternalLink, Headset, Loader2, Lock, RotateCcw, Search, Star } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { Pagination } from "@/components/data/data-table";
@@ -23,7 +23,7 @@ import { closesText, Composer, Thread } from "../support/chat";
 import { SupportStats } from "./support-stats";
 
 const t = ar.support;
-const TABS = ["waiting_support", "waiting_merchant", "closed", "all"] as const;
+const TABS = ["waiting_support", "waiting_merchant", "ai", "closed", "all"] as const;
 type Tab = (typeof TABS)[number];
 type ListPage = Paginated<Ticket> & { meta: Paginated<Ticket>["meta"] & { counts: Record<string, number> } };
 
@@ -104,10 +104,11 @@ function Inbox({ url, setUrl }: { url: Record<"status" | "q" | "page" | "ticket"
                         <span className="truncate font-semibold">{ticket.store.name}</span>
                       </p>
                       <p className={cn("truncate text-xs", ticket.unread_support ? "font-semibold text-ink" : "text-ink-3")}>
-                        {ticket.last_message ? `${ticket.last_message.sender === "support" ? `${t.chat.you}: ` : ""}${ticket.last_message.preview || t.list.files(ticket.last_message.files)}` : ""}
+                        {ticket.last_message ? `${ticket.last_message.sender === "support" ? `${t.chat.you}: ` : ticket.last_message.sender === "ai" ? `${t.assistant.name}: ` : ""}${ticket.last_message.preview || t.list.files(ticket.last_message.files)}` : ""}
                       </p>
                       <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-3">
                         <span>{t.topics[ticket.topic]}</span>·<span>{ticket.last_message_at ? formatDateTime(ticket.last_message_at) : ""}</span>
+                        {ticket.handler === "ai" ? <span className="flex items-center gap-0.5 text-brand-strong"><Bot className="size-3" aria-hidden />{t.admin.withAssistant}</span> : ticket.handoff_reason && ticket.handoff_reason !== "staff" ? <span className="text-accent-ink">{t.admin.handedOff}</span> : null}
                       </p>
                     </div>
                     {ticket.unread_support ? <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-danger" aria-hidden /> : null}
@@ -197,7 +198,11 @@ function AdminChat({ number, onBack }: { number: number; onBack: () => void }) {
                 {t.admin.tabs[ticket.status] ?? t.status[ticket.status]}
               </Badge>
             </p>
-            <p className="text-xs text-ink-3">{t.topics[ticket.topic]}{closed && ticket.close_reason ? ` · ${t.admin.reasons[ticket.close_reason]}` : ""}</p>
+            <p className="text-xs text-ink-3">
+              {t.topics[ticket.topic]}
+              {closed && ticket.close_reason ? ` · ${t.admin.reasons[ticket.close_reason]}` : ""}
+              {ticket.handler === "ai" ? ` · ${t.admin.withAssistant}` : ticket.handoff_reason ? ` · ${t.admin.handedOff}: ${t.admin.handoffReasons[ticket.handoff_reason] ?? ticket.handoff_reason}` : ""}
+            </p>
           </div>
           {closed ? (
             <Button size="sm" variant="outline" onClick={() => setConfirm("reopen")}>
@@ -211,6 +216,13 @@ function AdminChat({ number, onBack }: { number: number; onBack: () => void }) {
             </Button>
           )}
         </header>
+        {ticket.handoff_summary ? (
+          <div className="border-b border-border bg-accent-soft/40 px-4 py-2 text-xs">
+            <p className="font-semibold text-accent-ink">{t.admin.summary}</p>
+            <p className="whitespace-pre-wrap text-ink-2">{ticket.handoff_summary}</p>
+          </div>
+        ) : null}
+        {ticket.handler === "ai" && !closed ? <p className="border-b border-border bg-brand-soft/40 px-4 py-1.5 text-xs text-ink-2">{t.admin.takeOverHint}</p> : null}
         <Thread side="support" conversation={conversation} className="max-h-[60vh] min-h-0 flex-1 bg-bg" />
         {ticket.closes_at && !closed ? <p className="border-t border-border bg-accent-soft/60 px-3 py-1.5 text-center text-[11px] text-accent-ink">{closesText(ticket.closes_at, "support")}</p> : null}
         {closed ? (

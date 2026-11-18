@@ -22,7 +22,21 @@ return [
         'closed_support' => 'الدعم قفل المحادثة.',
         'closed_merchant' => 'المحادثة اتقفلت.',
         'reopened' => 'الدعم فتح المحادثة تاني.',
+        'handed_off' => 'حوّلناك لفريق الدعم، وهيرد عليك موظف في أقرب وقت.',
     ],
+
+    // Why a conversation moved from «مساعد مكسب» to people (for the staff).
+    'handoff' => [
+        'request' => 'التاجر طلب موظف',
+        'abuse' => 'كلام مسيء',
+        'serious' => 'اتهام أو موضوع خطير',
+        'money' => 'موضوع فلوس',
+        'unsolved' => 'المساعد مقدرش يحلها',
+        'limit' => 'التاجر خلّص رسايل المساعد النهارده',
+        'unavailable' => 'المساعد مكانش متاح',
+        'staff' => 'موظف رد بنفسه',
+    ],
+    'not_assistant' => 'المحادثة دي أصلًا مع فريق الدعم.',
 
     'topics' => [
         'orders' => 'الطلبات',

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AiArticleController as AdminAiArticleController;
 use App\Http\Controllers\Api\V1\Admin\AiController as AdminAiController;
 use App\Http\Controllers\Api\V1\Admin\AlertController as AdminAlertController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
@@ -135,6 +136,7 @@ Route::prefix('dashboard')
             Route::get('support/tickets/{number}', [SupportController::class, 'show'])->whereNumber('number');
             Route::post('support/tickets/{number}/messages', [SupportController::class, 'message'])->whereNumber('number')->middleware('throttle:support');
             Route::post('support/tickets/{number}/read', [SupportController::class, 'read'])->whereNumber('number');
+            Route::post('support/tickets/{number}/handoff', [SupportController::class, 'handOff'])->whereNumber('number');
             Route::post('support/tickets/{number}/close', [SupportController::class, 'close'])->whereNumber('number');
             Route::post('support/tickets/{number}/rating', [SupportController::class, 'rate'])->whereNumber('number');
             Route::get('support/attachments/{id}', [SupportController::class, 'attachment'])->whereNumber('id');
@@ -362,6 +364,10 @@ Route::prefix('admin')
 
         Route::get('ai', [AdminAiController::class, 'show']);
         Route::put('ai/settings', [AdminAiController::class, 'update']);
+        Route::get('ai/articles', [AdminAiArticleController::class, 'index']);
+        Route::post('ai/articles', [AdminAiArticleController::class, 'store']);
+        Route::put('ai/articles/{article}', [AdminAiArticleController::class, 'update'])->whereNumber('article');
+        Route::delete('ai/articles/{article}', [AdminAiArticleController::class, 'destroy'])->whereNumber('article');
 
         Route::get('support/tickets', [AdminSupportController::class, 'index']);
         Route::get('support/unread', [AdminSupportController::class, 'unread']);

@@ -153,7 +153,7 @@ it('shows the settings, the connection and what the AI cost', function () {
     expect($data['settings'])->toEqual(['features' => ['support' => true], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30])
         ->and($data['status']['configured'])->toBeTrue()
         ->and($data['status']['limit_reached'])->toBeFalse()
-        ->and($data['models'])->toBe([['model' => 'qwen4-max', 'priced' => true]])
+        ->and($data['models'])->toBe([['model' => 'qwen4-max', 'priced' => true], ['model' => 'qwen3.7-text-embedding', 'priced' => true]])
         ->and($data['usage']['today'])->toBe(['calls' => 2, 'usd' => 0.0018, 'failed' => 1])
         ->and($data['usage']['top_stores'][0])->toMatchArray(['name' => 'متجر سما', 'calls' => 2])
         ->and($data['usage']['failures'][0]['error'])->toBe('Qwen 429 Throttling');

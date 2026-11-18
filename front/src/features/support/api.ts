@@ -10,11 +10,17 @@ export type Side = "merchant" | "support";
 export type TicketStatus = "waiting_support" | "waiting_merchant" | "closed";
 
 export type Attachment = { id: number; kind: "image" | "video"; name: string; mime: string; size: number };
-export type Message = { id: number; sender: "merchant" | "support" | "system"; body: string | null; created_at: string | null; attachments: Attachment[] };
+/** "ai" = «مساعد مكسب»; `sources` = the knowledge articles an assistant answer used (support side only). */
+export type Message = { id: number; sender: "merchant" | "support" | "system" | "ai"; body: string | null; created_at: string | null; attachments: Attachment[]; sources?: Array<{ id: number; title: string }> | null };
 export type Ticket = {
   number: number;
   topic: string;
   status: TicketStatus;
+  /** Who answers now: the assistant, or people (one way). */
+  handler?: "ai" | "human";
+  handoff_reason?: string | null;
+  handed_off_at?: string | null;
+  handoff_summary?: string | null;
   close_reason: "merchant" | "support" | "auto" | null;
   store: { id: number; name: string | null };
   created_at: string | null;
@@ -80,6 +86,9 @@ export const sendMessage = (side: Side, number: number, body: string, files: Fil
 
 export const openTicket = (topic: string, body: string, files: File[], page: string, onProgress?: (p: number) => void) =>
   apiUpload<Conversation>("/dashboard/support/tickets", form(body, files, { topic, page }), onProgress);
+
+/** «كلّم موظف»: the merchant moves the assistant's conversation to people. */
+export const askForPerson = (number: number) => api<Ticket>(`/dashboard/support/tickets/${number}/handoff`, { method: "POST" });
 
 export const markRead = (side: Side, number: number) => api<Ticket>(`${BASE[side]}/tickets/${number}/read`, { method: "POST" });
 export const closeTicket = (side: Side, number: number) => api<Ticket>(`${BASE[side]}/tickets/${number}/close`, { method: "POST" });

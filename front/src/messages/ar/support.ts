@@ -3,6 +3,16 @@ import { formatNumber } from "@/lib/format";
 /** Support chat: the store's bubble and the platform's inbox. The store only ever sees «الدعم». */
 export const support = {
   name: "الدعم",
+  /** «مساعد مكسب», the support assistant. */
+  assistant: {
+    name: "مساعد مكسب",
+    tag: "ذكاء اصطناعي",
+    typing: "مساعد مكسب بيكتب…",
+    person: "كلّم موظف",
+    personHint: "المساعد بيرد عليك دلوقتي. لو حابب تكلم حد من فريق الدعم دوس هنا.",
+    personDone: "حوّلناك لفريق الدعم",
+    sources: "اعتمد على:",
+  },
   bubble: "تواصل مع الدعم",
   available: "متاحين 24 ساعة",
   close: "اقفل",
@@ -81,7 +91,21 @@ export const support = {
   admin: {
     title: "الدعم",
     description: "محادثات المتاجر معاك. التاجر بيشوف «الدعم» بس.",
-    tabs: { waiting_support: "مستنية ردنا", waiting_merchant: "مستنية التاجر", closed: "مقفولة", all: "الكل" } as Record<string, string>,
+    tabs: { waiting_support: "مستنية ردنا", waiting_merchant: "مستنية التاجر", ai: "مع المساعد", closed: "مقفولة", all: "الكل" } as Record<string, string>,
+    withAssistant: "المساعد بيرد",
+    handedOff: "محوّلة من المساعد",
+    handoffReasons: {
+      request: "التاجر طلب موظف",
+      abuse: "كلام مسيء",
+      serious: "اتهام أو موضوع خطير",
+      money: "موضوع فلوس",
+      unsolved: "المساعد مقدرش يحلها",
+      limit: "خلّص رسايل المساعد النهارده",
+      unavailable: "المساعد مكانش متاح",
+      staff: "موظف رد بنفسه",
+    } as Record<string, string>,
+    summary: "ملخص المساعد",
+    takeOverHint: "المساعد بيرد في المحادثة دي. لو رديت، المحادثة هتبقى معاك انت وتقف عن المساعد.",
     search: "رقم التذكرة أو اسم المتجر",
     empty: "مفيش محادثات هنا",
     pick: "اختار محادثة من القايمة",

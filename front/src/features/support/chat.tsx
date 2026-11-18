@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCheck, Film, Loader2, Paperclip, Send, Star, X } from "lucide-react";
+import { Bot, Check, CheckCheck, Film, Loader2, Paperclip, Send, Star, X } from "lucide-react";
 import * as React from "react";
 import { toast } from "@/components/ui/feedback";
 import { errorMessage } from "@/lib/api/errors";
@@ -56,6 +56,12 @@ export function Thread({ side, conversation, className }: { side: Side; conversa
       {messages.map((m) => (
         <Bubble key={m.id} side={side} message={m} read={m.id === lastOwn?.id && !!otherRead && !!m.created_at && otherRead >= m.created_at} showStatus={m.id === lastOwn?.id} />
       ))}
+      {ticket.handler === "ai" && ticket.status === "waiting_support" ? (
+        <p className="flex items-center gap-1.5 self-start px-1 text-xs text-ink-3" role="status">
+          <Bot className="size-3.5 animate-pulse" aria-hidden />
+          {t.assistant.typing}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -79,7 +85,15 @@ function BubbleBody({ side, message, own, read, showStatus }: { side: Side; mess
   const [viewing, setViewing] = React.useState<number | null>(null);
   return (
     <div className={cn("flex max-w-[85%] flex-col gap-1", own ? "self-end items-end" : "self-start items-start")}>
-      {!own && side === "merchant" ? <span className="px-1 text-[11px] font-semibold text-brand-strong">{t.name}</span> : null}
+      {message.sender === "ai" ? (
+        <span className="flex items-center gap-1 px-1 text-[11px] font-semibold text-brand-strong">
+          <Bot className="size-3.5" aria-hidden />
+          {t.assistant.name}
+          <span className="rounded bg-brand-soft px-1 py-px text-[10px] font-medium">{t.assistant.tag}</span>
+        </span>
+      ) : !own && side === "merchant" ? (
+        <span className="px-1 text-[11px] font-semibold text-brand-strong">{t.name}</span>
+      ) : null}
       <div className={cn("flex flex-col gap-1.5 rounded-2xl px-3 py-2 text-sm leading-relaxed", own ? "rounded-ee-md bg-primary text-white" : "rounded-es-md bg-surface-2 text-ink")}>
         {message.attachments.length > 0 ? (
           <div className={cn("grid gap-1.5", message.attachments.length > 1 && "grid-cols-2")}>
@@ -114,6 +128,11 @@ function BubbleBody({ side, message, own, read, showStatus }: { side: Side; mess
         ) : null}
         {message.attachments.length > 0 ? <MediaViewer side={side} items={message.attachments} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} /> : null}
         {message.body ? <p className="whitespace-pre-wrap break-words">{message.body}</p> : null}
+        {message.sources && message.sources.length > 0 ? (
+          <p className="border-t border-border pt-1 text-[11px] text-ink-3">
+            {t.assistant.sources} {message.sources.map((s) => s.title).join("، ")}
+          </p>
+        ) : null}
       </div>
       <span className="flex items-center gap-1 px-1 text-[10px] text-ink-3">
         {time(message.created_at)}

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/overlay";
 import { ar } from "@/messages/ar";
@@ -11,9 +11,15 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: 
 const t = ar.admin.ai;
 let overview: AiOverview;
 let sent: unknown = null;
+let posted: unknown = null;
+const articles = [
+  { id: 1, title: "إزاي أضيف منتج؟", category: "products", body: "روح المنتجات ← منتج جديد.", is_active: true, pieces: 1, state: "ready", error: null, updated_at: null },
+  { id: 2, title: "إزاي أربط دومين؟", category: "domain", body: "من الإعدادات ← الدومين.", is_active: true, pieces: 1, state: "waiting", error: null, updated_at: null },
+];
 
 beforeEach(() => {
   sent = null;
+  posted = null;
   overview = {
     settings: { features: { support: false }, daily_cap_usd: 20, usd_rate: null, margin_percent: 10, support_daily_messages: 30 },
     status: { configured: false, driver: "qwen", paused_until: null, today_usd: 0.0123, limit_reached: false },
@@ -30,6 +36,11 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (input: string, init?: RequestInit) => {
       const path = String(input).replace(/^\/api\/bff/, "").split("?")[0];
+      if (path === "/admin/ai/articles" && init?.method === "POST") {
+        posted = JSON.parse(String(init.body));
+        return Response.json({ data: { id: 9, ...(posted as object), pieces: 1, state: "waiting", error: null, updated_at: null } });
+      }
+      if (path === "/admin/ai/articles") return Response.json({ data: articles });
       if (path === "/admin/ai/settings" && init?.method === "PUT") {
         sent = JSON.parse(String(init.body));
         return Response.json({ data: { ...overview, settings: sent } });
@@ -78,5 +89,23 @@ describe("admin AI page", () => {
     fireEvent.click(screen.getByRole("button", { name: ar.common.save }));
     expect(await screen.findByText(t.invalid)).toHaveAttribute("id", "ai-cap-error");
     expect(sent).toBeNull();
+  });
+
+  it("lists the assistant's articles with their state, filters them, and writes a new one", async () => {
+    show();
+    const k = t.knowledge;
+    expect(await screen.findByText("إزاي أضيف منتج؟")).toBeInTheDocument();
+    expect(screen.getByText(k.states.ready)).toBeInTheDocument();
+    expect(screen.getByText(k.states.waiting)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(k.search), { target: { value: "دومين" } });
+    expect(screen.queryByText("إزاي أضيف منتج؟")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: k.add }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox", { name: new RegExp(`^${k.titleLabel}`) }), { target: { value: "إزاي أشحن؟" } });
+    fireEvent.change(within(dialog).getByRole("textbox", { name: new RegExp(`^${k.body}`) }), { target: { value: "من الشحن ← شركات الشحن." } });
+    fireEvent.click(within(dialog).getByRole("button", { name: ar.common.save }));
+    await waitFor(() => expect(posted).toEqual({ title: "إزاي أشحن؟", category: "start", body: "من الشحن ← شركات الشحن.", is_active: true }));
   });
 });

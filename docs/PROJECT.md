@@ -216,6 +216,19 @@ Works even when the plan expired.
 - Admin «الذكاء الاصطناعي» (`/admin/ai`): features on / off (all off by default), daily cap USD (20), support messages
   per store a day (30), and for the coming merchant wallet the USD rate + margin %; connection state, cost today /
   this month / by feature / by store, last failures.
+- **Support assistant «مساعد مكسب»** (`App\Ai\SupportAssistant`, job `AnswerSupport`): while the `support` feature is on,
+  a new support conversation gets `handler = ai`; every merchant message queues an answer. It reads the merchant's new
+  messages (screenshots as data URLs), the 5 nearest knowledge pieces, and `MerchantSnapshot` (the store's own plan,
+  invoice, domains, products, landing pages, store pages, orders: read only, in its tenant, no customer data), and
+  answers JSON (reply, answered, handoff, reason, summary, sources). Hands off to people (`SupportDesk::handOff`, one
+  way, system note + staff alert + summary; `SummarizeHandoff` writes one when missing) on the merchant's button, its
+  own call (abuse, serious, money, unsolved), 2 «couldn't help» in a row, the store's daily answers limit, or any
+  failure; staff answering takes it over silently. Its conversations skip the staff limits (2 open / 12 h).
+  Prompt: `resources/prompts/support-assistant.md`. Admin inbox: «مع المساعد» tab, reason + summary + sources.
+- **Knowledge base** (`ai_articles` / `ai_article_chunks`, platform tables): admin «معلومات المساعد» on the AI page;
+  every save cuts the article into pieces (`App\Ai\Knowledge`) and `EmbedKnowledge` gives them vectors
+  (qwen3.7-text-embedding) while the assistant is on; search = cosine in PHP over the cached vectors. 42 starter
+  articles from `AiArticleSeeder` (base data, only into an empty base; the owner reviews and edits them).
 
 ---
 

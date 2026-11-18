@@ -172,6 +172,37 @@ describe("SupportWidget (the store)", () => {
     const call = fetchMock.mock.calls.find(([u]) => String(u).endsWith("/1001/rating"))!;
     expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual({ rating: 4, resolved: true, comment: null });
   });
+
+  it("shows «مساعد مكسب» answering, while it writes, and moves the conversation to a person on request", async () => {
+    const aiTicket = { ...ticket, status: "waiting_support", handler: "ai", closes_at: null, unread_merchant: false };
+    const aiMessages = [
+      { id: 1, sender: "merchant", body: "إزاي أضيف منتج؟", created_at: "2026-11-14T08:00:00Z", attachments: [] },
+      { id: 2, sender: "ai", body: "روح المنتجات ← منتج جديد.", created_at: "2026-11-14T08:00:05Z", attachments: [] },
+      { id: 3, sender: "merchant", body: "طب والصور؟", created_at: "2026-11-14T08:01:00Z", attachments: [] },
+    ];
+    let current: Record<string, unknown> = aiTicket;
+    fetchMock.mockImplementation(async (url: string) => {
+      const u = String(url);
+      if (u.includes("/summary")) return Response.json({ data: { unread: 0, open: 1, can_open: true, reason: null } });
+      if (u.endsWith("/handoff")) {
+        current = { ...aiTicket, handler: "human", handoff_reason: "request" };
+        return Response.json({ data: current });
+      }
+      if (u.includes("/tickets/1001")) return Response.json({ data: { ticket: current, messages: aiMessages, has_more: false } });
+      return Response.json({ data: [aiTicket] });
+    });
+    wrap(<SupportWidget tenantId={3} />);
+    fireEvent.click(screen.getByRole("button", { name: t.bubble }));
+    fireEvent.click(await screen.findByText("#1001"));
+
+    expect(await screen.findByText("روح المنتجات ← منتج جديد.")).toBeInTheDocument();
+    expect(screen.getByText(t.assistant.name)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(t.assistant.typing);
+
+    fireEvent.click(screen.getByRole("button", { name: t.assistant.person }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/1001/handoff"))).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("button", { name: t.assistant.person })).toBeNull());
+  });
 });
 
 describe("SupportPage (the admin)", () => {

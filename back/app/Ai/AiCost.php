@@ -9,13 +9,25 @@ final class AiCost
 {
     public static function priced(string $model): bool
     {
-        return is_array(config("ai.prices.{$model}"));
+        return self::price($model) !== null;
+    }
+
+    /**
+     * The model's prices (read from the whole list: model names have dots, like qwen3.7-…).
+     *
+     * @return array<string, float|int>|null
+     */
+    private static function price(string $model): ?array
+    {
+        $price = ((array) config('ai.prices'))[$model] ?? null;
+
+        return is_array($price) ? $price : null;
     }
 
     public static function usd(string $model, int $input, int $output, int $cached = 0): float
     {
-        $price = config("ai.prices.{$model}");
-        if (! is_array($price)) {
+        $price = self::price($model);
+        if ($price === null) {
             return 0.0;
         }
         $cached = min($cached, $input);

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Headset, Loader2, MessageCirclePlus, MoreVertical, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlay";
 import { errorMessage } from "@/lib/api/errors";
@@ -11,7 +12,7 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { OPEN_SUPPORT_EVENT } from "../notifications/events";
-import { applyUpdate, closeTicket, markRead, openTicket, rateTicket, sendMessage, supportKey, useConversation, useMerchantTickets, useSummary, useSupportLive, type Conversation, type Ticket } from "./api";
+import { applyUpdate, askForPerson, closeTicket, markRead, openTicket, rateTicket, sendMessage, supportKey, useConversation, useMerchantTickets, useSummary, useSupportLive, type Conversation, type Ticket } from "./api";
 import { closesText, Composer, RatingForm, Thread } from "./chat";
 
 const t = ar.support;
@@ -194,6 +195,7 @@ function MerchantChat({ number }: { number: number }) {
   const query = useConversation("merchant", number);
   const [closing, setClosing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [asking, setAsking] = React.useState(false);
   const ticket = query.data?.ticket;
   const unread = ticket?.unread_merchant ?? false;
 
@@ -254,6 +256,30 @@ function MerchantChat({ number }: { number: number }) {
         ) : null}
       </div>
       <Thread side="merchant" conversation={conversation} className="min-h-0 flex-1" />
+      {current.handler === "ai" && !closed ? (
+        <div className="flex items-center gap-2 border-t border-border bg-brand-soft/40 px-3 py-1.5 text-[11px] text-ink-2">
+          <span className="min-w-0 flex-1">{t.assistant.personHint}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            loading={asking}
+            onClick={async () => {
+              setAsking(true);
+              try {
+                applyUpdate(client, "merchant", await askForPerson(number), null);
+                await query.refetch();
+                toast.success(t.assistant.personDone);
+              } catch (e) {
+                toast.error(errorMessage(e));
+              } finally {
+                setAsking(false);
+              }
+            }}
+          >
+            {t.assistant.person}
+          </Button>
+        </div>
+      ) : null}
       {current.closes_at && !closed ? <p className="border-t border-border bg-accent-soft/60 px-3 py-1.5 text-center text-[11px] text-accent-ink">{closesText(current.closes_at)}</p> : null}
       {closed ? (
         current.rating ? (
