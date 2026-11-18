@@ -60,6 +60,7 @@ import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "@/features/builder/kit";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
+import { api } from "@/lib/api/client";
 import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -69,7 +70,7 @@ import type { MediaUrls } from "@/themes/shared/design";
 import type { Content, LandingData, Settings } from "@/themes/landing/bidaya/types";
 import { landingTheme, type Selection } from "@/themes/landing/registry";
 import { pageUrl } from "./api";
-import { newId, pageKey, publishLandingPage, saveLandingContent, sectionErrors, settingsErrors, toLandingData, useLandingEditor, type PageDetail } from "./builder-api";
+import { newId, pageKey, publishLandingPage, saveLandingContent, sectionErrors, settingsErrors, toLandingData, useLandingEditor, type PageDetail, type PreviewData } from "./builder-api";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "./builder-forms";
 import { PageSettingsForm } from "./page-settings";
 import { landingBuilderTheme, type LandingSection } from "./themes";
@@ -791,6 +792,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
               }
             : null,
         }}
+        designVersion={editor.getVersion()}
         canUseImage={Boolean(
           section &&
             ((section.type === "ai" &&
@@ -801,6 +803,17 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
         )}
         onUseImage={handleUseAiImage}
         onApproved={handleAiApproved}
+        onDesignUpdated={async () => {
+          const [freshPage, freshPreview] = await Promise.all([
+            api<PageDetail>(`/dashboard/pages/${detail.id}`),
+            api<PreviewData>(`/dashboard/pages/${detail.id}/preview`),
+          ]);
+          editor.reset(freshPage.draft_content as unknown as AnyContent, freshPage.version);
+          setDetail(freshPage);
+          setPublished({ at: freshPage.published_at, pending: freshPage.has_unpublished_changes });
+          client.setQueryData(pageKey(detail.id), freshPage);
+          client.setQueryData(["landings", "preview", detail.id], freshPreview);
+        }}
       />
       <ConfirmDialog
         open={removing !== null}

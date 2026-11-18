@@ -30,6 +30,70 @@ export type AiMessageMedia = {
   urls?: MediaUrls;
 };
 
+export type AiPlanSection = {
+  type: string;
+  title: string;
+  purpose?: string;
+  key?: string;
+  request?: string;
+  enabled?: boolean;
+};
+
+export type AiPlanImage = {
+  id: string;
+  action: "remove_bg" | "studio" | "enhance" | "generate" | "stock";
+  upload?: number;
+  prompt?: string;
+  use?: string;
+};
+
+export type AiPlanPayload = {
+  summary: string;
+  style: {
+    colors: {
+      primary: string;
+      secondary: string;
+      background: string;
+      text: string;
+    };
+    font: string;
+    mood: string;
+    dark: boolean;
+  };
+  sections: AiPlanSection[];
+  images: AiPlanImage[];
+  notes?: string;
+};
+
+export type AiRunStatus =
+  | "queued"
+  | "images"
+  | "sections"
+  | "design"
+  | "proposed"
+  | "applied"
+  | "rejected"
+  | "failed";
+
+export const ACTIVE_RUN_STATUSES: AiRunStatus[] = ["queued", "images", "sections", "design"];
+
+export type AiRunPayload = {
+  id: number;
+  chat_id: number;
+  status: AiRunStatus;
+  progress: string | null;
+  plan: AiPlanPayload | null;
+  image_results: Record<string, number | string> | null;
+  section_ids: Record<string, number> | null;
+  proposal: Record<string, unknown> | null;
+  applied_at: string | null;
+  reverted_at: string | null;
+  can_revert: boolean;
+  error: string | null;
+  created_at: string | null;
+  preview_data?: Record<string, unknown>;
+};
+
 export type AiChatMessagePayload = {
   id: number;
   role: "user" | "assistant";
@@ -39,6 +103,9 @@ export type AiChatMessagePayload = {
   error: string | null;
   focus_section_id: number | null;
   version: AiVersionPayload | null;
+  plan?: AiPlanPayload | null;
+  run_id?: number | null;
+  run?: AiRunPayload | null;
   created_at: string | null;
 };
 
@@ -60,6 +127,9 @@ export const mySectionsKey = (kind: "store" | "landing", themeKey: string) =>
 
 export const designerChatKey = (chatId: number | null) =>
   ["ai-designer", "chat", chatId] as const;
+
+export const designRunKey = (runId: number | null) =>
+  ["ai-designer", "run", runId] as const;
 
 export function useDesignerStatus() {
   return useQuery({
@@ -115,10 +185,14 @@ export function useChat(chatId: number | null, enabled = true) {
       const data = query.state.data;
       if (!data) return false;
       const pending = data.messages.find((m) => m.status === "pending");
-      if (!pending) return false;
-      if (pending.created_at) {
-        const elapsedMs = Date.now() - Date.parse(pending.created_at);
-        if (!Number.isNaN(elapsedMs) && elapsedMs > 180_000) {
+      const activeRun = data.messages.find(
+        (m) => m.run && ACTIVE_RUN_STATUSES.includes(m.run.status),
+      );
+      if (!pending && !activeRun) return false;
+      const targetTime = pending?.created_at ?? activeRun?.run?.created_at;
+      if (targetTime) {
+        const elapsedMs = Date.now() - Date.parse(targetTime);
+        if (!Number.isNaN(elapsedMs) && elapsedMs > 300_000) {
           return false;
         }
       }
@@ -154,6 +228,56 @@ export function rejectVersion(versionId: number): Promise<AiVersionPayload> {
   return api<AiVersionPayload>(`/dashboard/ai/designer/versions/${versionId}/reject`, {
     method: "POST",
   });
+}
+
+export function startDesignRun(
+  messageId: number,
+  custom: Record<string, boolean>,
+): Promise<AiRunPayload> {
+  return api<AiRunPayload>(`/dashboard/ai/designer/messages/${messageId}/run`, {
+    method: "POST",
+    body: { custom },
+  });
+}
+
+export function useDesignRun(runId: number | null, enabled = true) {
+  return useQuery({
+    queryKey: designRunKey(runId),
+    queryFn: () => api<AiRunPayload>(`/dashboard/ai/designer/runs/${runId}`),
+    enabled: enabled && runId !== null,
+  });
+}
+
+export function applyDesignRun(
+  runId: number,
+  version: number,
+): Promise<{ run: AiRunPayload; version: number }> {
+  return api<{ run: AiRunPayload; version: number }>(
+    `/dashboard/ai/designer/runs/${runId}/apply`,
+    {
+      method: "POST",
+      body: { version },
+    },
+  );
+}
+
+export function rejectDesignRun(runId: number): Promise<{ run: AiRunPayload }> {
+  return api<{ run: AiRunPayload }>(`/dashboard/ai/designer/runs/${runId}/reject`, {
+    method: "POST",
+  });
+}
+
+export function revertDesignRun(
+  runId: number,
+  version: number,
+): Promise<{ run: AiRunPayload; version: number }> {
+  return api<{ run: AiRunPayload; version: number }>(
+    `/dashboard/ai/designer/runs/${runId}/revert`,
+    {
+      method: "POST",
+      body: { version },
+    },
+  );
 }
 
 export function newAiPlacementId(): string {

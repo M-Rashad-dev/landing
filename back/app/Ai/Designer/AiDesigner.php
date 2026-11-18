@@ -12,6 +12,7 @@ use App\Exceptions\ApiException;
 use App\Jobs\DesignerReply;
 use App\Models\AiChat;
 use App\Models\AiChatMessage;
+use App\Models\AiDesignRun;
 use App\Models\AiSection;
 use App\Models\AiSectionVersion;
 use App\Models\AiWalletEntry;
@@ -49,6 +50,7 @@ final class AiDesigner
         private readonly AiSectionBuilder $builder,
         private readonly AiImages $images,
         private readonly StockPhotos $stock,
+        private readonly AiDesignRunner $runner,
     ) {}
 
     public function enabled(): bool
@@ -291,6 +293,7 @@ final class AiDesigner
             $replyText = $validated['reply'];
             $imageItems = $validated['images'];
             $sectionData = $validated['section'];
+            $planData = $validated['plan'];
 
             // 1. Run image actions first (if any), up to 6 per reply
             $createdMediaIds = [];
@@ -349,13 +352,16 @@ final class AiDesigner
             if ($replyText === '') {
                 $replyText = $version instanceof AiSectionVersion
                     ? 'صممتلك القسم، تقدر تعاينه وتعتمده.'
-                    : 'جهزتلك الصور وحفظتها في مكتبة الصور.';
+                    : (is_array($planData)
+                        ? 'جهزتلك خطة التصميم الكاملة، راجعها واضغط «نفّذ الخطة».'
+                        : 'جهزتلك الصور وحفظتها في مكتبة الصور.');
             }
 
             $pending->forceFill([
                 'text' => $replyText,
                 'media_ids' => $createdMediaIds === [] ? null : $createdMediaIds,
                 'version_id' => $version?->id,
+                'plan' => $planData,
                 'ai_usage_id' => $this->ai->lastUsage()?->id ?? $firstUsage?->id,
                 'status' => 'done',
                 'error' => null,
@@ -478,7 +484,7 @@ final class AiDesigner
         $this->expireStalePending($chat);
 
         $messages = $chat->messages()
-            ->with('version')
+            ->with(['version', 'run'])
             ->orderBy('id')
             ->get();
 
@@ -534,6 +540,9 @@ final class AiDesigner
                     'error' => $m->error,
                     'focus_section_id' => $m->focus_section_id,
                     'version' => $m->version instanceof AiSectionVersion ? $this->formatVersion($m->version) : null,
+                    'plan' => $m->plan,
+                    'run_id' => $m->run_id,
+                    'run' => $m->run instanceof AiDesignRun ? $this->runner->formatRun($m->run, $chat) : null,
                     'created_at' => $m->created_at?->toIso8601ZuluString(),
                 ];
             })->values()->all(),
@@ -562,9 +571,10 @@ final class AiDesigner
 
         if (! $this->stock->configured()) {
             $prompt = (string) preg_replace('/<!--\s*STOCK_START\s*-->.*?<!--\s*STOCK_END\s*-->\s*/s', '', $prompt);
+            $prompt = (string) preg_replace('/<!--\s*STOCK_INLINE_START\s*-->.*?<!--\s*STOCK_INLINE_END\s*-->/s', '', $prompt);
             $prompt = str_replace('remove_bg | studio | enhance | generate | stock', 'remove_bg | studio | enhance | generate', $prompt);
         } else {
-            $prompt = (string) preg_replace('/<!--\s*STOCK_(?:START|END)\s*-->\s*/', '', $prompt);
+            $prompt = (string) preg_replace('/<!--\s*STOCK_(?:INLINE_)?(?:START|END)\s*-->\s*/', '', $prompt);
         }
 
         return $prompt;
@@ -604,12 +614,13 @@ final class AiDesigner
      *     action: string,
      *     section: array<string, mixed>|null,
      *     images: list<array<string, mixed>>,
+     *     plan: array<string, mixed>|null,
      *     errors: list<string>
      * }
      */
     private function validateReplyJson(string $rawText, AiChat $chat): array
     {
-        $empty = ['reply' => '', 'action' => 'none', 'section' => null, 'images' => [], 'errors' => []];
+        $empty = ['reply' => '', 'action' => 'none', 'section' => null, 'images' => [], 'plan' => null, 'errors' => []];
 
         if (strlen($rawText) > self::MAX_JSON_BYTES) {
             return [...$empty, 'errors' => ['Response JSON exceeds the 200 KB size limit.']];
@@ -623,8 +634,23 @@ final class AiDesigner
         $reply = isset($json['reply']) && is_string($json['reply']) ? trim(strip_tags($json['reply'])) : '';
         $action = isset($json['action']) && is_string($json['action']) ? trim($json['action']) : 'none';
 
-        if (! in_array($action, ['none', 'section', 'images'], true)) {
+        if (! in_array($action, ['none', 'section', 'images', 'plan'], true)) {
             return [...$empty, 'errors' => ["Unsupported action '{$action}'."]];
+        }
+
+        if ($action === 'plan') {
+            if (! is_array($json['plan'] ?? null)) {
+                return [...$empty, 'errors' => ['Field "plan" is required when action is "plan".']];
+            }
+
+            return [
+                'reply' => $reply !== '' ? $reply : 'جهزتلك خطة التصميم الكاملة، راجعها واضغط «نفّذ الخطة».',
+                'action' => 'plan',
+                'section' => null,
+                'images' => [],
+                'plan' => $this->runner->cleanPlan($json['plan'], $chat),
+                'errors' => [],
+            ];
         }
 
         $rawImages = is_array($json['images'] ?? null) ? array_values($json['images']) : [];
@@ -647,6 +673,7 @@ final class AiDesigner
                 'action' => 'none',
                 'section' => null,
                 'images' => [],
+                'plan' => null,
                 'errors' => [],
             ];
         }
@@ -673,6 +700,7 @@ final class AiDesigner
             'action' => $action,
             'section' => $sectionData,
             'images' => $cleanImages,
+            'plan' => null,
             'errors' => [],
         ];
     }
@@ -932,6 +960,9 @@ final class AiDesigner
                 if ($msg->version instanceof AiSectionVersion) {
                     $assistantText .= "\n[Proposed section: {$msg->version->name}]";
                 }
+                if (is_array($msg->plan)) {
+                    $assistantText .= "\n[Proposed plan: ".json_encode($msg->plan, JSON_UNESCAPED_UNICODE).']';
+                }
                 if ($assistantText !== '') {
                     $messages[] = ['role' => 'assistant', 'content' => $assistantText];
                 }
@@ -982,6 +1013,10 @@ final class AiDesigner
             $lines[] = "Current HTML:\n".$ver->html;
             $lines[] = "Current CSS:\n".$ver->css_raw;
         }
+
+        $lines[] = '';
+        $lines[] = '## THEME SPECIFICATION';
+        $lines[] = $this->runner->themeDocument($chat->theme_key);
 
         return implode("\n", $lines);
     }

@@ -165,6 +165,15 @@ export function useDraftEditor<T, R extends { version: number }>({
     setVersion: (next: number) => {
       version.current = next;
     },
+    getVersion: () => version.current,
+    reset: (nextDraft: T, nextVersion: number) => {
+      pending.current = null;
+      version.current = nextVersion;
+      setDraft(nextDraft);
+      setErrors({});
+      setStatus("saved");
+      setHistory({ past: [], future: [] });
+    },
   };
 }
 

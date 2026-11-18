@@ -530,6 +530,8 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
    front render + Builder tests.
 5. Cover + 5 pictures into `public/themes/store/{design}/` (1600×1000 WebP), a showcase `demo.ts` if it should
    have «معاينة الثيم», shots in `themes/registry.ts`.
+6. AI Designer prompt doc: add `back/resources/prompts/themes/{key}.md` documenting the theme's settings, section
+   types, `MAX_SECTIONS`, and full `defaults()` JSON example.
 
 ### Builder
 `front/src/features/builder/`: `builder.tsx` (store), `kit.tsx` (shared editing state: undo/redo, autosave 700 ms,

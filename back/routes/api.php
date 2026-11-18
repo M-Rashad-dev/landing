@@ -135,6 +135,11 @@ Route::prefix('dashboard')
             Route::post('chats/{chat}/messages', [AiDesignerController::class, 'sendMessage'])->whereNumber('chat')->middleware('throttle:support');
             Route::post('versions/{version}/approve', [AiDesignerController::class, 'approveVersion'])->whereNumber('version');
             Route::post('versions/{version}/reject', [AiDesignerController::class, 'rejectVersion'])->whereNumber('version');
+            Route::post('messages/{message}/run', [AiDesignerController::class, 'startRun'])->whereNumber('message')->middleware('throttle:support');
+            Route::get('runs/{run}', [AiDesignerController::class, 'showRun'])->whereNumber('run');
+            Route::post('runs/{run}/apply', [AiDesignerController::class, 'applyRun'])->whereNumber('run');
+            Route::post('runs/{run}/reject', [AiDesignerController::class, 'rejectRun'])->whereNumber('run');
+            Route::post('runs/{run}/revert', [AiDesignerController::class, 'revertRun'])->whereNumber('run');
         });
 
         Route::patch('store', [AccountController::class, 'updateStore']);

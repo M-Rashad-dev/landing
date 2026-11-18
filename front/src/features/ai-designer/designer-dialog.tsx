@@ -1,11 +1,25 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, ExternalLink, Eye, ImagePlus, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  Eye,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  Play,
+  RotateCcw,
+  Send,
+  Sparkles,
+  Undo2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SwitchRow } from "@/components/ui/choice";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Textarea } from "@/components/ui/input";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
@@ -14,21 +28,29 @@ import { MediaPicker } from "@/features/media/media-picker";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { ar } from "@/messages/ar";
 import type { AiDefinition, AiSectionRuntimeData, AiTokens } from "@/themes/shared/ai-section/types";
-import type { MediaUrls } from "@/themes/shared/design";
+import { FONTS, type FontKey, type MediaUrls } from "@/themes/shared/design";
 import {
+  ACTIVE_RUN_STATUSES,
+  applyDesignRun,
   approveVersion,
   designerChatKey,
+  designRunKey,
   mySectionsKey,
   newChat,
   openChat,
+  rejectDesignRun,
   rejectVersion,
+  revertDesignRun,
   sendMessage,
+  startDesignRun,
   useChat,
   type AiChatMessagePayload,
   type AiMessageMedia,
+  type AiRunPayload,
   type AiVersionPayload,
 } from "./api";
 import { PreviewDialog } from "./preview-dialog";
+import { RunPreviewDialog } from "./run-preview-dialog";
 
 const t = ar.aiDesigner;
 
@@ -47,9 +69,11 @@ export function DesignerDialog({
   focusSection: initialFocus = null,
   tokens,
   data,
+  designVersion = 1,
   canUseImage = false,
   onUseImage,
   onApproved,
+  onDesignUpdated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,6 +83,7 @@ export function DesignerDialog({
   focusSection?: FocusedAiSection | null;
   tokens: AiTokens;
   data?: AiSectionRuntimeData;
+  designVersion?: number;
   canUseImage?: boolean;
   onUseImage?: (media: AiMessageMedia) => void;
   onApproved: (
@@ -66,6 +91,7 @@ export function DesignerDialog({
     isNew: boolean,
     chatMedia?: Record<string, MediaUrls>,
   ) => void;
+  onDesignUpdated?: () => Promise<void> | void;
 }) {
   const client = useQueryClient();
   const [chatId, setChatId] = React.useState<number | null>(null);
@@ -88,7 +114,15 @@ export function DesignerDialog({
   const [previewVersion, setPreviewVersion] = React.useState<AiVersionPayload | null>(null);
   const [deciding, setDeciding] = React.useState(false);
 
+  const [customSwitches, setCustomSwitches] = React.useState<
+    Record<number, Record<string, boolean>>
+  >({});
+  const [startingRunMsgId, setStartingRunMsgId] = React.useState<number | null>(null);
+  const [previewRunId, setPreviewRunId] = React.useState<number | null>(null);
+  const [runBusy, setRunBusy] = React.useState(false);
+
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
   React.useEffect(() => {
     if (open) {
@@ -124,6 +158,9 @@ export function DesignerDialog({
   const chatQuery = useChat(chatId, open && chatId !== null);
   const messages = React.useMemo(() => chatQuery.data?.messages ?? [], [chatQuery.data?.messages]);
   const hasPending = messages.some((m) => m.status === "pending");
+  const hasActiveRun = messages.some(
+    (m) => m.run && ACTIVE_RUN_STATUSES.includes(m.run.status),
+  );
 
   const chatMedia = React.useMemo<Record<string, MediaUrls>>(() => {
     const out: Record<string, MediaUrls> = {};
@@ -156,7 +193,7 @@ export function DesignerDialog({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length, hasPending]);
+  }, [messages.length, hasPending, hasActiveRun]);
 
   async function handleStartNewChat() {
     setStartingNew(true);
@@ -272,6 +309,87 @@ export function DesignerDialog({
       toast.error(errorMessage(err));
     } finally {
       setDeciding(false);
+    }
+  }
+
+  async function handleStartRun(msg: AiChatMessagePayload) {
+    if (!msg.plan || startingRunMsgId !== null || hasActiveRun) return;
+    const switchesForMsg: Record<string, boolean> = {};
+    for (const sec of msg.plan.sections) {
+      if (sec.type === "custom" && sec.key) {
+        switchesForMsg[sec.key] =
+          customSwitches[msg.id]?.[sec.key] ?? (sec.enabled ?? true);
+      }
+    }
+
+    setStartingRunMsgId(msg.id);
+    setSendError(null);
+    try {
+      await startDesignRun(msg.id, switchesForMsg);
+      await chatQuery.refetch();
+    } catch (err) {
+      if (isApiError(err)) {
+        setSendError({
+          code: err.code,
+          message:
+            err.code === "ai_balance_low"
+              ? t.chat.balanceLow
+              : err.code === "ai_unavailable"
+                ? t.chat.unavailable
+                : errorMessage(err),
+        });
+      } else {
+        toast.error(errorMessage(err));
+      }
+    } finally {
+      setStartingRunMsgId(null);
+    }
+  }
+
+  async function handleApplyRun(run: AiRunPayload) {
+    setRunBusy(true);
+    try {
+      await applyDesignRun(run.id, designVersion);
+      setPreviewRunId(null);
+      await chatQuery.refetch();
+      await client.invalidateQueries({ queryKey: designRunKey(run.id) });
+      await client.invalidateQueries({ queryKey: mySectionsKey(kind, themeKey) });
+      await onDesignUpdated?.();
+      toast.success(t.run.appliedToast);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
+  async function handleRejectRun(run: AiRunPayload) {
+    setRunBusy(true);
+    try {
+      await rejectDesignRun(run.id);
+      setPreviewRunId(null);
+      await chatQuery.refetch();
+      await client.invalidateQueries({ queryKey: designRunKey(run.id) });
+      toast.info(t.run.rejectedToast);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
+  async function handleRevertRun(run: AiRunPayload) {
+    setRunBusy(true);
+    try {
+      await revertDesignRun(run.id, designVersion);
+      await chatQuery.refetch();
+      await client.invalidateQueries({ queryKey: designRunKey(run.id) });
+      await onDesignUpdated?.();
+      toast.success(t.run.revertedToast);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setRunBusy(false);
     }
   }
 
@@ -397,6 +515,7 @@ export function DesignerDialog({
                           ) : (
                             <>
                               {msg.text ? <p className="whitespace-pre-wrap">{msg.text}</p> : null}
+
                               {msg.media.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                                   {msg.media.map((img) => {
@@ -438,6 +557,7 @@ export function DesignerDialog({
                                   })}
                                 </div>
                               ) : null}
+
                               {msg.version ? (
                                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
                                   <div className="flex min-w-0 flex-col gap-1">
@@ -466,6 +586,243 @@ export function DesignerDialog({
                                     <Eye className="size-4" />
                                     {t.version.preview}
                                   </Button>
+                                </div>
+                              ) : null}
+
+                              {msg.plan ? (
+                                <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-bold text-ink">{t.plan.title}</span>
+                                    {msg.plan.style.dark ? (
+                                      <Badge size="sm" tone="brand">
+                                        {t.plan.dark}
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+
+                                  {msg.plan.summary ? (
+                                    <p className="text-xs text-ink-2">{msg.plan.summary}</p>
+                                  ) : null}
+
+                                  {/* Style swatches + font + mood */}
+                                  <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-semibold text-ink-3">{t.plan.colors}:</span>
+                                      {(
+                                        [
+                                          msg.plan.style.colors.primary,
+                                          msg.plan.style.colors.secondary,
+                                          msg.plan.style.colors.background,
+                                          msg.plan.style.colors.text,
+                                        ] as const
+                                      ).map((hex, ci) => (
+                                        <span
+                                          key={ci}
+                                          title={hex}
+                                          className="size-4 rounded-full border border-border shadow-2xs"
+                                          style={{ backgroundColor: hex }}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="h-3.5 w-px bg-border" aria-hidden />
+                                    <span>
+                                      <strong className="text-ink-3">{t.plan.font}: </strong>
+                                      {FONTS[msg.plan.style.font as FontKey]?.label ?? msg.plan.style.font}
+                                    </span>
+                                    <span className="h-3.5 w-px bg-border" aria-hidden />
+                                    <span>
+                                      <strong className="text-ink-3">{t.plan.mood}: </strong>
+                                      {msg.plan.style.mood}
+                                    </span>
+                                  </div>
+
+                                  {/* Sections list */}
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-xs font-bold text-ink-2">
+                                      {t.plan.sectionsTitle}
+                                    </span>
+                                    <ol className="flex flex-col gap-1.5">
+                                      {msg.plan.sections.map((sec, si) => (
+                                        <li
+                                          key={`${sec.type}-${sec.key ?? si}`}
+                                          className="flex flex-col gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs"
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="font-bold text-ink">
+                                              {si + 1}. {sec.title}
+                                            </span>
+                                            {sec.type === "custom" ? (
+                                              <Badge size="sm" tone="brand">
+                                                {t.plan.customBadge}
+                                              </Badge>
+                                            ) : null}
+                                          </div>
+                                          {sec.purpose || sec.request ? (
+                                            <span className="text-ink-3">
+                                              {sec.purpose ?? sec.request}
+                                            </span>
+                                          ) : null}
+                                          {sec.type === "custom" && sec.key ? (
+                                            <SwitchRow
+                                              label={t.plan.customToggleLabel(sec.title)}
+                                              checked={
+                                                customSwitches[msg.id]?.[sec.key] ??
+                                                (sec.enabled ?? true)
+                                              }
+                                              disabled={Boolean(
+                                                msg.run &&
+                                                  msg.run.status !== "failed" &&
+                                                  msg.run.status !== "rejected",
+                                              )}
+                                              onCheckedChange={(checked) =>
+                                                setCustomSwitches((prev) => ({
+                                                  ...prev,
+                                                  [msg.id]: {
+                                                    ...(prev[msg.id] ?? {}),
+                                                    [sec.key!]: checked,
+                                                  },
+                                                }))
+                                              }
+                                            />
+                                          ) : null}
+                                        </li>
+                                      ))}
+                                    </ol>
+                                  </div>
+
+                                  {/* Images work list */}
+                                  {msg.plan.images.length > 0 ? (
+                                    <div className="flex flex-col gap-1.5">
+                                      <span className="text-xs font-bold text-ink-2">
+                                        {t.plan.imagesTitle}
+                                      </span>
+                                      <ul className="flex flex-col gap-1">
+                                        {msg.plan.images.map((im) => (
+                                          <li
+                                            key={im.id}
+                                            className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs"
+                                          >
+                                            <span className="truncate text-ink">
+                                              {im.use || im.prompt || im.id}
+                                            </span>
+                                            <Badge size="sm">
+                                              {t.plan.imageActions[im.action] ?? im.action}
+                                            </Badge>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ) : null}
+
+                                  {msg.plan.notes ? (
+                                    <p className="text-xs text-ink-3">{msg.plan.notes}</p>
+                                  ) : null}
+
+                                  {/* Plan actions */}
+                                  {!msg.run ||
+                                  msg.run.status === "failed" ||
+                                  msg.run.status === "rejected" ? (
+                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        loading={startingRunMsgId === msg.id}
+                                        disabled={hasActiveRun || hasPending}
+                                        onClick={() => void handleStartRun(msg)}
+                                      >
+                                        <Play className="size-3.5" />
+                                        {t.plan.runButton}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => textareaRef.current?.focus()}
+                                      >
+                                        <Pencil className="size-3.5" />
+                                        {t.plan.editButton}
+                                      </Button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+
+                              {msg.run ? (
+                                <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-surface p-3.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-xs font-bold text-ink">
+                                      {t.run.title}
+                                    </span>
+                                    <Badge
+                                      size="sm"
+                                      tone={
+                                        msg.run.status === "applied"
+                                          ? "success"
+                                          : msg.run.status === "failed" ||
+                                              msg.run.status === "rejected"
+                                            ? "danger"
+                                            : "brand"
+                                      }
+                                    >
+                                      {msg.run.reverted_at
+                                        ? t.run.revertedBadge
+                                        : t.run.statuses[msg.run.status]}
+                                    </Badge>
+                                  </div>
+
+                                  {ACTIVE_RUN_STATUSES.includes(msg.run.status) ? (
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-violet-700">
+                                      <Loader2 className="size-4 animate-spin" />
+                                      <span>
+                                        {msg.run.progress ?? t.run.statuses[msg.run.status]}
+                                      </span>
+                                    </div>
+                                  ) : msg.run.status === "failed" ? (
+                                    <div className="flex flex-col items-start gap-2">
+                                      <p className="text-xs font-semibold text-danger">
+                                        {msg.run.error ?? t.chat.unavailable}
+                                      </p>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => void handleStartRun(msg)}
+                                      >
+                                        <RotateCcw className="size-3.5" />
+                                        {t.chat.retry}
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {msg.run.status === "proposed" ||
+                                      msg.run.status === "applied" ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant={
+                                            msg.run.status === "proposed" ? "primary" : "outline"
+                                          }
+                                          onClick={() => setPreviewRunId(msg.run!.id)}
+                                        >
+                                          <Eye className="size-4" />
+                                          {t.run.previewButton}
+                                        </Button>
+                                      ) : null}
+
+                                      {msg.run.can_revert ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          loading={runBusy}
+                                          onClick={() => void handleRevertRun(msg.run!)}
+                                        >
+                                          <Undo2 className="size-4" />
+                                          {t.run.revertButton}
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  )}
                                 </div>
                               ) : null}
                             </>
@@ -549,7 +906,7 @@ export function DesignerDialog({
                   type="button"
                   size="icon"
                   variant="outline"
-                  disabled={attachments.length >= 3 || sending || hasPending}
+                  disabled={attachments.length >= 6 || sending || hasPending}
                   aria-label={t.chat.attach}
                   onClick={() => setPickerOpen(true)}
                 >
@@ -557,6 +914,7 @@ export function DesignerDialog({
                 </Button>
                 <div className="flex-1">
                   <Textarea
+                    ref={textareaRef}
                     rows={2}
                     maxLength={2000}
                     placeholder={t.chat.placeholder}
@@ -589,11 +947,11 @@ export function DesignerDialog({
       <MediaPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        max={3}
+        max={6}
         already={attachments.length}
         onPick={(items) =>
           setAttachments((prev) =>
-            [...prev, ...items.filter((i) => !prev.some((p) => p.id === i.id))].slice(0, 3),
+            [...prev, ...items.filter((i) => !prev.some((p) => p.id === i.id))].slice(0, 6),
           )
         }
       />
@@ -624,7 +982,17 @@ export function DesignerDialog({
         onApprove={(v) => void handleApprove(v)}
         onReject={(v) => void handleReject(v)}
       />
+
+      <RunPreviewDialog
+        runId={previewRunId}
+        open={previewRunId !== null}
+        onOpenChange={(o) => !o && setPreviewRunId(null)}
+        kind={kind}
+        themeKey={themeKey}
+        busy={runBusy}
+        onApply={(run) => void handleApplyRun(run)}
+        onReject={(run) => void handleRejectRun(run)}
+      />
     </>
   );
 }
-

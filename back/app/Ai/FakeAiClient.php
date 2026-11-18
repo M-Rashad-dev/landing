@@ -77,6 +77,25 @@ final class FakeAiClient implements AiClient
             return 'تمام.';
         }
 
+        $themeKey = 'asas_store';
+        if (preg_match('/Theme:\s*([a-z0-9_]+)/i', $systemText, $tm)) {
+            $themeKey = strtolower($tm[1]);
+        }
+
+        if (str_contains($lastUserText, '[MKSAB_RUN_DESIGN]')) {
+            return self::fakeDesignReply($themeKey, $lastUserText);
+        }
+
+        if (
+            str_contains($lastUserText, 'صمم الصفحة')
+            || str_contains($lastUserText, 'صمم المتجر')
+            || str_contains($lastUserText, 'تصميم كامل')
+            || str_contains($lastUserText, 'خطة')
+            || str_contains($lastUserText, 'ستايل')
+        ) {
+            return self::fakePlanReply($themeKey);
+        }
+
         if (! str_contains($lastUserText, 'قسم')) {
             if (str_contains($lastUserText, 'شيل الخلفية') || str_contains($lastUserText, 'بدون خلفية') || str_contains($lastUserText, 'إزالة الخلفية') || str_contains($lastUserText, 'ازالة الخلفية')) {
                 return (string) json_encode([
@@ -283,6 +302,119 @@ final class FakeAiClient implements AiClient
                     ['key' => 'featured_products', 'type' => 'products', 'label' => 'منتجات السلايدر', 'sample' => 4],
                 ],
             ],
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    private static function fakePlanReply(string $themeKey): string
+    {
+        $isLanding = str_ends_with($themeKey, '_landing');
+
+        $sections = $isLanding
+            ? [
+                ['type' => 'hero', 'title' => 'واجهة المنتج الرئيسية', 'purpose' => 'إبراز المنتج وسعره مع زرار طلب واضح'],
+                ['type' => 'features', 'title' => 'أهم مميزات المنتج', 'purpose' => 'توضيح الفوائد الرئيسية للعميل'],
+                ['type' => 'custom', 'key' => 'c1', 'title' => 'قسم مقارنة وضمان مخصص', 'request' => 'قسم مخصص يبرز جودة المنتج وضمان الاستبدال'],
+                ['type' => 'testimonials', 'title' => 'آراء العملاء', 'purpose' => 'بناء الثقة من تجارب المشترين'],
+                ['type' => 'faq', 'title' => 'الأسئلة الشائعة', 'purpose' => 'الإجابة عن استفسارات الشحن والدفع'],
+                ['type' => 'order_form', 'title' => 'نموذج الطلب المباشر', 'purpose' => 'استقبال بيانات العميل وإتمام الطلب'],
+            ]
+            : [
+                ['type' => $themeKey === 'shabe_store' ? 'food_hero' : ($themeKey === 'sufi_store' ? 'hero' : 'banner'), 'title' => 'البنر الترحيبي الرئيسي', 'purpose' => 'عرض أقوى العروض في أعلى المتجر'],
+                ['type' => 'products', 'title' => 'أحدث المنتجات المختارة', 'purpose' => 'عرض المنتجات الأكثر طلباً'],
+                ['type' => 'custom', 'key' => 'c1', 'title' => 'قسم عرض خاص بالذكاء الاصطناعي', 'request' => 'قسم بنر جانبي مع سلايدر منتجات متحرك'],
+                ['type' => 'features', 'title' => 'مميزات الشراء من متجرنا', 'purpose' => 'تأكيد سرعة الشحن والدفع عند الاستلام'],
+                ['type' => 'testimonials', 'title' => 'تقييمات العملاء', 'purpose' => 'عرض تقييمات المشترين'],
+            ];
+
+        return (string) json_encode([
+            'reply' => 'جهزتلك خطة تصميم كاملة متناسقة مع هوية منتجاتك، تقدر تراجع الأقسام وتفعل أو تقفل القسم المخصص وبعدين تضغط «نفّذ الخطة».',
+            'action' => 'plan',
+            'plan' => [
+                'summary' => 'تصميم عصري يركز على وضوح المنتجات وسهولة الطلب على الموبايل والكمبيوتر.',
+                'style' => [
+                    'colors' => [
+                        'primary' => '#1e40af',
+                        'secondary' => '#f59e0b',
+                        'background' => '#ffffff',
+                        'text' => '#0f172a',
+                    ],
+                    'font' => 'tajawal',
+                    'mood' => 'عصري وأنيق وعالي التحويل',
+                    'dark' => false,
+                ],
+                'sections' => $sections,
+                'images' => [
+                    [
+                        'id' => 'i1',
+                        'action' => 'generate',
+                        'prompt' => 'commercial studio hero product photography on warm minimalist podium, soft shadows',
+                        'use' => 'صورة الواجهة الرئيسية',
+                    ],
+                ],
+                'notes' => '',
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    private static function fakeDesignReply(string $themeKey, string $userText): string
+    {
+        $docPath = resource_path("prompts/themes/{$themeKey}.md");
+        $design = null;
+        if (is_file($docPath)) {
+            $md = (string) file_get_contents($docPath);
+            if (preg_match('/```json\s*(\{.*\})\s*```/s', $md, $m)) {
+                $design = json_decode($m[1], true);
+            }
+        }
+
+        if (! is_array($design)) {
+            $design = ['settings' => [], 'sections' => []];
+        }
+
+        if (isset($design['settings']['colors']) && is_array($design['settings']['colors'])) {
+            $design['settings']['colors']['primary'] = '#1e40af';
+        }
+        if (isset($design['settings']['font'])) {
+            $design['settings']['font'] = 'tajawal';
+        }
+
+        // Check if custom section IDs were passed in the prompt
+        if (preg_match('/Approved custom AI section IDs.*?:\s*(\{[^\n]+\})/u', $userText, $cm)) {
+            $customMap = json_decode($cm[1], true);
+            if (is_array($customMap)) {
+                foreach ($customMap as $key => $aiSectionId) {
+                    if (is_numeric($aiSectionId) && (int) $aiSectionId > 0) {
+                        $aiPlacement = [
+                            'id' => 'sec_ai_'.preg_replace('/[^a-z0-9]/i', '', (string) $key),
+                            'type' => 'ai',
+                            'visible' => true,
+                            'props' => [
+                                'ai_section_id' => (int) $aiSectionId,
+                                'values' => [],
+                            ],
+                        ];
+                        // Insert before order_form on landing, or at end on store
+                        $orderIdx = null;
+                        foreach ((array) ($design['sections'] ?? []) as $idx => $s) {
+                            if (is_array($s) && ($s['type'] ?? '') === 'order_form') {
+                                $orderIdx = $idx;
+                                break;
+                            }
+                        }
+                        if ($orderIdx !== null) {
+                            array_splice($design['sections'], $orderIdx, 0, [$aiPlacement]);
+                        } else {
+                            $design['sections'][] = $aiPlacement;
+                        }
+                    }
+                }
+            }
+        }
+
+        return (string) json_encode([
+            'reply' => 'جهزتلك التصميم الكامل، تقدر تعاينه وتعتمده دلوقتي.',
+            'action' => 'design',
+            'design' => $design,
         ], JSON_UNESCAPED_UNICODE);
     }
 

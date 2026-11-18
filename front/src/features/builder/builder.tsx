@@ -42,6 +42,7 @@ import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/de
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
+import { api } from "@/lib/api/client";
 import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -650,6 +651,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
           links: data.links,
           media: allMedia,
         }}
+        designVersion={editor.getVersion()}
         canUseImage={Boolean(
           section &&
             ((section.type === "ai" &&
@@ -660,6 +662,13 @@ function Editor({ initial }: { initial: DesignPayload }) {
         )}
         onUseImage={handleUseAiImage}
         onApproved={handleAiApproved}
+        onDesignUpdated={async () => {
+          const fresh = await api<DesignPayload>("/dashboard/store/design");
+          editor.reset(fresh.draft as AnyDesign, fresh.version);
+          setData(fresh.data);
+          setPublished({ at: fresh.published_at, pending: fresh.has_unpublished_changes });
+          client.setQueryData(designKey, fresh);
+        }}
       />
       <ConfirmDialog
         open={removing !== null}

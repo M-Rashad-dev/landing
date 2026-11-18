@@ -5,23 +5,29 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Ai\Designer\AiDesigner;
+use App\Ai\Designer\AiDesignRunner;
 use App\Ai\Images\StockPhotos;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\AiDesignerChatRequest;
 use App\Http\Requests\Dashboard\AiDesignerMessageRequest;
+use App\Http\Requests\Dashboard\AiDesignRunStartRequest;
+use App\Http\Requests\Dashboard\AiDesignRunVersionRequest;
 use App\Models\AiChat;
+use App\Models\AiChatMessage;
+use App\Models\AiDesignRun;
 use App\Models\AiSectionVersion;
 use App\Models\Tenant;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Endpoints for «المصمم الذكي» under `/api/v1/dashboard/ai/designer` (docs/plans/ai-designer.md §2.6).
+ * Endpoints for «المصمم الذكي» under `/api/v1/dashboard/ai/designer` (docs/plans/ai-designer.md §2.6 & §4.4–4.6).
  */
 final class AiDesignerController extends Controller
 {
     public function __construct(
         private readonly AiDesigner $designer,
+        private readonly AiDesignRunner $runner,
         private readonly StockPhotos $stock,
     ) {}
 
@@ -107,5 +113,36 @@ final class AiDesignerController extends Controller
     public function rejectVersion(AiSectionVersion $version): JsonResponse
     {
         return $this->ok($this->designer->reject($version));
+    }
+
+    public function startRun(AiDesignRunStartRequest $request, AiChatMessage $message): JsonResponse
+    {
+        $tenant = Tenant::query()->findOrFail(Tenancy::id());
+        $custom = (array) ($request->validated('custom') ?? []);
+        $run = $this->runner->startFromPlan($tenant, $message, $custom);
+
+        return response()->json([
+            'data' => $this->runner->formatRun($run, $message->chat),
+        ], 202);
+    }
+
+    public function showRun(AiDesignRun $run): JsonResponse
+    {
+        return $this->ok($this->runner->formatRun($run, $run->chat, true));
+    }
+
+    public function applyRun(AiDesignRunVersionRequest $request, AiDesignRun $run): JsonResponse
+    {
+        return $this->ok($this->runner->apply($run, (int) $request->validated('version')));
+    }
+
+    public function rejectRun(AiDesignRun $run): JsonResponse
+    {
+        return $this->ok($this->runner->reject($run));
+    }
+
+    public function revertRun(AiDesignRunVersionRequest $request, AiDesignRun $run): JsonResponse
+    {
+        return $this->ok($this->runner->revert($run, (int) $request->validated('version')));
     }
 }

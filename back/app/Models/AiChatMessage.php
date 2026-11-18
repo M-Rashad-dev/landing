@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $error
  * @property Carbon $created_at
  * @property-read AiSectionVersion|null $version
+ * @property-read AiDesignRun|null $run
  * @property-read AiSection|null $focus
  */
 class AiChatMessage extends Model
@@ -37,7 +38,7 @@ class AiChatMessage extends Model
     public const UPDATED_AT = null;
 
     /** Reference images per merchant message. */
-    public const MAX_IMAGES = 3;
+    public const MAX_IMAGES = 6;
 
     protected $fillable = [
         'chat_id',
@@ -71,6 +72,12 @@ class AiChatMessage extends Model
     public function version(): BelongsTo
     {
         return $this->belongsTo(AiSectionVersion::class, 'version_id');
+    }
+
+    /** @return BelongsTo<AiDesignRun, $this> */
+    public function run(): BelongsTo
+    {
+        return $this->belongsTo(AiDesignRun::class, 'run_id');
     }
 
     /** @return BelongsTo<AiSection, $this> */
