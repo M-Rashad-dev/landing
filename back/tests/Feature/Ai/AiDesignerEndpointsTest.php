@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Ai\AiClient;
+use App\Ai\AiError;
 use App\Ai\AiWallets;
 use App\Ai\Designer\AiDesigner;
 use App\Ai\FakeAiClient;
@@ -146,4 +147,32 @@ it('puts an approved section in the store design, stamps its version on publish,
     $draft = $saved['draft'];
     $draft['sections'][] = ['id' => 'aisec0000002', 'type' => 'ai', 'visible' => true, 'props' => ['ai_section_id' => $other, 'values' => []]];
     $this->putJson('/api/v1/dashboard/store/design', ['draft' => $draft, 'version' => $saved['version']])->assertStatus(422);
+});
+
+it('rejects a proposal without touching anything, and archives a saved section', function () {
+    designerOwner();
+    $chat = designerChat();
+    $rejected = designerSectionVersion($chat);
+    $this->postJson("/api/v1/dashboard/ai/designer/versions/{$rejected}/reject")->assertOk();
+    $this->postJson("/api/v1/dashboard/ai/designer/versions/{$rejected}/approve")->assertStatus(409);
+    $this->getJson('/api/v1/dashboard/ai/sections?kind=store&theme_key=asas_store')->assertOk()->assertJsonCount(0, 'data');
+
+    $section = $this->postJson('/api/v1/dashboard/ai/designer/versions/'.designerSectionVersion($chat).'/approve')->json('data.section.id');
+    $this->deleteJson("/api/v1/dashboard/ai/sections/{$section}")->assertNoContent();
+    $this->getJson('/api/v1/dashboard/ai/sections?kind=store&theme_key=asas_store')->assertOk()->assertJsonCount(0, 'data');
+});
+
+it('repairs a broken answer once (two charges), and charges nothing when the AI fails', function () {
+    $owner = designerOwner();
+    $chat = designerChat();
+    /** @var FakeAiClient $ai */
+    $ai = app(AiClient::class);
+    $ai->answer('[]', json_encode(['reply' => 'تمام، دي فكرة حلوة.', 'action' => 'none'], JSON_UNESCAPED_UNICODE));
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'إيه رأيك؟'])->assertStatus(202);
+    expect(charges($owner->tenant_id))->toBe(2);
+
+    $ai->answer(new AiError('OpenRouter 502'));
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'تاني'])->assertStatus(202);
+    $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
+    expect(end($messages)['status'])->toBe('failed')->and(charges($owner->tenant_id))->toBe(2);
 });

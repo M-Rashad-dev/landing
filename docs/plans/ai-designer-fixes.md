@@ -217,4 +217,19 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
   - the P3 step 5 front test (phone frame shows 1 column)
   - P2 step 3 (real tries + log)
   - Owner check
+- 2026-11-18: **F6, fourth part done:** two more tests in `AiDesignerEndpointsTest`, 9 in all, all passing.
+  - Reject leaves «أقسامي» empty, and approve after reject gives 409. Archive works.
+  - A broken answer is repaired once, which makes 2 charges. A provider failure leaves the message failed with no
+    charge.
+
+  **Still open in F6:**
+  - the fields tests
+  - the landing-page design test
+  - images (§3.6)
+  - runs: apply / revert / product tables untouched (§4.6)
+
+  **Then:**
+  - the P3 step 5 front test
+  - P2 step 3
+  - Owner check
 
