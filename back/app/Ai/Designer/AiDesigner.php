@@ -369,6 +369,10 @@ final class AiDesigner
                     }
                 }
 
+                if ($focusSection !== null && $editOf === $focusSection->id && is_array($sectionData['fields'] ?? null)) {
+                    $sectionData['fields'] = $this->keepEditedFields($sectionData['fields'], $focusSection, $chat, $pending);
+                }
+
                 $built = $this->builder->fromAi($sectionData, $chat, $editOf);
                 if (is_array($built)) {
                     Log::warning('ai.designer.invalid_output', [
@@ -1174,6 +1178,31 @@ final class AiDesigner
      *
      * @return array<string, mixed>|null
      */
+    /**
+     * An edit must not lose the merchant's settings: a field the current section has but the
+     * edited one dropped comes back (with its values), unless the merchant asked to remove
+     * something. Free (no AI call); a kept field the template no longer shows is harmless.
+     *
+     * @param  list<array<string, mixed>>  $fields
+     * @return list<array<string, mixed>>
+     */
+    private function keepEditedFields(array $fields, AiSection $focus, AiChat $chat, AiChatMessage $pending): array
+    {
+        $old = (array) ($focus->current?->fields ?? []);
+        $newKeys = array_map(fn ($f) => is_array($f) ? (string) ($f['key'] ?? '') : '', $fields);
+        $missing = array_values(array_filter($old, fn ($f) => is_array($f) && ! in_array((string) ($f['key'] ?? ''), $newKeys, true)));
+        if ($missing === []) {
+            return $fields;
+        }
+        $asked = (string) AiChatMessage::query()->where('chat_id', $chat->id)->where('id', '<', $pending->id)
+            ->where('role', 'user')->orderByDesc('id')->value('text');
+        if (preg_match('/احذف|امسح|شيل|الغ|اشيل|remove|delete/iu', $asked) === 1) {
+            return $fields;
+        }
+
+        return array_values([...$fields, ...$missing]);
+    }
+
     public static function decodeJson(string $text): ?array
     {
         $stripped = trim((string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($text)));

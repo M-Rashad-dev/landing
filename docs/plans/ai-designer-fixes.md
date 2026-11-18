@@ -121,7 +121,19 @@ Example: «make phone show one card» also changed the section header.
 
 ---
 
-## Owner check (when F2–F5 are done)
+## P6. The AI designer has NO tests (task F6 — important, security)
+`git grep` finds no tests for the designer from stages 1–5 (only `tests/Feature/Ai/AiDesignerFixesTest.php`, added by these fixes).
+Write the whole test list of `docs/plans/ai-designer.md` §6 (and each task's test list), at least:
+- `AiSectionSanitizer` attack vectors (§1.3 list), `AiSectionCss` (§1.4), `AiTemplate` (§1.2), `AiSectionFields` (§1.5).
+- Store + landing designs with `ai` sections (§1.6 / §1.7): theme isolation, other tenant → 422, publish stamps `version_id`.
+- Every `/api/v1/dashboard/ai/sections*` and `/ai/designer*` endpoint: success, validation, 401, another tenant → 404.
+- Charging paths (§2.6): one charge per reply, repair = 2, failure = 0, low balance refused before saving, feature off → 422.
+- Edits: a focused edit sends `temperature` = `AiDesigner::EDIT_TEMPERATURE` and keeps dropped field keys unless the merchant asked to remove
+  (`keepEditedFields`, added in F5).
+- Images (§3.6), runs / apply / revert / product tables untouched (§4.6).
+If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
+
+## Owner check (when F2–F6 are done)
 1. Rebuild and restart: in `front/` run `pnpm build`, then `bash tools/start-dev.sh`.
 2. In `back/` run once: `php artisan ai:rescope-sections`.
 3. **Support:** ask a simple question → the assistant answers (no handoff).
@@ -155,3 +167,6 @@ Example: «make phone show one card» also changed the section header.
   Builder media map, **real bug fixed**: «استخدم في القسم» called `setSection(index, section)` instead of `setSection(id, props)` in both
   Builders; effects no longer set state synchronously; «late reply» clock in state; `router.push` instead of `window.location`;
   «أقسامي» list guards a non-array). Front: lint ✓ typecheck ✓ 310 tests ✓ build ✓. Next: P3 step 5 front test, F5 guard, P2 step 3.
+- 2026-11-18 — **F5 DONE**: `AiDesigner::keepEditedFields()` — an edit that drops existing field keys gets them back (with the merchant's
+  values) unless the merchant's message asks to remove something (no extra AI call). **Found: no designer tests at all → P6 / F6 added.**
+  Next: F6 (tests), then the P3 step 5 front test, then P2 step 3 (real tries + log).
