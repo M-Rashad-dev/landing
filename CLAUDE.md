@@ -4,6 +4,8 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 
 The rebuilt front end (once `front-v2/`) is now `front/`; the old one is deleted. **Read [docs/PROJECT.md](docs/PROJECT.md) first**: the whole project, the owner's way of working, conventions and the agreed roadmap. Deploy guide: [deploy/DEPLOY.md](deploy/DEPLOY.md).
 
+**Active work:** the AI designer, built in stages from [docs/plans/ai-designer.md](docs/plans/ai-designer.md). Read it and its PROGRESS LOG before doing anything on it, and keep the log updated.
+
 ## Layout
 - `back/` Laravel 13 API only (PHP 8.3). `front/` Next.js 16 (dashboard, builder, public sites). `deploy/` + root compose files for the VPS.
 - Locally: `source tools/env.sh` puts portable PHP 8.3 first on PATH (Windows dev box). MySQL = XAMPP MariaDB (root, no password), DBs `landing` / `landing_test`.
