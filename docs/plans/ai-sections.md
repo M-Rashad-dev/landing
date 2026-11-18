@@ -581,3 +581,4 @@ All under `/api/v1/dashboard/ai/sections`:
 ## Progress log (update after every finished task: date — what is done — what is next)
 
 - 2026-11-18 — Plan written and agreed with the owner. Next: Step 1, task 1 (migration + models).
+- 2026-11-18 — Step 1 task 1 done: migration `2026_11_30_100001_create_ai_sections` (4 tables) + models `AiSection`, `AiSectionVersion`, `AiSectionChat`, `AiSectionMessage`; `sabberworm/php-css-parser` ^9.5 added (owner approved; log it in DECISIONS.md with the step-1 commit). Next: Step 1 task 2 (`AiTemplate`, `AiSectionSanitizer`, `AiSectionCss`, `AiSectionFields` + unit tests).
