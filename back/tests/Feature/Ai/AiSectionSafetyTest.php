@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Ai\Designer\AiSectionCss;
+use App\Ai\Designer\AiSectionFields;
 use App\Ai\Designer\AiSectionSanitizer;
 use App\Ai\Designer\AiTemplate;
+use Illuminate\Support\Facades\Validator;
 
 /** The cleaned HTML of an AI template. */
 function cleanHtml(string $html): string
@@ -93,4 +95,39 @@ it('scopes every selector and drops dangerous CSS', function () {
         ->and($css)->toContain('var(--ai-font-body)')
         ->and($css)->toContain('ai42-spin')
         ->and($css)->not->toMatch('/(^|\})\s*body\s*\{/');
+});
+
+it('cleans the AI settings schema and keeps store-only fields off landing pages', function () {
+    $fields = [
+        ['key' => 'title', 'type' => 'text', 'label' => 'العنوان', 'max' => 9999],
+        ['key' => 'Bad Key', 'type' => 'text', 'label' => 'x'],
+        ['key' => 'logo_media_id', 'type' => 'image', 'label' => 'x'],
+        ['key' => 'weird', 'type' => 'script', 'label' => 'x'],
+        ['key' => 'items', 'type' => 'products', 'label' => 'المنتجات'],
+    ];
+
+    $store = AiSectionFields::schema($fields, 'store');
+    $keys = array_column($store['fields'], 'key');
+    expect($keys)->toContain('title')->toContain('items')
+        ->and($keys)->not->toContain('Bad Key')->not->toContain('logo_media_id')->not->toContain('weird')
+        ->and(collect($store['fields'])->firstWhere('key', 'title')['max'] ?? 0)->toBeLessThanOrEqual(300);
+
+    $landing = AiSectionFields::schema($fields, 'landing');
+    expect(array_column($landing['fields'], 'key'))->not->toContain('items');
+});
+
+it('validates and cleans the merchant\'s values against the fields', function () {
+    $fields = AiSectionFields::schema([
+        ['key' => 'title', 'type' => 'text', 'label' => 'العنوان', 'max' => 20],
+        ['key' => 'accent', 'type' => 'color', 'label' => 'اللون'],
+        ['key' => 'count', 'type' => 'number', 'label' => 'العدد', 'min' => 1, 'max' => 5],
+    ], 'store')['fields'];
+    $rules = AiSectionFields::rules($fields, 'values', 'store');
+
+    $bad = Validator::make(['values' => ['title' => str_repeat('أ', 30), 'accent' => 'red', 'count' => 9]], $rules);
+    expect($bad->fails())->toBeTrue()
+        ->and(array_keys($bad->errors()->toArray()))->toContain('values.title', 'values.accent', 'values.count');
+
+    $clean = AiSectionFields::clean($fields, ['title' => ' أهلا ', 'accent' => '#112233', 'count' => 3, 'hacker' => '<script>'], 'store');
+    expect($clean)->not->toHaveKey('hacker')->and($clean['accent'])->toBe('#112233');
 });

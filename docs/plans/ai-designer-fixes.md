@@ -261,4 +261,15 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
   **Then:**
   - P2 step 3 (real tries + log reading, a few cents; tell the owner first)
   - Owner check
+- 2026-11-18: **F6, seventh part done:** the fields tests (`AiSectionSafetyTest`, 27 tests, all passing).
+  - The schema drops bad keys, unknown types and reserved `_media_id` names, and clamps `max`.
+  - `products` is store-only.
+  - Values are validated (too long, bad colour, out of range) and unknown keys are dropped.
+
+  **Still open in F6:** only the landing-page design test (an approved landing section in a page; publish stamps
+  `version_id`; another theme gives 422; the order form is untouched).
+
+  **Then:**
+  - P2 step 3 (real tries + log reading, a few cents; tell the owner first)
+  - Owner check
 
