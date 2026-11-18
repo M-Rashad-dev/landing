@@ -248,4 +248,17 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
 
   The phone-frame layout can't be measured in jsdom (no CSS layout), so P3 step 5 becomes an owner check: the CSS
   conversion itself is unit-tested.
+- 2026-11-18: **F6, sixth part done:** an image test (11 tests in `AiDesignerEndpointsTest`, all passing).
+  - «شيل الخلفية» on an attached photo saves the result to the store's media library.
+  - The image call is recorded in `ai_usages.images`. The fake costs 0; real calls are charged at OpenRouter's
+    reported cost.
+  - Another store's media id gives 422.
+
+  **Still open in F6:**
+  - the `AiSectionFields` tests
+  - the landing-page design test
+
+  **Then:**
+  - P2 step 3 (real tries + log reading, a few cents; tell the owner first)
+  - Owner check
 

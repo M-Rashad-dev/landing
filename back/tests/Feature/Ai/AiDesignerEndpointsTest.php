@@ -11,12 +11,15 @@ use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Models\AiSection;
 use App\Models\AiWalletEntry;
+use App\Models\Media;
 use App\Models\PlanFeatureValue;
 use App\Models\Product;
 use App\Models\StoreDesign;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\Tenancy;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 /** A Pro store with a set-up store (theme asas_store), the designer on and a topped-up AI balance. */
@@ -200,4 +203,29 @@ it('runs a whole design, applies it to the draft, reverts it, and never touches 
     $this->postJson("/api/v1/dashboard/ai/designer/runs/{$run}/revert", ['version' => $applied['version']])->assertOk();
     expect($this->getJson('/api/v1/dashboard/store/design')->json('data.draft'))->toEqual($before['draft'])
         ->and(Tenancy::runAs($owner->tenant_id, fn () => $product->fresh()->name))->toBe('منتج ثابت');
+});
+
+it('edits a merchant photo into the store library, charged, and only from this store\'s images', function () {
+    Storage::fake('public');
+    Storage::fake('local');
+    $owner = designerOwner();
+    $chat = designerChat();
+    $media = $this->post('/api/v1/dashboard/media', ['files' => [UploadedFile::fake()->image('mug.jpg', 800, 800)]], ['Accept' => 'application/json'])
+        ->assertSuccessful()->json('data.0.id');
+    $before = Tenancy::runAs($owner->tenant_id, fn () => Media::query()->count());
+
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'شيل الخلفية', 'media_ids' => [$media]])->assertStatus(202);
+    $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
+    $reply = end($messages);
+
+    expect($reply['status'])->toBe('done')
+        ->and($reply['media'])->not->toBeEmpty()
+        ->and(Tenancy::runAs($owner->tenant_id, fn () => Media::query()->count()))->toBe($before + count($reply['media']))
+        // The image call is recorded (the fake costs 0; real calls are charged by OpenRouter's reported cost).
+        ->and(App\Models\AiUsage::query()->where('tenant_id', $owner->tenant_id)->where('images', '>', 0)->where('ok', true)->count())->toBe(count($reply['media']));
+
+    // Another store's image can't be attached.
+    designerOwner();
+    $other = designerChat();
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$other}/messages", ['text' => 'شيل الخلفية', 'media_ids' => [$media]])->assertStatus(422);
 });
