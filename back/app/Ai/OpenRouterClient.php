@@ -10,15 +10,17 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Qwen on Alibaba Cloud Model Studio, through its OpenAI-compatible API (the workspace's own
- * address and key, config/ai.php). One retry on a connection error or a server error; anything
- * else is an AiError for App\Ai\Ai to count.
+ * OpenRouter (owner-approved provider, 2026-11-18): one account and key for every model (Qwen,
+ * Google, NVIDIA…), through its OpenAI-compatible API (config/ai.php). Model ids carry their
+ * vendor («qwen/qwen4-max»); «:free» ids cost nothing. Reasoning (thinking tokens) is off unless a
+ * task asks for it. One retry on a connection or server error; anything else is an AiError for
+ * App\Ai\Ai to count.
  */
-final class QwenClient implements AiClient
+final class OpenRouterClient implements AiClient
 {
     public function configured(): bool
     {
-        return filled(config('ai.qwen.api_key')) && filled(config('ai.qwen.base_url'));
+        return filled(config('ai.openrouter.api_key')) && filled(config('ai.openrouter.base_url'));
     }
 
     public function chat(string $model, array $messages, array $options = []): AiReply
@@ -26,8 +28,8 @@ final class QwenClient implements AiClient
         $body = [
             'model' => $model,
             'messages' => array_map(fn (array $m) => ['role' => $m['role'], 'content' => self::content($m['content'])], $messages),
-            // Deep thinking multiplies the bill: only for the tasks that ask for it.
-            'enable_thinking' => (bool) ($options['thinking'] ?? false),
+            // Thinking tokens are billed: only for the tasks that ask for them.
+            'reasoning' => ['enabled' => (bool) ($options['thinking'] ?? false)],
         ];
         if (isset($options['max_tokens'])) {
             $body['max_tokens'] = $options['max_tokens'];
@@ -44,7 +46,8 @@ final class QwenClient implements AiClient
 
         return new AiReply(
             text: (string) ($json['choices'][0]['message']['content'] ?? ''),
-            model: (string) ($json['model'] ?? $model),
+            // The id asked for (prices are kept by it; a «:free» id answers with the paid model's name).
+            model: $model,
             inputTokens: (int) ($usage['prompt_tokens'] ?? 0),
             outputTokens: (int) ($usage['completion_tokens'] ?? 0),
             cachedTokens: (int) ($usage['prompt_tokens_details']['cached_tokens'] ?? 0),
@@ -56,6 +59,9 @@ final class QwenClient implements AiClient
         $json = $this->post('embeddings', ['model' => $model, 'input' => array_values($texts), 'encoding_format' => 'float']);
         $rows = (array) ($json['data'] ?? []);
         usort($rows, fn ($a, $b) => ((int) ($a['index'] ?? 0)) <=> ((int) ($b['index'] ?? 0)));
+        if (count($rows) !== count($texts)) {
+            throw new AiError('OpenRouter embeddings: '.count($rows).' vectors for '.count($texts).' texts');
+        }
 
         return new AiEmbeddings(
             vectors: array_map(fn (array $row) => array_map('floatval', (array) $row['embedding']), $rows),
@@ -88,16 +94,17 @@ final class QwenClient implements AiClient
     private function post(string $path, array $body): array
     {
         if (! $this->configured()) {
-            throw new AiError('Qwen is not configured');
+            throw new AiError('OpenRouter is not configured');
         }
 
         try {
             $response = $this->http()->post($path, $body);
         } catch (ConnectionException $e) {
-            throw new AiError('Qwen unreachable: '.$e->getMessage());
+            throw new AiError('OpenRouter unreachable: '.$e->getMessage());
         }
 
-        if (! $response->successful()) {
+        // OpenRouter may answer 200 with an error body (a provider failed mid-way).
+        if (! $response->successful() || is_array($response->json('error'))) {
             throw new AiError(self::reason($response), $response->status());
         }
 
@@ -106,20 +113,20 @@ final class QwenClient implements AiClient
 
     private function http(): PendingRequest
     {
-        return Http::baseUrl(rtrim((string) config('ai.qwen.base_url'), '/').'/')
-            ->withToken((string) config('ai.qwen.api_key'))
+        return Http::baseUrl(rtrim((string) config('ai.openrouter.base_url'), '/').'/')
+            ->withToken((string) config('ai.openrouter.api_key'))
             ->acceptJson()
             ->asJson()
-            ->timeout((int) config('ai.qwen.timeout', 60))
+            ->timeout((int) config('ai.openrouter.timeout', 180))
             ->retry(2, 800, fn ($e) => $e instanceof ConnectionException || ($e->response?->serverError() ?? false), throw: false);
     }
 
     private static function reason(Response $response): string
     {
         $error = (array) ($response->json('error') ?? []);
-        $code = (string) ($error['code'] ?? $response->json('code') ?? '');
+        $code = (string) ($error['code'] ?? '');
         $message = (string) ($error['message'] ?? $response->json('message') ?? '');
 
-        return trim("Qwen {$response->status()} {$code} {$message}");
+        return trim("OpenRouter {$response->status()} {$code} {$message}");
     }
 }

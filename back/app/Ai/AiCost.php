@@ -9,7 +9,13 @@ final class AiCost
 {
     public static function priced(string $model): bool
     {
-        return self::price($model) !== null;
+        return self::free($model) || self::price($model) !== null;
+    }
+
+    /** OpenRouter's «:free» models (local trials) cost nothing. */
+    public static function free(string $model): bool
+    {
+        return str_ends_with($model, ':free');
     }
 
     /**

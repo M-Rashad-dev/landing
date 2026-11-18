@@ -57,9 +57,8 @@ x-back-env: &back-env
   WHATSAPP_WABA_ID: ${WHATSAPP_WABA_ID:-}
   WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
   WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
-  # AI (Qwen, Model Studio). Empty key = the AI is off (support goes to people).
-  QWEN_API_KEY: ${QWEN_API_KEY:-}
-  QWEN_BASE_URL: ${QWEN_BASE_URL:-}
+  # AI (OpenRouter). Empty key = the AI is off (support goes to people).
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
   # Email (admin alerts...). Empty MAIL_MAILER = log only (nothing is sent).
   MAIL_MAILER: ${MAIL_MAILER:-log}
   MAIL_SCHEME: ${MAIL_SCHEME:-}

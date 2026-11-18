@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use App\Ai\Ai;
 use App\Ai\AiClient;
+use App\Ai\AiCost;
 use App\Ai\AiError;
 use App\Ai\AiUnavailable;
 use App\Ai\FakeAiClient;
-use App\Ai\QwenClient;
+use App\Ai\OpenRouterClient;
 use App\Billing\PlatformSettings;
 use App\Models\AiUsage;
 use App\Models\Tenant;
@@ -51,13 +52,13 @@ it('asks the model of the task and records the call with its cost', function () 
     $reply = askSupport($tenant->id);
 
     expect($reply->text)->toBe('روح المنتجات ← منتج جديد.')
-        ->and(fakeAi()->chats[0]['model'])->toBe('qwen4-max');
+        ->and(fakeAi()->chats[0]['model'])->toBe('qwen/qwen4-max');
     $usage = AiUsage::query()->sole();
-    // 1000 in (400 from the cache), 200 out at qwen4-max prices: (600×1.5 + 400×0.075 + 200×4.5) / 1M.
+    // 1000 in (400 from the cache), 200 out at qwen4-max prices: (600×1.425 + 400×0.075 + 200×4.275) / 1M.
     expect($usage->tenant_id)->toBe($tenant->id)
         ->and($usage->feature)->toBe('support')
         ->and([$usage->input_tokens, $usage->cached_tokens, $usage->output_tokens])->toBe([1000, 400, 200])
-        ->and((float) $usage->cost_usd)->toBe(0.00183)
+        ->and((float) $usage->cost_usd)->toBe(0.00174)
         ->and($usage->ok)->toBeTrue();
 });
 
@@ -100,37 +101,61 @@ it('pauses after failures in a row, tells the owner, and a success resets the co
     expect(app(Ai::class)->available('support'))->toBeTrue();
 });
 
-it('talks to Qwen in its OpenAI-compatible shape, with images and without deep thinking', function () {
-    config(['ai.qwen.api_key' => 'sk-test', 'ai.qwen.base_url' => 'https://ws-test.example.com/compatible-mode/v1']);
-    Http::fake(['ws-test.example.com/*' => Http::response([
-        'model' => 'qwen4-max',
+it('talks to OpenRouter in its OpenAI-compatible shape, with images and without reasoning', function () {
+    config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
+    Http::fake(['openrouter.test/*' => Http::response([
+        'model' => 'google/gemma-4-31b-it',
         'choices' => [['message' => ['content' => 'أهلًا']]],
         'usage' => ['prompt_tokens' => 50, 'completion_tokens' => 5, 'prompt_tokens_details' => ['cached_tokens' => 20]],
     ])]);
 
-    $reply = app(QwenClient::class)->chat('qwen4-max', [
+    $reply = app(OpenRouterClient::class)->chat('google/gemma-4-31b-it:free', [
         ['role' => 'system', 'content' => 'انت مساعد مكسب.'],
         ['role' => 'user', 'content' => [['type' => 'text', 'text' => 'شوف الصورة'], ['type' => 'image', 'url' => 'https://cdn.example.com/a.jpg']]],
-    ], ['max_tokens' => 300]);
+    ], ['max_tokens' => 300, 'json' => true]);
 
-    expect([$reply->text, $reply->inputTokens, $reply->outputTokens, $reply->cachedTokens])->toBe(['أهلًا', 50, 5, 20]);
-    Http::assertSent(fn (Request $r) => $r->url() === 'https://ws-test.example.com/compatible-mode/v1/chat/completions'
-        && $r->hasHeader('Authorization', 'Bearer sk-test')
-        && $r['enable_thinking'] === false
+    // The id asked for is kept (a «:free» id answers with the paid model's name).
+    expect([$reply->text, $reply->model, $reply->inputTokens, $reply->outputTokens, $reply->cachedTokens])->toBe(['أهلًا', 'google/gemma-4-31b-it:free', 50, 5, 20]);
+    Http::assertSent(fn (Request $r) => $r->url() === 'https://openrouter.test/api/v1/chat/completions'
+        && $r->hasHeader('Authorization', 'Bearer sk-or-test')
+        && $r['reasoning'] === ['enabled' => false]
         && $r['max_tokens'] === 300
+        && $r['response_format'] === ['type' => 'json_object']
         && $r['messages'][1]['content'][1] === ['type' => 'image_url', 'image_url' => ['url' => 'https://cdn.example.com/a.jpg']]);
 });
 
-it('turns a refusal from Qwen into an AiError and refuses to call without keys', function () {
-    config(['ai.qwen.api_key' => 'sk-test', 'ai.qwen.base_url' => 'https://ws-test.example.com/v1']);
-    Http::fake(['*' => Http::response(['error' => ['code' => 'Arrearage', 'message' => 'Access denied']], 400)]);
+it('embeds through OpenRouter in order', function () {
+    config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
+    Http::fake(['openrouter.test/*' => Http::response([
+        'data' => [['index' => 1, 'embedding' => [0.3, 0.4]], ['index' => 0, 'embedding' => [0.1, 0.2]]],
+        'usage' => ['prompt_tokens' => 12],
+    ])]);
 
-    expect(fn () => app(QwenClient::class)->chat('qwen4-max', [['role' => 'user', 'content' => 'hi']]))
-        ->toThrow(AiError::class, 'Qwen 400 Arrearage Access denied');
+    $result = app(OpenRouterClient::class)->embed('qwen/qwen3-embedding-8b', ['أ', 'ب']);
 
-    config(['ai.qwen.api_key' => null]);
-    expect(app(QwenClient::class)->configured())->toBeFalse()
-        ->and(fn () => app(QwenClient::class)->embed('text-embedding-v4', ['x']))->toThrow(AiError::class);
+    expect($result->vectors)->toBe([[0.1, 0.2], [0.3, 0.4]])->and($result->inputTokens)->toBe(12);
+});
+
+it('turns a refusal from OpenRouter into an AiError, even inside a 200, and refuses to call without a key', function () {
+    config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
+    Http::fake(['*' => Http::sequence()
+        ->push(['error' => ['code' => 402, 'message' => 'Insufficient credits']], 402)
+        ->push(['error' => ['code' => 502, 'message' => 'Provider returned error']], 200)]);
+
+    expect(fn () => app(OpenRouterClient::class)->chat('qwen/qwen4-max', [['role' => 'user', 'content' => 'hi']]))
+        ->toThrow(AiError::class, 'OpenRouter 402 402 Insufficient credits')
+        ->and(fn () => app(OpenRouterClient::class)->chat('qwen/qwen4-max', [['role' => 'user', 'content' => 'hi']]))
+        ->toThrow(AiError::class, 'Provider returned error');
+
+    config(['ai.openrouter.api_key' => null]);
+    expect(app(OpenRouterClient::class)->configured())->toBeFalse()
+        ->and(fn () => app(OpenRouterClient::class)->embed('qwen/qwen3-embedding-8b', ['x']))->toThrow(AiError::class);
+});
+
+it('counts «:free» models as priced at nothing', function () {
+    expect(AiCost::priced('google/gemma-4-31b-it:free'))->toBeTrue()
+        ->and(AiCost::usd('google/gemma-4-31b-it:free', 5000, 5000))->toBe(0.0)
+        ->and(AiCost::priced('someone/unknown-model'))->toBeFalse();
 });
 
 it('keeps the AI page to super admins', function () {
@@ -153,8 +178,8 @@ it('shows the settings, the connection and what the AI cost', function () {
     expect($data['settings'])->toEqual(['features' => ['support' => true], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])
         ->and($data['status']['configured'])->toBeTrue()
         ->and($data['status']['limit_reached'])->toBeFalse()
-        ->and($data['models'])->toBe([['model' => 'qwen4-max', 'priced' => true], ['model' => 'qwen3.7-text-embedding', 'priced' => true]])
-        ->and($data['usage']['today'])->toBe(['calls' => 2, 'usd' => 0.0018, 'failed' => 1])
+        ->and($data['models'])->toBe([['model' => 'qwen/qwen4-max', 'priced' => true], ['model' => 'qwen/qwen3-embedding-8b', 'priced' => true]])
+        ->and($data['usage']['today'])->toBe(['calls' => 2, 'usd' => 0.0017, 'failed' => 1])
         ->and($data['usage']['top_stores'][0])->toMatchArray(['name' => 'متجر سما', 'calls' => 2])
         ->and($data['usage']['failures'][0]['error'])->toBe('Qwen 429 Throttling');
 });

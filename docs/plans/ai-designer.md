@@ -159,7 +159,11 @@ The admin turns the feature on or off with a new switch `designer` on the admin 
 - **`AiClient` (interface):** `configured(): bool`, `chat(string $model, array $messages, array $options = []):
   AiReply`, `embed(string $model, array $texts): AiEmbeddings`.
 - **`AiReply`:** `text`, `model`, `inputTokens`, `outputTokens`, `cachedTokens` (public readonly).
-- **`QwenClient`:** OpenAI-compatible (`QWEN_BASE_URL` + `QWEN_API_KEY`).
+- **`OpenRouterClient`** (the only real provider; Alibaba / `QwenClient` were removed 2026-11-18): OpenAI-compatible,
+  `OPENROUTER_API_KEY`, base `https://openrouter.ai/api/v1`; sends `reasoning: {enabled: false}` unless
+  `options['thinking']`. Model ids carry the vendor (`qwen/qwen4-max`); `:free` ids are priced 0 (`AiCost::free`).
+  Locally the owner runs free models (`AI_MODEL_SUPPORT=inclusionai/ling-3.2-flash:free`,
+  `AI_MODEL_EMBEDDING=nvidia/nemotron-3.5-embed-8b:free`).
   - `options['json'] = true` sends `response_format: json_object`.
   - Message `content` can be a string or a list of parts: `['type' => 'text', 'text' => …]` and
     `['type' => 'image', 'url' => 'data:image/…;base64,…']`, which it converts to `image_url`.
@@ -612,7 +616,8 @@ Each theme registry entry gets `aiTokens(settings: unknown, scheme?: "light" | "
 ### 3.10 Feature, tasks, limits
 - Feature key **`designer`** (in `AiSettings::FEATURES`). Admin label «المصمم الذكي (الأقسام وتصميم الصفحات)»,
   hint «التاجر يصمم أقسام جديدة أو صفحته كلها بالذكاء الاصطناعي، والتكلفة من رصيده.»
-- Tasks in `config/ai.php`: one task `designer` => `env('AI_MODEL_DESIGNER', 'qwen4-max')`. `qwen4-max` understands
+- Tasks in `config/ai.php`: one task `designer` => `env('AI_MODEL_DESIGNER', 'qwen/qwen4-max')` (locally the owner may set a
+  free model, for example `inclusionai/ling-3.2-flash:free`, to try real designs without paying). `qwen4-max` understands
   images too (text + image input), so **no separate vision task**: the same task is used with or without images.
 - **The provider is decided at the end (Stage 6, most likely OpenRouter).** Until then build and test everything
   with `AI_DRIVER=fake` (`FakeAiClient`). Never write provider-specific code in Stages 1–5: no Alibaba / DashScope /
@@ -1095,7 +1100,7 @@ inside `Tenancy::runAs($tenantId, ...)` (copy `AnswerSupport`) and calls `AiDesi
 - Add to the `AiClient` interface:
   - `editImage(string $model, string $imageDataUrl, string $instruction): AiImage`
   - `generateImage(string $model, string $prompt, string $size): AiImage`
-- **`QwenClient`: do NOT implement real image calls in this stage.** Its `editImage` / `generateImage` throw
+- **`OpenRouterClient`: do NOT implement real image calls in this stage.** Its `editImage` / `generateImage` throw
   `AiError('Image generation is not connected yet')`. The real image provider is connected in **Stage 6**.
 - **`FakeAiClient`:** this is what Stages 3–5 use.
   - Return a real small image: create it with GD, 512×512.
@@ -1299,7 +1304,7 @@ Stage 6 connects the real provider.
 **Before starting:** ask the owner for the provider's key, and wait until he has added it to `back/.env`. Never ask
 him to paste the key in the chat.
 
-**6.1 OpenRouter for text (chat + JSON + images as input):**
+**6.1 OpenRouter for text (chat + JSON + images as input): ALREADY DONE (2026-11-18), skip it.** Kept for reference:
 - Add a client `App\Ai\OpenRouterClient implements AiClient`.
   - It is OpenAI-compatible: base URL `https://openrouter.ai/api/v1`, `Authorization: Bearer <key>`.
   - Recommended headers: `HTTP-Referer: https://mksab.store` and `X-Title: Mksab`.
@@ -1315,7 +1320,7 @@ him to paste the key in the chat.
   - `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL` (default above)
   - in `back/.env.example`, the root compose env list (`docker-compose.yml`, next to `QWEN_*`) and `deploy/DEPLOY.md`
 
-**6.2 Embedding while Alibaba's free quota lasts:**
+**6.2 Embedding: ALREADY DONE (embedding is on OpenRouter too; `php artisan ai:reembed` exists), skip it.** Kept for reference:
 - Embedding calls must keep going to Alibaba.
 - Add a separate binding for embeddings: `AI_EMBED_DRIVER=qwen|openrouter` (default = `AI_DRIVER`).
   `Ai::embed()` uses that client.
@@ -1439,3 +1444,6 @@ Every endpoint: success, validation, 401, another tenant → 404.
   images. Stages 1–5 are built on `AI_DRIVER=fake`. **Stage 6** (added) connects the real provider at the end, most
   likely OpenRouter for everything; embedding stays on Alibaba's free quota until it runs out. Locally the support
   assistant temporarily uses the free `qwen-plus-character` (`AI_MODEL_SUPPORT` in the owner's `back/.env`).
+- 2026-11-18: **Alibaba removed entirely; OpenRouter connected** (`App\Ai\OpenRouterClient`, `php artisan ai:reembed`). Stage 6.1 and 6.2
+  are done. The owner tries everything locally on free OpenRouter models (see §2.1). Stage 6 is now only: images (6.3), then switching
+  to the paid strong models when going live (6.4–6.5).

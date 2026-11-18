@@ -205,14 +205,20 @@ Realtime via **Laravel Reverb** (private channels `support.tenant.{id}`, `suppor
 Works even when the plan expired.
 
 ### AI (plan: support assistant → merchant AI wallet → AI sections → AI designer; one step at a time)
-- Provider: **Qwen** on Alibaba Cloud Model Studio (international, Singapore; owner-approved 2026-11-17), behind
-  `App\Ai\AiClient` (`QwenClient`, OpenAI-compatible, the workspace's own address `QWEN_BASE_URL` + `QWEN_API_KEY`;
-  `FakeAiClient` when `AI_DRIVER=fake`: tests and local e2e, nothing sent). Another provider = another client class.
+- Provider: **OpenRouter** (owner-approved 2026-11-18; Alibaba dropped: its account was blocked by risk control), one
+  account and key (`OPENROUTER_API_KEY`) for every model, behind `App\Ai\AiClient` (`OpenRouterClient`,
+  OpenAI-compatible, reasoning off unless a task asks; `FakeAiClient` when `AI_DRIVER=fake`: tests and local e2e,
+  nothing sent). Another provider = another client class. Model ids carry their vendor (`qwen/qwen4-max`); `:free`
+  ids cost nothing and are priced 0 (`AiCost::free`).
 - Features never call the client: they go through `App\Ai\Ai` (`chat` / `embed` with a feature + a task). It asks only
   when the feature is on, the keys are set, the AI isn't paused and today's platform spend is under the cap; records
   every call in `ai_usages` (tokens, cache, USD cost from `config/ai.php` prices); after 3 failures in a row pauses 5
   minutes and rings the owner's bell (`ai_paused`). Features catch `AiUnavailable` and fall back (support → people).
-- Models per task in `config/ai.php` (`support` = qwen4-max, the strongest, owner's choice; no free quota on it).
+- Models per task in `config/ai.php`: the defaults are the production ones (`support` = `qwen/qwen4-max`,
+  `embedding` = `qwen/qwen3-embedding-8b`). The owner tries everything locally on free models first
+  (`AI_MODEL_SUPPORT=inclusionai/ling-3.2-flash:free`, `AI_MODEL_EMBEDDING=nvidia/nemotron-3.5-embed-8b:free` in his
+  `back/.env`) and pays only when going live. Free models are slow / sometimes busy (429) and may log prompts: trials
+  only. Changing the embedding model: `php artisan ai:reembed`.
 - Admin «الذكاء الاصطناعي» (`/admin/ai`): features on / off (all off by default), daily cap USD (20), support messages
   per store a day (30), the merchant wallet (USD rate + margin %, top-up packages, least free amount, offers, welcome
   credit, low-balance line); connection state, cost today / this month / by feature / by store, the wallets' month
@@ -228,7 +234,7 @@ Works even when the plan expired.
   Prompt: `resources/prompts/support-assistant.md`. Admin inbox: «مع المساعد» tab, reason + summary + sources.
 - **Knowledge base** (`ai_articles` / `ai_article_chunks`, platform tables): admin «معلومات المساعد» on the AI page;
   every save cuts the article into pieces (`App\Ai\Knowledge`) and `EmbedKnowledge` gives them vectors
-  (qwen3.7-text-embedding) while the assistant is on; search = cosine in PHP over the cached vectors. 42 starter
+  (the `embedding` task) while the assistant is on; search = cosine in PHP over the cached vectors. 42 starter
   articles from `AiArticleSeeder` (base data, only into an empty base; the owner reviews and edits them).
 - **Merchant AI wallet** (`App\Ai\AiWallets`; tenant tables `ai_wallets` + `ai_wallet_entries`, EGP decimals, cents in
   code): two pots. **Free** = welcome credit (admin, 10, once at registration) + owner gifts: usable on every plan.

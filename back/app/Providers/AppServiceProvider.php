@@ -6,7 +6,7 @@ namespace App\Providers;
 
 use App\Ai\AiClient;
 use App\Ai\FakeAiClient;
-use App\Ai\QwenClient;
+use App\Ai\OpenRouterClient;
 use App\Billing\Entitlements;
 use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DnsResolver::class, NativeDnsResolver::class);
         $this->app->bind(WhatsAppGateway::class, CloudWhatsAppGateway::class);
         // The AI provider (config/ai.php): the fake answers locally (tests, e2e) and is one instance, so a test can queue its answers.
-        $this->app->singleton(AiClient::class, fn ($app): AiClient => config('ai.driver') === 'fake' ? new FakeAiClient : $app->make(QwenClient::class));
+        $this->app->singleton(AiClient::class, fn ($app): AiClient => config('ai.driver') === 'fake' ? new FakeAiClient : $app->make(OpenRouterClient::class));
         // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
         $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()
             ? $app->make(WhatsAppCodeSender::class)

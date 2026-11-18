@@ -3,33 +3,36 @@
 declare(strict_types=1);
 
 /*
- * AI (owner-approved provider: Qwen on Alibaba Cloud Model Studio, international / Singapore; keys in
- * .env only). Features ask App\Ai\Ai for a task; the task picks the model here, so changing a model
+ * AI (owner-approved provider: OpenRouter, 2026-11-18: one account for every model; keys in .env
+ * only). Model ids carry their vendor («qwen/qwen4-max»); «:free» ids cost nothing (local trials).
+ * The defaults here are the production models; a local .env may point a task at a free model. Features ask App\Ai\Ai for a task; the task picks the model here, so changing a model
  * (or the provider) never touches the features. See docs/PROJECT.md «AI».
  */
 return [
-    // qwen = the real provider; fake = canned answers, nothing sent (tests and local e2e).
-    'driver' => env('AI_DRIVER', 'qwen'),
+    // openrouter = the real provider; fake = canned answers, nothing sent (tests and local e2e).
+    'driver' => env('AI_DRIVER', 'openrouter'),
 
-    'qwen' => [
-        'api_key' => env('QWEN_API_KEY'),
-        // The workspace's OpenAI-compatible address (Model Studio → API Key → "openAiCompatible").
-        'base_url' => env('QWEN_BASE_URL'),
-        'timeout' => (int) env('QWEN_TIMEOUT', 60),
+    'openrouter' => [
+        'api_key' => env('OPENROUTER_API_KEY'),
+        'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+        // A whole section or page design can take minutes.
+        'timeout' => (int) env('AI_TIMEOUT', 180),
     ],
 
-    // The model of each task (the strongest for now: owner, 2026-11-17).
+    // The model of each task (the strongest for production: owner, 2026-11-17).
     'tasks' => [
-        'support' => env('AI_MODEL_SUPPORT', 'qwen4-max'),
+        'support' => env('AI_MODEL_SUPPORT', 'qwen/qwen4-max'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
-        'embedding' => env('AI_MODEL_EMBEDDING', 'qwen3.7-text-embedding'),
+        // Changing it re-embeds every piece (php artisan ai:reembed).
+        'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
     ],
 
-    // USD per 1M tokens (input, input served from the provider's cache, output), from the Model
-    // Studio console (Singapore). A model missing here costs 0 and is flagged in the admin page.
+    // USD per 1M tokens (input, input served from the provider's cache, output), from OpenRouter's
+    // model pages. «:free» models cost 0; any other model missing here costs 0 and is flagged in
+    // the admin page.
     'prices' => [
-        'qwen4-max' => ['input' => 1.5, 'cached' => 0.075, 'output' => 4.5],
-        'qwen3.7-text-embedding' => ['input' => 0.07, 'output' => 0],
+        'qwen/qwen4-max' => ['input' => 1.425, 'cached' => 0.075, 'output' => 4.275],
+        'qwen/qwen3-embedding-8b' => ['input' => 0.01, 'output' => 0],
     ],
 
     // The support assistant: how many knowledge pieces it reads per question, and the least
