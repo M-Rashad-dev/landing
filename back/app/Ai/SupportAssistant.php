@@ -153,7 +153,7 @@ final class SupportAssistant
         }
 
         $reply = $this->ai->chat('support', 'support', $messages, ['json' => true, 'max_tokens' => 900, 'temperature' => 0.3], $ticket->tenant_id);
-        $json = json_decode(self::unfence($reply->text), true);
+        $json = Designer\AiDesigner::decodeJson($reply->text);
         if (! is_array($json)) {
             throw new AiUnavailable(AiUnavailable::FAILED);
         }
@@ -205,13 +205,5 @@ final class SupportAssistant
         $text = is_string($text) ? trim(strip_tags($text)) : '';
 
         return $text === '' ? null : mb_substr($text, 0, 1000);
-    }
-
-    /** A JSON answer sometimes comes inside ``` fences. */
-    private static function unfence(string $text): string
-    {
-        $text = trim($text);
-
-        return (string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', $text);
     }
 }

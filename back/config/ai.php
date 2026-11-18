@@ -51,7 +51,7 @@ return [
 
     // The support assistant: how many knowledge pieces it reads per question, and the least
     // likeness (cosine) a piece needs to count.
-    'knowledge' => ['top' => 5, 'min_score' => 0.35, 'chunk_chars' => 900, 'batch' => 10],
+    'knowledge' => ['top' => 5, 'min_score' => 0.35, 'chunk_chars' => 900, 'batch' => 10, 'cache_store' => env('AI_VECTORS_CACHE', 'file')],
 
     // Consecutive failures that pause the AI for a while (and tell the owner), and for how long.
     'breaker' => ['failures' => 3, 'pause_minutes' => 5],

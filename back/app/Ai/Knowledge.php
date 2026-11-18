@@ -144,7 +144,8 @@ final class Knowledge
     {
         $model = Ai::model('embedding');
 
-        return Cache::rememberForever(self::VECTORS_KEY, fn () => AiArticleChunk::query()
+        // Big vectors (4096 numbers a piece) don't fit the database cache: a file (config ai.knowledge.cache_store).
+        return Cache::store((string) config('ai.knowledge.cache_store', 'file'))->rememberForever(self::VECTORS_KEY, fn () => AiArticleChunk::query()
             ->join('ai_articles', 'ai_articles.id', '=', 'ai_article_chunks.ai_article_id')
             ->where('ai_articles.is_active', true)->where('ai_article_chunks.model', $model)->whereNotNull('ai_article_chunks.embedding')
             ->get(['ai_article_chunks.id', 'ai_article_chunks.ai_article_id', 'ai_article_chunks.text', 'ai_article_chunks.embedding', 'ai_articles.title'])
@@ -154,6 +155,6 @@ final class Knowledge
 
     public static function forget(): void
     {
-        Cache::forget(self::VECTORS_KEY);
+        Cache::store((string) config('ai.knowledge.cache_store', 'file'))->forget(self::VECTORS_KEY);
     }
 }

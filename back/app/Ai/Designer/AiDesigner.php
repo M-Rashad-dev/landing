@@ -1171,7 +1171,7 @@ final class AiDesigner
         $stripped = trim((string) preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($text)));
         $decoded = json_decode($stripped, true);
         if (is_array($decoded)) {
-            return $decoded;
+            return self::unwrapList($decoded);
         }
 
         $start = strpos($stripped, '{');
@@ -1179,10 +1179,31 @@ final class AiDesigner
         if ($start !== false && $end !== false && $end > $start) {
             $candidate = json_decode(substr($stripped, $start, $end - $start + 1), true);
             if (is_array($candidate)) {
-                return $candidate;
+                return self::unwrapList($candidate);
             }
         }
 
         return null;
+    }
+
+    /**
+     * Some models wrap the object in a list («[ {...} ]»): take the first object of it.
+     *
+     * @param  array<mixed>  $decoded
+     * @return array<string, mixed>|null
+     */
+    private static function unwrapList(array $decoded): ?array
+    {
+        if ($decoded !== [] && array_is_list($decoded)) {
+            foreach ($decoded as $item) {
+                if (is_array($item) && ! array_is_list($item)) {
+                    return $item;
+                }
+            }
+
+            return null;
+        }
+
+        return $decoded;
     }
 }

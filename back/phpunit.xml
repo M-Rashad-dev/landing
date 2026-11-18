@@ -38,6 +38,7 @@
         <env name="WHATSAPP_TOKEN" value=""/>
         <env name="AI_DRIVER" value="fake"/>
         <env name="OPENROUTER_API_KEY" value=""/>
+        <env name="AI_VECTORS_CACHE" value="array"/>
         <env name="AI_MODEL_SUPPORT" value="qwen/qwen4-max"/>
         <env name="AI_MODEL_EMBEDDING" value="qwen/qwen3-embedding-8b"/>
         <env name="AI_MODEL_IMAGE_GENERATE" value="google/gemini-nano-banana-2.1"/>
