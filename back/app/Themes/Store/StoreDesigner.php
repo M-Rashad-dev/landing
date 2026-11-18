@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Themes\Store;
 
+use App\Ai\Designer\AiSectionDefinitions;
 use App\Enums\PromotionTarget;
 use App\Exceptions\ApiException;
 use App\Jobs\RevalidateTenantHosts;
@@ -86,7 +87,9 @@ final class StoreDesigner
     {
         // The draft is checked again: a product or category it points to may be gone since.
         $clean = $this->validate($design->theme_key, $design->draft);
-        $design->forceFill(['draft' => $clean, 'published' => $clean, 'published_at' => now()])->save();
+        $published = $clean;
+        $published['sections'] = AiSectionDefinitions::stamp($clean['sections']);
+        $design->forceFill(['draft' => $clean, 'published' => $published, 'published_at' => now()])->save();
         RevalidateTenantHosts::dispatch((int) Tenancy::id())->afterCommit();
 
         return $design;
@@ -109,10 +112,82 @@ final class StoreDesigner
         $featured = [];
         $bundles = [];
         $mediaIds = array_filter([$design['settings']['logo_media_id'] ?? null, $design['settings']['logo_dark_media_id'] ?? null, $design['settings']['favicon_media_id'] ?? null]);
+        $hideOutOfStock = ! ($design['settings']['general']['show_out_of_stock'] ?? true);
+        $aiResolved = AiSectionDefinitions::resolve($design);
 
         foreach ($design['sections'] as $section) {
             $id = (string) $section['id'];
             $props = $section['props'];
+            if ($section['type'] === 'ai') {
+                $version = $aiResolved['byPlacement'][$id] ?? null;
+                if ($version !== null) {
+                    $values = is_array($props['values'] ?? null) ? $props['values'] : [];
+                    foreach ((array) $version->fields as $field) {
+                        if (! is_array($field) || ! isset($field['key'], $field['type'])) {
+                            continue;
+                        }
+                        $key = (string) $field['key'];
+                        $fType = (string) $field['type'];
+
+                        if ($fType === 'products') {
+                            $val = is_array($values[$key] ?? null) ? $values[$key] : null;
+                            $source = is_string($val['source'] ?? null) ? $val['source'] : 'latest';
+                            $limit = isset($val['limit']) ? (int) $val['limit'] : 8;
+                            $catId = $val['category_id'] ?? null;
+                            $prodIds = is_array($val['product_ids'] ?? null) ? array_values(array_map('intval', $val['product_ids'])) : [];
+
+                            $products["{$id}:{$key}"] = $source === 'manual'
+                                ? $this->catalog->cards($prodIds, $hideOutOfStock)
+                                : $this->catalog->forSection($source, $catId, $limit, $hideOutOfStock);
+
+                            $viewAll["{$id}:{$key}"] = match ($source) {
+                                'offers' => '/offers',
+                                'category' => ($c = $bySlug->get($catId)) ? '/categories/'.rawurlencode((string) $c['slug']) : null,
+                                default => '/products',
+                            };
+                        } elseif ($fType === 'categories') {
+                            $ids = is_array($values[$key]['category_ids'] ?? null)
+                                ? array_values(array_map('intval', $values[$key]['category_ids']))
+                                : [];
+                            $tiles["{$id}:{$key}"] = $this->categoryTiles($categories, $ids);
+                        } elseif ($fType === 'link') {
+                            if (is_array($values[$key] ?? null) && isset($values[$key]['type'])) {
+                                $links["{$id}:{$key}"] = $this->href($values[$key], $bySlug->all());
+                            }
+                        } elseif ($fType === 'image') {
+                            if (isset($values["{$key}_media_id"])) {
+                                $mediaIds[] = (int) $values["{$key}_media_id"];
+                            }
+                        } elseif ($fType === 'images') {
+                            if (is_array($values["{$key}_media_ids"] ?? null)) {
+                                array_push($mediaIds, ...array_map('intval', $values["{$key}_media_ids"]));
+                            }
+                        } elseif ($fType === 'list') {
+                            $items = is_array($values[$key] ?? null) ? array_values($values[$key]) : [];
+                            $subFields = is_array($field['fields'] ?? null) ? $field['fields'] : [];
+                            foreach ($items as $itemIdx => $item) {
+                                if (! is_array($item)) {
+                                    continue;
+                                }
+                                foreach ($subFields as $sub) {
+                                    if (! is_array($sub) || ! isset($sub['key'], $sub['type'])) {
+                                        continue;
+                                    }
+                                    $subKey = (string) $sub['key'];
+                                    $subType = (string) $sub['type'];
+                                    if ($subType === 'link' && is_array($item[$subKey] ?? null) && isset($item[$subKey]['type'])) {
+                                        $links["{$id}:{$key}:{$itemIdx}:{$subKey}"] = $this->href($item[$subKey], $bySlug->all());
+                                    } elseif ($subType === 'image' && isset($item["{$subKey}_media_id"])) {
+                                        $mediaIds[] = (int) $item["{$subKey}_media_id"];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                continue;
+            }
             if ($section['type'] === 'products') {
                 $products[$id] = $this->catalog->forSection((string) $props['source'], $props['category_id'] ?? null, (int) $props['limit'], ! ($design['settings']['general']['show_out_of_stock'] ?? true));
                 $viewAll[$id] = match ($props['source']) {
@@ -189,6 +264,8 @@ final class StoreDesigner
             'featured' => (object) $featured,
             'bundles' => (object) $bundles,
             'cart_products' => $cartProducts,
+            'ai_sections' => (object) $aiResolved['definitions'],
+            'ai_sections_current' => (object) $aiResolved['current'],
         ];
     }
 

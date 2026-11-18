@@ -4,6 +4,7 @@
  * and product cards. Fonts, colors and image sizes are shared with landing themes (../../shared/design).
  * A theme's own sections and extra settings live in its folder.
  */
+import type { AiCategoryTile, AiDefinition } from "../../shared/ai-section/types";
 import type { Colors, FontKey, FontSize, MediaUrls, Social } from "../../shared/design";
 
 export type StoreSettings = {
@@ -42,6 +43,9 @@ export type DesignData = {
   categories: Array<{ id: number; parent_id: number | null; name: string; slug: string }>;
   pages: Array<{ title: string; slug: string }>;
   reviews: Array<{ name: string; rating: number; text: string }>;
+  category_tiles?: Record<string, AiCategoryTile[]>;
+  ai_sections?: Record<string, AiDefinition>;
+  ai_sections_current?: Record<string, number>;
 };
 
 export const PER_PAGE = [12, 16, 24, 32, 48] as const;

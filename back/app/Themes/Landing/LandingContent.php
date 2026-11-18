@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Themes\Landing;
 
+use App\Ai\Designer\AiSectionDefinitions;
+use App\Ai\Designer\AiSectionFields;
+use App\Models\AiSection;
 use App\Support\OrderForm;
 use Closure;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -133,5 +137,75 @@ trait LandingContent
     protected static function texts(mixed $v): array
     {
         return array_values(array_filter(array_map(fn ($x) => self::str($x), (array) $v), fn ($x) => $x !== null));
+    }
+
+    /**
+     * Load all tenant AI sections referenced in a landing page content array in one query.
+     *
+     * @param  array<string, mixed>  $content
+     * @return Collection<int, AiSection>
+     */
+    protected static function loadAiSections(array $content): Collection
+    {
+        return AiSectionDefinitions::loadSections((array) ($content['sections'] ?? []));
+    }
+
+    /**
+     * Validation rules for an `ai` section placement on a landing page.
+     *
+     * @param  array<string, mixed>  $props
+     * @param  Collection<int, AiSection>  $aiSections
+     * @return array<string, mixed>
+     */
+    protected function aiSectionRules(string $s, array $props, string $themeKey, Collection $aiSections): array
+    {
+        $rawId = $props['ai_section_id'] ?? null;
+        $aiSection = (is_int($rawId) || (is_string($rawId) && ctype_digit($rawId)))
+            ? $aiSections->get((int) $rawId)
+            : null;
+        $validAiSection = ($aiSection instanceof AiSection
+            && $aiSection->kind === 'landing'
+            && $aiSection->theme_key === $themeKey
+            && $aiSection->current !== null)
+            ? $aiSection
+            : null;
+
+        $rules = [
+            "{$s}.props.ai_section_id" => [
+                'required',
+                'integer',
+                static function (string $attribute, mixed $value, Closure $fail) use ($validAiSection): void {
+                    if ($validAiSection === null) {
+                        $fail(__('ai.sections.wrong_theme'));
+                    }
+                },
+            ],
+            "{$s}.props.values" => ['present', 'array'],
+        ];
+
+        if ($validAiSection !== null) {
+            $rules += AiSectionFields::rules((array) $validAiSection->current->fields, "{$s}.props.values", 'landing');
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Clean an `ai` section's props on a landing page (never keeping `version_id` in the draft).
+     *
+     * @param  array<string, mixed>  $props
+     * @param  Collection<int, AiSection>  $aiSections
+     * @return array{ai_section_id: int, values: array<string, mixed>}
+     */
+    protected function cleanAiSection(array $props, Collection $aiSections): array
+    {
+        $aiSectionId = (int) ($props['ai_section_id'] ?? 0);
+        $aiSection = $aiSections->get($aiSectionId);
+        $fields = is_array($aiSection?->current?->fields) ? $aiSection->current->fields : [];
+
+        return [
+            'ai_section_id' => $aiSectionId,
+            'values' => AiSectionFields::clean($fields, is_array($props['values'] ?? null) ? $props['values'] : [], 'landing'),
+        ];
     }
 }

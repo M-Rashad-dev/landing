@@ -1,0 +1,356 @@
+/**
+ * Interactive DOM behaviors for AI sections (docs/plans/ai-designer.md §3.6).
+ * Attached only in `live` and `preview` modes, never in `builder`.
+ */
+export function attachBehaviors(
+  root: HTMLElement,
+  opts: { onAdd?: (productId: number) => void } = {},
+): () => void {
+  const cleanups: Array<() => void> = [];
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const behaviorNodes = collectWithRoot(root, "[data-ai-behavior]");
+  for (const node of behaviorNodes) {
+    const kind = node.getAttribute("data-ai-behavior");
+    if (kind === "slider") {
+      cleanups.push(initSlider(node, reducedMotion));
+    } else if (kind === "marquee") {
+      cleanups.push(initMarquee(node, reducedMotion));
+    } else if (kind === "tabs") {
+      cleanups.push(initTabs(node));
+    } else if (kind === "accordion") {
+      cleanups.push(initAccordion(node));
+    } else if (kind === "countdown") {
+      cleanups.push(initCountdown(node));
+    }
+  }
+
+  cleanups.push(initReveal(root, reducedMotion));
+  cleanups.push(initQuickAdd(root, opts.onAdd));
+
+  return () => {
+    for (const fn of cleanups) {
+      fn();
+    }
+  };
+}
+
+function collectWithRoot(root: HTMLElement, selector: string): HTMLElement[] {
+  const list: HTMLElement[] = [];
+  if (root.matches(selector)) {
+    list.push(root);
+  }
+  root.querySelectorAll<HTMLElement>(selector).forEach((el) => list.push(el));
+  return list;
+}
+
+function initSlider(container: HTMLElement, reducedMotion: boolean): () => void {
+  const track = container.querySelector<HTMLElement>("[data-ai-track]");
+  if (!track) return () => {};
+
+  const prevBtn = container.querySelector<HTMLElement>("[data-ai-prev]");
+  const nextBtn = container.querySelector<HTMLElement>("[data-ai-next]");
+  const dotsWrap = container.querySelector<HTMLElement>("[data-ai-dots]");
+  const slides = Array.from(track.children).filter((c): c is HTMLElement => c instanceof HTMLElement);
+  const count = slides.length;
+  if (count === 0) return () => {};
+
+  let currentIndex = 0;
+  const loop = container.hasAttribute("data-ai-loop");
+  const autoplayAttr = Number(container.getAttribute("data-ai-autoplay") ?? "0");
+  const autoplayMs = !reducedMotion && autoplayAttr >= 1500 && autoplayAttr <= 15000 ? autoplayAttr : 0;
+
+  const getStepWidth = (): number => {
+    const first = slides[0];
+    return first && first.offsetWidth > 0 ? first.offsetWidth : track.clientWidth || 300;
+  };
+
+  const getDirectionSign = (): number => {
+    const dir = typeof window !== "undefined" ? window.getComputedStyle(track).direction : "rtl";
+    return dir === "rtl" ? -1 : 1;
+  };
+
+  const dotButtons: HTMLButtonElement[] = [];
+  const updateDots = (activeIdx: number) => {
+    dotButtons.forEach((btn, idx) => {
+      const active = idx === activeIdx;
+      btn.setAttribute("aria-current", active ? "true" : "false");
+      btn.dataset.active = active ? "true" : "false";
+    });
+  };
+
+  if (dotsWrap) {
+    dotsWrap.innerHTML = "";
+    slides.forEach((_, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("aria-label", `${idx + 1}`);
+      btn.addEventListener("click", () => {
+        const diff = idx - currentIndex;
+        currentIndex = idx;
+        track.scrollBy({ left: diff * getStepWidth() * getDirectionSign(), behavior: "smooth" });
+        updateDots(currentIndex);
+      });
+      dotsWrap.appendChild(btn);
+      dotButtons.push(btn);
+    });
+    updateDots(0);
+  }
+
+  const step = (delta: number) => {
+    let nextIdx = currentIndex + delta;
+    if (nextIdx >= count) {
+      nextIdx = loop ? 0 : count - 1;
+    } else if (nextIdx < 0) {
+      nextIdx = loop ? count - 1 : 0;
+    }
+    const actualDelta = nextIdx - currentIndex;
+    currentIndex = nextIdx;
+    track.scrollBy({
+      left: (actualDelta !== 0 ? actualDelta : delta) * getStepWidth() * getDirectionSign(),
+      behavior: "smooth",
+    });
+    updateDots(currentIndex);
+  };
+
+  const onPrev = () => step(-1);
+  const onNext = () => step(1);
+
+  prevBtn?.addEventListener("click", onPrev);
+  nextBtn?.addEventListener("click", onNext);
+
+  let paused = false;
+  const pause = () => {
+    paused = true;
+  };
+  const resume = () => {
+    paused = false;
+  };
+
+  container.addEventListener("mouseenter", pause);
+  container.addEventListener("mouseleave", resume);
+  container.addEventListener("touchstart", pause, { passive: true });
+  container.addEventListener("touchend", resume);
+  container.addEventListener("focusin", pause);
+  container.addEventListener("focusout", resume);
+
+  let timer: ReturnType<typeof setInterval> | null = null;
+  if (autoplayMs > 0) {
+    timer = setInterval(() => {
+      if (!paused) {
+        step(1);
+      }
+    }, autoplayMs);
+  }
+
+  return () => {
+    prevBtn?.removeEventListener("click", onPrev);
+    nextBtn?.removeEventListener("click", onNext);
+    container.removeEventListener("mouseenter", pause);
+    container.removeEventListener("mouseleave", resume);
+    container.removeEventListener("touchstart", pause);
+    container.removeEventListener("touchend", resume);
+    container.removeEventListener("focusin", pause);
+    container.removeEventListener("focusout", resume);
+    if (timer) clearInterval(timer);
+  };
+}
+
+function initMarquee(container: HTMLElement, reducedMotion: boolean): () => void {
+  if (reducedMotion) return () => {};
+  const track = container.querySelector<HTMLElement>("[data-ai-track]");
+  if (!track) return () => {};
+
+  const originals = Array.from(track.children);
+  if (originals.length === 0) return () => {};
+
+  const clones: Node[] = [];
+  for (const child of originals) {
+    const clone = child.cloneNode(true);
+    if (clone instanceof HTMLElement) {
+      clone.setAttribute("aria-hidden", "true");
+    }
+    track.appendChild(clone);
+    clones.push(clone);
+  }
+
+  const speed = container.getAttribute("data-ai-speed") ?? "normal";
+  const duration = speed === "slow" ? "36s" : speed === "fast" ? "14s" : "24s";
+  const prevAnimation = track.style.animation;
+  track.style.animation = `ai-marquee-scroll ${duration} linear infinite`;
+
+  return () => {
+    track.style.animation = prevAnimation;
+    for (const c of clones) {
+      if (c.parentNode === track) {
+        track.removeChild(c);
+      }
+    }
+  };
+}
+
+function initTabs(container: HTMLElement): () => void {
+  const tabs = Array.from(container.querySelectorAll<HTMLElement>("[data-ai-tab]"));
+  const panels = Array.from(container.querySelectorAll<HTMLElement>("[data-ai-panel]"));
+  if (tabs.length === 0 || panels.length === 0) return () => {};
+
+  const activate = (activeIndex: number) => {
+    tabs.forEach((tab, idx) => {
+      const isSelected = idx === activeIndex;
+      tab.setAttribute("aria-selected", isSelected ? "true" : "false");
+      tab.dataset.active = isSelected ? "true" : "false";
+    });
+    panels.forEach((panel, idx) => {
+      panel.hidden = idx !== activeIndex;
+    });
+  };
+
+  activate(0);
+
+  const handlers = tabs.map((tab, idx) => {
+    const fn = () => activate(idx);
+    tab.addEventListener("click", fn);
+    return () => tab.removeEventListener("click", fn);
+  });
+
+  return () => {
+    for (const off of handlers) off();
+  };
+}
+
+function initAccordion(container: HTMLElement): () => void {
+  const items = Array.from(container.querySelectorAll<HTMLElement>("[data-ai-item]"));
+  if (items.length === 0) return () => {};
+
+  const single = container.hasAttribute("data-ai-single");
+  const handlers: Array<() => void> = [];
+
+  const entries = items
+    .map((item) => {
+      const toggle = item.querySelector<HTMLElement>("[data-ai-toggle]");
+      const content = item.querySelector<HTMLElement>("[data-ai-content]");
+      return toggle && content ? { item, toggle, content } : null;
+    })
+    .filter((x): x is { item: HTMLElement; toggle: HTMLElement; content: HTMLElement } => x !== null);
+
+  entries.forEach((entry, idx) => {
+    const initialOpen = idx === 0 && !entry.content.hasAttribute("hidden");
+    entry.content.hidden = !initialOpen;
+    entry.toggle.setAttribute("aria-expanded", initialOpen ? "true" : "false");
+
+    const onClick = () => {
+      const willOpen = entry.content.hidden;
+      if (single && willOpen) {
+        entries.forEach((other) => {
+          other.content.hidden = true;
+          other.toggle.setAttribute("aria-expanded", "false");
+          other.item.dataset.open = "false";
+        });
+      }
+      entry.content.hidden = !willOpen;
+      entry.toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      entry.item.dataset.open = willOpen ? "true" : "false";
+    };
+
+    entry.toggle.addEventListener("click", onClick);
+    handlers.push(() => entry.toggle.removeEventListener("click", onClick));
+  });
+
+  return () => {
+    for (const off of handlers) off();
+  };
+}
+
+function initCountdown(container: HTMLElement): () => void {
+  const endsStr = container.getAttribute("data-ai-ends") ?? "";
+  const endsMs = Date.parse(endsStr);
+  const daysEl = container.querySelector<HTMLElement>("[data-ai-days]");
+  const hoursEl = container.querySelector<HTMLElement>("[data-ai-hours]");
+  const minutesEl = container.querySelector<HTMLElement>("[data-ai-minutes]");
+  const secondsEl = container.querySelector<HTMLElement>("[data-ai-seconds]");
+
+  const pad = (n: number): string => String(Math.max(0, n)).padStart(2, "0");
+
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  const tick = () => {
+    if (Number.isNaN(endsMs)) {
+      container.setAttribute("data-ai-ended", "true");
+      return;
+    }
+    const diffSec = Math.max(0, Math.floor((endsMs - Date.now()) / 1000));
+    const d = Math.floor(diffSec / 86400);
+    const h = Math.floor((diffSec % 86400) / 3600);
+    const m = Math.floor((diffSec % 3600) / 60);
+    const s = diffSec % 60;
+
+    if (daysEl) daysEl.textContent = pad(d);
+    if (hoursEl) hoursEl.textContent = pad(h);
+    if (minutesEl) minutesEl.textContent = pad(m);
+    if (secondsEl) secondsEl.textContent = pad(s);
+
+    if (diffSec <= 0) {
+      container.setAttribute("data-ai-ended", "true");
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+  };
+
+  tick();
+  if (!container.hasAttribute("data-ai-ended")) {
+    timer = setInterval(tick, 1000);
+  }
+
+  return () => {
+    if (timer) clearInterval(timer);
+  };
+}
+
+function initReveal(root: HTMLElement, reducedMotion: boolean): () => void {
+  const targets = collectWithRoot(root, "[data-ai-reveal]");
+  if (targets.length === 0) return () => {};
+
+  if (reducedMotion || typeof IntersectionObserver === "undefined") {
+    targets.forEach((el) => el.setAttribute("data-ai-shown", "true"));
+    return () => {};
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && entry.target instanceof HTMLElement) {
+          entry.target.setAttribute("data-ai-shown", "true");
+          observer.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0, rootMargin: "0px 0px -8% 0px" },
+  );
+
+  targets.forEach((el) => observer.observe(el));
+
+  return () => {
+    observer.disconnect();
+  };
+}
+
+function initQuickAdd(root: HTMLElement, onAdd?: (productId: number) => void): () => void {
+  if (!onAdd) return () => {};
+
+  const onClick = (e: MouseEvent) => {
+    const target = e.target instanceof Element ? e.target.closest<HTMLButtonElement>("button[data-ai-add]") : null;
+    if (!target || !root.contains(target)) return;
+    const id = Number(target.getAttribute("data-ai-add"));
+    if (Number.isInteger(id) && id > 0) {
+      onAdd(id);
+    }
+  };
+
+  root.addEventListener("click", onClick);
+  return () => root.removeEventListener("click", onClick);
+}

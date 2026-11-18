@@ -7,6 +7,7 @@ import { offerLabel, offerQuantity } from "@/lib/store/offers";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { pick, type MediaUrls } from "@/themes/shared/design";
+import { StoreAiSection } from "@/themes/store/shared/ai-section";
 import { whatsappLink } from "@/themes/store/shared/contact";
 import { StoreLink } from "@/themes/store/shared/context";
 import type { ProductCard } from "@/themes/store/shared/types";
@@ -673,5 +674,7 @@ export function SectionView({ section }: { section: ShabeStoreSection }) {
       return <Faq props={section.props} />;
     case "location":
       return <Location props={section.props} />;
+    case "ai":
+      return <StoreAiSection section={section} themeKey="shabe_store" />;
   }
 }

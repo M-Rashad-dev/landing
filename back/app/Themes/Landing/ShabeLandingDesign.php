@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Themes\Landing;
 
+use App\Models\AiSection;
 use App\Rules\SafeUrl;
 use App\Rules\TenantExists;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -115,11 +117,23 @@ final class ShabeLandingDesign implements LandingThemeDesign
      */
     public function validate(mixed $content, string $prefix = 'content'): array
     {
-        return self::checked($content, $prefix, fn (array $c, string $p) => $this->rules($c, $p), (array) __('design.attributes') + (array) __('themes/landing/bidaya.attributes') + (array) __('themes/landing/shabe.attributes'), fn (array $d) => $this->clean($d));
+        $aiSections = self::loadAiSections(is_array($content) ? $content : []);
+
+        return self::checked(
+            $content,
+            $prefix,
+            fn (array $c, string $p) => $this->rules($c, $p, $aiSections),
+            (array) __('design.attributes') + (array) __('themes/landing/bidaya.attributes') + (array) __('themes/landing/shabe.attributes'),
+            fn (array $d) => $this->clean($d, $aiSections),
+        );
     }
 
-    /** @param array<string, mixed> $content @return array<string, mixed> */
-    private function rules(array $content, string $p): array
+    /**
+     * @param  array<string, mixed>  $content
+     * @param  Collection<int, AiSection>  $aiSections
+     * @return array<string, mixed>
+     */
+    private function rules(array $content, string $p, Collection $aiSections): array
     {
         $text = fn (int $max, bool $required = false) => [$required ? 'required' : 'nullable', 'string', 'max:'.$max];
         $color = ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'];
@@ -156,13 +170,14 @@ final class ShabeLandingDesign implements LandingThemeDesign
         foreach (array_values((array) ($content['sections'] ?? [])) as $i => $section) {
             $s = "{$p}.sections.{$i}";
             $rules["{$s}.id"] = ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'];
-            $rules["{$s}.type"] = ['required', Rule::in(self::SECTION_TYPES)];
+            $rules["{$s}.type"] = ['required', Rule::in([...self::SECTION_TYPES, 'ai'])];
             $rules["{$s}.visible"] = ['required', 'boolean'];
             $rules["{$s}.props"] = ['required', 'array'];
             $props = (array) (is_array($section) ? ($section['props'] ?? []) : []);
             $o = "{$s}.props";
 
             match (is_array($section) ? ($section['type'] ?? null) : null) {
+                'ai' => $rules += $this->aiSectionRules($s, $props, self::KEY, $aiSections),
                 'hero' => $rules += [
                     "{$o}.kicker" => $text(60),
                     "{$o}.title" => $text(120, true),
@@ -300,9 +315,10 @@ final class ShabeLandingDesign implements LandingThemeDesign
 
     /**
      * @param  array<string, mixed>  $d
+     * @param  Collection<int, AiSection>  $aiSections
      * @return array{version: int, settings: array<string, mixed>, sections: list<array<string, mixed>>}
      */
-    private function clean(array $d): array
+    private function clean(array $d, Collection $aiSections): array
     {
         $s = $d['settings'];
         $str = fn (mixed $v): ?string => is_string($v) && trim(strip_tags($v)) !== '' ? trim(strip_tags($v)) : null;
@@ -341,6 +357,7 @@ final class ShabeLandingDesign implements LandingThemeDesign
         foreach (array_values((array) $d['sections']) as $section) {
             $p = (array) $section['props'];
             $props = match ($section['type']) {
+                'ai' => $this->cleanAiSection($p, $aiSections),
                 'hero' => [
                     'kicker' => $str($p['kicker'] ?? null),
                     'title' => (string) $str($p['title']),

@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon } from "@/themes/store/asas/icons";
+import { LandingAiSection } from "@/themes/landing/shared/ai-section";
 import { SOCIALS, type MediaUrls } from "@/themes/shared/design";
 import { BidayaRoot, imageSrc, scrollToOrder, useImage, usePage, type PageMode } from "./context";
 import { OrderForm } from "./order-form";
@@ -130,6 +131,8 @@ function SectionView({ section }: { section: Section }) {
       return <Faq props={section.props} />;
     case "order_form":
       return <OrderForm props={section.props} />;
+    case "ai":
+      return <LandingAiSection section={section} themeKey="bidaya_landing" />;
   }
 }
 

@@ -7,10 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * AI-made sections (docs/plans/ai-sections.md §2.9): a store's own sections for one theme
- * («أقسامي»), the chats that make / edit them, and every design the AI proposed (a version is
- * approved, rejected, or replaced by a later approval). Designs point at a section; publishing
- * stamps the version the live page shows.
+ * AI designer foundation (docs/plans/ai-designer.md §3.1): a store's own AI sections for one theme
+ * («أقسامي»), the chats that make / edit them, and every design version the AI proposed.
  */
 return new class extends Migration
 {
@@ -29,20 +27,21 @@ return new class extends Migration
             $table->index(['tenant_id', 'kind', 'theme_key']);
         });
 
-        Schema::create('ai_section_chats', function (Blueprint $table): void {
+        Schema::create('ai_chats', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('kind', 10);
             $table->string('theme_key', 60);
-            $table->foreignId('ai_section_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('landing_page_id')->nullable()->constrained()->nullOnDelete();
+            $table->timestamp('closed_at')->nullable();
             $table->timestamps();
+            $table->index(['tenant_id', 'kind', 'theme_key']);
         });
 
         Schema::create('ai_section_versions', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('chat_id')->nullable()->constrained('ai_section_chats')->nullOnDelete();
+            $table->foreignId('chat_id')->nullable()->constrained('ai_chats')->nullOnDelete();
             $table->foreignId('ai_section_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name', 100);
             // The sanitized template, the AI's own CSS (given back on edits) and the scoped CSS pages use.
@@ -60,17 +59,20 @@ return new class extends Migration
             $table->foreign('current_version_id')->references('id')->on('ai_section_versions')->nullOnDelete();
         });
 
-        Schema::create('ai_section_messages', function (Blueprint $table): void {
+        Schema::create('ai_chat_messages', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('chat_id')->constrained('ai_section_chats')->cascadeOnDelete();
+            $table->foreignId('chat_id')->constrained('ai_chats')->cascadeOnDelete();
             // user | assistant
             $table->string('role', 10);
             $table->text('text')->nullable();
             $table->json('media_ids')->nullable();
+            $table->foreignId('focus_section_id')->nullable()->constrained('ai_sections')->nullOnDelete();
             // pending | done | failed
             $table->string('status', 10)->default('done');
             $table->foreignId('version_id')->nullable()->constrained('ai_section_versions')->nullOnDelete();
+            $table->unsignedBigInteger('run_id')->nullable();
+            $table->json('plan')->nullable();
             $table->foreignId('ai_usage_id')->nullable()->constrained()->nullOnDelete();
             $table->string('error', 300)->nullable();
             $table->timestamp('created_at')->nullable();
@@ -82,9 +84,9 @@ return new class extends Migration
         Schema::table('ai_sections', function (Blueprint $table): void {
             $table->dropForeign(['current_version_id']);
         });
-        Schema::dropIfExists('ai_section_messages');
+        Schema::dropIfExists('ai_chat_messages');
         Schema::dropIfExists('ai_section_versions');
-        Schema::dropIfExists('ai_section_chats');
+        Schema::dropIfExists('ai_chats');
         Schema::dropIfExists('ai_sections');
     }
 };

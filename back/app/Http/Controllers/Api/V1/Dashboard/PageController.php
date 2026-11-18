@@ -9,6 +9,7 @@ use App\Actions\Pages\PageLifecycle;
 use App\Actions\Pages\PublishPage;
 use App\Actions\Pages\SavePageContent;
 use App\Actions\Pages\SyncPageMedia;
+use App\Ai\Designer\AiSectionDefinitions;
 use App\Enums\OrderStatus;
 use App\Enums\PageStatus;
 use App\Http\Controllers\Controller;
@@ -123,6 +124,8 @@ final class PageController extends Controller
     public function preview(Request $request, LandingPage $page, PublicPageData $data, Shipping $shipping): JsonResponse
     {
         $page->load(['identity', 'product']);
+        $draft = is_array($page->draft_content) ? $page->draft_content : ['version' => 1, 'sections' => []];
+        $aiResolved = AiSectionDefinitions::resolve($draft);
 
         return $this->ok([
             'page' => ['id' => $page->id, 'slug' => $page->slug, 'title' => $page->title],
@@ -135,6 +138,8 @@ final class PageController extends Controller
             'shipping' => $shipping->publicConfig(now()),
             'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
             'store_name' => (string) $request->user()?->tenant?->name,
+            'ai_sections' => (object) $aiResolved['definitions'],
+            'ai_sections_current' => (object) $aiResolved['current'],
         ]);
     }
 

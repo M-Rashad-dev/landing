@@ -134,6 +134,7 @@ export const design = {
       steps: { title: "خطوات الطلب", description: "من الاختيار لحد ما يوصل سخن" },
       bundles: { title: "باقات", description: "كروت مربوطة بعروضك، بأسعار حقيقية" },
       hours: { title: "مواعيد العمل", description: "الأيام والساعات، وشغالين ولا مقفولين دلوقتي" },
+      ai: { title: "قسم بالذكاء الاصطناعي", description: "قسم مخصص من «أقسامي»" },
     },
     defaults: {
       productsTitle: "منتجات مختارة",

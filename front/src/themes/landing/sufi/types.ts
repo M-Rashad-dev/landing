@@ -1,5 +1,6 @@
 /** «صوفي · صفحة هبوط» page content (back end: App\Themes\Landing\SufiLandingDesign). Its settings extend «بداية»'s. */
 import type { OrderFormProps as BidayaFormProps, Settings as BidayaSettings } from "@/themes/landing/bidaya/types";
+import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { Colors } from "@/themes/shared/design";
 
 export const SUFI_LANDING_KEY = "sufi_landing";
@@ -74,7 +75,8 @@ export type SufiLandingSection =
   | S<"countdown", CountdownProps>
   | S<"order_form", OrderFormProps>
   | S<"promises", PromisesProps>
-  | S<"faq", FaqProps>;
+  | S<"faq", FaqProps>
+  | S<"ai", AiSectionProps>;
 export type SufiLandingSectionType = SufiLandingSection["type"];
 
 export type SufiLandingContent = { version: number; settings: SufiLandingSettings; sections: SufiLandingSection[] };

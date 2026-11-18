@@ -39,7 +39,7 @@ const s = ar.landings.builder.sufi;
 const th = ar.design.theme;
 
 /** Sections a merchant can add to a «صوفي» page (the order form is always there, once). */
-export const SUFI_LANDING_ADDABLE: Exclude<SufiLandingSectionType, "order_form">[] = ["hero", "marquee", "features", "details", "specs", "gallery", "video", "bundles", "stats", "testimonials", "countdown", "promises", "faq"];
+export const SUFI_LANDING_ADDABLE: Array<Exclude<SufiLandingSectionType, "order_form" | "ai">> = ["hero", "marquee", "features", "details", "specs", "gallery", "video", "bundles", "stats", "testimonials", "countdown", "promises", "faq"];
 
 /* ---------- sections ---------- */
 
@@ -342,5 +342,7 @@ export function newSufiLandingSection(type: Exclude<SufiLandingSectionType, "ord
       return { id, type, visible: true, props: { items: [{ icon: "truck", title: s.promise(1), text: null }, { icon: "cash", title: s.promise(2), text: null }] } };
     case "faq":
       return { id, type, visible: true, props: { kicker: null, title, items: [{ question: ar.landings.builder.faq.question, answer: ar.landings.builder.faq.answer }] } };
+    case "ai":
+      return { id, type: "ai", visible: true, props: { ai_section_id: 0, values: {} } };
   }
 }

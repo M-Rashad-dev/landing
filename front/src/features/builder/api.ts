@@ -85,6 +85,8 @@ export function newSection(type: SectionType): Section {
       };
     case "testimonials":
       return { id, type, visible: true, props: { title: d.testimonialsTitle, source: "auto", items: [] } };
+    case "ai":
+      return { id, type: "ai", visible: true, props: { ai_section_id: 0, values: {} } };
   }
 }
 

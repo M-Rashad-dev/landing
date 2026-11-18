@@ -2,8 +2,11 @@
 
 import { BookOpen, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListOrdered, MapPin, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
+import type { MyAiSection } from "@/features/ai-designer/api";
+import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import type { AiTokens } from "@/themes/shared/ai-section/types";
 import type { SectionType } from "@/themes/store/asas/types";
 import type { ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSectionType } from "@/themes/store/sufi/types";
@@ -13,7 +16,7 @@ export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionTy
 const t = ar.design.builder;
 
 /** «أساس»'s types: the gallery draws a small sketch of each (other types show their icon). */
-export const SECTION_TYPES: SectionType[] = ["banner", "products", "features", "testimonials"];
+export const SECTION_TYPES: Array<Exclude<SectionType, "ai">> = ["banner", "products", "features", "testimonials"];
 
 
 /** One icon and one tint per section type, used in the list, the gallery and the canvas. */
@@ -40,6 +43,7 @@ export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: stri
   steps: { icon: ListOrdered, tint: "bg-sky-100 text-sky-700" },
   bundles: { icon: Package, tint: "bg-rose-100 text-rose-700" },
   hours: { icon: CalendarClock, tint: "bg-emerald-100 text-emerald-700" },
+  ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 
 export function SectionIcon({ type, size = "md" }: { type: AnySectionType; size?: "sm" | "md" }) {
@@ -121,7 +125,27 @@ function Sketch({ type }: { type: AnySectionType }) {
   );
 }
 
-export function SectionGallery({ open, onOpenChange, onPick, types }: { open: boolean; onOpenChange: (open: boolean) => void; onPick: (type: AnySectionType) => void; types: AnySectionType[] }) {
+export function SectionGallery({
+  open,
+  onOpenChange,
+  onPick,
+  types,
+  themeKey,
+  tokens,
+  onPickMySection,
+  onOpenAiDesigner,
+  showAiCard = false,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPick: (type: AnySectionType) => void;
+  types: AnySectionType[];
+  themeKey?: string;
+  tokens?: AiTokens;
+  onPickMySection?: (section: MyAiSection) => void;
+  onOpenAiDesigner?: () => void;
+  showAiCard?: boolean;
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
@@ -149,6 +173,17 @@ export function SectionGallery({ open, onOpenChange, onPick, types }: { open: bo
               </li>
             ))}
           </ul>
+          {themeKey && tokens && onPickMySection ? (
+            <MySectionsGalleryBlock
+              kind="store"
+              themeKey={themeKey}
+              tokens={tokens}
+              open={open}
+              onPickSection={onPickMySection}
+              onOpenAiDesigner={onOpenAiDesigner}
+              showAiCard={showAiCard}
+            />
+          ) : null}
         </DialogBody>
       </DialogContent>
     </Dialog>

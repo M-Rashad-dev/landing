@@ -1,5 +1,6 @@
 /** «بداية» page content and the data it shows (back end: App\Themes\BidayaDesign, PublicSite::payload). */
 import type { ProductOffer, ShippingConfig, StoreProduct } from "@/lib/store/types";
+import type { AiDefinition, AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { Colors, FontKey, FontSize, MediaUrls, Social } from "@/themes/shared/design";
 import type { IconKey } from "@/themes/store/asas/types";
 
@@ -42,7 +43,8 @@ export type Section =
   | { id: string; type: "gallery"; visible: boolean; props: GalleryProps }
   | { id: string; type: "testimonials"; visible: boolean; props: TestimonialsProps }
   | { id: string; type: "faq"; visible: boolean; props: FaqProps }
-  | { id: string; type: "order_form"; visible: boolean; props: OrderFormProps };
+  | { id: string; type: "order_form"; visible: boolean; props: OrderFormProps }
+  | { id: string; type: "ai"; visible: boolean; props: AiSectionProps };
 export type SectionType = Section["type"];
 
 export type Content = { version: number; settings: Settings; sections: Section[] };
@@ -58,6 +60,8 @@ export type LandingData = {
   media: Record<string, PageImage>;
   reviews: Array<{ name: string; rating: number; text: string }>;
   shipping: ShippingConfig;
+  ai_sections?: Record<string, AiDefinition>;
+  ai_sections_current?: Record<string, number>;
 };
 
 /** The order a landing page sends (POST /api/public/landing/orders answers this). */

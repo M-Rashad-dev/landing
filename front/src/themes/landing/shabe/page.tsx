@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { SocialIcon, WhatsAppIcon } from "@/themes/store/asas/icons";
+import { LandingAiSection } from "@/themes/landing/shared/ai-section";
 import { SOCIALS, type MediaUrls } from "@/themes/shared/design";
 import { imageSrc, scrollToOrder, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
 import { usePrice } from "@/themes/landing/bidaya/sections";
@@ -208,6 +209,8 @@ function SectionView({ section, next }: { section: ShabeSection; next: string | 
       return <Guarantee props={section.props} />;
     case "faq":
       return <Faq props={section.props} />;
+    case "ai":
+      return <LandingAiSection section={section} themeKey="shabe_landing" />;
   }
 }
 

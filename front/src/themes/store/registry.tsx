@@ -1,5 +1,7 @@
 import type * as React from "react";
 import type { StoreConfig } from "@/lib/store/types";
+import { asasAiTokens, shabeStoreAiTokens, sufiStoreAiTokens } from "@/themes/shared/ai-section/tokens";
+import type { AiTokens } from "@/themes/shared/ai-section/types";
 import { AsasFrame, AsasStore, HomeSections, type Selection } from "./asas/asas-store";
 import { AccountView, MyOrderView, SignInView } from "./asas/pages/account";
 import { CartView } from "./asas/pages/cart";
@@ -57,6 +59,7 @@ export type StoreTheme = {
   Home: React.ComponentType<{ config: StoreConfig }>;
   Canvas: React.ComponentType<CanvasProps>;
   pages: typeof ASAS_PAGES;
+  aiTokens: (settings: unknown, scheme?: Scheme) => AiTokens;
 };
 
 function AsasHome({ config }: { config: StoreConfig }) {
@@ -90,11 +93,11 @@ function ShabeCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
  * theme is added here once (its frame, home, canvas and pages); nothing else picks by key.
  */
 const STORE_THEMES: Record<string, StoreTheme> = {
-  [ASAS_KEY]: { Frame: AsasFrame, Home: AsasHome, Canvas: AsasCanvas, pages: ASAS_PAGES },
+  [ASAS_KEY]: { Frame: AsasFrame, Home: AsasHome, Canvas: AsasCanvas, pages: ASAS_PAGES, aiTokens: (s) => asasAiTokens(s) },
   // «صوفي» draws its own frame and home; its inner pages are «أساس»'s in its colors (for now).
-  [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES },
+  [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES, aiTokens: sufiStoreAiTokens },
   // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
-  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone } },
+  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone }, aiTokens: (s) => shabeStoreAiTokens(s) },
 };
 
 /** Every store theme this front end draws (the Builder's registry must list the same). */

@@ -1,4 +1,5 @@
 /** «أساس» design: its home sections (back end: App\Themes\Store\AsasStoreDesign). The base settings and data are in ../shared/types. */
+import type { AiSectionProps } from "../../shared/ai-section/types";
 import type { StoreSettings } from "../shared/types";
 
 export const ASAS_KEY = "asas_store";
@@ -17,7 +18,8 @@ export type Section =
   | { id: string; type: "banner"; visible: boolean; props: BannerProps }
   | { id: string; type: "products"; visible: boolean; props: ProductsProps }
   | { id: string; type: "features"; visible: boolean; props: FeaturesProps }
-  | { id: string; type: "testimonials"; visible: boolean; props: TestimonialsProps };
+  | { id: string; type: "testimonials"; visible: boolean; props: TestimonialsProps }
+  | { id: string; type: "ai"; visible: boolean; props: AiSectionProps };
 export type SectionType = Section["type"];
 
 export type Design = { settings: StoreSettings; sections: Section[] };

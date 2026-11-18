@@ -32,7 +32,7 @@ import { BundlesForm, DateTime, IconItems, IconPicker, ImagePick, Text, Testimon
 const t = ar.landings.builder.forms;
 
 /** Sections a merchant can add to a «شابع» page (the order form is always there, once). */
-export const SHABE_ADDABLE: Exclude<ShabeSectionType, "order_form">[] = ["hero", "marquee", "menu", "why", "steps", "bundles", "gallery", "video", "compare", "testimonials", "urgency", "guarantee", "faq"];
+export const SHABE_ADDABLE: Array<Exclude<ShabeSectionType, "order_form" | "ai">> = ["hero", "marquee", "menu", "why", "steps", "bundles", "gallery", "video", "compare", "testimonials", "urgency", "guarantee", "faq"];
 
 /* ---------- sections ---------- */
 
@@ -318,5 +318,7 @@ export function newShabeSection(type: Exclude<ShabeSectionType, "order_form">, p
       return { id, type, visible: true, props: { icon: "shield", title, text: null } };
     case "faq":
       return { id, type, visible: true, props: { title, items: [{ question: ar.landings.builder.faq.question, answer: ar.landings.builder.faq.answer }] } };
+    case "ai":
+      return { id, type: "ai", visible: true, props: { ai_section_id: 0, values: {} } };
   }
 }

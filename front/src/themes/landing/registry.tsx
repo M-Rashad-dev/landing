@@ -1,6 +1,8 @@
 "use client";
 
 import type * as React from "react";
+import { bidayaLandingAiTokens, shabeLandingAiTokens, sufiLandingAiTokens } from "@/themes/shared/ai-section/tokens";
+import type { AiTokens } from "@/themes/shared/ai-section/types";
 import type { MediaUrls } from "@/themes/shared/design";
 import { BidayaRoot, type PageMode } from "./bidaya/context";
 import { BidayaPage, type Selection } from "./bidaya/page";
@@ -29,21 +31,27 @@ export type LandingPageProps = {
 /** The theme's frame alone (colors, fonts, page context), for pages around the landing page («طلبك وصل»). */
 export type LandingRootProps = { settings: Settings; data: LandingData; mode: PageMode; media?: Record<string, MediaUrls>; className?: string; children: React.ReactNode };
 
-export type LandingTheme = { Page: React.ComponentType<LandingPageProps>; Root: React.ComponentType<LandingRootProps> };
+export type LandingTheme = {
+  Page: React.ComponentType<LandingPageProps>;
+  Root: React.ComponentType<LandingRootProps>;
+  aiTokens: (settings: unknown, scheme?: "light" | "dark") => AiTokens;
+};
 
 /*
  * Every landing theme by key: the only place the front end picks a landing theme. Each theme's
  * content is its own shape (checked by the back end); the registry hands it over as is.
  */
 const THEMES: Record<LandingThemeKey, LandingTheme> = {
-  bidaya_landing: { Page: BidayaPage, Root: BidayaRoot },
+  bidaya_landing: { Page: BidayaPage, Root: BidayaRoot, aiTokens: (s) => bidayaLandingAiTokens(s) },
   shabe_landing: {
     Page: ({ content, ...rest }) => <ShabePage content={content as unknown as ShabeContent} {...rest} />,
     Root: ({ settings, ...rest }) => <ShabeRoot settings={settings as unknown as ShabeSettings} {...rest} />,
+    aiTokens: (s) => shabeLandingAiTokens(s),
   },
   sufi_landing: {
     Page: ({ content, ...rest }) => <SufiLandingPage content={content as unknown as SufiLandingContent} {...rest} />,
     Root: ({ settings, ...rest }) => <SufiLandingRoot settings={settings as unknown as SufiLandingSettings} {...rest} />,
+    aiTokens: sufiLandingAiTokens,
   },
 };
 

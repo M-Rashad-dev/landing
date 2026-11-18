@@ -4,6 +4,7 @@
  * screens always import `ar` from here, never the section files directly.
  */
 import { admin } from "./ar/admin";
+import { aiDesigner } from "./ar/aiDesigner";
 import { analytics } from "./ar/analytics";
 import { auth } from "./ar/auth";
 import { bidaya } from "./ar/themes/landing/bidaya";
@@ -34,4 +35,4 @@ import { shabeStore } from "./ar/themes/store/shabe";
 import { sufi } from "./ar/themes/store/sufi";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, shabeStore, notifications } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, shabeStore, notifications, aiDesigner } as const;

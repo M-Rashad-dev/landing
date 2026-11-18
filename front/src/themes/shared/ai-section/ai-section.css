@@ -1,0 +1,22 @@
+.ai-section {
+  font-family: var(--ai-font-body);
+  color: var(--ai-text);
+}
+
+.ai-section:not([data-ai-mode="builder"]) [data-ai-reveal] {
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.ai-section:not([data-ai-mode="builder"]) [data-ai-reveal]:not([data-ai-shown]) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+@keyframes ai-marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(50%);
+  }
+}

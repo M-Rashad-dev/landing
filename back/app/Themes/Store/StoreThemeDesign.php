@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Themes\Store;
 
+use App\Ai\Designer\AiSectionDefinitions;
+use App\Ai\Designer\AiSectionFields;
+use App\Models\AiSection;
 use App\Rules\SafeUrl;
 use App\Rules\TenantExists;
+use Closure;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -98,7 +103,9 @@ abstract class StoreThemeDesign
     final public function validate(mixed $design, string $prefix = 'draft'): array
     {
         $data = [$prefix => is_array($design) ? $design : []];
-        $rules = $this->rules($data[$prefix], $prefix);
+        $rawSections = array_values((array) ($data[$prefix]['sections'] ?? []));
+        $aiSections = AiSectionDefinitions::loadSections($rawSections);
+        $rules = $this->rules($data[$prefix], $prefix, $aiSections);
         $validator = Validator::make($data, $rules, [], self::attributeNames(array_keys($rules)));
         $validator->after(function ($v) use ($data, $prefix): void {
             // Each section id once (the Builder and the data map are keyed by it).
@@ -115,15 +122,32 @@ abstract class StoreThemeDesign
 
         $clean = $validator->validated()[$prefix];
         $sections = [];
-        foreach (array_values((array) $clean['sections']) as $section) {
-            $sections[] = ['id' => (string) $section['id'], 'type' => (string) $section['type'], 'visible' => (bool) $section['visible'], 'props' => $this->cleanSection((string) $section['type'], (array) $section['props'])];
+        foreach (array_values((array) $clean['sections']) as $i => $section) {
+            $type = (string) $section['type'];
+            if ($type === 'ai') {
+                $rawProps = is_array($rawSections[$i]['props'] ?? null) ? $rawSections[$i]['props'] : (array) $section['props'];
+                $aiSectionId = (int) ($rawProps['ai_section_id'] ?? 0);
+                $aiSection = $aiSections->get($aiSectionId);
+                $fields = is_array($aiSection?->current?->fields) ? $aiSection->current->fields : [];
+                $props = [
+                    'ai_section_id' => $aiSectionId,
+                    'values' => AiSectionFields::clean($fields, is_array($rawProps['values'] ?? null) ? $rawProps['values'] : [], 'store'),
+                ];
+            } else {
+                $props = $this->cleanSection($type, (array) $section['props']);
+            }
+            $sections[] = ['id' => (string) $section['id'], 'type' => $type, 'visible' => (bool) $section['visible'], 'props' => $props];
         }
 
         return ['settings' => $this->cleanSettings((array) $clean['settings']), 'sections' => $sections];
     }
 
-    /** @param array<string, mixed> $design @return array<string, mixed> */
-    private function rules(array $design, string $p): array
+    /**
+     * @param  array<string, mixed>  $design
+     * @param  Collection<int, AiSection>  $aiSections
+     * @return array<string, mixed>
+     */
+    private function rules(array $design, string $p, Collection $aiSections): array
     {
         $rules = [
             $p => ['required', 'array'],
@@ -135,11 +159,37 @@ abstract class StoreThemeDesign
         foreach (array_values((array) ($design['sections'] ?? [])) as $i => $section) {
             $s = "{$p}.sections.{$i}";
             $rules["{$s}.id"] = ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'];
-            $rules["{$s}.type"] = ['required', Rule::in(static::SECTION_TYPES)];
+            $rules["{$s}.type"] = ['required', Rule::in([...static::SECTION_TYPES, 'ai'])];
             $rules["{$s}.visible"] = ['required', 'boolean'];
             $rules["{$s}.props"] = ['required', 'array'];
             $type = is_array($section) ? ($section['type'] ?? null) : null;
-            if (is_string($type) && in_array($type, static::SECTION_TYPES, true)) {
+            if ($type === 'ai') {
+                $props = is_array($section['props'] ?? null) ? $section['props'] : [];
+                $rawId = $props['ai_section_id'] ?? null;
+                $aiSection = (is_int($rawId) || (is_string($rawId) && ctype_digit($rawId)))
+                    ? $aiSections->get((int) $rawId)
+                    : null;
+                $validAiSection = ($aiSection instanceof AiSection
+                    && $aiSection->kind === 'store'
+                    && $aiSection->theme_key === static::KEY
+                    && $aiSection->current !== null)
+                    ? $aiSection
+                    : null;
+
+                $rules["{$s}.props.ai_section_id"] = [
+                    'required',
+                    'integer',
+                    static function (string $attribute, mixed $value, Closure $fail) use ($validAiSection): void {
+                        if ($validAiSection === null) {
+                            $fail(__('ai.sections.wrong_theme'));
+                        }
+                    },
+                ];
+                $rules["{$s}.props.values"] = ['present', 'array'];
+                if ($validAiSection !== null) {
+                    $rules += AiSectionFields::rules((array) $validAiSection->current->fields, "{$s}.props.values", 'store');
+                }
+            } elseif (is_string($type) && in_array($type, static::SECTION_TYPES, true)) {
                 $rules += $this->sectionRules($type, $s, (array) ($section['props'] ?? []));
             }
         }

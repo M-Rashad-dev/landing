@@ -1,5 +1,6 @@
 /** «شابع · متجر» design (back end: App\Themes\Store\ShabeStoreDesign). Library sections share their props with «صوفي». */
 import type { ProductOffer } from "@/lib/store/types";
+import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { ProductsProps, TestimonialsProps } from "../asas/types";
 import type { DesignData, ProductCard, StoreSettings } from "../shared/types";
 import type { CategoriesProps, CategoryTile, CountdownProps, FaqProps, GalleryProps, Link, LocationProps, MarqueeProps, TabsProps, VideoProps } from "../sufi/types";
@@ -118,7 +119,8 @@ export type ShabeStoreSection =
   | S<"testimonials", TestimonialsProps>
   | S<"hours", HoursProps>
   | S<"faq", FaqProps>
-  | S<"location", LocationProps>;
+  | S<"location", LocationProps>
+  | S<"ai", AiSectionProps>;
 export type ShabeStoreSectionType = ShabeStoreSection["type"];
 
 export type ShabeStoreDesign = { settings: ShabeStoreSettings; sections: ShabeStoreSection[] };

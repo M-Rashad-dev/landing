@@ -517,3 +517,8 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - Reasoning (thinking tokens) is sent off (`reasoning.enabled = false`) unless a task asks, to keep the bill down.
 - Images also go through OpenRouter (`AiClient::generateImage` / `editImage`, chat completions with `modalities`). Locally free with `recraft/recraft-v4.1-flash-v2:free` (generate only; it leaves OpenRouter on 2026-11-28). For live: `google/gemini-nano-banana-2.1` (~$0.04 an image, edits product photos), owner to confirm. No free model edits images.
 
+## 2026-11-18 — AI designer Stage 1: custom AI sections foundation
+- **CSS parser library (`sabberworm/php-css-parser` ^9.5, owner-approved)**: used in `App\Ai\Designer\AiSectionCss` to parse, sanitize, and scope AI-generated CSS rules to `[data-ai-v="{versionId}"]`, map `:root`/`html`/`body` to the section wrapper, prefix `@keyframes`, drop `@import`/`@font-face`/`url()`/backslash escapes, clamp `z-index` to 0–10, and restrict `font-family` to `--ai-font-body` / `--ai-font-display`.
+- **Draft vs published versions**: an `ai` section in a draft stores only `{ ai_section_id, values }` (`version_id` is stripped by the validator); publishing (`StoreDesigner::publish` and `PublishPage`) stamps `version_id = current_version_id` onto the published copy so later AI edits only affect the Builder until the merchant publishes again.
+- **Theme isolation**: an `AiSection` is bound to `(tenant_id, kind, theme_key)` and validated against the active store or landing theme; `type: "ai"` is accepted by theme validators without being listed in `SECTION_TYPES`.
+

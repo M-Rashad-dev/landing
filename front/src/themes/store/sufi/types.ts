@@ -1,6 +1,7 @@
 /** «صوفي» design and the data its sections show (back end: App\Store\Design\SufiDesign, StoreDesigner::data). */
 
 import type { ProductOffer, StoreProduct } from "@/lib/store/types";
+import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { Colors } from "@/themes/shared/design";
 import type { DesignData, ProductCard, StoreSettings } from "@/themes/store/shared/types";
 import type { BannerProps, FeaturesProps, LinkType, ProductsProps, TestimonialsProps } from "../asas/types";
@@ -63,7 +64,8 @@ export type SufiSection =
   | S<"testimonials", TestimonialsProps>
   | S<"gallery", GalleryProps>
   | S<"faq", FaqProps>
-  | S<"location", LocationProps>;
+  | S<"location", LocationProps>
+  | S<"ai", AiSectionProps>;
 export type SufiSectionType = SufiSection["type"];
 
 export type SufiDesign = { settings: SufiSettings; sections: SufiSection[] };

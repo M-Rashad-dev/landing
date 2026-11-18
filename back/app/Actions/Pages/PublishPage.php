@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Pages;
 
+use App\Ai\Designer\AiSectionDefinitions;
 use App\Billing\Themes\ThemeAccess;
 use App\Enums\PageStatus;
 use App\Exceptions\ApiException;
@@ -79,8 +80,10 @@ final class PublishPage
         }
 
         DB::transaction(function () use ($page, $clean): void {
+            $published = $clean;
+            $published['sections'] = AiSectionDefinitions::stamp((array) ($clean['sections'] ?? []));
             $page->forceFill([
-                'published_content' => array_merge($clean, ['theme_key' => $page->theme_key]),
+                'published_content' => array_merge($published, ['theme_key' => $page->theme_key]),
                 'status' => PageStatus::Published,
                 'published_at' => now(),
             ])->save();

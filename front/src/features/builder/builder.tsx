@@ -36,12 +36,15 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
+import { createAiSectionPlacement, type MyAiSection } from "@/features/ai-designer/api";
+import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import type { AiDefinition } from "@/themes/shared/ai-section/types";
 import type { Selection } from "@/themes/store/asas/asas-store";
 import { storeTheme } from "@/themes/store/registry";
 import type { MediaUrls } from "@/themes/shared/design";
@@ -109,7 +112,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const [device, setDevice] = React.useState<Device>("desktop");
   const [publishing, setPublishing] = React.useState(false);
   const [removing, setRemoving] = React.useState<AnySection | null>(null);
-  const { Canvas } = storeTheme(initial.theme.key);
+  const { Canvas, aiTokens } = storeTheme(initial.theme.key);
   const theme = builderTheme(initial.theme.key);
   // The groups the server keeps for this theme, each drawn with its form here.
   const groups = theme.groups.filter((g) => initial.theme.settings_groups.includes(g.key));
@@ -177,6 +180,29 @@ function Editor({ initial }: { initial: DesignPayload }) {
     setSelected(section.id);
     setTab("sections");
     window.setTimeout(() => scrollTo(section.id), 80);
+  }
+
+  function addMySection(saved: MyAiSection) {
+    if (draft.sections.length >= MAX_SECTIONS) return;
+    setData((prev) => ({
+      ...prev,
+      ai_sections: { ...(prev.ai_sections ?? {}), [String(saved.current.id)]: saved.current },
+      ai_sections_current: { ...(prev.ai_sections_current ?? {}), [String(saved.id)]: saved.current.id },
+    }));
+    const placement = createAiSectionPlacement(saved.id) as AnySection;
+    const selectedIdx = draft.sections.findIndex((s) => s.id === selected);
+    const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : draft.sections.length;
+    const nextSections = [
+      ...draft.sections.slice(0, insertAt),
+      placement,
+      ...draft.sections.slice(insertAt),
+    ];
+    change({ ...draft, sections: nextSections });
+    setGallery(false);
+    setSelected(placement.id);
+    setTab("sections");
+    toast.success(ar.aiDesigner.mySections.added);
+    window.setTimeout(() => scrollTo(placement.id), 80);
   }
 
   async function publish() {
@@ -317,7 +343,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
         <aside className="flex w-[22rem] shrink-0 flex-col border-e border-border bg-surface">
           {selected ? (
             <Inspector
-              title={editorTitle(selected, section)}
+              title={editorTitle(selected, section, data)}
               icon={section ? <SectionIcon type={section.type} size="sm" /> : <PanelIcon icon={group ? GROUP_META[group.key].icon : Settings2} />}
               back={tab === "theme" ? t.tabs.theme : t.homePage}
               onBack={() => setSelected(null)}
@@ -346,7 +372,19 @@ function Editor({ initial }: { initial: DesignPayload }) {
               {group ? (
                 <group.Form settings={draft.settings} onChange={setSettings} errors={settingsErrors(errors)} media={allMedia} onMedia={rememberMedia} />
               ) : section ? (
-                <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
+                section.type === "ai" ? (
+                  <AiSectionInspector
+                    definition={aiDefinitionFor(section, data)}
+                    values={section.props.values ?? {}}
+                    onChange={(values) => setSection(section.id, { ...section.props, values })}
+                    kind="store"
+                    errors={sectionErrors(errors, index)}
+                    media={allMedia}
+                    onMedia={rememberMedia}
+                  />
+                ) : (
+                  <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} />
+                )
               ) : null}
             </Inspector>
           ) : tab === "sections" ? (
@@ -369,7 +407,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
                               <SectionIcon type={s.type} size="sm" />
                             </span>
                             <span className="flex min-w-0 flex-col leading-tight">
-                              <span className={cn("truncate text-sm font-semibold", !s.visible && "text-ink-3")}>{sectionTitle(s)}</span>
+                              <span className={cn("truncate text-sm font-semibold", !s.visible && "text-ink-3")}>{sectionTitle(s, data)}</span>
                               <span className="truncate text-xs text-ink-3">{s.visible ? t.types[s.type].title : `${t.types[s.type].title} · ${t.hidden}`}</span>
                             </span>
                           </button>
@@ -456,12 +494,20 @@ function Editor({ initial }: { initial: DesignPayload }) {
         </main>
       </div>
 
-      <SectionGallery open={gallery} onOpenChange={setGallery} onPick={add} types={initial.theme.section_types as AnySectionType[]} />
+      <SectionGallery
+        open={gallery}
+        onOpenChange={setGallery}
+        onPick={add}
+        types={initial.theme.section_types as AnySectionType[]}
+        themeKey={initial.theme.key}
+        tokens={aiTokens(draft.settings)}
+        onPickMySection={addMySection}
+      />
       <ConfirmDialog
         open={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}
         title={t.removeTitle}
-        description={removing ? sectionTitle(removing) : undefined}
+        description={removing ? sectionTitle(removing, data) : undefined}
         confirmLabel={t.remove}
         destructive
         onConfirm={() => {
@@ -475,14 +521,23 @@ function Editor({ initial }: { initial: DesignPayload }) {
   );
 }
 
+function aiDefinitionFor(s: AnySection, data: DesignData): AiDefinition | null {
+  if (s.type !== "ai") return null;
+  const vId = s.props.version_id ?? data.ai_sections_current?.[String(s.props.ai_section_id)];
+  return vId !== undefined ? (data.ai_sections?.[String(vId)] ?? null) : null;
+}
+
 /** The section's own title when it has one, else its type. */
-function sectionTitle(s: AnySection): string {
+function sectionTitle(s: AnySection, data?: DesignData): string {
+  if (s.type === "ai") {
+    return (data ? aiDefinitionFor(s, data)?.name : null) ?? t.types.ai.title;
+  }
   const custom = "title" in s.props && typeof s.props.title === "string" ? s.props.title : null;
   return custom || t.types[s.type].title;
 }
 
-function editorTitle(selected: Edit, section: AnySection | null): string {
-  if (section) return sectionTitle(section);
+function editorTitle(selected: Edit, section: AnySection | null, data?: DesignData): string {
+  if (section) return sectionTitle(section, data);
   if (selected === "header") return t.header;
   if (selected === "footer") return t.footer;
   return selected && selected in GROUP_META ? GROUP_META[selected as GroupKey].label : t.tabs.sections;

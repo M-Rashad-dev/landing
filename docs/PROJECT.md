@@ -248,6 +248,18 @@ Works even when the plan expired.
   Top-up = an `ai_credit` invoice through the normal checkout (`?ai=250`): a package or ≥ the least amount, the best
   offer reached is in its snapshot and credited free on approval. Merchant page: settings «رصيد الذكاء الاصطناعي»
   (`/dashboard/settings/ai`); admin store page: balance, last moves, gift / deduct with a reason (audited).
+- **Custom AI sections («المصمم الذكي» — Stage 1 foundation)**: tenant tables `ai_sections` («أقسامي», per store per
+  `kind` + `theme_key`), `ai_section_versions` (proposed/approved/rejected/replaced; sanitized HTML, raw & scoped CSS,
+  fields JSON), `ai_chats` (one open chat per store+theme or landing page), and `ai_chat_messages`. Safety pipeline in
+  `App\Ai\Designer\`: `AiTemplate` (restricted `{{ }}` grammar, no nested `#each`, `#if` max depth 2, strict attribute
+  placement), `AiSectionSanitizer` (DOM allowlist, strips scripts/styles/iframes/forms/handlers/inline styles/protocols),
+  `AiSectionCss` (`sabberworm/php-css-parser` ^9.5, prefixes every selector with `[data-ai-v="{versionId}"]`, renames
+  keyframes, strips `@import`/`@font-face`/`url()`/escapes, clamps `z-index` 0–10, rewrites `fixed`/`sticky` to
+  `relative`, forces `--ai-font-*`), and `AiSectionFields` (12 field types validated with `TenantExists` and `SafeUrl`).
+  Drafts reference `ai_section_id` only; publishing stamps `version_id` (`AiSectionDefinitions::stamp`) so live pages
+  render the published version while the Builder edits the current version. Front renderer lives in
+  `front/src/themes/shared/ai-section/` (`template.ts`, `behaviors.ts`, `sample.ts`, `tokens.ts`, `view.tsx`), wired
+  into all 6 store and landing themes, with `AiFieldsForm` and «أقسامي» in both Builders.
 
 ---
 

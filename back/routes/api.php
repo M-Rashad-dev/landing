@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Admin\ThemeController as AdminThemeController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Dashboard\AbTestController;
 use App\Http\Controllers\Api\V1\Dashboard\AccountController;
+use App\Http\Controllers\Api\V1\Dashboard\AiSectionController;
 use App\Http\Controllers\Api\V1\Dashboard\AiWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
@@ -122,6 +123,8 @@ Route::prefix('dashboard')
         // The AI balance: seen (and topped up through the checkout) on an expired plan too.
         Route::get('ai/wallet', [AiWalletController::class, 'show'])->withoutMiddleware('plan.writable');
         Route::get('ai/wallet/entries', [AiWalletController::class, 'entries'])->withoutMiddleware('plan.writable');
+        Route::get('ai/sections', [AiSectionController::class, 'index']);
+        Route::delete('ai/sections/{aiSection}', [AiSectionController::class, 'destroy'])->whereNumber('aiSection');
         Route::patch('store', [AccountController::class, 'updateStore']);
 
         Route::get('media', [MediaController::class, 'index']);

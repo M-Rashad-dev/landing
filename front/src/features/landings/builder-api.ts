@@ -31,6 +31,8 @@ export type PreviewData = {
   shipping: ShippingConfig;
   reviews: LandingData["reviews"];
   store_name: string;
+  ai_sections?: LandingData["ai_sections"];
+  ai_sections_current?: LandingData["ai_sections_current"];
 };
 
 export const pageKey = (id: number) => ["landings", "page", id] as const;
@@ -47,7 +49,17 @@ export const saveLandingSettings = (id: number, body: { title: string; slug: str
   api<PageDetail>(`/dashboard/pages/${id}`, { method: "PUT", body });
 
 export function toLandingData(preview: PreviewData): LandingData {
-  return { page: preview.page, store_name: preview.store_name, product: preview.product, offers: preview.offers, media: preview.media, reviews: preview.reviews, shipping: preview.shipping };
+  return {
+    page: preview.page,
+    store_name: preview.store_name,
+    product: preview.product,
+    offers: preview.offers,
+    media: preview.media,
+    reviews: preview.reviews,
+    shipping: preview.shipping,
+    ai_sections: preview.ai_sections,
+    ai_sections_current: preview.ai_sections_current,
+  };
 }
 
 /** Section ids like the back end makes them (12 hex characters). */
@@ -57,7 +69,7 @@ export function newId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export const ADDABLE: SectionType[] = ["hero", "features", "gallery", "testimonials", "faq"];
+export const ADDABLE: Array<Exclude<SectionType, "order_form" | "ai">> = ["hero", "features", "gallery", "testimonials", "faq"];
 
 const d = ar.landings.builder;
 
@@ -86,6 +98,8 @@ export function newLandingSection(type: Exclude<SectionType, "order_form">, prod
       return { id, type, visible: true, props: { title: d.types.testimonials.title, source: "auto", items: [] } };
     case "faq":
       return { id, type, visible: true, props: { title: d.types.faq.title, items: [{ question: d.faq.question, answer: d.faq.answer }] } };
+    case "ai":
+      return { id, type: "ai", visible: true, props: { ai_section_id: 0, values: {} } };
   }
 }
 

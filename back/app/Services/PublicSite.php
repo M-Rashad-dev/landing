@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Ai\Designer\AiSectionDefinitions;
 use App\Billing\Entitlements;
 use App\Billing\Themes\ThemeAccess;
 use App\Enums\DomainStatus;
@@ -172,6 +173,7 @@ final class PublicSite
 
         $identity = $page->identity !== null && ! $page->identity->trashed() ? $page->identity : null;
         $product = $this->data->product($page->product);
+        $aiResolved = AiSectionDefinitions::resolve($content);
 
         return [
             'page' => [
@@ -195,6 +197,8 @@ final class PublicSite
             'shipping' => $this->shipping->publicConfig(now()),
             // "Made with …" badge unless the plan removes it.
             'branding' => ! app(Entitlements::class)->allows(PlanFeature::RemoveBranding),
+            'ai_sections' => (object) $aiResolved['definitions'],
+            'ai_sections_current' => (object) $aiResolved['current'],
         ];
     }
 

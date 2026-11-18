@@ -53,6 +53,9 @@ import { SortableList } from "@/components/data/sortable-list";
 import { Button } from "@/components/ui/button";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
+import { createAiSectionPlacement, type MyAiSection } from "@/features/ai-designer/api";
+import { AiSectionInspector } from "@/features/ai-designer/fields-form";
+import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "@/features/builder/kit";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
@@ -60,6 +63,7 @@ import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import type { AiDefinition, AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { MediaUrls } from "@/themes/shared/design";
 import type { Content, LandingData, Settings } from "@/themes/landing/bidaya/types";
 import { landingTheme, type Selection } from "@/themes/landing/registry";
@@ -99,6 +103,7 @@ const LOOK: Record<string, { icon: LucideIcon; tint: string }> = {
   stats: { icon: ChartNoAxesColumn, tint: "bg-yellow-100 text-yellow-800" },
   countdown: { icon: AlarmClock, tint: "bg-pink-100 text-pink-700" },
   promises: { icon: BadgeCheck, tint: "bg-cyan-100 text-cyan-700" },
+  ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 
 const OTHER = { icon: Sparkles, tint: "bg-slate-100 text-slate-700" };
@@ -148,10 +153,12 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const [blockers, setBlockers] = React.useState<string[]>([]);
   const [removing, setRemoving] = React.useState<AnySection | null>(null);
   const [gallery, setGallery] = React.useState(false);
+  const [extraAiSections, setExtraAiSections] = React.useState<Record<string, AiDefinition>>({});
+  const [extraAiCurrent, setExtraAiCurrent] = React.useState<Record<string, number>>({});
   const frame = React.useRef<HTMLDivElement>(null);
 
   const theme = landingBuilderTheme(initial.theme_key);
-  const { Page } = landingTheme(initial.theme_key);
+  const { Page, aiTokens } = landingTheme(initial.theme_key);
   const extras = theme.extras ?? {};
   const maxSections = theme.maxSections;
   const editor = useDraftEditor<AnyContent, PageDetail>({
@@ -169,7 +176,15 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
 
   const allMedia = React.useMemo(() => ({ ...Object.fromEntries(Object.entries(data.media).map(([k, v]) => [k, v.urls])), ...media }), [data.media, media]);
   const rememberMedia = React.useCallback((item: MediaItem) => setMedia((m) => ({ ...m, [String(item.id)]: item.urls })), []);
-  const pageData: LandingData = { ...data, page: { ...data.page, slug: detail.slug, title: detail.title } };
+  const pageData: LandingData = React.useMemo(
+    () => ({
+      ...data,
+      page: { ...data.page, slug: detail.slug, title: detail.title },
+      ai_sections: { ...(data.ai_sections ?? {}), ...extraAiSections },
+      ai_sections_current: { ...(data.ai_sections_current ?? {}), ...extraAiCurrent },
+    }),
+    [data, detail.slug, detail.title, extraAiSections, extraAiCurrent],
+  );
 
   const setSettings = (settings: Settings) => change({ ...draft, settings }, true);
   const setSection = (sid: string, props: AnySection["props"]) => change({ ...draft, sections: draft.sections.map((s) => (s.id === sid ? ({ ...s, props } as AnySection) : s)) }, true);
@@ -220,6 +235,23 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     window.setTimeout(() => scrollTo(section.id), 80);
   }
 
+  function addMySection(saved: MyAiSection) {
+    if (draft.sections.length >= maxSections) return;
+    setExtraAiSections((prev) => ({ ...prev, [String(saved.current.id)]: saved.current }));
+    setExtraAiCurrent((prev) => ({ ...prev, [String(saved.id)]: saved.current.id }));
+    const placement = createAiSectionPlacement(saved.id) as unknown as AnySection;
+    const selectedIdx = draft.sections.findIndex((s) => s.id === selected && s.type !== "order_form");
+    const formAt = draft.sections.findIndex((s) => s.type === "order_form");
+    const defaultAt = formAt < 0 ? draft.sections.length : formAt;
+    const at = selectedIdx >= 0 ? selectedIdx + 1 : defaultAt;
+    change({ ...draft, sections: [...draft.sections.slice(0, at), placement, ...draft.sections.slice(at)] });
+    setGallery(false);
+    setSelected(placement.id);
+    setTab("sections");
+    toast.success(ar.aiDesigner.mySections.added);
+    window.setTimeout(() => scrollTo(placement.id), 80);
+  }
+
   async function publish() {
     setPublishing(true);
     setBlockers([]);
@@ -250,7 +282,17 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const live = pageUrl(session.storeUrl, detail.slug);
   const host = live ? live.replace(/^https?:\/\//, "") : detail.slug;
 
+  const aiDefFor = (s: AnySection): AiDefinition | null => {
+    if (s.type !== "ai") return null;
+    const p = s.props as unknown as AiSectionProps;
+    const vId = p.version_id ?? pageData.ai_sections_current?.[String(p.ai_section_id)];
+    return vId !== undefined ? (pageData.ai_sections?.[String(vId)] ?? null) : null;
+  };
+
   const title = (s: AnySection) => {
+    if (s.type === "ai") {
+      return aiDefFor(s)?.name ?? (t.types.ai?.title ?? "قسم بالذكاء الاصطناعي");
+    }
     const own = typeof s.props.title === "string" ? s.props.title : null;
     return own || (t.types[s.type]?.title ?? s.type);
   };
@@ -445,7 +487,19 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                   {extras.footer ? <extras.footer {...extraProps} /> : null}
                 </>
               ) : section ? (
-                <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
+                section.type === "ai" ? (
+                  <AiSectionInspector
+                    definition={aiDefFor(section)}
+                    values={((section.props as unknown as AiSectionProps).values) ?? {}}
+                    onChange={(values) => setSection(section.id, { ...section.props, values })}
+                    kind="landing"
+                    errors={sectionErrors(errors, index)}
+                    media={allMedia}
+                    onMedia={rememberMedia}
+                  />
+                ) : (
+                  <theme.SectionForm section={section} errors={sectionErrors(errors, index)} onChange={(props) => setSection(section.id, props)} media={allMedia} onMedia={rememberMedia} offers={data.offers} />
+                )
               ) : null}
             </Inspector>
           ) : tab === "sections" ? (
@@ -571,6 +625,13 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                 </li>
               ))}
             </ul>
+            <MySectionsGalleryBlock
+              kind="landing"
+              themeKey={initial.theme_key}
+              tokens={aiTokens(draft.settings)}
+              open={gallery}
+              onPickSection={addMySection}
+            />
           </DialogBody>
         </DialogContent>
       </Dialog>

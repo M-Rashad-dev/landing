@@ -116,6 +116,7 @@ export const landings = {
       stats: { title: "بالأرقام", description: "من 2 لـ 4 أرقام بتطمّن العميل" },
       countdown: { title: "عدّاد العرض", description: "الوقت الباقي على العرض والكمية الباقية" },
       promises: { title: "وعودنا", description: "الشحن والدفع والاستبدال بأيقونات" },
+      ai: { title: "قسم بالذكاء الاصطناعي", description: "قسم مخصص من «أقسامي»" },
     } as Record<string, { title: string; description: string }>,
     galleryTitle: "إضافة قسم",
     galleryHint: "اختار نوع القسم، وهيتضاف تحت فورم الطلب، وتقدر تحركه بعدين.",

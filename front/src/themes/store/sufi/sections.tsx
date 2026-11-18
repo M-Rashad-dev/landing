@@ -12,6 +12,7 @@ import type { ProductPage } from "@/lib/store/types";
 import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { StoreAiSection } from "@/themes/store/shared/ai-section";
 import { StoreLink, useTheme } from "@/themes/store/shared/context";
 import { FEATURE_ICONS } from "../asas/icons";
 import { QuantityStepper } from "../asas/parts";
@@ -934,6 +935,8 @@ export function SectionView({ section }: { section: SufiSection }) {
       return <Faq props={section.props} />;
     case "location":
       return <Location props={section.props} />;
+    case "ai":
+      return <StoreAiSection section={section} themeKey="sufi_store" />;
     default:
       return null;
   }

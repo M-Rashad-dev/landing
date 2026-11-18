@@ -4,6 +4,7 @@ import * as React from "react";
 import type { StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { Footer, Header, WhatsappButton } from "./chrome";
+import { StoreAiSection } from "@/themes/store/shared/ai-section";
 import type { ThemeMode } from "@/themes/store/shared/context";
 import { AsasRoot } from "./root";
 import { Banner, Features, ProductList, Testimonials } from "./sections";
@@ -111,5 +112,7 @@ function SectionView({ section }: { section: Section }) {
       return <Features props={section.props} />;
     case "testimonials":
       return <Testimonials props={section.props} />;
+    case "ai":
+      return <StoreAiSection section={section} themeKey="asas_store" />;
   }
 }

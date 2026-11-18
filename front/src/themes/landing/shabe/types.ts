@@ -1,5 +1,6 @@
 /** «شابع» page content (back end: App\Themes\ShabeDesign). Its settings extend «بداية»'s. */
 import type { OrderFormProps as BidayaFormProps, Settings as BidayaSettings } from "@/themes/landing/bidaya/types";
+import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 
 export const SHABE_KEY = "shabe_landing";
 
@@ -65,7 +66,8 @@ export type ShabeSection =
   | S<"urgency", UrgencyProps>
   | S<"order_form", OrderFormProps>
   | S<"guarantee", GuaranteeProps>
-  | S<"faq", FaqProps>;
+  | S<"faq", FaqProps>
+  | S<"ai", AiSectionProps>;
 export type ShabeSectionType = ShabeSection["type"];
 
 export type ShabeContent = { version: number; settings: ShabeSettings; sections: ShabeSection[] };
