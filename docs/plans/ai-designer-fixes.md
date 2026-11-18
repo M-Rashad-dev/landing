@@ -199,4 +199,22 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
   - the repair path = 2 charges
   - images (§3.6)
   - runs: apply / revert / product tables untouched (§4.6)
+- 2026-11-18: **F6, third part done:** a store-design test (in `AiDesignerEndpointsTest`).
+  - An approved section saves into the store draft, and `version_id` is stripped from the draft.
+  - The data carries `ai_sections`.
+  - Publish stamps `version_id`.
+  - Another theme's section gives 422.
+
+  **Still open in F6:**
+  - the fields tests
+  - the landing-page version of the design test
+  - the reject / new chat / sections delete endpoints
+  - the repair path = 2 charges
+  - images
+  - runs: apply / revert / product tables untouched
+  
+  **Then:**
+  - the P3 step 5 front test (phone frame shows 1 column)
+  - P2 step 3 (real tries + log)
+  - Owner check
 

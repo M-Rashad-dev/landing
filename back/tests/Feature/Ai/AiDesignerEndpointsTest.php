@@ -11,6 +11,7 @@ use App\Billing\PlatformSettings;
 use App\Models\AiSection;
 use App\Models\AiWalletEntry;
 use App\Models\PlanFeatureValue;
+use App\Models\StoreDesign;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\Tenancy;
@@ -121,4 +122,28 @@ it('edits a section calmly: low temperature, and the merchant\'s fields are kept
     $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
     $edited = end($messages)['version'];
     expect(array_column($edited['fields'], 'key'))->toEqualCanonicalizing($oldKeys);
+});
+
+it('puts an approved section in the store design, stamps its version on publish, and refuses another theme\'s', function () {
+    $owner = designerOwner();
+    $version = designerSectionVersion(designerChat());
+    $section = $this->postJson("/api/v1/dashboard/ai/designer/versions/{$version}/approve")->assertOk()->json('data.section.id');
+
+    $design = $this->getJson('/api/v1/dashboard/store/design')->assertOk()->json('data');
+    $draft = $design['draft'];
+    $draft['sections'][] = ['id' => 'aisec0000001', 'type' => 'ai', 'visible' => true, 'props' => ['ai_section_id' => $section, 'values' => [], 'version_id' => 999]];
+    $saved = $this->putJson('/api/v1/dashboard/store/design', ['draft' => $draft, 'version' => $design['version']])->assertOk()->json('data');
+    $ai = collect($saved['draft']['sections'])->firstWhere('type', 'ai');
+    expect($ai['props'])->not->toHaveKey('version_id')
+        ->and($saved['data']['ai_sections'] ?? [])->not->toBeEmpty();
+
+    $this->postJson('/api/v1/dashboard/store/design/publish')->assertOk();
+    $published = Tenancy::runAs($owner->tenant_id, fn () => StoreDesign::query()->where('theme_key', 'asas_store')->value('published'));
+    expect(collect($published['sections'])->firstWhere('type', 'ai')['props']['version_id'])->toBe($version);
+
+    // A section made for another theme is refused here.
+    $other = Tenancy::runAs($owner->tenant_id, fn () => AiSection::query()->create(['kind' => 'store', 'theme_key' => 'sufi_store', 'name' => 'x', 'current_version_id' => $version])->id);
+    $draft = $saved['draft'];
+    $draft['sections'][] = ['id' => 'aisec0000002', 'type' => 'ai', 'visible' => true, 'props' => ['ai_section_id' => $other, 'values' => []]];
+    $this->putJson('/api/v1/dashboard/store/design', ['draft' => $draft, 'version' => $saved['version']])->assertStatus(422);
 });
