@@ -248,18 +248,33 @@ Works even when the plan expired.
   Top-up = an `ai_credit` invoice through the normal checkout (`?ai=250`): a package or ≥ the least amount, the best
   offer reached is in its snapshot and credited free on approval. Merchant page: settings «رصيد الذكاء الاصطناعي»
   (`/dashboard/settings/ai`); admin store page: balance, last moves, gift / deduct with a reason (audited).
-- **Custom AI sections («المصمم الذكي» — Stage 1 foundation)**: tenant tables `ai_sections` («أقسامي», per store per
-  `kind` + `theme_key`), `ai_section_versions` (proposed/approved/rejected/replaced; sanitized HTML, raw & scoped CSS,
-  fields JSON), `ai_chats` (one open chat per store+theme or landing page), and `ai_chat_messages`. Safety pipeline in
-  `App\Ai\Designer\`: `AiTemplate` (restricted `{{ }}` grammar, no nested `#each`, `#if` max depth 2, strict attribute
-  placement), `AiSectionSanitizer` (DOM allowlist, strips scripts/styles/iframes/forms/handlers/inline styles/protocols),
-  `AiSectionCss` (`sabberworm/php-css-parser` ^9.5, prefixes every selector with `[data-ai-v="{versionId}"]`, renames
-  keyframes, strips `@import`/`@font-face`/`url()`/escapes, clamps `z-index` 0–10, rewrites `fixed`/`sticky` to
-  `relative`, forces `--ai-font-*`), and `AiSectionFields` (12 field types validated with `TenantExists` and `SafeUrl`).
-  Drafts reference `ai_section_id` only; publishing stamps `version_id` (`AiSectionDefinitions::stamp`) so live pages
-  render the published version while the Builder edits the current version. Front renderer lives in
-  `front/src/themes/shared/ai-section/` (`template.ts`, `behaviors.ts`, `sample.ts`, `tokens.ts`, `view.tsx`), wired
-  into all 6 store and landing themes, with `AiFieldsForm` and «أقسامي» in both Builders.
+- **AI Designer («المصمم الذكي» — Stages 1–5 complete)**: one chat experience (`feature: designer`, admin switch +
+  merchant AI wallet) inside the Store and Landing Builders that creates/edits custom AI sections, processes/generates
+  product and banner images, and designs or tweaks the whole store or landing page:
+  - **Tables**: `ai_sections` («أقسامي», per store per `kind` + `theme_key`, max 60), `ai_section_versions`
+    (`proposed|approved|rejected|replaced`; sanitized `html`, `css_raw`, scoped `css`, `fields`), `ai_chats` (one open
+    chat per store+theme or landing page; «محادثة جديدة» closes the previous chat, max 60 messages), `ai_chat_messages`
+    (up to 6 reference images per user message, `focus_section_id`, `version_id`, `plan`, `run_id`), `ai_design_runs`
+    (`queued|images|sections|design|proposed|applied|rejected|failed`, `plan`, `image_results`, `section_ids`,
+    `proposal`, `previous_draft`, `applied_at`, `reverted_at`), and `ai_usages.images`.
+  - **Safety pipeline (`App\Ai\Designer\`)**: `AiTemplate` (restricted `{{ }}` grammar, no nested `#each`, `#if` max
+    depth 2, strict attribute placement), `AiSectionSanitizer` (DOM allowlist, strips scripts/styles/iframes/forms/
+    handlers/inline styles/protocols), `AiSectionCss` (`sabberworm/php-css-parser` ^9.5, prefixes every selector with
+    `[data-ai-v="{versionId}"]`, renames keyframes, strips `@import`/`@font-face`/`url()`/escapes, clamps `z-index`
+    0–10, rewrites `fixed`/`sticky` to `relative`, forces `--ai-font-*`), and `AiSectionFields` (12 field types
+    validated with `TenantExists` and `SafeUrl`, plus `sample_media_id`).
+  - **Draft vs published**: drafts store `ai_section_id` + `values` only; publishing stamps `version_id`
+    (`AiSectionDefinitions::stamp`) so live pages render the published version while the Builder edits the current
+    version.
+  - **Images (`AiImages`, `Ai::imagePaid`, `StockPhotos`)**: `remove_bg`, `studio`, `enhance` (`image_edit`),
+    `generate` (`image_generate`), and free Pexels `stock` photos (omitted from the prompt when `PEXELS_API_KEY` is
+    unset), saved into the tenant's media library via `UploadMedia` (counting against storage quota).
+  - **Whole-page design (`AiDesignRunner`, `RunDesign` job, `back/resources/prompts/themes/*.md`)**: proposes a cleaned
+    `plan` card (swatches, font, mood, ordered sections with switches for custom AI sections, image tasks), executes
+    images → auto-approved custom sections → full theme JSON with `upload:N` / `image:ID` / `keep` placeholders and
+    theme validator + 1-turn repair, previews the whole page in `RunPreviewDialog` (`Canvas` / `Page` inside
+    `DeviceFrame`), applies with `previous_draft` backup, supports 1-click revert on the latest applied run, and
+    handles direct `action: "design"` follow-up tweaks. Never touches product catalog or SEO tables.
 
 ---
 

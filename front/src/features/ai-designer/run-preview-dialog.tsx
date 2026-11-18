@@ -50,7 +50,10 @@ export function RunPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-6xl">
+      <DialogContent
+        size="xl"
+        className="flex h-dvh w-screen max-w-none flex-col rounded-none sm:h-auto sm:max-w-6xl sm:rounded-2xl"
+      >
         <DialogHeader
           title={t.run.previewButton}
           description={run ? t.run.statuses[run.status] : undefined}
@@ -191,3 +194,4 @@ export function RunPreviewDialog({
     </Dialog>
   );
 }
+

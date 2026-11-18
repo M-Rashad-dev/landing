@@ -155,6 +155,13 @@ export function DesignerDialog({
     }
   }, [open, initChat]);
 
+  React.useEffect(() => {
+    if (open && !loadingChat) {
+      const id = window.setTimeout(() => textareaRef.current?.focus(), 60);
+      return () => window.clearTimeout(id);
+    }
+  }, [open, loadingChat]);
+
   const chatQuery = useChat(chatId, open && chatId !== null);
   const messages = React.useMemo(() => chatQuery.data?.messages ?? [], [chatQuery.data?.messages]);
   const hasPending = messages.some((m) => m.status === "pending");
@@ -396,7 +403,10 @@ export function DesignerDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent size="lg" className="flex h-[85vh] max-w-3xl flex-col p-0">
+        <DialogContent
+          size="lg"
+          className="flex h-dvh w-screen max-w-none flex-col rounded-none p-0 sm:h-[85vh] sm:max-w-3xl sm:rounded-2xl"
+        >
           <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
             <div className="flex items-center gap-2.5">
               <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-pink-600 text-white shadow-sm">

@@ -294,6 +294,7 @@ final class AiDesigner
             $imageItems = $validated['images'];
             $sectionData = $validated['section'];
             $planData = $validated['plan'];
+            $hasDirectDesign = $validated['action'] === 'design';
 
             // 1. Run image actions first (if any), up to 6 per reply
             $createdMediaIds = [];
@@ -314,9 +315,27 @@ final class AiDesigner
                 $imageFailures = $imgResult['failures'];
             }
 
-            // 2. Build the section (if present), linking generated images as `image` field samples
+            // 2. Direct follow-up design (Stage 5.1)
+            $directRun = null;
+            if ($hasDirectDesign) {
+                $directRunResult = $this->runner->createDirectDesignRun(
+                    $tenant,
+                    $chat,
+                    $validated['raw_text'],
+                    $messages,
+                    $mediaByKey,
+                );
+                if (is_array($directRunResult)) {
+                    $this->failMessage($pending, __('ai.designer.invalid_output'));
+
+                    return;
+                }
+                $directRun = $directRunResult;
+            }
+
+            // 3. Build the section (if present), linking generated images as `image` field samples
             $version = null;
-            if (is_array($sectionData)) {
+            if (! $hasDirectDesign && is_array($sectionData)) {
                 if ($createdMediaIds !== [] && is_array($sectionData['fields'] ?? null)) {
                     $sectionData['fields'] = $this->assignImageSamples($sectionData['fields'], $createdMediaIds, $mediaByKey);
                 }
@@ -352,15 +371,18 @@ final class AiDesigner
             if ($replyText === '') {
                 $replyText = $version instanceof AiSectionVersion
                     ? 'صممتلك القسم، تقدر تعاينه وتعتمده.'
-                    : (is_array($planData)
-                        ? 'جهزتلك خطة التصميم الكاملة، راجعها واضغط «نفّذ الخطة».'
-                        : 'جهزتلك الصور وحفظتها في مكتبة الصور.');
+                    : ($directRun instanceof AiDesignRun
+                        ? 'عدّلتلك التصميم، تقدر تعاينه وتعتمده دلوقتي.'
+                        : (is_array($planData)
+                            ? 'جهزتلك خطة التصميم الكاملة، راجعها واضغط «نفّذ الخطة».'
+                            : 'جهزتلك الصور وحفظتها في مكتبة الصور.'));
             }
 
             $pending->forceFill([
                 'text' => $replyText,
                 'media_ids' => $createdMediaIds === [] ? null : $createdMediaIds,
                 'version_id' => $version?->id,
+                'run_id' => $directRun?->id,
                 'plan' => $planData,
                 'ai_usage_id' => $this->ai->lastUsage()?->id ?? $firstUsage?->id,
                 'status' => 'done',
@@ -620,7 +642,7 @@ final class AiDesigner
      */
     private function validateReplyJson(string $rawText, AiChat $chat): array
     {
-        $empty = ['reply' => '', 'action' => 'none', 'section' => null, 'images' => [], 'plan' => null, 'errors' => []];
+        $empty = ['reply' => '', 'action' => 'none', 'section' => null, 'images' => [], 'plan' => null, 'raw_text' => $rawText, 'errors' => []];
 
         if (strlen($rawText) > self::MAX_JSON_BYTES) {
             return [...$empty, 'errors' => ['Response JSON exceeds the 200 KB size limit.']];
@@ -634,8 +656,31 @@ final class AiDesigner
         $reply = isset($json['reply']) && is_string($json['reply']) ? trim(strip_tags($json['reply'])) : '';
         $action = isset($json['action']) && is_string($json['action']) ? trim($json['action']) : 'none';
 
-        if (! in_array($action, ['none', 'section', 'images', 'plan'], true)) {
+        if (! in_array($action, ['none', 'section', 'images', 'plan', 'design'], true)) {
             return [...$empty, 'errors' => ["Unsupported action '{$action}'."]];
+        }
+
+        if ($action === 'design') {
+            if (! is_array($json['design'] ?? null)) {
+                return [...$empty, 'errors' => ['Field "design" is required when action is "design".']];
+            }
+            $rawImages = is_array($json['images'] ?? null) ? array_values($json['images']) : [];
+            $cleanImages = [];
+            foreach (array_slice($rawImages, 0, self::MAX_REPLY_IMAGES) as $item) {
+                if (is_array($item) && isset($item['action']) && is_string($item['action'])) {
+                    $cleanImages[] = $item;
+                }
+            }
+
+            return [
+                'reply' => $reply !== '' ? $reply : 'عدّلتلك التصميم، تقدر تعاينه وتعتمده دلوقتي.',
+                'action' => 'design',
+                'section' => null,
+                'images' => $cleanImages,
+                'plan' => null,
+                'raw_text' => $rawText,
+                'errors' => [],
+            ];
         }
 
         if ($action === 'plan') {
@@ -649,6 +694,7 @@ final class AiDesigner
                 'section' => null,
                 'images' => [],
                 'plan' => $this->runner->cleanPlan($json['plan'], $chat),
+                'raw_text' => $rawText,
                 'errors' => [],
             ];
         }
@@ -674,6 +720,7 @@ final class AiDesigner
                 'section' => null,
                 'images' => [],
                 'plan' => null,
+                'raw_text' => $rawText,
                 'errors' => [],
             ];
         }
@@ -701,6 +748,7 @@ final class AiDesigner
             'section' => $sectionData,
             'images' => $cleanImages,
             'plan' => null,
+            'raw_text' => $rawText,
             'errors' => [],
         ];
     }
@@ -1013,6 +1061,10 @@ final class AiDesigner
             $lines[] = "Current HTML:\n".$ver->html;
             $lines[] = "Current CSS:\n".$ver->css_raw;
         }
+
+        $lines[] = '';
+        $lines[] = '## CURRENT DRAFT JSON';
+        $lines[] = json_encode($this->runner->currentDraft($chat), JSON_UNESCAPED_UNICODE);
 
         $lines[] = '';
         $lines[] = '## THEME SPECIFICATION';

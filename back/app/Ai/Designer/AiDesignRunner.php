@@ -615,6 +615,77 @@ final class AiDesignRunner
     }
 
     /**
+     * Handle a direct `action: "design"` follow-up reply from the chat (Stage 5.1):
+     * replaces placeholders, validates against the theme (with 1 repair turn if needed),
+     * and creates a proposed `AiDesignRun` without separate plan steps.
+     *
+     * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $promptMessages
+     * @param  array<string, int|string>  $imageResults
+     */
+    public function createDirectDesignRun(
+        Tenant $tenant,
+        AiChat $chat,
+        string $rawReplyText,
+        array $promptMessages,
+        array $imageResults = [],
+    ): AiDesignRun|array {
+        $currentDraft = $this->currentDraft($chat);
+        $chatUploadIds = $this->chatUploadedMediaIds($chat);
+
+        $attempt = $this->parseReplaceAndValidate(
+            $rawReplyText,
+            $chat,
+            $currentDraft,
+            $chatUploadIds,
+            $imageResults,
+        );
+
+        if ($attempt['errors'] !== []) {
+            $repairMessages = [
+                ...$promptMessages,
+                ['role' => 'assistant', 'content' => mb_substr($rawReplyText, 0, 40000, 'UTF-8')],
+                [
+                    'role' => 'user',
+                    'content' => "[MKSAB_RUN_DESIGN]\nYour design JSON broke these validation rules:\n- "
+                        .implode("\n- ", $attempt['errors'])
+                        ."\nReturn the corrected full JSON (`{\"reply\": \"...\", \"action\": \"design\", \"design\": {...}}`) only.",
+                ],
+            ];
+
+            $repairReply = $this->ai->chatPaid(
+                $tenant,
+                'designer',
+                'designer',
+                $repairMessages,
+                ['max_tokens' => AiDesigner::MAX_OUTPUT_TOKENS, 'json' => true],
+                'المصمم الذكي: إصلاح تصميم',
+            );
+
+            $attempt = $this->parseReplaceAndValidate(
+                $repairReply->text,
+                $chat,
+                $currentDraft,
+                $chatUploadIds,
+                $imageResults,
+            );
+        }
+
+        if ($attempt['errors'] !== [] || ! is_array($attempt['design'])) {
+            return $attempt['errors'] !== [] ? $attempt['errors'] : ['Invalid design output.'];
+        }
+
+        return AiDesignRun::query()->create([
+            'chat_id' => $chat->id,
+            'plan' => null,
+            'status' => 'proposed',
+            'progress' => 'التصميم جاهز للمعاينة',
+            'image_results' => $imageResults === [] ? null : $imageResults,
+            'section_ids' => null,
+            'proposal' => $attempt['design'],
+        ]);
+    }
+
+    /**
      * Build the runtime `data` needed to render a whole-page proposal in `PreviewDialog`.
      *
      * @param  array<string, mixed>  $proposal

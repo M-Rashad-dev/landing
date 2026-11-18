@@ -37,6 +37,7 @@ export const admin = {
     featureNames: {
       support: "مساعد خدمة العملاء",
       designer: "المصمم الذكي (الأقسام وتصميم الصفحات)",
+      knowledge: "تجهيز معلومات المساعد",
     } as Record<string, string>,
     featureHints: {
       support: "بيرد على التجار في شات الدعم من معلومات المساعد، ويحوّل لموظف وقت اللزوم.",

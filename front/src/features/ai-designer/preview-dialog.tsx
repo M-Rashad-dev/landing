@@ -44,7 +44,10 @@ export function PreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-5xl">
+      <DialogContent
+        size="xl"
+        className="flex h-dvh w-screen max-w-none flex-col rounded-none sm:h-auto sm:max-w-5xl sm:rounded-2xl"
+      >
         <DialogHeader
           title={version.name}
           description={t.version.statuses[version.status]}

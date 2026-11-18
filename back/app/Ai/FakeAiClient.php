@@ -87,6 +87,22 @@ final class FakeAiClient implements AiClient
         }
 
         if (
+            ! $editOf
+            && ! str_contains($lastUserText, 'قسم')
+            && (
+                str_contains($lastUserText, 'غيّر لون')
+                || str_contains($lastUserText, 'غير لون')
+                || str_contains($lastUserText, 'بدّل صورة')
+                || str_contains($lastUserText, 'بدل صورة')
+                || str_contains($lastUserText, 'غيّر الخط')
+                || str_contains($lastUserText, 'غير الخط')
+                || str_contains($lastUserText, 'الهيدر')
+            )
+        ) {
+            return self::fakeDesignReply($themeKey, $lastUserText);
+        }
+
+        if (
             str_contains($lastUserText, 'صمم الصفحة')
             || str_contains($lastUserText, 'صمم المتجر')
             || str_contains($lastUserText, 'تصميم كامل')
