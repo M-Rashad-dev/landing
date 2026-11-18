@@ -16,7 +16,7 @@ The owner topped up OpenRouter with $5 and removed the local free-model lines, s
 
 ---
 
-## P0. The front end gates fail (task F0: DO THIS FIRST)
+## P0. The front end gates fail (task F0 — DONE 2026-11-18)
 `pnpm typecheck` and `pnpm lint` fail on code from the AI designer stages. These errors already existed before this
 fix plan; it didn't cause them. Fix every one, without changing behaviour, until
 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` are all green.
@@ -151,3 +151,7 @@ Example: «make phone show one card» also changed the section header.
   3. the F5 guard
   4. P2 step 3
   5. Owner check
+- 2026-11-18 — **F0 DONE**: all typecheck + lint errors fixed (SwitchRow `title`, typed media lists, `DeviceFrame host`, AI media kept in the
+  Builder media map, **real bug fixed**: «استخدم في القسم» called `setSection(index, section)` instead of `setSection(id, props)` in both
+  Builders; effects no longer set state synchronously; «late reply» clock in state; `router.push` instead of `window.location`;
+  «أقسامي» list guards a non-array). Front: lint ✓ typecheck ✓ 310 tests ✓ build ✓. Next: P3 step 5 front test, F5 guard, P2 step 3.

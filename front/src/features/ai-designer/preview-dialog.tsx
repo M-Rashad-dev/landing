@@ -97,7 +97,7 @@ export function PreviewDialog({
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface-2 p-3">
-            <DeviceFrame device={device}>
+            <DeviceFrame device={device} host="">
               <div className="h-full overflow-y-auto bg-(--ai-bg)">
                 <AiSectionView
                   definition={{

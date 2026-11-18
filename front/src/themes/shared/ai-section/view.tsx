@@ -114,7 +114,7 @@ export function AiSectionView({
         const ids = values[`${key}_media_ids`];
         if (Array.isArray(ids) && ids.length > 0) {
           return ids
-            .map((id, i) => {
+            .map((id, i): ImageRenderItem | null => {
               const url = resolveMediaUrl(id, `${field?.label ?? "صورة"} ${i + 1}`);
               return url ? { img: url, alt: `${field?.label ?? ""} ${i + 1}`.trim() } : null;
             })

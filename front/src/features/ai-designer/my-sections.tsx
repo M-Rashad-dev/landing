@@ -83,7 +83,7 @@ export function MySectionsGalleryBlock({
           </div>
         ) : query.isError ? (
           <ErrorState message={errorMessage(query.error)} onRetry={() => void query.refetch()} />
-        ) : !query.data || query.data.length === 0 ? (
+        ) : !Array.isArray(query.data) || query.data.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-ink-3">
             {t.mySections.empty}
           </p>

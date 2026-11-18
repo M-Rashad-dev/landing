@@ -220,7 +220,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
   ) {
     if (chatMedia) {
       for (const [mid, urls] of Object.entries(chatMedia)) {
-        rememberMedia({ id: Number(mid), urls });
+        setMedia((m) => ({ ...m, [mid]: urls }));
       }
     }
 
@@ -258,7 +258,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
 
   function handleUseAiImage(img: AiMessageMedia) {
     if (img.urls) {
-      rememberMedia({ id: img.id, urls: img.urls });
+      setMedia((m) => ({ ...m, [String(img.id)]: img.urls! }));
     }
 
     const targetIdx = draft.sections.findIndex((s) => {
@@ -291,19 +291,13 @@ function Editor({ initial }: { initial: DesignPayload }) {
               ...prevVals,
               [`${imgField.key}_media_id`]: img.id,
             };
-      setSection(targetIdx, {
-        ...target,
-        props: { ...target.props, values: nextVals },
-      });
+      setSection(target.id, { ...target.props, values: nextVals } as typeof target.props);
       toast.success(ar.aiDesigner.images.usedToast);
       return;
     }
 
     if ("media_id" in target.props) {
-      setSection(targetIdx, {
-        ...target,
-        props: { ...target.props, media_id: img.id },
-      } as AnySection);
+      setSection(target.id, { ...target.props, media_id: img.id } as typeof target.props);
       toast.success(ar.aiDesigner.images.usedToast);
     }
   }

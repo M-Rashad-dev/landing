@@ -204,22 +204,22 @@ function FieldControl({
       const mediaErr = readError(errors, mediaPath);
       const rawIds = Array.isArray(values[mediaKey]) ? (values[mediaKey] as number[]) : [];
       const items: MediaItem[] = rawIds
-        .map((id) => {
+        .map((id): MediaItem | null => {
           const urls = media[String(id)];
           if (!urls) return null;
           return {
             id,
+            name: "",
             alt: null,
-            width: null,
-            height: null,
-            mime: "image/webp",
-            size_bytes: 0,
+            width: 0,
+            height: 0,
+            size: 0,
             urls: {
               thumb: pick(urls, "thumb") ?? "",
               medium: pick(urls, "medium") ?? "",
               large: pick(urls, "large") ?? "",
             },
-            created_at: "",
+            created_at: null,
           };
         })
         .filter((x): x is MediaItem => x !== null && x.urls.thumb !== "");

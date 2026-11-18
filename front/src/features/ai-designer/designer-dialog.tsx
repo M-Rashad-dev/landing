@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { SwitchRow } from "@/components/ui/choice";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Textarea } from "@/components/ui/input";
-import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
+import { ConfirmDialog, Dialog, DialogBody, DialogContent } from "@/components/ui/overlay";
 import type { MediaItem } from "@/features/media/api";
 import { MediaPicker } from "@/features/media/media-picker";
 import { errorMessage, isApiError } from "@/lib/api/errors";
@@ -124,12 +124,22 @@ export function DesignerDialog({
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
-  React.useEffect(() => {
+  // Opening (again) starts from the place it was opened from; adjusted while rendering, not in an effect.
+  const [openedWith, setOpenedWith] = React.useState<{ open: boolean; focus: typeof initialFocus }>({ open: false, focus: initialFocus });
+  if (openedWith.open !== open || openedWith.focus !== initialFocus) {
+    setOpenedWith({ open, focus: initialFocus });
     if (open) {
       setFocus(initialFocus);
       setSendError(null);
     }
-  }, [open, initialFocus]);
+  }
+  // The clock for «the reply is late» (read in render, ticks in an effect).
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => setNow(Date.now()), 10_000);
+    return () => window.clearInterval(id);
+  }, [open]);
 
   const initChat = React.useCallback(async () => {
     setLoadingChat(true);
@@ -150,9 +160,10 @@ export function DesignerDialog({
   }, [kind, themeKey, landingPageId, client]);
 
   React.useEffect(() => {
-    if (open) {
-      void initChat();
-    }
+    if (!open) return;
+    // Started right after the effect, so its state updates aren't synchronous inside it.
+    const id = window.setTimeout(() => void initChat(), 0);
+    return () => window.clearTimeout(id);
   }, [open, initChat]);
 
   React.useEffect(() => {
@@ -490,7 +501,7 @@ export function DesignerDialog({
                     const isTimedOut =
                       msg.status === "pending" &&
                       msg.created_at &&
-                      Date.now() - Date.parse(msg.created_at) > 180_000;
+                      now - Date.parse(msg.created_at) > 180_000;
 
                     return (
                       <div key={msg.id} className="flex items-start gap-2.5">
@@ -674,7 +685,7 @@ export function DesignerDialog({
                                           ) : null}
                                           {sec.type === "custom" && sec.key ? (
                                             <SwitchRow
-                                              label={t.plan.customToggleLabel(sec.title)}
+                                              title={t.plan.customToggleLabel(sec.title)}
                                               checked={
                                                 customSwitches[msg.id]?.[sec.key] ??
                                                 (sec.enabled ?? true)

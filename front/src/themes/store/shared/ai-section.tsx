@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { addToCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
@@ -20,6 +21,7 @@ export function StoreAiSection({
   themeKey?: "asas_store" | "sufi_store" | "shabe_store";
 }) {
   const { mode, settings, data, media } = useTheme();
+  const router = useRouter();
   const { scheme } = useScheme();
 
   const versionId =
@@ -48,7 +50,7 @@ export function StoreAiSection({
       if (!found) return;
 
       if (!found.available || found.needs_options) {
-        window.location.href = `/products/${encodeURIComponent(found.slug)}`;
+        router.push(`/products/${encodeURIComponent(found.slug)}`);
         return;
       }
 
@@ -74,7 +76,7 @@ export function StoreAiSection({
         });
       }
     },
-    [mode, data.products],
+    [mode, data.products, router],
   );
 
   return (

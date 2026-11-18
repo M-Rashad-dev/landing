@@ -111,7 +111,7 @@ export function renderTemplate(html: string, ctx: RenderCtx): string {
   const withExternalLinks = rendered.replace(
     /<a\b([^>]*?\bhref="https:\/\/[^"]*"[^>]*)>/gi,
     (full, attrs: string) => {
-      let cleanAttrs = attrs
+      const cleanAttrs = attrs
         .replace(/\s*\btarget=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
         .replace(/\s*\brel=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
       return `<a${cleanAttrs} target="_blank" rel="noopener noreferrer">`;
