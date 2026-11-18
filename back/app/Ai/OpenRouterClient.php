@@ -70,6 +70,49 @@ final class OpenRouterClient implements AiClient
         );
     }
 
+    public function generateImage(string $model, string $prompt, string $aspect = '1:1'): AiImage
+    {
+        return $this->image($model, $prompt, $aspect);
+    }
+
+    public function editImage(string $model, string $imageDataUrl, string $instruction, string $aspect = '1:1'): AiImage
+    {
+        return $this->image($model, [
+            ['type' => 'text', 'text' => $instruction],
+            ['type' => 'image', 'url' => $imageDataUrl],
+        ], $aspect);
+    }
+
+    /**
+     * Image models answer through chat completions with an image in the message (a base64 data
+     * URL). Image-only models (config ai.image_only_models) take modalities [image], the others
+     * [image, text].
+     *
+     * @param  string|list<array<string, string>>  $content
+     */
+    private function image(string $model, string|array $content, string $aspect): AiImage
+    {
+        $imageOnly = in_array($model, (array) config('ai.image_only_models'), true);
+        $json = $this->post('chat/completions', [
+            'model' => $model,
+            'modalities' => $imageOnly ? ['image'] : ['image', 'text'],
+            'messages' => [['role' => 'user', 'content' => self::content($content)]],
+            'image_config' => ['aspect_ratio' => $aspect],
+        ]);
+
+        $url = (string) ($json['choices'][0]['message']['images'][0]['image_url']['url'] ?? '');
+        if (! preg_match('#^data:(image/[a-z+.-]+);base64,(.+)$#s', $url, $m)) {
+            throw new AiError('OpenRouter: no image in the answer');
+        }
+        $bytes = base64_decode($m[2], true);
+        if ($bytes === false || $bytes === '') {
+            throw new AiError('OpenRouter: the image could not be read');
+        }
+        $cost = $json['usage']['cost'] ?? null;
+
+        return new AiImage($bytes, $m[1], $model, is_numeric($cost) ? (float) $cost : null);
+    }
+
     /**
      * A text stays a text; parts become the OpenAI shape (images as image_url).
      *

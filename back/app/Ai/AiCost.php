@@ -9,7 +9,18 @@ final class AiCost
 {
     public static function priced(string $model): bool
     {
-        return self::free($model) || self::price($model) !== null;
+        return self::free($model) || self::price($model) !== null || self::imagePrice($model) !== null;
+    }
+
+    /** USD per image of an image model (null = not listed); «:free» models cost nothing. */
+    public static function imagePrice(string $model): ?float
+    {
+        if (self::free($model)) {
+            return 0.0;
+        }
+        $price = ((array) config('ai.image_prices'))[$model] ?? null;
+
+        return is_numeric($price) ? (float) $price : null;
     }
 
     /** OpenRouter's «:free» models (local trials) cost nothing. */

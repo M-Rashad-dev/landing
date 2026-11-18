@@ -152,6 +152,41 @@ it('turns a refusal from OpenRouter into an AiError, even inside a 200, and refu
         ->and(fn () => app(OpenRouterClient::class)->embed('qwen/qwen3-embedding-8b', ['x']))->toThrow(AiError::class);
 });
 
+it('makes and edits images through OpenRouter, image-only models without text', function () {
+    config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
+    $png = base64_encode('fake-png-bytes');
+    Http::fake(['openrouter.test/*' => Http::response([
+        'choices' => [['message' => ['content' => null, 'images' => [['type' => 'image_url', 'image_url' => ['url' => "data:image/png;base64,{$png}"]]]]]],
+        'usage' => ['cost' => 0.039],
+    ])]);
+
+    $made = app(OpenRouterClient::class)->generateImage('recraft/recraft-v4.1-flash-v2:free', 'a ceramic mug, studio light', '16:9');
+    $edited = app(OpenRouterClient::class)->editImage('google/gemini-nano-banana-2.1', 'data:image/jpeg;base64,AAAA', 'remove the background');
+
+    expect([$made->bytes, $made->mime, $made->extension(), $made->costUsd])->toBe(['fake-png-bytes', 'image/png', 'png', 0.039]);
+    expect($edited->model)->toBe('google/gemini-nano-banana-2.1');
+    Http::assertSent(fn (Request $r) => $r['model'] === 'recraft/recraft-v4.1-flash-v2:free'
+        && $r['modalities'] === ['image'] && $r['image_config'] === ['aspect_ratio' => '16:9']
+        && $r['messages'][0]['content'] === 'a ceramic mug, studio light');
+    Http::assertSent(fn (Request $r) => $r['model'] === 'google/gemini-nano-banana-2.1'
+        && $r['modalities'] === ['image', 'text']
+        && $r['messages'][0]['content'][1] === ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,AAAA']]);
+});
+
+it('refuses an image answer without an image', function () {
+    config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
+    Http::fake(['openrouter.test/*' => Http::response(['choices' => [['message' => ['content' => 'sorry']]]])]);
+
+    expect(fn () => app(OpenRouterClient::class)->generateImage('google/gemini-nano-banana-2.1', 'x'))->toThrow(AiError::class, 'no image');
+});
+
+it('gives real PNG images from the fake', function () {
+    $image = fakeAi()->generateImage('m', 'mug');
+
+    expect(getimagesizefromstring($image->bytes)[0] ?? null)->toBe(512)
+        ->and(fakeAi()->images[0])->toBe(['model' => 'm', 'prompt' => 'mug', 'edit' => false]);
+});
+
 it('counts «:free» models as priced at nothing', function () {
     expect(AiCost::priced('google/gemma-4-31b-it:free'))->toBeTrue()
         ->and(AiCost::usd('google/gemma-4-31b-it:free', 5000, 5000))->toBe(0.0)
@@ -178,7 +213,7 @@ it('shows the settings, the connection and what the AI cost', function () {
     expect($data['settings'])->toEqual(['features' => ['support' => true], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])
         ->and($data['status']['configured'])->toBeTrue()
         ->and($data['status']['limit_reached'])->toBeFalse()
-        ->and($data['models'])->toBe([['model' => 'qwen/qwen4-max', 'priced' => true], ['model' => 'qwen/qwen3-embedding-8b', 'priced' => true]])
+        ->and($data['models'])->toBe([['model' => 'qwen/qwen4-max', 'priced' => true], ['model' => 'qwen/qwen3-embedding-8b', 'priced' => true], ['model' => 'google/gemini-nano-banana-2.1', 'priced' => true]])
         ->and($data['usage']['today'])->toBe(['calls' => 2, 'usd' => 0.0017, 'failed' => 1])
         ->and($data['usage']['top_stores'][0])->toMatchArray(['name' => 'متجر سما', 'calls' => 2])
         ->and($data['usage']['failures'][0]['error'])->toBe('Qwen 429 Throttling');

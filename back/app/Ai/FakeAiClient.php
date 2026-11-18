@@ -46,6 +46,34 @@ final class FakeAiClient implements AiClient
         return new AiReply($next, $model, inputTokens: 1000, outputTokens: 200, cachedTokens: 400);
     }
 
+    /** @var list<array{model: string, prompt: string, edit: bool}> */
+    public array $images = [];
+
+    public function generateImage(string $model, string $prompt, string $aspect = '1:1'): AiImage
+    {
+        $this->images[] = ['model' => $model, 'prompt' => $prompt, 'edit' => false];
+
+        return new AiImage(self::png(hexdec(substr(hash('sha256', $prompt), 0, 6))), 'image/png', $model, 0.0);
+    }
+
+    public function editImage(string $model, string $imageDataUrl, string $instruction, string $aspect = '1:1'): AiImage
+    {
+        $this->images[] = ['model' => $model, 'prompt' => $instruction, 'edit' => true];
+
+        return new AiImage(self::png(hexdec(substr(hash('sha256', $instruction), 0, 6))), 'image/png', $model, 0.0);
+    }
+
+    /** A real 512×512 PNG of one soft colour (GD), so saving and showing it works like a real image. */
+    private static function png(int $rgb): string
+    {
+        $image = imagecreatetruecolor(512, 512);
+        imagefill($image, 0, 0, (int) imagecolorallocate($image, 128 + (($rgb >> 16) & 127), 128 + (($rgb >> 8) & 127), 128 + ($rgb & 127)));
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
+    }
+
     public function embed(string $model, array $texts): AiEmbeddings
     {
         $this->embedded[] = array_values($texts);

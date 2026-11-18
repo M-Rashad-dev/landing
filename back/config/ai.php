@@ -25,7 +25,20 @@ return [
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
+        // Images (the AI designer): new images, and edits of the merchant's photos.
+        'image_generate' => env('AI_MODEL_IMAGE_GENERATE', 'google/gemini-nano-banana-2.1'),
+        'image_edit' => env('AI_MODEL_IMAGE_EDIT', 'google/gemini-nano-banana-2.1'),
     ],
+
+    // USD per image (an estimate for checking the balance before; the real cost OpenRouter reports
+    // is what gets charged). «:free» models cost nothing.
+    'image_prices' => [
+        'google/gemini-nano-banana-2.1' => 0.04,
+        'recraft/recraft-v4.1-flash-v2' => 0.007,
+    ],
+
+    // Image models that answer with an image only (no text alongside).
+    'image_only_models' => ['recraft/recraft-v4.1-flash-v2:free', 'recraft/recraft-v4.1-flash-v2'],
 
     // USD per 1M tokens (input, input served from the provider's cache, output), from OpenRouter's
     // model pages. «:free» models cost 0; any other model missing here costs 0 and is flagged in

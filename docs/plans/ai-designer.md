@@ -1104,21 +1104,29 @@ inside `Tenancy::runAs($tenantId, ...)` (copy `AnswerSupport`) and calls `AiDesi
 - Add to the `AiClient` interface:
   - `editImage(string $model, string $imageDataUrl, string $instruction): AiImage`
   - `generateImage(string $model, string $prompt, string $size): AiImage`
-- **`OpenRouterClient`: do NOT implement real image calls in this stage.** Its `editImage` / `generateImage` throw
-  `AiError('Image generation is not connected yet')`. The real image provider is connected in **Stage 6**.
-- **`FakeAiClient`:** this is what Stages 3–5 use.
-  - Return a real small image: create it with GD, 512×512.
-    - generate: a soft gradient with the prompt's first word written on it
-    - edit: the input image with a coloured border
-  - Record the call.
-  - This lets the whole flow (chat → images saved to the library → charged → used in sections) be built and
-    tested.
+- **ALREADY DONE (2026-11-18), don't rebuild:** `App\Ai\AiImage` (`bytes`, `mime`, `model`, `costUsd`,
+  `extension()`). In the `AiClient` interface:
+  - `generateImage(string $model, string $prompt, string $aspect = '1:1'): AiImage`
+  - `editImage(string $model, string $imageDataUrl, string $instruction, string $aspect = '1:1'): AiImage`
+- **Implemented in `OpenRouterClient`:** chat completions with `modalities`, the image read from
+  `choices[0].message.images[0].image_url.url`, a base64 data URL. `costUsd` comes from OpenRouter's `usage.cost`.
+- **Implemented in `FakeAiClient`:** a real 512×512 PNG; the calls are recorded in `$images`.
+- Tests are in `tests/Feature/Ai/AiTest.php`.
 - **`config/ai.php`:**
-  - tasks `image_edit` => `env('AI_MODEL_IMAGE_EDIT')`, `image_generate` => `env('AI_MODEL_IMAGE_GENERATE')`
-    (empty until Stage 6)
-  - `image_prices` => [] (filled in Stage 6)
-  - An image task with no model → `Ai::imagePaid` throws `AiUnavailable(NOT_CONFIGURED)` (the chat says «إنشاء
-    الصور مش متاح دلوقتي»), except when `AI_DRIVER=fake`.
+  - tasks `image_generate` / `image_edit` (env `AI_MODEL_IMAGE_GENERATE` / `AI_MODEL_IMAGE_EDIT`; production
+    default `google/gemini-nano-banana-2.1`)
+  - `image_prices` (USD per image, an estimate for `ensureCanSpend`)
+  - `image_only_models`
+  - `AiCost::imagePrice($model)` (`:free` = 0)
+- **Locally (the owner's `back/.env`):**
+  - `AI_MODEL_IMAGE_GENERATE=recraft/recraft-v4.1-flash-v2:free` makes **real images for free**. Tested: a good
+    1344×768 banner in about 3 s. It goes away on OpenRouter on **2026-11-28**; by then switch to a paid model
+    (Stage 6).
+  - **No free model edits images.** With no credits, `editImage` fails (OpenRouter 402), so the edit actions (remove
+    background, studio, enhance) must fail gracefully with a clear Arabic message and no charge. Test edits with
+    `FakeAiClient`.
+- **Charging images:** when `AiImage::costUsd` is not null, charge that (the provider's real cost); otherwise use
+  `AiCost::imagePrice` × images.
 
 **3.2 `Ai::imagePaid(Tenant $tenant, string $feature, string $task, callable $call, string $description):
 AiImage`:**
@@ -1305,20 +1313,13 @@ Stage 6 connects the real provider.
 > come back. Chat and embedding are already connected (`App\Ai\OpenRouterClient`, `php artisan ai:reembed`).
 > Locally everything runs on free models; the strong paid models are switched on only when going live.
 
-**6.1 Real images on OpenRouter** (there is no free image model: Stages 3–5 used the fake):
-- Implement `OpenRouterClient::generateImage()` / `editImage()` with an image-output model.
-- Request: chat completions `/chat/completions` with `"modalities": ["image", "text"]`. Edit = the input image as an
-  `image_url` part + the instruction. Check the current official docs (`openrouter.ai/docs`, «Image generation»)
-  for the exact response shape.
-- Response: the image comes in the assistant message's `images` list as a base64 data URL. Decode it and return the
-  bytes.
-- **Model:** ask the owner. Suggest `google/gemini-nano-banana-2.1` (strong at editing product photos, about
-  $0.04 per image) or the cheaper `google/gemini-3.1-flash-lite-image`. Read the price per image from the model page.
-- Set `AI_MODEL_IMAGE_EDIT` / `AI_MODEL_IMAGE_GENERATE` defaults in `config/ai.php` to the chosen model, and its
-  price in `ai.image_prices`.
-- Tests with `Http::fake` (request shape, decoding, errors), like the existing OpenRouter tests in
-  `tests/Feature/Ai/AiTest.php`.
-- One real try costs a few cents, so ask the owner before running it.
+**6.1 Images: ALREADY CONNECTED** (2026-11-18; see Stage 3.1). Only:
+- Ask the owner which paid model to use for live, then set the defaults in `config/ai.php`. Suggested:
+  `google/gemini-nano-banana-2.1`, about $0.04 an image and strong at editing product photos; or the cheaper
+  `google/gemini-3.1-flash-lite-image`. Put its price in `ai.image_prices`.
+- Remove the local `AI_MODEL_IMAGE_GENERATE=recraft/...:free` line before 2026-11-28, when that free model goes
+  away.
+- One real edit try costs a few cents, so ask the owner before running it.
 
 **6.2 Going live** (the owner tops up OpenRouter first):
 1. In the server `.env`: `OPENROUTER_API_KEY` (the owner adds it himself) and **no** `AI_MODEL_*` lines, so the
@@ -1434,3 +1435,7 @@ Every endpoint: success, validation, 401, another tenant → 404.
 - 2026-11-18: **Alibaba removed entirely; OpenRouter connected** (`App\Ai\OpenRouterClient`, `php artisan ai:reembed`). Text and
   embedding are done. The owner tries everything locally on free OpenRouter models (see §2.1). Stage 6 (rewritten) is only: real
   images (6.1), then switching to the paid strong models when going live (6.2–6.3).
+- 2026-11-18: **Real images connected** (`AiImage`, `AiClient::generateImage/editImage`, OpenRouter + fake, tests). Locally they
+  are free with `recraft/recraft-v4.1-flash-v2:free` (generate only, until 2026-11-28). No free model edits images. So everything
+  in the feature runs on real AI locally (text: ling / nemotron-ultra free, embedding: nemotron-embed free, images: recraft free),
+  except image edits.
