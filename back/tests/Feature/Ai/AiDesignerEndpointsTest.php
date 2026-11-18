@@ -1,0 +1,124 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Ai\AiClient;
+use App\Ai\AiWallets;
+use App\Ai\Designer\AiDesigner;
+use App\Ai\FakeAiClient;
+use App\Billing\PlanCatalog;
+use App\Billing\PlatformSettings;
+use App\Models\AiSection;
+use App\Models\AiWalletEntry;
+use App\Models\PlanFeatureValue;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Tenancy\Tenancy;
+use Laravel\Sanctum\Sanctum;
+
+/** A Pro store with a set-up store (theme asas_store), the designer on and a topped-up AI balance. */
+function designerOwner(int $balanceCents = 10000): User
+{
+    app(PlatformSettings::class)->save(['ai_features' => ['support' => false, 'designer' => true], 'ai_usd_rate' => 50, 'ai_margin_percent' => 10]);
+    PlanFeatureValue::query()->updateOrCreate(['plan_key' => 'pro', 'entitlement' => 'ai'], ['value' => 1]);
+    PlanCatalog::flush();
+    $tenant = Tenant::factory()->onPlan('pro')->create();
+    $user = User::factory()->for($tenant)->create();
+    Sanctum::actingAs($user->fresh(['tenant']));
+    test()->postJson('/api/v1/dashboard/store/setup')->assertOk();
+    if ($balanceCents > 0) {
+        app(AiWallets::class)->credit($tenant, $balanceCents, 'topup');
+    }
+
+    return $user;
+}
+
+function designerChat(): int
+{
+    return (int) test()->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'store', 'theme_key' => 'asas_store'])->assertOk()->json('data.chat.id');
+}
+
+/** Sends a message (the fake answers with its fixed section) and returns the new version id. */
+function designerSectionVersion(int $chat): int
+{
+    test()->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'اعملي قسم بنر ومنتجات'])->assertStatus(202);
+    $messages = test()->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->assertOk()->json('data.messages');
+    $last = end($messages);
+    expect($last['status'])->toBe('done')->and($last['version'])->not->toBeNull();
+
+    return (int) $last['version']['id'];
+}
+
+function charges(int $tenantId): int
+{
+    return Tenancy::runAs($tenantId, fn () => AiWalletEntry::query()->where('type', 'charge')->count());
+}
+
+it('refuses guests', function () {
+    $this->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'store', 'theme_key' => 'asas_store'])->assertUnauthorized();
+    $this->getJson('/api/v1/dashboard/ai/sections?kind=store&theme_key=asas_store')->assertUnauthorized();
+});
+
+it('opens the chat of the store theme only and validates it', function () {
+    designerOwner();
+
+    expect(designerChat())->toBe(designerChat());
+    $this->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'store', 'theme_key' => 'sufi_store'])->assertStatus(422);
+    $this->postJson('/api/v1/dashboard/ai/designer/chat', ['kind' => 'nope', 'theme_key' => 'asas_store'])->assertStatus(422);
+    $this->getJson('/api/v1/dashboard/ai/designer/status')->assertOk()->assertJsonPath('data.enabled', true);
+});
+
+it('makes a section, charges the reply once, approves it into «أقسامي» once', function () {
+    $owner = designerOwner();
+    $version = designerSectionVersion(designerChat());
+
+    expect(charges($owner->tenant_id))->toBe(1);
+    $this->postJson("/api/v1/dashboard/ai/designer/versions/{$version}/approve")->assertOk();
+    $this->postJson("/api/v1/dashboard/ai/designer/versions/{$version}/approve")->assertStatus(409);
+    $this->getJson('/api/v1/dashboard/ai/sections?kind=store&theme_key=asas_store')->assertOk()->assertJsonCount(1, 'data');
+});
+
+it('keeps the balance and the chat to their own store', function () {
+    $first = designerOwner();
+    $chat = designerChat();
+    $version = designerSectionVersion($chat);
+
+    designerOwner();
+    $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->assertNotFound();
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'x'])->assertNotFound();
+    $this->postJson("/api/v1/dashboard/ai/designer/versions/{$version}/approve")->assertNotFound();
+    expect(charges($first->tenant_id))->toBe(1);
+});
+
+it('refuses up front when the balance is too low or the designer is off, charging nothing', function () {
+    $owner = designerOwner(0);
+    $chat = designerChat();
+
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'قسم'])->assertStatus(422)->assertJsonPath('code', 'ai_balance_low');
+    app(PlatformSettings::class)->save(['ai_features' => ['support' => false, 'designer' => false]]);
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'قسم'])->assertStatus(422);
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => ''])->assertStatus(422);
+    expect(charges($owner->tenant_id))->toBe(0);
+});
+
+it('edits a section calmly: low temperature, and the merchant\'s fields are kept', function () {
+    $owner = designerOwner();
+    $chat = designerChat();
+    $this->postJson('/api/v1/dashboard/ai/designer/versions/'.designerSectionVersion($chat).'/approve')->assertOk();
+    $section = Tenancy::runAs($owner->tenant_id, fn () => AiSection::query()->with('current')->sole());
+    $oldKeys = array_column($section->current->fields, 'key');
+
+    // The edit drops every field: they must come back (the merchant didn't ask to remove anything).
+    /** @var FakeAiClient $ai */
+    $ai = app(AiClient::class);
+    $ai->answer(json_encode(['reply' => 'تمام، صلّحت الموبايل.', 'action' => 'section', 'section' => [
+        'edit_of' => $section->id, 'name' => $section->name, 'html' => '<section class="w"><p>نص</p></section>', 'css' => '.w{display:block}', 'fields' => [],
+    ]], JSON_UNESCAPED_UNICODE));
+    $this->postJson("/api/v1/dashboard/ai/designer/chats/{$chat}/messages", ['text' => 'خلي الموبايل كارت واحد', 'focus_section_id' => $section->id])->assertStatus(202);
+
+    $call = end($ai->chats);
+    expect($call['options']['temperature'] ?? null)->toBe(AiDesigner::EDIT_TEMPERATURE);
+    $messages = $this->getJson("/api/v1/dashboard/ai/designer/chats/{$chat}")->json('data.messages');
+    $edited = end($messages)['version'];
+    expect(array_column($edited['fields'], 'key'))->toEqualCanonicalizing($oldKeys);
+});

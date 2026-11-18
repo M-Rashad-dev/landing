@@ -184,4 +184,19 @@ If a test finds a bug, fix the code (that is the point) and note it in PROGRESS.
     - the edit temperature + `keepEditedFields`
     - images
     - runs / apply / revert
+- 2026-11-18: **F6, second part done:** `tests/Feature/Ai/AiDesignerEndpointsTest.php` has 6 tests, all passing:
+  - guests get 401
+  - the chat opens only on the store's own theme, plus validation
+  - make a section, charged once, approve once (twice gives 409), shown in «أقسامي»
+  - another store gets 404 on the chat, messages and approve
+  - low balance and designer off are refused up front with no charge
+  - a focused edit uses `EDIT_TEMPERATURE` and keeps the merchant's field keys
+  
+  **Still open in F6:**
+  - the fields tests
+  - store / landing designs holding `ai` sections (theme isolation, publish stamps `version_id`)
+  - the reject / new chat / sections delete endpoints
+  - the repair path = 2 charges
+  - images (§3.6)
+  - runs: apply / revert / product tables untouched (§4.6)
 
