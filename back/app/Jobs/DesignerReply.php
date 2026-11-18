@@ -34,7 +34,7 @@ final class DesignerReply implements ShouldQueue
     public function handle(AiDesigner $designer): void
     {
         Tenancy::runAs($this->tenantId, function () use ($designer): void {
-            $message = AiChatMessage::query()->find($this->messageId);
+            $message = AiChatMessage::query()->with('chat')->find($this->messageId);
             if ($message instanceof AiChatMessage) {
                 $designer->reply($message);
             }

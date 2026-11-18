@@ -34,7 +34,7 @@ final class RunDesign implements ShouldQueue
     public function handle(AiDesignRunner $runner): void
     {
         Tenancy::runAs($this->tenantId, function () use ($runner): void {
-            $run = AiDesignRun::query()->find($this->runId);
+            $run = AiDesignRun::query()->with('chat')->find($this->runId);
             if ($run instanceof AiDesignRun) {
                 $runner->execute($run);
             }

@@ -59,7 +59,6 @@ final class AiSectionBuilder
                 'css' => '',
                 'fields' => $schema['fields'],
                 'status' => 'proposed',
-                'created_at' => now(),
             ]);
 
             $scoped = AiSectionCss::scope($rawCss, (string) $version->id);

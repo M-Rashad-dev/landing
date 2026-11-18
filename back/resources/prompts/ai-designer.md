@@ -59,8 +59,8 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 
 | Token | Allowed Placement | Description & Example |
 |---|---|---|
-| `{{key}}` | Text content only | Escaped value of a `text`, `textarea`, or `number` field (`textarea` newlines become `<br>`). Example: `<h2>{{title}}</h2>` |
-| `{{img key}}` | Whole `src` of `<img>` only | URL of an `image` field. Example: `<img src="{{img hero_banner}}" alt="{{title}}" loading="lazy">` |
+| `{{key}}` | Text content only (NEVER inside `alt`, `title`, or any attribute) | Escaped value of a `text`, `textarea`, or `number` field (`textarea` newlines become `<br>`). Example: `<h2>{{title}}</h2>` |
+| `{{img key}}` | Whole `src` of `<img>` only | URL of an `image` field. Example: `<img src="{{img hero_banner}}" alt="" loading="lazy">` |
 | `{{link key}}` | Whole `href` of `<a>` only | URL of a `link` field. Example: `<a href="{{link cta_link}}">{{cta_text}}</a>` |
 | `{{date key}}` | Whole `data-ai-ends` attribute only | UTC ISO timestamp of a `date` field. Example: `<div data-ai-behavior="countdown" data-ai-ends="{{date offer_end}}">...</div>` |
 | `{{#each key}}...{{/each}}` | Between elements | Loops over a `products`, `categories`, `images`, or `list` field. **Never nest `{{#each}}` inside another `{{#each}}`.** |
@@ -68,21 +68,21 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 | `{{index}}` | Text inside `{{#each}}` | 1-based item index (`1`, `2`, ...). |
 | `{{order_link}}` | Whole `href` of `<a>` (**landing only**) | Scrolls to `#order`. Example: `<a href="{{order_link}}">{{cta_text}}</a>` |
 | `{{product.name}}`, `{{product.price}}`, `{{product.old_price}}` | Text (**landing only**) | The landing page's product details. Example: `<strong>{{product.price}}</strong>` |
-| `{{img product.image}}` | Whole `src` of `<img>` (**landing only**) | The landing page product's main image. Example: `<img src="{{img product.image}}" alt="{{product.name}}">` |
+| `{{img product.image}}` | Whole `src` of `<img>` (**landing only**) | The landing page product's main image. Example: `<img src="{{img product.image}}" alt="">` |
 
 ### Item Tokens Inside `{{#each}}`:
 - **`products` field (store only):**
   - Text tokens: `{{name}}`, `{{price}}`, `{{old_price}}`, `{{discount}}`, `{{rating}}`
-  - Image token: `<img src="{{img image}}" alt="{{name}}" loading="lazy">`
+  - Image token: `<img src="{{img image}}" alt="" loading="lazy">`
   - Link token: `<a href="{{link url}}">{{name}}</a>`
   - Add-to-cart button token (**only on `<button>`, store only**): `<button type="button" data-ai-add="{{id}}">أضف للسلة</button>`
 - **`categories` field (store only):**
   - Text tokens: `{{name}}`, `{{count}}`
-  - Image token: `<img src="{{img image}}" alt="{{name}}" loading="lazy">`
+  - Image token: `<img src="{{img image}}" alt="" loading="lazy">`
   - Link token: `<a href="{{link url}}">{{name}}</a>`
 - **`images` field:**
-  - Bare image token: `<img src="{{img}}" alt="{{alt}}" loading="lazy">`
-  - Text token: `{{alt}}`
+  - Bare image token: `<img src="{{img}}" alt="" loading="lazy">`
+  - Text token: `<figcaption>{{alt}}</figcaption>`
 - **`list` field:**
   - Direct sub-field keys following their type rules (`{{sub_text}}`, `<img src="{{img sub_img}}" alt="">`, `<a href="{{link sub_link}}">`).
 

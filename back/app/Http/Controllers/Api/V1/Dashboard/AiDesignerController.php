@@ -128,6 +128,8 @@ final class AiDesignerController extends Controller
 
     public function showRun(AiDesignRun $run): JsonResponse
     {
+        $run->loadMissing('chat');
+
         return $this->ok($this->runner->formatRun($run, $run->chat, true));
     }
 

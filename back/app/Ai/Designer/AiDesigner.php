@@ -203,7 +203,6 @@ final class AiDesigner
                 'media_ids' => $cleanMediaIds === [] ? null : $cleanMediaIds,
                 'focus_section_id' => $focusSectionId,
                 'status' => 'done',
-                'created_at' => now(),
             ]);
 
             $assistant = AiChatMessage::query()->create([
@@ -211,7 +210,6 @@ final class AiDesigner
                 'role' => 'assistant',
                 'focus_section_id' => $focusSectionId,
                 'status' => 'pending',
-                'created_at' => now(),
             ]);
 
             DesignerReply::dispatch($tenant->id, $assistant->id)->afterCommit();
@@ -231,6 +229,7 @@ final class AiDesigner
         }
 
         try {
+            $pending->loadMissing('chat');
             $chat = $pending->chat;
             $tenant = Tenant::query()->find($pending->tenant_id);
             if (! $chat instanceof AiChat || ! $tenant instanceof Tenant) {
@@ -775,7 +774,7 @@ final class AiDesigner
         array_push($errors, ...$schemaResult['errors']);
 
         if (trim($rawHtml) !== '') {
-            $sanitized = AiSectionSanitizer::clean($rawHtml, $kind);
+            $sanitized = AiSectionSanitizer::clean($rawHtml);
             array_push($errors, ...$sanitized['errors']);
 
             if ($sanitized['errors'] === []) {
@@ -1060,15 +1059,15 @@ final class AiDesigner
             $lines[] = 'Current fields JSON: '.json_encode($ver->fields, JSON_UNESCAPED_UNICODE);
             $lines[] = "Current HTML:\n".$ver->html;
             $lines[] = "Current CSS:\n".$ver->css_raw;
+        } else {
+            $lines[] = '';
+            $lines[] = '## CURRENT DRAFT JSON';
+            $lines[] = json_encode($this->runner->currentDraft($chat), JSON_UNESCAPED_UNICODE);
+
+            $lines[] = '';
+            $lines[] = '## THEME SPECIFICATION';
+            $lines[] = $this->runner->themeDocument($chat->theme_key);
         }
-
-        $lines[] = '';
-        $lines[] = '## CURRENT DRAFT JSON';
-        $lines[] = json_encode($this->runner->currentDraft($chat), JSON_UNESCAPED_UNICODE);
-
-        $lines[] = '';
-        $lines[] = '## THEME SPECIFICATION';
-        $lines[] = $this->runner->themeDocument($chat->theme_key);
 
         return implode("\n", $lines);
     }

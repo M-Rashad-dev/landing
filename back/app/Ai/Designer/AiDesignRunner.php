@@ -211,6 +211,7 @@ final class AiDesignRunner
      */
     public function startFromPlan(Tenant $tenant, AiChatMessage $message, array $customSwitches = []): AiDesignRun
     {
+        $message->loadMissing('chat');
         $chat = $message->chat;
         if (! $chat instanceof AiChat || $message->role !== 'assistant' || ! is_array($message->plan) || $message->plan === []) {
             throw new ApiException(422, 'invalid_plan', __('ai.designer.invalid_output'));
@@ -308,6 +309,7 @@ final class AiDesignRunner
         }
 
         try {
+            $run->loadMissing('chat');
             $chat = $run->chat;
             $tenant = Tenant::query()->find($run->tenant_id);
             if (! $chat instanceof AiChat || ! $tenant instanceof Tenant) {
@@ -460,6 +462,7 @@ final class AiDesignRunner
      */
     public function apply(AiDesignRun $run, int $version): array
     {
+        $run->loadMissing('chat');
         $chat = $run->chat;
         if (! $chat instanceof AiChat || $run->status !== 'proposed' || ! is_array($run->proposal)) {
             throw new ApiException(409, 'run_not_proposed', __('ai.designer.run_not_proposed'));
@@ -509,6 +512,7 @@ final class AiDesignRunner
             throw new ApiException(409, 'run_not_proposed', __('ai.designer.run_not_proposed'));
         }
 
+        $run->loadMissing('chat');
         $run->forceFill([
             'status' => 'rejected',
         ])->save();
@@ -525,6 +529,7 @@ final class AiDesignRunner
      */
     public function revert(AiDesignRun $run, int $version): array
     {
+        $run->loadMissing('chat');
         $chat = $run->chat;
         if (
             ! $chat instanceof AiChat
@@ -580,7 +585,10 @@ final class AiDesignRunner
      */
     public function formatRun(AiDesignRun $run, ?AiChat $chat = null, bool $withPreviewData = false): array
     {
-        $chat ??= $run->chat;
+        if ($chat === null) {
+            $run->loadMissing('chat');
+            $chat = $run->chat;
+        }
 
         $latestAppliedId = $chat instanceof AiChat
             ? (int) AiDesignRun::query()->where('chat_id', $chat->id)->where('status', 'applied')->max('id')

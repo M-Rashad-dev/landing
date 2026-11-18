@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -45,5 +46,17 @@ class AiSectionVersion extends Model
     public function definition(): array
     {
         return ['id' => $this->id, 'name' => $this->name, 'html' => $this->html, 'css' => $this->css, 'fields' => $this->fields];
+    }
+
+    /** @return BelongsTo<AiChat, $this> */
+    public function chat(): BelongsTo
+    {
+        return $this->belongsTo(AiChat::class, 'chat_id');
+    }
+
+    /** @return BelongsTo<AiSection, $this> */
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(AiSection::class, 'ai_section_id');
     }
 }

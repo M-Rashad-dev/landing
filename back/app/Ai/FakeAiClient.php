@@ -78,8 +78,13 @@ final class FakeAiClient implements AiClient
         }
 
         $themeKey = 'asas_store';
-        if (preg_match('/Theme:\s*([a-z0-9_]+)/i', $systemText, $tm)) {
+        if (preg_match('/^Theme:\s*([a-z0-9_]+)$/mi', $systemText, $tm)) {
             $themeKey = strtolower($tm[1]);
+        }
+
+        $editOf = null;
+        if (preg_match('/^Focused section ID:\s*(\d+)$/mi', $systemText, $m)) {
+            $editOf = (int) $m[1];
         }
 
         if (str_contains($lastUserText, '[MKSAB_RUN_DESIGN]')) {
@@ -175,12 +180,7 @@ final class FakeAiClient implements AiClient
             }
         }
 
-        $editOf = null;
-        if (preg_match('/Focused section ID:\s*(\d+)/i', $systemText, $m)) {
-            $editOf = (int) $m[1];
-        }
-
-        $isLanding = (bool) preg_match('/Kind:\s*landing/i', $systemText);
+        $isLanding = (bool) preg_match('/^Kind:\s*landing$/mi', $systemText);
 
         if ($isLanding) {
             return (string) json_encode([
@@ -191,7 +191,7 @@ final class FakeAiClient implements AiClient
                     'name' => 'بنر وسلايدر مميزات المنتج',
                     'html' => '<section class="ai-hero-split">'
                         .'<div class="ai-hero-banner">'
-                        .'<img src="{{img banner_image}}" alt="{{title}}" loading="lazy">'
+                        .'<img src="{{img banner_image}}" alt="" loading="lazy">'
                         .'<div class="ai-hero-copy">'
                         .'<h2>{{title}}</h2>'
                         .'<p>{{subtitle}}</p>'
@@ -262,7 +262,7 @@ final class FakeAiClient implements AiClient
                 'name' => 'بنر جانبي مع سلايدر منتجات',
                 'html' => '<section class="ai-split-showcase">'
                     .'<div class="ai-side-banner">'
-                    .'<img src="{{img banner_image}}" alt="{{title}}" loading="lazy">'
+                    .'<img src="{{img banner_image}}" alt="" loading="lazy">'
                     .'<div class="ai-side-content">'
                     .'<h2>{{title}}</h2>'
                     .'<p>{{subtitle}}</p>'
@@ -276,12 +276,12 @@ final class FakeAiClient implements AiClient
                     .'<div class="ai-track" data-ai-track="true">'
                     .'{{#each featured_products}}'
                     .'<article class="ai-prod-card">'
-                    .'<a href="{{link url}}" class="ai-prod-img"><img src="{{img image}}" alt="{{name}}" loading="lazy"></a>'
+                    .'<a href="{{link url}}" class="ai-prod-img"><img src="{{img image}}" alt="" loading="lazy"></a>'
                     .'<div class="ai-prod-body">'
                     .'<h3><a href="{{link url}}">{{name}}</a></h3>'
                     .'<div class="ai-prod-prices">'
                     .'<strong>{{price}}</strong>'
-                    .'{{#if old_price}}<del>{{old_price}}</del>{{/if}}'
+                    .'{{#if old_price}}<s>{{old_price}}</s>{{/if}}'
                     .'</div>'
                     .'<button type="button" class="ai-add-btn" data-ai-add="{{id}}">أضف للسلة</button>'
                     .'</div>'
