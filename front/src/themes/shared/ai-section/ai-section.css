@@ -14,10 +14,10 @@
 
 @keyframes ai-marquee-scroll {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(50%);
+    transform: translate3d(var(--ai-marquee-shift, 50%), 0, 0);
   }
 }
 

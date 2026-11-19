@@ -164,26 +164,127 @@ function initMarquee(container: HTMLElement, reducedMotion: boolean): () => void
   const track = container.querySelector<HTMLElement>("[data-ai-track]");
   if (!track) return () => {};
 
-  const originals = Array.from(track.children);
+  const originals = Array.from(track.children).filter(
+    (c): c is HTMLElement => c instanceof HTMLElement,
+  );
   if (originals.length === 0) return () => {};
 
+  // Read direction BEFORE overriding inline animation properties
+  const dirAttr = container.getAttribute("data-ai-direction");
+  const isReverse =
+    dirAttr === "reverse" || window.getComputedStyle(track).animationDirection === "reverse";
+  const isRtl = window.getComputedStyle(track).direction === "rtl";
+
+  const prevOverflowX = container.style.overflowX;
+  const prevDisplay = track.style.display;
+  const prevWidth = track.style.width;
+  const prevAnimName = track.style.animationName;
+  const prevAnimDur = track.style.animationDuration;
+  const prevAnimTiming = track.style.animationTimingFunction;
+  const prevAnimIter = track.style.animationIterationCount;
+  const prevAnimDir = track.style.animationDirection;
+  const prevPlayState = track.style.animationPlayState;
+  const prevShift = track.style.getPropertyValue("--ai-marquee-shift");
+
+  if (window.getComputedStyle(container).overflowX === "visible") {
+    container.style.overflowX = "clip";
+  }
+  if (window.getComputedStyle(track).display === "block") {
+    track.style.display = "flex";
+  }
+  track.style.width = "max-content";
+
   const clones: Node[] = [];
-  for (const child of originals) {
-    const clone = child.cloneNode(true);
+  const baseWidth = Math.max(1, track.scrollWidth);
+  const viewWidth = Math.max(container.clientWidth || 0, 1280);
+  const repeatsPerHalf = Math.min(8, Math.max(1, Math.ceil((viewWidth + 64) / baseWidth)));
+
+  // Repeat items so a single half always fills the widest desktop viewport without blank gaps
+  for (let r = 1; r < repeatsPerHalf; r++) {
+    for (const child of originals) {
+      const clone = child.cloneNode(true);
+      if (clone instanceof HTMLElement) {
+        clone.setAttribute("aria-hidden", "true");
+      }
+      track.appendChild(clone);
+      clones.push(clone);
+    }
+  }
+
+  // Clone the full first half once to guarantee a seamless continuous loop
+  const halfANodes = Array.from(track.children);
+  let halfBFirst: HTMLElement | null = null;
+  for (const node of halfANodes) {
+    const clone = node.cloneNode(true);
     if (clone instanceof HTMLElement) {
       clone.setAttribute("aria-hidden", "true");
+      if (!halfBFirst) halfBFirst = clone;
     }
     track.appendChild(clone);
     clones.push(clone);
   }
 
+  const updateShift = () => {
+    const firstEl = originals[0];
+    if (!firstEl || !halfBFirst) {
+      track.style.setProperty("--ai-marquee-shift", isRtl ? "50%" : "-50%");
+      return;
+    }
+    const r1 = firstEl.getBoundingClientRect();
+    const r2 = halfBFirst.getBoundingClientRect();
+    const cyclePx = isRtl ? r1.right - r2.right : r2.left - r1.left;
+    if (cyclePx > 10) {
+      track.style.setProperty("--ai-marquee-shift", isRtl ? `${cyclePx}px` : `-${cyclePx}px`);
+    } else {
+      track.style.setProperty("--ai-marquee-shift", isRtl ? "50%" : "-50%");
+    }
+  };
+
+  updateShift();
+
   const speed = container.getAttribute("data-ai-speed") ?? "normal";
   const duration = speed === "slow" ? "36s" : speed === "fast" ? "14s" : "24s";
-  const prevAnimation = track.style.animation;
-  track.style.animation = `ai-marquee-scroll ${duration} linear infinite`;
+
+  track.style.animationName = "ai-marquee-scroll";
+  track.style.animationDuration = duration;
+  track.style.animationTimingFunction = "linear";
+  track.style.animationIterationCount = "infinite";
+  track.style.animationDirection = isReverse ? "reverse" : "normal";
+
+  const pause = () => {
+    track.style.animationPlayState = "paused";
+  };
+  const resume = () => {
+    track.style.animationPlayState = "running";
+  };
+
+  container.addEventListener("mouseenter", pause);
+  container.addEventListener("mouseleave", resume);
+  container.addEventListener("focusin", pause);
+  container.addEventListener("focusout", resume);
+
+  const ro =
+    typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => updateShift()) : null;
+  ro?.observe(track);
+  ro?.observe(container);
 
   return () => {
-    track.style.animation = prevAnimation;
+    ro?.disconnect();
+    container.removeEventListener("mouseenter", pause);
+    container.removeEventListener("mouseleave", resume);
+    container.removeEventListener("focusin", pause);
+    container.removeEventListener("focusout", resume);
+    track.style.animationName = prevAnimName;
+    track.style.animationDuration = prevAnimDur;
+    track.style.animationTimingFunction = prevAnimTiming;
+    track.style.animationIterationCount = prevAnimIter;
+    track.style.animationDirection = prevAnimDir;
+    track.style.animationPlayState = prevPlayState;
+    if (prevShift) track.style.setProperty("--ai-marquee-shift", prevShift);
+    else track.style.removeProperty("--ai-marquee-shift");
+    track.style.display = prevDisplay;
+    track.style.width = prevWidth;
+    container.style.overflowX = prevOverflowX;
     for (const c of clones) {
       if (c.parentNode === track) {
         track.removeChild(c);

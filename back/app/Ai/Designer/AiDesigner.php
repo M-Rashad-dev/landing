@@ -1021,6 +1021,9 @@ final class AiDesigner
             ->values();
 
         $newestUserId = $history->where('role', 'user')->max('id');
+        $latestProposedVersionId = $focusSection === null
+            ? $history->filter(fn (AiChatMessage $m): bool => $m->version instanceof AiSectionVersion)->max('version_id')
+            : null;
 
         foreach ($history as $msg) {
             $text = trim((string) $msg->text);
@@ -1049,7 +1052,16 @@ final class AiDesigner
             } else {
                 $assistantText = $text;
                 if ($msg->version instanceof AiSectionVersion) {
-                    $assistantText .= "\n[Proposed section: {$msg->version->name}]";
+                    $ver = $msg->version;
+                    if ((int) $ver->id === (int) $latestProposedVersionId) {
+                        $assistantText .= "\n[LATEST PROPOSED SECTION IN THIS CHAT (keep working parts, field keys, and layout unless asked to change them):\n"
+                            ."Name: {$ver->name}\n"
+                            .'Fields JSON: '.json_encode($ver->fields, JSON_UNESCAPED_UNICODE)."\n"
+                            ."HTML:\n{$ver->html}\n"
+                            ."CSS:\n{$ver->css_raw}\n]";
+                    } else {
+                        $assistantText .= "\n[Proposed section: {$ver->name}]";
+                    }
                 }
                 if (is_array($msg->plan)) {
                     $planState = $msg->run_id === null

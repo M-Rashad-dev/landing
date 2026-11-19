@@ -79,6 +79,8 @@ final class AiSectionSanitizer
 
     private const SPEEDS = ['slow', 'normal', 'fast'];
 
+    private const DIRECTIONS = ['normal', 'reverse'];
+
     /** Lowercased SVG attribute name => canonical SVG attribute name */
     private const SVG_ATTRS = [
         'viewbox' => 'viewBox',
@@ -442,6 +444,16 @@ final class AiSectionSanitizer
 
         if ($name === 'data-ai-speed') {
             if (in_array($trimmed, self::SPEEDS, true)) {
+                $dst->setAttribute($name, $trimmed);
+            } else {
+                $removed[] = "attr:{$name}";
+            }
+
+            return;
+        }
+
+        if ($name === 'data-ai-direction') {
+            if (in_array($trimmed, self::DIRECTIONS, true)) {
                 $dst->setAttribute($name, $trimmed);
             } else {
                 $removed[] = "attr:{$name}";
