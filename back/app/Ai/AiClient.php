@@ -19,7 +19,7 @@ interface AiClient
      * ['type' => 'text', 'text' => '…'] and ['type' => 'image', 'url' => 'https://…'].
      *
      * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $messages
-     * @param  array{max_tokens?: int, temperature?: float, json?: bool}  $options
+     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool, effort?: string}  $options
      */
     public function chat(string $model, array $messages, array $options = []): AiReply;
 

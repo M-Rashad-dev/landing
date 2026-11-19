@@ -48,7 +48,7 @@ final class Ai
 
     /**
      * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $messages
-     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool}  $options
+     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool, effort?: string}  $options
      *
      * @throws AiUnavailable
      */
@@ -56,6 +56,13 @@ final class Ai
     {
         $model = self::model($task);
         $this->guard($feature);
+
+        if (! isset($options['effort'])) {
+            $effort = config("ai.effort.{$task}");
+            if (is_string($effort) && trim($effort) !== '') {
+                $options['effort'] = trim($effort);
+            }
+        }
 
         try {
             $reply = $this->client->chat($model, $messages, $options);
@@ -74,7 +81,7 @@ final class Ai
      * cover the most it could cost; charged its real cost after (nothing when it fails).
      *
      * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $messages
-     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool}  $options
+     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool, effort?: string}  $options
      *
      * @throws AiUnavailable|ApiException
      */

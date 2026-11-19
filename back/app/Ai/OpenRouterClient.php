@@ -28,17 +28,25 @@ final class OpenRouterClient implements AiClient
 
     public function chat(string $model, array $messages, array $options = []): AiReply
     {
+        $effort = isset($options['effort']) && is_string($options['effort']) ? trim($options['effort']) : '';
+        $reasoning = match (true) {
+            $effort === 'none' => ['effort' => 'none'],
+            $effort !== '' => ['effort' => $effort, 'enabled' => true],
+            (bool) ($options['thinking'] ?? false) => ['enabled' => true],
+            default => ['max_tokens' => self::LIGHT_REASONING],
+        };
+
         $body = [
             'model' => $model,
             'messages' => array_map(fn (array $m) => ['role' => $m['role'], 'content' => self::content($m['content'])], $messages),
-            // Thinking is billed, so it gets a small budget unless a task asks for it. Never «enabled: false»:
-            // qwen4-max on OpenRouter then answers broken JSON (only «[41]» or tool calls) — tested 2026-11-19.
-            'reasoning' => ($options['thinking'] ?? false) ? ['enabled' => true] : ['max_tokens' => self::LIGHT_REASONING],
+            // Thinking is billed, so it uses an explicit effort level, full adaptive thinking, or a small
+            // token budget. Never «enabled: false»: qwen4-max on OpenRouter then answers broken JSON.
+            'reasoning' => $reasoning,
         ];
         if (isset($options['max_tokens'])) {
             $body['max_tokens'] = $options['max_tokens'];
         }
-        if (isset($options['temperature'])) {
+        if (isset($options['temperature']) && ! in_array($model, (array) config('ai.without_temperature', []), true)) {
             $body['temperature'] = $options['temperature'];
         }
         if ($options['json'] ?? false) {

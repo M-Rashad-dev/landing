@@ -22,13 +22,20 @@ return [
     // The model of each task (the strongest for production: owner, 2026-11-17).
     'tasks' => [
         'support' => env('AI_MODEL_SUPPORT', 'qwen/qwen4-max'),
-        'designer' => env('AI_MODEL_DESIGNER', 'qwen/qwen4-max'),
+        'designer' => env('AI_MODEL_DESIGNER', 'anthropic/claude-opus-5.5'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
         // Images (the AI designer): new images, and edits of the merchant's photos.
         'image_generate' => env('AI_MODEL_IMAGE_GENERATE', 'google/gemini-nano-banana-2.1'),
         'image_edit' => env('AI_MODEL_IMAGE_EDIT', 'google/gemini-nano-banana-2.1'),
+    ],
+
+    // Reasoning effort per chat task (low | medium | high | xhigh | max | none), or null for the
+    // client's light thinking budget (512 tokens).
+    'effort' => [
+        'support' => env('AI_EFFORT_SUPPORT'),
+        'designer' => env('AI_EFFORT_DESIGNER', 'medium'),
     ],
 
     // USD per image (an estimate for checking the balance before; the real cost OpenRouter reports
@@ -41,10 +48,21 @@ return [
     // Image models that answer with an image only (no text alongside).
     'image_only_models' => ['recraft/recraft-v4.1-flash-v2:free', 'recraft/recraft-v4.1-flash-v2'],
 
+    // Models on OpenRouter that reject `temperature` (e.g. adaptive-reasoning Claude models).
+    'without_temperature' => [
+        'anthropic/claude-opus-5.5',
+        'anthropic/claude-sonnet-5.5',
+        'anthropic/claude-opus-5',
+        'anthropic/claude-sonnet-5',
+        'anthropic/claude-opus-4.8',
+        'anthropic/claude-opus-4.7',
+    ],
+
     // USD per 1M tokens (input, input served from the provider's cache, output), from OpenRouter's
     // model pages. «:free» models cost 0; any other model missing here costs 0 and is flagged in
     // the admin page.
     'prices' => [
+        'anthropic/claude-opus-5.5' => ['input' => 4.0, 'cached' => 0.2, 'output' => 20.0],
         'qwen/qwen4-max' => ['input' => 1.425, 'cached' => 0.075, 'output' => 4.275],
         'qwen/qwen3-embedding-8b' => ['input' => 0.01, 'output' => 0],
     ],
