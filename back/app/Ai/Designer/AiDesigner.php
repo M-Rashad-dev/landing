@@ -361,16 +361,17 @@ final class AiDesigner
                     $sectionData['fields'] = $this->assignImageSamples($sectionData['fields'], $createdMediaIds, $mediaByKey);
                 }
 
-                $editOf = $focusSection?->id;
-                if ($editOf === null && isset($sectionData['edit_of']) && is_numeric($sectionData['edit_of'])) {
-                    $candidate = AiSection::query()->find((int) $sectionData['edit_of']);
-                    if ($candidate instanceof AiSection && $candidate->kind === $chat->kind && $candidate->theme_key === $chat->theme_key) {
-                        $editOf = $candidate->id;
+                $editSection = $focusSection;
+                if ($editSection === null && isset($sectionData['edit_of']) && is_numeric($sectionData['edit_of'])) {
+                    $candidate = AiSection::query()->with('current')->find((int) $sectionData['edit_of']);
+                    if ($candidate instanceof AiSection && $candidate->kind === $chat->kind && $candidate->theme_key === $chat->theme_key && $candidate->current !== null) {
+                        $editSection = $candidate;
                     }
                 }
 
-                if ($focusSection !== null && $editOf === $focusSection->id && is_array($sectionData['fields'] ?? null)) {
-                    $sectionData['fields'] = $this->keepEditedFields($sectionData['fields'], $focusSection, $chat, $pending);
+                $editOf = $editSection?->id;
+                if ($editSection !== null && is_array($sectionData['fields'] ?? null)) {
+                    $sectionData['fields'] = $this->keepEditedFields($sectionData['fields'], $editSection, $chat, $pending);
                 }
 
                 $built = $this->builder->fromAi($sectionData, $chat, $editOf);
@@ -430,11 +431,11 @@ final class AiDesigner
     /**
      * Approve a proposed version: creates a new AiSection or updates the edited section's current version.
      *
-     * @return array{section: array<string, mixed>, version: array<string, mixed>}
+     * @return array{section: array<string, mixed>, version: array<string, mixed>, is_new: bool}
      */
-    public function approve(AiSectionVersion $version): array
+    public function approve(AiSectionVersion $version, ?string $name = null, string $mode = 'replace'): array
     {
-        return DB::transaction(function () use ($version): array {
+        return DB::transaction(function () use ($version, $name, $mode): array {
             /** @var AiSectionVersion $locked */
             $locked = AiSectionVersion::query()->with('chat')->whereKey($version->id)->lockForUpdate()->firstOrFail();
 
@@ -442,9 +443,36 @@ final class AiDesigner
                 throw new ApiException(409, 'version_decided', __('ai.designer.version_decided'));
             }
 
-            $editOf = $locked->ai_section_id;
+            $cleanName = $name !== null ? trim(strip_tags($name)) : '';
+            $finalName = $cleanName !== '' ? mb_substr($cleanName, 0, 100, 'UTF-8') : $locked->name;
 
-            if ($editOf === null) {
+            $editOf = $locked->ai_section_id;
+            $target = ($editOf !== null && $mode !== 'new')
+                ? AiSection::query()->whereKey($editOf)->lockForUpdate()->first()
+                : null;
+
+            if ($target instanceof AiSection) {
+                $section = $target;
+
+                if ($section->current_version_id !== null && (int) $section->current_version_id !== $locked->id) {
+                    AiSectionVersion::query()
+                        ->whereKey($section->current_version_id)
+                        ->update(['status' => 'replaced']);
+                }
+
+                $locked->forceFill([
+                    'name' => $finalName,
+                    'status' => 'approved',
+                    'decided_at' => now(),
+                ])->save();
+
+                $section->forceFill([
+                    'name' => $finalName,
+                    'current_version_id' => $locked->id,
+                ])->save();
+
+                $isNew = false;
+            } else {
                 $chat = $locked->chat;
                 $kind = $chat?->kind ?? 'store';
                 $themeKey = $chat?->theme_key ?? 'asas_store';
@@ -462,35 +490,21 @@ final class AiDesigner
                 $section = AiSection::query()->create([
                     'kind' => $kind,
                     'theme_key' => $themeKey,
-                    'name' => $locked->name,
+                    'name' => $finalName,
                     'current_version_id' => $locked->id,
                 ]);
 
                 $locked->forceFill([
                     'ai_section_id' => $section->id,
-                    'status' => 'approved',
-                    'decided_at' => now(),
-                ])->save();
-            } else {
-                /** @var AiSection $section */
-                $section = AiSection::query()->whereKey($editOf)->lockForUpdate()->firstOrFail();
-
-                if ($section->current_version_id !== null && (int) $section->current_version_id !== $locked->id) {
-                    AiSectionVersion::query()
-                        ->whereKey($section->current_version_id)
-                        ->update(['status' => 'replaced']);
-                }
-
-                $locked->forceFill([
+                    'name' => $finalName,
                     'status' => 'approved',
                     'decided_at' => now(),
                 ])->save();
 
-                $section->forceFill([
-                    'name' => $locked->name,
-                    'current_version_id' => $locked->id,
-                ])->save();
+                $isNew = true;
             }
+
+            $locked->setRelation('section', $section);
 
             return [
                 'section' => [
@@ -499,6 +513,7 @@ final class AiDesigner
                     'current' => $locked->definition(),
                 ],
                 'version' => $this->formatVersion($locked),
+                'is_new' => $isNew,
             ];
         });
     }
@@ -537,7 +552,7 @@ final class AiDesigner
         $this->expireStalePending($chat);
 
         $messages = $chat->messages()
-            ->with(['version', 'run'])
+            ->with(['version.section', 'run'])
             ->orderBy('id')
             ->get();
 
@@ -607,9 +622,14 @@ final class AiDesigner
      */
     public function formatVersion(AiSectionVersion $version): array
     {
+        if ($version->ai_section_id !== null && ! $version->relationLoaded('section')) {
+            $version->load('section');
+        }
+
         return [
             'id' => $version->id,
             'ai_section_id' => $version->ai_section_id,
+            'target_section_name' => $version->ai_section_id !== null ? $version->section?->name : null,
             'name' => $version->name,
             'html' => $version->html,
             'css' => $version->css,
@@ -1010,7 +1030,7 @@ final class AiDesigner
         ];
 
         $history = AiChatMessage::query()
-            ->with('version')
+            ->with('version.section')
             ->where('chat_id', $chat->id)
             ->where('id', '<', $pending->id)
             ->where('status', 'done')
@@ -1054,7 +1074,16 @@ final class AiDesigner
                 if ($msg->version instanceof AiSectionVersion) {
                     $ver = $msg->version;
                     if ((int) $ver->id === (int) $latestProposedVersionId) {
-                        $assistantText .= "\n[LATEST PROPOSED SECTION IN THIS CHAT (keep working parts, field keys, and layout unless asked to change them):\n"
+                        $approvedSec = $ver->ai_section_id !== null ? $ver->section : null;
+                        $approvedLine = ($approvedSec instanceof AiSection
+                            && $approvedSec->archived_at === null
+                            && $approvedSec->kind === $chat->kind
+                            && $approvedSec->theme_key === $chat->theme_key)
+                            ? "Approved AiSection ID (set \"edit_of\": {$approvedSec->id} when updating this section): {$approvedSec->id} (\"{$approvedSec->name}\")\n"
+                            : '';
+
+                        $assistantText .= "\n[LATEST SECTION IN THIS CHAT (keep working parts, field keys, and layout unless asked to change them):\n"
+                            .$approvedLine
                             ."Name: {$ver->name}\n"
                             .'Fields JSON: '.json_encode($ver->fields, JSON_UNESCAPED_UNICODE)."\n"
                             ."HTML:\n{$ver->html}\n"

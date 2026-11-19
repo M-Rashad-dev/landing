@@ -237,7 +237,16 @@ function Editor({ initial }: { initial: DesignPayload }) {
       },
     }));
 
-    if (isNew && draft.sections.length < MAX_SECTIONS) {
+    if (!isNew) {
+      setDesignerFocus((prev) =>
+        prev && prev.id === approvedSection.id
+          ? { ...prev, name: approvedSection.name }
+          : prev,
+      );
+      return;
+    }
+
+    if (draft.sections.length < MAX_SECTIONS) {
       const placement = createAiSectionPlacement(approvedSection.id) as AnySection;
       const selectedIdx =
         designerInsert === "after_selected"
@@ -496,6 +505,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
                     showEditWithAi={aiEnabled}
                     onEditWithAi={() => {
                       const def = aiDefinitionFor(section, data);
+                      setDesignerInsert("after_selected");
                       setDesignerFocus({
                         id: section.props.ai_section_id,
                         name: def?.name ?? t.types.ai.title,

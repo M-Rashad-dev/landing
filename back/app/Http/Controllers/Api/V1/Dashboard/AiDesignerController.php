@@ -8,6 +8,7 @@ use App\Ai\Designer\AiDesigner;
 use App\Ai\Designer\AiDesignRunner;
 use App\Ai\Images\StockPhotos;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\AiDesignerApproveRequest;
 use App\Http\Requests\Dashboard\AiDesignerChatRequest;
 use App\Http\Requests\Dashboard\AiDesignerMessageRequest;
 use App\Http\Requests\Dashboard\AiDesignRunStartRequest;
@@ -86,7 +87,7 @@ final class AiDesignerController extends Controller
             $focusId,
         );
 
-        $pending->load('version');
+        $pending->load('version.section');
 
         return response()->json([
             'data' => [
@@ -105,9 +106,16 @@ final class AiDesignerController extends Controller
         ], 202);
     }
 
-    public function approveVersion(AiSectionVersion $version): JsonResponse
+    public function approveVersion(AiDesignerApproveRequest $request, AiSectionVersion $version): JsonResponse
     {
-        return $this->ok($this->designer->approve($version));
+        $name = $request->validated('name');
+        $mode = (string) ($request->validated('mode') ?? 'replace');
+
+        return $this->ok($this->designer->approve(
+            $version,
+            is_string($name) ? $name : null,
+            $mode,
+        ));
     }
 
     public function rejectVersion(AiSectionVersion $version): JsonResponse

@@ -299,15 +299,30 @@ export function DesignerDialog({
     });
   }
 
-  async function handleApprove(version: AiVersionPayload) {
+  async function handleApprove(
+    version: AiVersionPayload,
+    options: { name: string; mode: "replace" | "new" },
+  ) {
     setDeciding(true);
     try {
-      const isNew = version.ai_section_id === null;
-      const res = await approveVersion(version.id);
+      const wasEdit = version.ai_section_id !== null;
+      const res = await approveVersion(version.id, options);
+      const isNew = res.is_new ?? (!wasEdit || options.mode === "new");
       setPreviewVersion(null);
       await chatQuery.refetch();
       await client.invalidateQueries({ queryKey: mySectionsKey(kind, themeKey) });
-      toast.success(isNew ? t.version.approvedNewToast : t.version.approvedEditToast);
+      toast.success(
+        !wasEdit
+          ? t.version.approvedNewToast
+          : isNew
+            ? t.version.approvedAsNewToast
+            : t.version.approvedEditToast,
+      );
+      if (!isNew) {
+        setFocus((prev) =>
+          prev && prev.id === res.section.id ? { ...prev, name: res.section.name } : prev,
+        );
+      }
       onApproved(res.section, isNew, chatMedia);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -885,15 +900,15 @@ export function DesignerDialog({
             {/* Composer */}
             <div className="flex flex-col gap-2 border-t border-border bg-surface p-4">
               {focus ? (
-                <div className="flex items-center justify-between rounded-lg border border-violet-200 bg-violet-50/70 px-3 py-1.5 text-xs font-semibold text-violet-800">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 bg-violet-50/70 px-3 py-2 text-xs font-semibold text-violet-900">
                   <span>{t.chat.editingChip(focus.name)}</span>
                   <button
                     type="button"
                     onClick={() => setFocus(null)}
-                    aria-label={t.chat.clearFocus}
-                    className="rounded p-0.5 hover:bg-violet-200/60"
+                    className="inline-flex items-center gap-1 rounded-md border border-violet-300 bg-surface px-2 py-0.5 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100"
                   >
-                    <X className="size-3.5" />
+                    <X className="size-3" />
+                    {t.chat.clearFocus}
                   </button>
                 </div>
               ) : null}
@@ -1000,7 +1015,7 @@ export function DesignerDialog({
         }
         data={mergedData}
         busy={deciding}
-        onApprove={(v) => void handleApprove(v)}
+        onApprove={(v, opts) => void handleApprove(v, opts)}
         onReject={(v) => void handleReject(v)}
       />
 

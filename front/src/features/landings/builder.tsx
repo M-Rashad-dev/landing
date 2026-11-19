@@ -279,7 +279,16 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
       [String(approvedSection.id)]: approvedSection.current.id,
     }));
 
-    if (isNew && draft.sections.length < maxSections) {
+    if (!isNew) {
+      setDesignerFocus((prev) =>
+        prev && prev.id === approvedSection.id
+          ? { ...prev, name: approvedSection.name }
+          : prev,
+      );
+      return;
+    }
+
+    if (draft.sections.length < maxSections) {
       const placement = createAiSectionPlacement(approvedSection.id) as unknown as AnySection;
       const selectedIdx =
         designerInsert === "after_selected"
@@ -614,6 +623,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
                     onEditWithAi={() => {
                       const def = aiDefFor(section);
                       const p = section.props as unknown as AiSectionProps;
+                      setDesignerInsert("after_selected");
                       setDesignerFocus({
                         id: p.ai_section_id,
                         name: def?.name ?? (t.types.ai?.title ?? "قسم بالذكاء الاصطناعي"),

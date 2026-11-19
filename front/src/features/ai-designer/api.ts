@@ -17,6 +17,7 @@ export type AiVersionStatus = "proposed" | "approved" | "rejected" | "replaced";
 export type AiVersionPayload = {
   id: number;
   ai_section_id: number | null;
+  target_section_name?: string | null;
   name: string;
   html: string;
   css: string;
@@ -215,13 +216,27 @@ export function sendMessage(
   });
 }
 
+export type ApproveVersionOptions = {
+  name?: string;
+  mode?: "replace" | "new";
+};
+
 export function approveVersion(
   versionId: number,
-): Promise<{ section: { id: number; name: string; current: AiDefinition }; version: AiVersionPayload }> {
-  return api<{ section: { id: number; name: string; current: AiDefinition }; version: AiVersionPayload }>(
-    `/dashboard/ai/designer/versions/${versionId}/approve`,
-    { method: "POST" },
-  );
+  body?: ApproveVersionOptions,
+): Promise<{
+  section: { id: number; name: string; current: AiDefinition };
+  version: AiVersionPayload;
+  is_new?: boolean;
+}> {
+  return api<{
+    section: { id: number; name: string; current: AiDefinition };
+    version: AiVersionPayload;
+    is_new?: boolean;
+  }>(`/dashboard/ai/designer/versions/${versionId}/approve`, {
+    method: "POST",
+    body: body ?? {},
+  });
 }
 
 export function rejectVersion(versionId: number): Promise<AiVersionPayload> {
