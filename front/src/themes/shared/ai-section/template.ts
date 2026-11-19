@@ -315,6 +315,18 @@ function resolveToken(expr: string, ctx: RenderCtx, scope: EachScope | null): st
     return escapeHtml(ctx.date(key) ?? "");
   }
 
+  if (expr.startsWith("copy ")) {
+    const key = expr.slice(5).trim();
+    if (scope && key in scope.text) {
+      return escapeHtml(scope.text[key] ?? "");
+    }
+    const topVal = ctx.value(key);
+    if (topVal === null || topVal === undefined || typeof topVal === "object" || typeof topVal === "boolean") {
+      return "";
+    }
+    return escapeHtml(topVal);
+  }
+
   if (expr === "id") {
     if (scope && scope.kind === "products") {
       return escapeHtml(scope.text.id ?? "");

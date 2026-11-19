@@ -482,6 +482,32 @@ final class AiSectionSanitizer
             return;
         }
 
+        if ($name === 'data-ai-copy') {
+            if ($rawTag === 'button' && (bool) preg_match('/^\{\{\s*copy\s+[a-z][a-z0-9_]*\s*\}\}$/', $trimmed)) {
+                $dst->setAttribute($name, $trimmed);
+            } else {
+                $removed[] = "attr:{$name}";
+            }
+
+            return;
+        }
+
+        if ($name === 'data-ai-copied') {
+            $safeLabel = $trimmed !== ''
+                && mb_strlen($trimmed) <= 60
+                && ! str_contains($trimmed, '{{')
+                && ! str_contains($trimmed, '}}')
+                && ! preg_match('/[\x00-\x1F\x7F<>]/', $trimmed);
+
+            if ($rawTag === 'button' && $safeLabel) {
+                $dst->setAttribute($name, $trimmed);
+            } else {
+                $removed[] = "attr:{$name}";
+            }
+
+            return;
+        }
+
         if (in_array($name, self::DATA_AI_FLAG_ATTRS, true)) {
             $dst->setAttribute($name, $value);
 

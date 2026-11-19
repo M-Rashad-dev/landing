@@ -22,7 +22,7 @@ return [
     // The model of each task (the strongest for production: owner, 2026-11-17).
     'tasks' => [
         'support' => env('AI_MODEL_SUPPORT', 'qwen/qwen4-max'),
-        'designer' => env('AI_MODEL_DESIGNER', 'anthropic/claude-opus-5.5'),
+        'designer' => env('AI_MODEL_DESIGNER', 'anthropic/claude-sonnet-5.5'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
@@ -63,6 +63,7 @@ return [
     // the admin page.
     'prices' => [
         'anthropic/claude-opus-5.5' => ['input' => 4.0, 'cached' => 0.2, 'output' => 20.0],
+        'anthropic/claude-sonnet-5.5' => ['input' => 2.0, 'cached' => 0.1, 'output' => 10.0],
         'qwen/qwen4-max' => ['input' => 1.425, 'cached' => 0.075, 'output' => 4.275],
         'qwen/qwen3-embedding-8b' => ['input' => 0.01, 'output' => 0],
     ],

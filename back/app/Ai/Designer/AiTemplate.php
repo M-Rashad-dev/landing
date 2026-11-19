@@ -328,6 +328,17 @@ final class AiTemplate
                 continue;
             }
 
+            // {{copy key}}
+            if (str_starts_with($expr, 'copy ')) {
+                $key = trim(substr($expr, 5));
+                if (! self::isAttr($place, 'button', 'data-ai-copy')) {
+                    $errors[] = "{{copy {$key}}} is only allowed as the whole data-ai-copy value of <button>.";
+                }
+                self::validateTextKey($key, $topFields, $currentEach, $errors);
+
+                continue;
+            }
+
             // Plain {{key}}
             if ($place['where'] !== 'text') {
                 $errors[] = "Token '{{{$expr}}}' is only allowed in text, not inside an HTML attribute.";

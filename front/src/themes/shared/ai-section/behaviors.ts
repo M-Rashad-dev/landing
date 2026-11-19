@@ -31,6 +31,7 @@ export function attachBehaviors(
 
   cleanups.push(initReveal(root, reducedMotion));
   cleanups.push(initQuickAdd(root, opts.onAdd));
+  cleanups.push(initCopy(root));
 
   return () => {
     for (const fn of cleanups) {
@@ -455,5 +456,101 @@ function initQuickAdd(root: HTMLElement, onAdd?: (productId: number) => void): (
 
   root.addEventListener("click", onClick);
   return () => root.removeEventListener("click", onClick);
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to execCommand fallback on HTTP / restricted origins
+    }
+  }
+
+  if (typeof document === "undefined" || !document.body) {
+    return false;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+
+  const selection = document.getSelection();
+  const savedRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  textarea.focus({ preventScroll: true });
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+
+  document.body.removeChild(textarea);
+  if (savedRange && selection) {
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+  }
+
+  return copied;
+}
+
+function initCopy(root: HTMLElement): () => void {
+  const active = new Map<HTMLButtonElement, { nodes: ChildNode[]; timer: number }>();
+
+  const restore = (btn: HTMLButtonElement, nodes: ChildNode[]) => {
+    active.delete(btn);
+    if (!root.contains(btn)) return;
+    btn.removeAttribute("data-ai-copied-active");
+    btn.replaceChildren(...nodes);
+  };
+
+  const onClick = (e: MouseEvent) => {
+    const target = e.target instanceof Element ? e.target.closest<HTMLButtonElement>("button[data-ai-copy]") : null;
+    if (!target || !root.contains(target)) return;
+
+    const text = target.getAttribute("data-ai-copy") ?? "";
+    if (!text) return;
+
+    const copiedLabel = target.getAttribute("data-ai-copied")?.trim() || "تم النسخ ✓";
+
+    void copyTextToClipboard(text).then((ok) => {
+      if (!ok || !root.contains(target)) return;
+
+      const existing = active.get(target);
+      const nodes = existing ? existing.nodes : Array.from(target.childNodes);
+      if (existing) {
+        window.clearTimeout(existing.timer);
+      }
+
+      target.setAttribute("data-ai-copied-active", "true");
+      target.textContent = copiedLabel;
+
+      const timer = window.setTimeout(() => restore(target, nodes), 2000);
+      active.set(target, { nodes, timer });
+    });
+  };
+
+  root.addEventListener("click", onClick);
+
+  return () => {
+    root.removeEventListener("click", onClick);
+    active.forEach(({ nodes, timer }, btn) => {
+      window.clearTimeout(timer);
+      if (root.contains(btn)) {
+        btn.removeAttribute("data-ai-copied-active");
+        btn.replaceChildren(...nodes);
+      }
+    });
+    active.clear();
+  };
 }
 
