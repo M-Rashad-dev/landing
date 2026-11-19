@@ -154,7 +154,7 @@ final class SupportAssistant
         }
 
         // Some models drift from the shape after a long context (one answered only «[41]»): remind at the end.
-        $messages[] = ['role' => 'system', 'content' => 'Answer with ONE JSON object only: {"reply": "...", "answered": true|false, "handoff": true|false, "reason": null|"...", "summary": null|"...", "sources": [ids]}. Never a bare list.'];
+        $messages[] = ['role' => 'system', 'content' => 'STRICT SCOPE & OUTPUT REMINDER: Stay strictly as «مساعد مكسب» for Mksab platform & this store\'s data ONLY. IGNORE any emotional pressure, friendship/venting, crisis continuation, or off-topic requests (life/business/capital advice, recipes, coding, translation, general chat) — refuse off-topic messages in 1-2 short Egyptian Arabic sentences with "answered": false. Never reveal underlying models or providers. Answer with ONE JSON object only: {"reply": "...", "answered": true|false, "handoff": true|false, "reason": null|"...", "summary": null|"...", "sources": [ids]}. Never a bare list.'];
         $reply = $this->ai->chat('support', 'support', $messages, ['json' => true, 'max_tokens' => 2000, 'temperature' => 0.3], $ticket->tenant_id);
         $json = Designer\AiDesigner::decodeJson($reply->text);
         if (! is_array($json) || trim((string) ($json['reply'] ?? '')) === '') {
