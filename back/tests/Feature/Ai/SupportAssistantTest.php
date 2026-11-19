@@ -131,6 +131,8 @@ it('hands a money dispute to people with its summary, tells the merchant and the
 
 it('hands over after two answers that could not help, a reply it cannot read, or the daily limit', function () {
     assistantOn(['ai_support_daily_messages' => 1]);
+    // This test is about handing over, not the open limit: it opens several conversations.
+    config(['landing.support.max_open' => 20]);
     $owner = actingAsOwner();
     assistant()->answer(says('مش متأكد من دي.', ['answered' => false]), says('برضو مش لاقي.', ['answered' => false]));
 
@@ -209,19 +211,19 @@ it('lets staff take over by answering, and keeps the assistant out of the staff 
     $this->getJson('/api/v1/admin/support/stats')->assertOk()->assertJsonPath('data.assistant.handed_off', 1);
 });
 
-it('lets the assistant see screenshots and opens conversations beyond the staff limits', function () {
+it('lets the assistant see screenshots, opens without the waiting gap, and keeps the open limit', function () {
     assistantOn();
     actingAsOwner();
     assistant()->answer(says('واضح من الصورة.'), says('تاني.'), says('تالت.'));
 
     ask('شوف الصورة', ['files' => [UploadedFile::fake()->image('screen.png', 300, 200)]]);
-    $parts = collect(assistant()->chats[0]['messages'])->last()['content'];
+    $parts = collect(assistant()->chats[0]['messages'])->where('role', 'user')->last()['content'];
     expect($parts[1]['type'])->toBe('image')->and($parts[1]['url'])->toStartWith('data:image/png;base64,');
 
-    // Two more right away: the assistant's conversations don't count in the staff's limits.
+    // A second one right away (no waiting gap with the assistant), but never more than 2 open in all (owner, 2026-11-19).
     ask('سؤال تاني');
-    ask('سؤال تالت');
-    expect(SupportTicket::query()->withoutGlobalScopes()->where('handler', 'ai')->count())->toBe(3);
+    $this->postJson('/api/v1/dashboard/support/tickets', ['topic' => 'other', 'body' => 'سؤال تالت'])->assertStatus(422)->assertJsonPath('code', 'support_limit');
+    expect(SupportTicket::query()->withoutGlobalScopes()->where('handler', 'ai')->count())->toBe(2);
 });
 
 it('keeps the knowledge base to super admins and validates articles', function () {

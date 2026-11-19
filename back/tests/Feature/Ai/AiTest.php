@@ -101,7 +101,7 @@ it('pauses after failures in a row, tells the owner, and a success resets the co
     expect(app(Ai::class)->available('support'))->toBeTrue();
 });
 
-it('talks to OpenRouter in its OpenAI-compatible shape, with images and without reasoning', function () {
+it('talks to OpenRouter in its OpenAI-compatible shape, with images and light reasoning', function () {
     config(['ai.openrouter.api_key' => 'sk-or-test', 'ai.openrouter.base_url' => 'https://openrouter.test/api/v1']);
     Http::fake(['openrouter.test/*' => Http::response([
         'model' => 'google/gemma-4-31b-it',
@@ -118,7 +118,7 @@ it('talks to OpenRouter in its OpenAI-compatible shape, with images and without 
     expect([$reply->text, $reply->model, $reply->inputTokens, $reply->outputTokens, $reply->cachedTokens])->toBe(['أهلًا', 'google/gemma-4-31b-it:free', 50, 5, 20]);
     Http::assertSent(fn (Request $r) => $r->url() === 'https://openrouter.test/api/v1/chat/completions'
         && $r->hasHeader('Authorization', 'Bearer sk-or-test')
-        && $r['reasoning'] === ['enabled' => false]
+        && $r['reasoning'] === ['max_tokens' => OpenRouterClient::LIGHT_REASONING]
         && $r['max_tokens'] === 300
         && $r['response_format'] === ['type' => 'json_object']
         && $r['messages'][1]['content'][1] === ['type' => 'image_url', 'image_url' => ['url' => 'https://cdn.example.com/a.jpg']]);

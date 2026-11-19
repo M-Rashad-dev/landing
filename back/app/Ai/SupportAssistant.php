@@ -10,6 +10,7 @@ use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Services\Support\SupportDesk;
 use App\Services\Support\SupportFiles;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -103,7 +104,7 @@ final class SupportAssistant
             $reply = $this->ai->chat('support', 'support', [
                 ['role' => 'system', 'content' => 'لخّص محادثة الدعم دي للموظف في 2 لـ 4 سطور بالعربي: المشكلة، واللي اتجرب، والتاجر عايز إيه. اكتب الملخص بس.'],
                 ['role' => 'user', 'content' => $this->transcript($ticket)],
-            ], ['max_tokens' => 300, 'temperature' => 0.2], $ticket->tenant_id);
+            ], ['max_tokens' => 900, 'temperature' => 0.2], $ticket->tenant_id);
             $ticket->forceFill(['handoff_summary' => self::summary($reply->text)])->save();
         } catch (AiUnavailable) {
             // No summary: the staff reads the conversation itself.
@@ -152,9 +153,18 @@ final class SupportAssistant
             }
         }
 
-        $reply = $this->ai->chat('support', 'support', $messages, ['json' => true, 'max_tokens' => 900, 'temperature' => 0.3], $ticket->tenant_id);
+        // Some models drift from the shape after a long context (one answered only «[41]»): remind at the end.
+        $messages[] = ['role' => 'system', 'content' => 'Answer with ONE JSON object only: {"reply": "...", "answered": true|false, "handoff": true|false, "reason": null|"...", "summary": null|"...", "sources": [ids]}. Never a bare list.'];
+        $reply = $this->ai->chat('support', 'support', $messages, ['json' => true, 'max_tokens' => 2000, 'temperature' => 0.3], $ticket->tenant_id);
         $json = Designer\AiDesigner::decodeJson($reply->text);
-        if (! is_array($json)) {
+        if (! is_array($json) || trim((string) ($json['reply'] ?? '')) === '') {
+            // One more try, showing it the broken answer.
+            $retry = [...$messages, ['role' => 'assistant', 'content' => mb_substr($reply->text, 0, 2000)], ['role' => 'user', 'content' => 'That was not the required JSON object. Return the full JSON object with a non-empty "reply" in Egyptian Arabic.']];
+            $reply = $this->ai->chat('support', 'support', $retry, ['json' => true, 'max_tokens' => 2000, 'temperature' => 0.3], $ticket->tenant_id);
+            $json = Designer\AiDesigner::decodeJson($reply->text);
+        }
+        if (! is_array($json) || trim((string) ($json['reply'] ?? '')) === '') {
+            Log::warning('ai.support.invalid_output', ['ticket' => $ticket->id, 'raw_preview' => mb_substr($reply->text, 0, 500)]);
             throw new AiUnavailable(AiUnavailable::FAILED);
         }
         // Only articles it was given count as sources.

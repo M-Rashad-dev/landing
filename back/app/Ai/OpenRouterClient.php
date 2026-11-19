@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Http;
  */
 final class OpenRouterClient implements AiClient
 {
+    /** Thinking tokens allowed when a task doesn't ask for deep thinking. */
+    public const LIGHT_REASONING = 512;
+
     public function configured(): bool
     {
         return filled(config('ai.openrouter.api_key')) && filled(config('ai.openrouter.base_url'));
@@ -28,8 +31,9 @@ final class OpenRouterClient implements AiClient
         $body = [
             'model' => $model,
             'messages' => array_map(fn (array $m) => ['role' => $m['role'], 'content' => self::content($m['content'])], $messages),
-            // Thinking tokens are billed: only for the tasks that ask for them.
-            'reasoning' => ['enabled' => (bool) ($options['thinking'] ?? false)],
+            // Thinking is billed, so it gets a small budget unless a task asks for it. Never «enabled: false»:
+            // qwen4-max on OpenRouter then answers broken JSON (only «[41]» or tool calls) — tested 2026-11-19.
+            'reasoning' => ($options['thinking'] ?? false) ? ['enabled' => true] : ['max_tokens' => self::LIGHT_REASONING],
         ];
         if (isset($options['max_tokens'])) {
             $body['max_tokens'] = $options['max_tokens'];

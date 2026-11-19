@@ -54,14 +54,16 @@ final class SupportDesk
      */
     public function cannotOpen(): ?string
     {
+        // At most max_open open conversations of any kind (owner, 2026-11-19: with the assistant on,
+        // handed-off conversations piled up to 5). The waiting gap only applies to staff conversations.
+        $max = (int) config('landing.support.max_open');
+        if (SupportTicket::query()->where('status', '!=', SupportStatus::Closed->value)->count() >= $max) {
+            return __('support.limit', ['count' => $max]);
+        }
         if ($this->assistantTakesNew()) {
             return null;
         }
         $open = SupportTicket::query()->where('status', '!=', SupportStatus::Closed->value)->where('handler', SupportTicket::HANDLER_HUMAN)->get(['id', 'created_at']);
-        $max = (int) config('landing.support.max_open');
-        if ($open->count() >= $max) {
-            return __('support.limit', ['count' => $max]);
-        }
         $latest = $open->max('created_at');
         $gap = (int) config('landing.support.open_gap_hours');
         if ($latest !== null && $latest->gt(now()->subHours($gap))) {
