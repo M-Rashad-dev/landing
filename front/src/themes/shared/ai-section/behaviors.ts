@@ -1,6 +1,7 @@
 /**
  * Interactive DOM behaviors for AI sections (docs/plans/ai-designer.md §3.6).
- * Attached only in `live` and `preview` modes, never in `builder`.
+ * Attached in `live`, `preview`, and the main `builder` canvas so motion/timers match live;
+ * quick-add cart actions are only bound in `live` mode.
  */
 export function attachBehaviors(
   root: HTMLElement,

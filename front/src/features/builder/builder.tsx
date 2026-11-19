@@ -48,6 +48,7 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { AiDefinition } from "@/themes/shared/ai-section/types";
+import { mergeNewAiFieldValues } from "@/themes/shared/ai-section/sample";
 import type { Selection } from "@/themes/store/asas/asas-store";
 import { storeTheme } from "@/themes/store/registry";
 import type { MediaUrls } from "@/themes/shared/design";
@@ -197,7 +198,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
       ai_sections: { ...(prev.ai_sections ?? {}), [String(saved.current.id)]: saved.current },
       ai_sections_current: { ...(prev.ai_sections_current ?? {}), [String(saved.id)]: saved.current.id },
     }));
-    const placement = createAiSectionPlacement(saved.id) as AnySection;
+    const placement = createAiSectionPlacement(saved.id, saved.current.fields, "store") as AnySection;
     const selectedIdx = draft.sections.findIndex((s) => s.id === selected);
     const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : draft.sections.length;
     const nextSections = [
@@ -243,11 +244,34 @@ function Editor({ initial }: { initial: DesignPayload }) {
           ? { ...prev, name: approvedSection.name }
           : prev,
       );
+      let draftChanged = false;
+      const updatedSections = draft.sections.map((s) => {
+        if (s.type !== "ai" || s.props.ai_section_id !== approvedSection.id) {
+          return s;
+        }
+        const prevDef = aiDefinitionFor(s, data);
+        const merged = mergeNewAiFieldValues(
+          s.props.values ?? {},
+          prevDef?.fields,
+          approvedSection.current.fields,
+          "store",
+        );
+        if (!merged.changed) return s;
+        draftChanged = true;
+        return { ...s, props: { ...s.props, values: merged.values } } as AnySection;
+      });
+      if (draftChanged) {
+        change({ ...draft, sections: updatedSections }, true);
+      }
       return;
     }
 
     if (draft.sections.length < MAX_SECTIONS) {
-      const placement = createAiSectionPlacement(approvedSection.id) as AnySection;
+      const placement = createAiSectionPlacement(
+        approvedSection.id,
+        approvedSection.current.fields,
+        "store",
+      ) as AnySection;
       const selectedIdx =
         designerInsert === "after_selected"
           ? draft.sections.findIndex((s) => s.id === selected)

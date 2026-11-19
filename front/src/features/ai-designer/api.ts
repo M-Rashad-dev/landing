@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
+import { initialAiValues } from "@/themes/shared/ai-section/sample";
 import type { AiDefinition, AiField, AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { MediaUrls } from "@/themes/shared/design";
 
@@ -301,7 +302,11 @@ export function newAiPlacementId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export function createAiSectionPlacement(aiSectionId: number): {
+export function createAiSectionPlacement(
+  aiSectionId: number,
+  fields: AiField[] = [],
+  kind: "store" | "landing" = "store",
+): {
   id: string;
   type: "ai";
   visible: boolean;
@@ -313,7 +318,7 @@ export function createAiSectionPlacement(aiSectionId: number): {
     visible: true,
     props: {
       ai_section_id: aiSectionId,
-      values: {},
+      values: fields.length > 0 ? initialAiValues(fields, kind) : {},
     },
   };
 }

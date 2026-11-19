@@ -121,7 +121,8 @@ export function sampleValues(fields: AiField[]): Record<string, unknown> {
             return row;
           });
         } else {
-          out[field.key] = [sampleValues(subFields), sampleValues(subFields), sampleValues(subFields)];
+          const count = Math.min(3, Math.max(1, field.max ?? 6));
+          out[field.key] = Array.from({ length: count }, () => sampleValues(subFields));
         }
         break;
       }
@@ -131,5 +132,74 @@ export function sampleValues(fields: AiField[]): Record<string, unknown> {
   }
 
   return out;
+}
+
+const PRODUCT_LIMITS = [4, 8, 12, 16, 24, 32] as const;
+
+/**
+ * Initial saved `values` for a newly placed (or updated) AI section placement, matching what
+ * previews and the Builder display so live pages never start empty.
+ */
+export function initialAiValues(
+  fields: AiField[],
+  kind: "store" | "landing" = "store",
+): Record<string, unknown> {
+  const out: Record<string, unknown> = sampleValues(fields);
+
+  for (const field of fields) {
+    if (field.type === "image") {
+      const mediaId =
+        typeof field.sample_media_id === "number"
+          ? field.sample_media_id
+          : typeof field.sample === "number"
+            ? field.sample
+            : null;
+      if (mediaId !== null && mediaId > 0) {
+        out[`${field.key}_media_id`] = mediaId;
+      }
+    } else if (field.type === "products" && kind === "store") {
+      const wanted = typeof field.sample === "number" ? field.sample : 4;
+      const limit = PRODUCT_LIMITS.find((n) => n >= wanted) ?? 32;
+      out[field.key] = {
+        source: "latest",
+        category_id: null,
+        product_ids: [],
+        limit,
+      };
+    }
+  }
+
+  return out;
+}
+
+/**
+ * When an existing AI section is edited to add brand-new fields (or still has `{}` empty values),
+ * seed defaults only for newly introduced keys without disturbing previously edited/cleared fields.
+ */
+export function mergeNewAiFieldValues(
+  existingValues: Record<string, unknown>,
+  prevFields: AiField[] | undefined,
+  nextFields: AiField[],
+  kind: "store" | "landing" = "store",
+): { values: Record<string, unknown>; changed: boolean } {
+  const isEmpty = Object.keys(existingValues).length === 0;
+  const hadKeys = isEmpty ? new Set<string>() : new Set((prevFields ?? []).map((f) => f.key));
+  const addedFields = nextFields.filter((f) => !hadKeys.has(f.key));
+  if (addedFields.length === 0) {
+    return { values: existingValues, changed: false };
+  }
+
+  const additions = initialAiValues(addedFields, kind);
+  const next = { ...existingValues };
+  let changed = false;
+
+  for (const [k, v] of Object.entries(additions)) {
+    if (!(k in next) || next[k] === undefined) {
+      next[k] = v;
+      changed = true;
+    }
+  }
+
+  return { values: next, changed };
 }
 

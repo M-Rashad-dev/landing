@@ -1015,6 +1015,10 @@ final class AiDesignRunner
                 $clean = $this->landingThemes->clean($chat->theme_key, $replaced, 'content', 'landing');
             }
 
+            if (isset($clean['sections']) && is_array($clean['sections'])) {
+                $clean['sections'] = $this->seedEmptyAiSectionValues($clean['sections'], $currentDraft, $chat->kind);
+            }
+
             return ['design' => $clean, 'errors' => []];
         } catch (ValidationException $e) {
             $msgs = [];
@@ -1028,6 +1032,57 @@ final class AiDesignRunner
         } catch (Throwable $e) {
             return ['design' => null, 'errors' => [$e->getMessage()]];
         }
+    }
+
+    /**
+     * Populate initial sample/default values on newly placed or empty AI sections so previews,
+     * drafts, and published pages never render blank placeholders as empty content.
+     *
+     * @param  list<array<string, mixed>>  $sections
+     * @param  array<string, mixed>  $currentDraft
+     * @return list<array<string, mixed>>
+     */
+    private function seedEmptyAiSectionValues(array $sections, array $currentDraft, string $kind): array
+    {
+        $aiSections = AiSectionDefinitions::loadSections($sections);
+        if ($aiSections->isEmpty()) {
+            return $sections;
+        }
+
+        $knownSectionIds = [];
+        foreach ((array) ($currentDraft['sections'] ?? []) as $draftSec) {
+            if (is_array($draftSec) && ($draftSec['type'] ?? null) === 'ai') {
+                $id = (int) ($draftSec['props']['ai_section_id'] ?? 0);
+                if ($id > 0) {
+                    $knownSectionIds[$id] = true;
+                }
+            }
+        }
+
+        foreach ($sections as $i => $section) {
+            if (! is_array($section) || ($section['type'] ?? null) !== 'ai') {
+                continue;
+            }
+            $props = is_array($section['props'] ?? null) ? $section['props'] : [];
+            $aiSectionId = (int) ($props['ai_section_id'] ?? 0);
+            $existingValues = is_array($props['values'] ?? null) ? $props['values'] : [];
+            if ($existingValues !== [] && isset($knownSectionIds[$aiSectionId])) {
+                continue;
+            }
+
+            $aiSection = $aiSections->get($aiSectionId);
+            if (! $aiSection instanceof AiSection || $aiSection->current === null) {
+                continue;
+            }
+
+            $fields = is_array($aiSection->current->fields) ? $aiSection->current->fields : [];
+            $defaults = AiSectionFields::defaultValues($fields, $kind);
+            $sections[$i]['props']['values'] = $existingValues === []
+                ? $defaults
+                : array_replace($defaults, $existingValues);
+        }
+
+        return $sections;
     }
 
     /**

@@ -20,6 +20,7 @@ export type AiSectionViewProps = {
   data?: AiSectionRuntimeData;
   onAdd?: (productId: number) => void;
   sampleMode?: boolean;
+  disableBehaviors?: boolean;
 };
 
 function defaultColorToken(def: AiColorDefault | undefined, tokens: AiTokens): string {
@@ -44,9 +45,12 @@ export function AiSectionView({
   data,
   onAdd,
   sampleMode,
+  disableBehaviors = false,
 }: AiSectionViewProps) {
   const rootRef = React.useRef<HTMLDivElement | null>(null);
-  const useSamples = sampleMode ?? mode === "builder";
+  const hasValues = Object.keys(values).length > 0;
+  const useSamples = sampleMode ?? (mode === "builder" && !hasValues);
+  const useAssetSamples = sampleMode ?? mode === "builder";
 
   const fieldMap = React.useMemo(() => {
     const map = new Map<string, AiField>();
@@ -70,11 +74,11 @@ export function AiSectionView({
         const picked = pick(urls, "large") ?? pick(urls, "medium");
         if (picked) return picked;
       }
-      return useSamples ? placeholderImage(fallbackLabel ?? definition.name) : null;
+      return useAssetSamples ? placeholderImage(fallbackLabel ?? definition.name) : null;
     };
 
     const resolveLandingOrDirectLink = (raw: unknown): string | null => {
-      if (!raw || typeof raw !== "object") return useSamples ? "#" : null;
+      if (!raw || typeof raw !== "object") return useAssetSamples ? "#" : null;
       const linkObj = raw as { type?: string; url?: string | null };
       if (linkObj.type === "order") return "#order";
       if (linkObj.type === "all_products") return "/products";
@@ -104,7 +108,7 @@ export function AiSectionView({
         const field = fieldMap.get(key);
         const mediaId =
           values[`${key}_media_id`] ??
-          (useSamples
+          (useAssetSamples
             ? (field?.sample_media_id ?? (typeof field?.sample === "number" ? field.sample : undefined))
             : undefined);
         return resolveMediaUrl(mediaId, field?.label);
@@ -120,7 +124,7 @@ export function AiSectionView({
             })
             .filter((x): x is ImageRenderItem => x !== null);
         }
-        if (useSamples) {
+        if (useAssetSamples) {
           const count = typeof field?.sample === "number" ? Math.max(1, Math.min(12, field.sample)) : 4;
           return Array.from({ length: count }, (_, i) => ({
             img: placeholderImage(`${field?.label ?? "صورة"} ${i + 1}`),
@@ -170,7 +174,7 @@ export function AiSectionView({
         if (Array.isArray(list) && list.length > 0) {
           return list;
         }
-        if (useSamples) {
+        if (useAssetSamples) {
           const field = fieldMap.get(key);
           const count = typeof field?.sample === "number" ? field.sample : 4;
           return sampleProducts(count);
@@ -183,14 +187,14 @@ export function AiSectionView({
         if (Array.isArray(list) && list.length > 0) {
           return list;
         }
-        if (useSamples) {
+        if (useAssetSamples) {
           const field = fieldMap.get(key);
           const count = typeof field?.sample === "number" ? field.sample : 4;
           return sampleCategories(count);
         }
         return [];
       },
-      product: data?.landingProduct ?? (useSamples ? {
+      product: data?.landingProduct ?? (useAssetSamples ? {
         name: "منتج تجريبي مميز",
         price: 299,
         compare_at_price: 399,
@@ -200,14 +204,14 @@ export function AiSectionView({
     };
 
     return renderTemplate(definition.html, ctx);
-  }, [definition, values, useSamples, samples, fieldMap, data, sectionId]);
+  }, [definition, values, useSamples, useAssetSamples, samples, fieldMap, data, sectionId]);
 
   React.useEffect(() => {
-    if (mode === "builder" || !rootRef.current) return;
+    if (disableBehaviors || !rootRef.current) return;
     return attachBehaviors(rootRef.current, {
       onAdd: mode === "live" ? onAdd : undefined,
     });
-  }, [mode, html, onAdd]);
+  }, [disableBehaviors, mode, html, onAdd]);
 
   if (!definition) {
     return null;

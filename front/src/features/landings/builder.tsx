@@ -66,6 +66,7 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { AiDefinition, AiSectionProps } from "@/themes/shared/ai-section/types";
+import { mergeNewAiFieldValues } from "@/themes/shared/ai-section/sample";
 import type { MediaUrls } from "@/themes/shared/design";
 import type { Content, LandingData, Settings } from "@/themes/landing/bidaya/types";
 import { landingTheme, type Selection } from "@/themes/landing/registry";
@@ -246,7 +247,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
     if (draft.sections.length >= maxSections) return;
     setExtraAiSections((prev) => ({ ...prev, [String(saved.current.id)]: saved.current }));
     setExtraAiCurrent((prev) => ({ ...prev, [String(saved.id)]: saved.current.id }));
-    const placement = createAiSectionPlacement(saved.id) as unknown as AnySection;
+    const placement = createAiSectionPlacement(saved.id, saved.current.fields, "landing") as unknown as AnySection;
     const selectedIdx = draft.sections.findIndex((s) => s.id === selected && s.type !== "order_form");
     const formAt = draft.sections.findIndex((s) => s.type === "order_form");
     const defaultAt = formAt < 0 ? draft.sections.length : formAt;
@@ -285,11 +286,34 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
           ? { ...prev, name: approvedSection.name }
           : prev,
       );
+      let draftChanged = false;
+      const updatedSections = draft.sections.map((s) => {
+        if (s.type !== "ai") return s;
+        const p = s.props as unknown as AiSectionProps;
+        if (p.ai_section_id !== approvedSection.id) return s;
+        const prevDef = aiDefFor(s);
+        const merged = mergeNewAiFieldValues(
+          p.values ?? {},
+          prevDef?.fields,
+          approvedSection.current.fields,
+          "landing",
+        );
+        if (!merged.changed) return s;
+        draftChanged = true;
+        return { ...s, props: { ...s.props, values: merged.values } } as AnySection;
+      });
+      if (draftChanged) {
+        change({ ...draft, sections: updatedSections }, true);
+      }
       return;
     }
 
     if (draft.sections.length < maxSections) {
-      const placement = createAiSectionPlacement(approvedSection.id) as unknown as AnySection;
+      const placement = createAiSectionPlacement(
+        approvedSection.id,
+        approvedSection.current.fields,
+        "landing",
+      ) as unknown as AnySection;
       const selectedIdx =
         designerInsert === "after_selected"
           ? draft.sections.findIndex((s) => s.id === selected && s.type !== "order_form")

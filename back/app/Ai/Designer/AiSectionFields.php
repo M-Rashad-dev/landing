@@ -250,6 +250,94 @@ final class AiSectionFields
     }
 
     /**
+     * Build clean initial `values` from a section's schema samples so newly placed AI sections
+     * render with complete copy, dates, lists, toggles, and AI-generated media right away in
+     * previews, the Builder, and the live storefront.
+     *
+     * @param  list<array<string, mixed>>  $fields
+     * @return array<string, mixed>
+     */
+    public static function defaultValues(array $fields, string $kind): array
+    {
+        $raw = [];
+
+        foreach ($fields as $field) {
+            if (! is_array($field) || ! isset($field['key'], $field['type'])) {
+                continue;
+            }
+            $key = (string) $field['key'];
+            $type = (string) $field['type'];
+
+            switch ($type) {
+                case 'text':
+                case 'textarea':
+                    $sample = $field['sample'] ?? null;
+                    $val = is_string($sample) && trim($sample) !== '' ? $sample : (string) ($field['label'] ?? '');
+                    if ($val !== '') {
+                        $raw[$key] = $val;
+                    }
+                    break;
+
+                case 'image':
+                    $mediaId = $field['sample_media_id'] ?? (is_int($field['sample'] ?? null) ? $field['sample'] : null);
+                    if (is_numeric($mediaId) && (int) $mediaId > 0) {
+                        $raw["{$key}_media_id"] = (int) $mediaId;
+                    }
+                    break;
+
+                case 'number':
+                    $raw[$key] = is_numeric($field['sample'] ?? null)
+                        ? (int) $field['sample']
+                        : (int) ($field['min'] ?? 10);
+                    break;
+
+                case 'toggle':
+                    $raw[$key] = isset($field['sample']) ? (bool) $field['sample'] : true;
+                    break;
+
+                case 'date':
+                    $raw[$key] = Carbon::now()->utc()->addDays(3)->toIso8601String();
+                    break;
+
+                case 'products':
+                    if ($kind === 'store') {
+                        $wanted = is_numeric($field['sample'] ?? null) ? (int) $field['sample'] : 4;
+                        $limit = 8;
+                        foreach (StoreSections::PRODUCT_LIMITS as $candidateLimit) {
+                            if ($candidateLimit >= $wanted) {
+                                $limit = $candidateLimit;
+                                break;
+                            }
+                            $limit = $candidateLimit;
+                        }
+                        $raw[$key] = [
+                            'source' => 'latest',
+                            'category_id' => null,
+                            'product_ids' => [],
+                            'limit' => $limit,
+                        ];
+                    }
+                    break;
+
+                case 'list':
+                    $max = (int) ($field['max'] ?? 6);
+                    $subFields = is_array($field['fields'] ?? null) ? $field['fields'] : [];
+                    $sampleList = self::cleanListSample($field['sample'] ?? [], $subFields, $max);
+                    if ($sampleList !== []) {
+                        $raw[$key] = $sampleList;
+                    } elseif ($subFields !== []) {
+                        $count = min(3, max(1, $max));
+                        $rowTemplate = self::defaultValues($subFields, $kind);
+                        $raw[$key] = array_fill(0, $count, $rowTemplate);
+                    }
+                    break;
+            }
+        }
+
+        return self::clean($fields, $raw, $kind);
+    }
+
+    /**
      * @param  array<string, mixed>  $entry
      * @param  array<string, bool>  $seen
      * @param  list<string>  $errors

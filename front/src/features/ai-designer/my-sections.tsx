@@ -105,6 +105,7 @@ export function MySectionsGalleryBlock({
                       mode="builder"
                       tokens={tokens}
                       sampleMode
+                      disableBehaviors
                     />
                   </div>
                 </div>
