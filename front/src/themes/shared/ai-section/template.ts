@@ -79,6 +79,27 @@ export function safeUrl(url: string | null | undefined): string {
   return "#";
 }
 
+export function safeMediaUrl(url: unknown, kind: "video" | "audio"): string {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (trimmed === "" || trimmed.length > 500 || /[\u0000-\u0020"'<>]/.test(trimmed)) {
+    return "";
+  }
+
+  if (/^https:\/\/[^\s"'<>]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (
+    kind === "audio" &&
+    /^\/media\/tenants\/\d+\/\d{4}\/\d{2}\/[a-z0-9]+-audio\.(mp3|wav|ogg|m4a|aac|webm)$/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return "";
+}
+
 type EachScope = {
   listKey: string;
   kind: "products" | "categories" | "images" | "list";
@@ -325,6 +346,13 @@ function resolveToken(expr: string, ctx: RenderCtx, scope: EachScope | null): st
       return "";
     }
     return escapeHtml(topVal);
+  }
+
+  if (expr.startsWith("video ") || expr.startsWith("audio ")) {
+    const kind = expr.startsWith("video ") ? "video" : "audio";
+    const key = expr.slice(6).trim();
+    const raw = scope && key in scope.text ? scope.text[key] : ctx.value(key);
+    return escapeHtml(safeMediaUrl(raw, kind));
   }
 
   if (expr === "id") {

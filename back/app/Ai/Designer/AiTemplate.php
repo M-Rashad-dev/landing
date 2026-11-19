@@ -339,6 +339,19 @@ final class AiTemplate
                 continue;
             }
 
+            // {{video key}} / {{audio key}}
+            if (str_starts_with($expr, 'video ') || str_starts_with($expr, 'audio ')) {
+                $kindName = str_starts_with($expr, 'video ') ? 'video' : 'audio';
+                $key = trim(substr($expr, 6));
+                $attrName = "data-ai-{$kindName}";
+                if (! self::isAttr($place, null, $attrName)) {
+                    $errors[] = "{{{$kindName} {$key}}} is only allowed as the whole {$attrName} value of a container element.";
+                }
+                self::validateSimpleTypedKey($key, $kindName, $topFields, $currentEach, $errors);
+
+                continue;
+            }
+
             // Plain {{key}}
             if ($place['where'] !== 'text') {
                 $errors[] = "Token '{{{$expr}}}' is only allowed in text, not inside an HTML attribute.";
@@ -660,6 +673,37 @@ final class AiTemplate
             $errors[] = "Unknown field '{$key}'.";
         } elseif (! in_array($field['type'], self::TEXT_FIELD_TYPES, true)) {
             $errors[] = "Field '{$key}' of type '{$field['type']}' cannot be rendered as plain text.";
+        }
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $topFields
+     * @param  array<string, mixed>|null  $currentEach
+     * @param  list<string>  $errors
+     */
+    private static function validateSimpleTypedKey(
+        string $key,
+        string $expectedType,
+        array $topFields,
+        ?array $currentEach,
+        array &$errors,
+    ): void {
+        if ($currentEach !== null && ($currentEach['type'] ?? '') === 'list') {
+            $sub = self::findSubField($currentEach, $key);
+            if ($sub !== null) {
+                if ($sub['type'] !== $expectedType) {
+                    $errors[] = "Sub-field '{$key}' of type '{$sub['type']}' is not a {$expectedType} field.";
+                }
+
+                return;
+            }
+        }
+
+        $field = $topFields[$key] ?? null;
+        if ($field === null) {
+            $errors[] = "Unknown {$expectedType} field '{$key}'.";
+        } elseif ($field['type'] !== $expectedType) {
+            $errors[] = "Field '{$key}' of type '{$field['type']}' cannot be used in {{{$expectedType} {$key}}}.";
         }
     }
 

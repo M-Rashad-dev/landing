@@ -69,6 +69,8 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 | `{{link key}}` | Whole `href` of `<a>` only | URL of a `link` field. Example: `<a href="{{link cta_link}}">{{cta_text}}</a>` |
 | `{{date key}}` | Whole `data-ai-ends` attribute only | UTC ISO timestamp of a `date` field. Example: `<div data-ai-behavior="countdown" data-ai-ends="{{date offer_end}}">...</div>` |
 | `{{copy key}}` | Whole `data-ai-copy` attribute of `<button>` only | Value of a `text`, `textarea`, or `number` field (top-level or inside `{{#each}}`) copied to the visitor's clipboard on click. Example: `<button type="button" data-ai-copy="{{copy coupon_code}}" data-ai-copied="تم نسخ الكود بنجاح">{{cta_text}}</button>` |
+| `{{video key}}` | Whole `data-ai-video` attribute of `<div>`/`<section>`/`<figure>`/`<article>` | URL of a `video` field (YouTube, Vimeo, or direct `https://` MP4/WebM link — rendered safely by the platform). Example: `<div class="video-wrap" data-ai-video="{{video promo_video}}"></div>` |
+| `{{audio key}}` | Whole `data-ai-audio` attribute of `<div>`/`<section>`/`<figure>`/`<article>` | URL or uploaded audio file of an `audio` field (rendered safely by the platform as an `<audio controls>` player). Example: `<div class="audio-wrap" data-ai-audio="{{audio voice_note}}"></div>` |
 | `{{#each key}}...{{/each}}` | Between elements | Loops over a `products`, `categories`, `images`, or `list` field. **Never nest `{{#each}}` inside another `{{#each}}`.** |
 | `{{#if key}}...{{else}}...{{/if}}` | Between elements | Conditional block (true when non-empty / image set / toggle on). Maximum nesting depth: 2. |
 | `{{index}}` | Text inside `{{#each}}` | 1-based item index (`1`, `2`, ...). |
@@ -90,7 +92,7 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
   - Bare image token: `<img src="{{img}}" alt="" loading="lazy">`
   - Text token: `<figcaption>{{alt}}</figcaption>`
 - **`list` field:**
-  - Direct sub-field keys following their type rules (`{{sub_text}}`, `<button type="button" data-ai-copy="{{copy sub_code}}" data-ai-copied="تم النسخ ✓">`, `<img src="{{img sub_img}}" alt="">`, `<a href="{{link sub_link}}">`).
+  - Direct sub-field keys following their type rules (`{{sub_text}}`, `<button type="button" data-ai-copy="{{copy sub_code}}" data-ai-copied="تم النسخ ✓">`, `<img src="{{img sub_img}}" alt="">`, `<a href="{{link sub_link}}">`, `<div data-ai-video="{{video sub_video}}"></div>`, `<div data-ai-audio="{{audio sub_audio}}"></div>`).
 
 - **Color fields (`type: "color"`) are NOT template tokens.** They are automatically exposed as CSS custom properties `--f-{key}` (keeping exact underscores, e.g. `var(--f-card_bg)`) on the section root. Do NOT add many `color` fields — rely on the theme's `--ai-primary`, `--ai-secondary`, `--ai-bg`, `--ai-text`, `--ai-on-primary`, `--ai-muted`, `--ai-border` first.
 - Never invent undocumented tokens (such as `{{section_id}}`), and never put `{{img ...}}` inside CSS (`url(...)` is forbidden in CSS — always render images with `<img src="{{img key}}" alt="">` inside HTML).
@@ -119,6 +121,13 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
      - Use whenever a merchant asks for a button that copies a coupon code, promo code, phone number, account number, or any field value instead of opening a link.
      - If a merchant wants a setting to choose between copying text vs. opening a link, add a `toggle` field (e.g. `copy_mode`) plus `text` (`copy_text`) and `link` (`cta_link`) fields, and switch in HTML with `{{#if copy_mode}}<button type="button" data-ai-copy="{{copy copy_text}}" data-ai-copied="تم النسخ ✓">{{cta_text}}</button>{{else}}<a href="{{link cta_link}}">{{cta_text}}</a>{{/if}}`.
      - `data-ai-copied` is plain short Arabic confirmation text (`<= 60` chars, no `{{...}}`) shown on the button for 2 seconds after copying (defaults to `"تم النسخ ✓"`). While copied, the platform sets `data-ai-copied-active="true"` on `<button>` so you can style the active copied state cleanly in CSS (e.g. `.btn[data-ai-copied-active="true"]`).
+  8. **Embedded video player (link only — YouTube, Vimeo, or direct `https://` MP4/WebM):**
+     `<div class="video-frame" data-ai-video="{{video promo_video}}"></div>`
+     - NEVER emit raw `<video>` or `<iframe>` tags (they are stripped). Declare a field with `"type": "video"` and place `data-ai-video="{{video key}}"` on an empty container (`<div>`, `<section>`, `<figure>`, or `<article>`). The platform automatically renders the safe embedded YouTube/Vimeo player or `<video controls>` element (or a preview placeholder in Builder).
+     - Style the container in CSS with `aspect-ratio: 16 / 9; overflow: hidden; border-radius: ...;`.
+  9. **Audio player (link or merchant-uploaded clip):**
+     `<div class="audio-wrap" data-ai-audio="{{audio voice_clip}}"></div>`
+     - NEVER emit raw `<audio>` tags (they are stripped). Declare a field with `"type": "audio"` and place `data-ai-audio="{{audio key}}"` on an empty container. Merchants can paste an `https://` audio link OR upload an audio file (MP3/WAV/OGG/M4A) in section settings, and the platform renders the `<audio controls>` player inside your container automatically.
 
 ## 4. CSS Rules (`css`)
 - Always use the theme CSS variables so the section adapts to the store's palette and dark mode:
@@ -135,11 +144,11 @@ Every token inside an HTML attribute **must be the entire attribute value**, and
 - Never hard-code merchant-specific texts or catalog items when a field should control them.
 - Each field has:
   - `key`: lowercase snake_case (`^[a-z][a-z0-9_]{1,30}$`), never ending in `_media_id` or `_media_ids`.
-  - `type`: `text` | `textarea` | `image` | `images` | `link` | `color` | `number` | `toggle` | `date` | `products` (store only) | `categories` (store only) | `list`.
+  - `type`: `text` | `textarea` | `image` | `images` | `link` | `video` | `audio` | `color` | `number` | `toggle` | `date` | `products` (store only) | `categories` (store only) | `list`.
   - `label`: clear Arabic label (`<= 60` chars).
   - `hint` (optional): short Arabic hint (`<= 160` chars).
-  - `sample`: realistic Arabic sample content (`string` for `text`/`textarea`, `int` for `number`/`images`/`products`/`categories`, `bool` for `toggle`, array of objects for `list`).
-  - For `list`: include `"max": 6` (1–12) and `"fields": [ ... ]` (up to 8 sub-fields of types `text`, `textarea`, `image`, `link`, `color`, `toggle`, `number`).
+  - `sample`: realistic Arabic sample content (`string` for `text`/`textarea`, `null` for `video`/`audio`/`link`/`date`, `int` for `number`/`images`/`products`/`categories`, `bool` for `toggle`, array of objects for `list`).
+  - For `list`: include `"max": 6` (1–12) and `"fields": [ ... ]` (up to 8 sub-fields of types `text`, `textarea`, `image`, `link`, `video`, `audio`, `color`, `toggle`, `number`).
   - For `color`: include `"default": "primary" | "secondary" | "text" | "background"`.
 
 ## 6. Store vs. Landing Page Rules

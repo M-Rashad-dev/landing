@@ -508,6 +508,18 @@ final class AiSectionSanitizer
             return;
         }
 
+        if ($name === 'data-ai-video' || $name === 'data-ai-audio') {
+            $token = $name === 'data-ai-video' ? 'video' : 'audio';
+            $allowedTags = ['div', 'section', 'figure', 'article'];
+            if (in_array($rawTag, $allowedTags, true) && (bool) preg_match('/^\{\{\s*'.$token.'\s+[a-z][a-z0-9_]*\s*\}\}$/', $trimmed)) {
+                $dst->setAttribute($name, $trimmed);
+            } else {
+                $removed[] = "attr:{$name}";
+            }
+
+            return;
+        }
+
         if (in_array($name, self::DATA_AI_FLAG_ATTRS, true)) {
             $dst->setAttribute($name, $value);
 

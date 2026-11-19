@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { apiPage, apiUpload } from "@/lib/api/client";
 import { prepareImage } from "@/lib/media/compress";
 
-export type MediaUrls = { thumb: string; medium: string; large: string };
+export type MediaUrls = { thumb: string; medium: string; large: string; audio?: string };
 
 export type MediaItem = {
   id: number;
@@ -54,6 +54,19 @@ export async function uploadImages(files: File[], { onPrepared, onRejected }: { 
     uploaded.push(...(await apiUpload<MediaItem[]>("/dashboard/media", form)));
   }
   return uploaded;
+}
+
+/** Upload one small audio clip (MP3/WAV/OGG/M4A/AAC/WebM) and return its public `/media/...` URL. */
+export async function uploadAudio(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("purpose", "audio");
+  form.append("files[]", file, file.name);
+  const items = await apiUpload<MediaItem[]>("/dashboard/media", form);
+  const url = items[0]?.urls?.audio;
+  if (!url) {
+    throw new Error("Audio upload failed");
+  }
+  return url;
 }
 
 export function useRefreshMedia() {

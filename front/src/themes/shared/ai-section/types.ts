@@ -6,6 +6,8 @@ export type AiFieldType =
   | "image"
   | "images"
   | "link"
+  | "video"
+  | "audio"
   | "color"
   | "number"
   | "toggle"

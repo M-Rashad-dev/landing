@@ -40,7 +40,9 @@ final class UploadMedia
         try {
             foreach ($files as $index => $file) {
                 try {
-                    $processed[] = $this->processor->process($file, $tenantId, $purpose);
+                    $processed[] = $purpose === 'audio'
+                        ? $this->processor->processAudio($file, $tenantId)
+                        : $this->processor->process($file, $tenantId, $purpose);
                 } catch (MediaRejected $e) {
                     throw new ApiException(422, 'validation_failed', $e->getMessage(), ["files.{$index}" => [$e->getMessage()]]);
                 }

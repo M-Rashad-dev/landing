@@ -14,6 +14,38 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 final class SafeUrl implements ValidationRule
 {
+    public const AUDIO_LOCAL_PATTERN = '#^/media/tenants/\d+/\d{4}/\d{2}/[a-z0-9]+-audio\.(mp3|wav|ogg|m4a|aac|webm)$#';
+
+    public function __construct(private readonly string $mode = 'link') {}
+
+    public static function isHttps(string $value): bool
+    {
+        if ($value === '' || mb_strlen($value) > 2048 || preg_match('/[\x00-\x20\x7F]/', $value) === 1) {
+            return false;
+        }
+
+        if (preg_match('#^https://#i', $value) !== 1) {
+            return false;
+        }
+
+        $parts = parse_url($value);
+
+        return is_array($parts)
+            && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+            && ($parts['host'] ?? '') !== ''
+            && ! isset($parts['user'])
+            && ! isset($parts['pass']);
+    }
+
+    public static function isAudioUrl(string $value): bool
+    {
+        if (self::isHttps($value)) {
+            return true;
+        }
+
+        return preg_match(self::AUDIO_LOCAL_PATTERN, $value) === 1;
+    }
+
     public static function isSafe(string $value): bool
     {
         if ($value === '' || mb_strlen($value) > 2048 || preg_match('/[\x00-\x20\x7F]/', $value) === 1) {
@@ -36,22 +68,25 @@ final class SafeUrl implements ValidationRule
             return true;
         }
 
-        if (preg_match('#^https://#i', $value) === 1) {
-            $parts = parse_url($value);
-
-            return is_array($parts)
-                && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
-                && ($parts['host'] ?? '') !== ''
-                && ! isset($parts['user'])
-                && ! isset($parts['pass']);
-        }
-
-        return false;
+        return self::isHttps($value);
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! is_string($value) || ! self::isSafe(trim($value))) {
+        if (! is_string($value)) {
+            $fail(__('pages.unsafe_url'));
+
+            return;
+        }
+
+        $trimmed = trim($value);
+        $ok = match ($this->mode) {
+            'https' => self::isHttps($trimmed),
+            'audio' => self::isAudioUrl($trimmed),
+            default => self::isSafe($trimmed),
+        };
+
+        if (! $ok) {
             $fail(__('pages.unsafe_url'));
         }
     }

@@ -21,6 +21,24 @@ final class MediaProcessor
 {
     public const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
+    /** @var array<string, string> MIME type => safe file extension for uploaded audio clips */
+    public const AUDIO_MIMES = [
+        'audio/mpeg' => 'mp3',
+        'audio/mp3' => 'mp3',
+        'audio/wav' => 'wav',
+        'audio/x-wav' => 'wav',
+        'audio/wave' => 'wav',
+        'audio/ogg' => 'ogg',
+        'application/ogg' => 'ogg',
+        'audio/mp4' => 'm4a',
+        'audio/x-m4a' => 'm4a',
+        'audio/aac' => 'aac',
+        'audio/x-hx-aac-adts' => 'aac',
+        'audio/webm' => 'webm',
+    ];
+
+    public const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+
     private const MAX_DIMENSION = 6000;
 
     private const MIN_WIDTH = 16;
@@ -124,6 +142,61 @@ final class MediaProcessor
 
             report($e);
 
+            throw new MediaRejected(__('media.processing_failed'));
+        }
+    }
+
+    /**
+     * Validate an uploaded audio clip by its real bytes and store it under a random name.
+     *
+     * @return array{disk: string, path: string, variants: array<string, string>, original_name: string, mime: string, size_bytes: int, width: int, height: int}
+     *
+     * @throws MediaRejected
+     */
+    public function processAudio(UploadedFile $file, int $tenantId): array
+    {
+        $realPath = $file->getRealPath();
+        if ($realPath === false || ! is_file($realPath)) {
+            throw new MediaRejected(__('media.invalid_audio_type'));
+        }
+
+        $size = (int) filesize($realPath);
+        if ($size <= 0 || $size > self::MAX_AUDIO_BYTES) {
+            throw new MediaRejected(__('media.audio_too_large', ['max' => (int) (self::MAX_AUDIO_BYTES / 1024 / 1024)]));
+        }
+
+        $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($realPath);
+        $ext = self::AUDIO_MIMES[$mime] ?? null;
+        if ($ext === null) {
+            throw new MediaRejected(__('media.invalid_audio_type'));
+        }
+
+        $path = sprintf('tenants/%d/%s/%s-audio.%s', $tenantId, now()->format('Y/m'), Str::lower((string) Str::ulid()), $ext);
+        $storage = Storage::disk($this->disk);
+
+        try {
+            $bytes = file_get_contents($realPath);
+            if ($bytes === false || $bytes === '') {
+                throw new MediaRejected(__('media.invalid_audio_type'));
+            }
+            $this->put($storage, $path, $bytes);
+
+            return [
+                'disk' => $this->disk,
+                'path' => $path,
+                'variants' => ['audio' => $path],
+                'original_name' => $this->safeOriginalName($file),
+                'mime' => $mime,
+                'size_bytes' => $this->totalSize($storage, $path),
+                'width' => 0,
+                'height' => 0,
+            ];
+        } catch (Throwable $e) {
+            $storage->delete($path);
+            if ($e instanceof MediaRejected) {
+                throw $e;
+            }
+            report($e);
             throw new MediaRejected(__('media.processing_failed'));
         }
     }

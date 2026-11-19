@@ -32,6 +32,7 @@ export function attachBehaviors(
   cleanups.push(initReveal(root, reducedMotion));
   cleanups.push(initQuickAdd(root, opts.onAdd));
   cleanups.push(initCopy(root));
+  cleanups.push(initMediaEmbeds(root));
 
   return () => {
     for (const fn of cleanups) {
@@ -551,6 +552,106 @@ function initCopy(root: HTMLElement): () => void {
       }
     });
     active.clear();
+  };
+}
+
+function parseVideoEmbedUrl(raw: string): string | null {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.replace(/^(www|m)\./, "").toLowerCase();
+    if (host === "youtu.be") {
+      const id = u.pathname.slice(1).match(/^[\w-]+/)?.[0];
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null;
+    }
+    if (host === "youtube.com") {
+      const id = u.searchParams.get("v")?.match(/^[\w-]+$/)?.[0] ??
+        u.pathname.match(/^\/(?:shorts|embed)\/([\w-]+)/)?.[1];
+      return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = u.pathname.match(/(\d+)/)?.[1];
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function isSafeHttpsUrl(raw: string): boolean {
+  if (!raw || raw.length > 500 || /[\u0000-\u0020"'<>]/.test(raw)) return false;
+  return /^https:\/\/[^\s"'<>]+$/i.test(raw);
+}
+
+function isSafeAudioSrc(raw: string): boolean {
+  if (isSafeHttpsUrl(raw)) return true;
+  return /^\/media\/tenants\/\d+\/\d{4}\/\d{2}\/[a-z0-9]+-audio\.(mp3|wav|ogg|m4a|aac|webm)$/i.test(raw);
+}
+
+function makeMediaPlaceholder(text: string, kind: "video" | "audio"): HTMLDivElement {
+  const box = document.createElement("div");
+  box.className = `ai-media-placeholder ai-media-placeholder--${kind}`;
+  box.textContent = text;
+  return box;
+}
+
+function initMediaEmbeds(root: HTMLElement): () => void {
+  const isLive = root.getAttribute("data-ai-mode") === "live";
+
+  for (const el of collectWithRoot(root, "[data-ai-video]")) {
+    const url = (el.getAttribute("data-ai-video") ?? "").trim();
+    el.hidden = false;
+    const embed = url ? parseVideoEmbedUrl(url) : null;
+
+    if (embed) {
+      const iframe = document.createElement("iframe");
+      iframe.src = embed;
+      iframe.title = "فيديو";
+      iframe.loading = "lazy";
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+      iframe.allowFullscreen = true;
+      iframe.className = "ai-video-frame";
+      el.replaceChildren(iframe);
+    } else if (isSafeHttpsUrl(url)) {
+      const video = document.createElement("video");
+      video.controls = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.src = url;
+      video.className = "ai-video-native";
+      el.replaceChildren(video);
+    } else if (!isLive) {
+      el.replaceChildren(makeMediaPlaceholder("فيديو — أضف رابط الفيديو من إعدادات القسم", "video"));
+    } else {
+      el.replaceChildren();
+      el.hidden = true;
+    }
+  }
+
+  for (const el of collectWithRoot(root, "[data-ai-audio]")) {
+    const url = (el.getAttribute("data-ai-audio") ?? "").trim();
+    el.hidden = false;
+
+    if (isSafeAudioSrc(url)) {
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.preload = "metadata";
+      audio.src = url;
+      audio.className = "ai-audio-native";
+      el.replaceChildren(audio);
+    } else if (!isLive) {
+      el.replaceChildren(makeMediaPlaceholder("صوت — أضف رابط صوت أو ارفع ملف من إعدادات القسم", "audio"));
+    } else {
+      el.replaceChildren();
+      el.hidden = true;
+    }
+  }
+
+  return () => {
+    for (const media of root.querySelectorAll<HTMLMediaElement>("video, audio")) {
+      media.pause();
+    }
   };
 }
 

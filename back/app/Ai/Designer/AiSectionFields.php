@@ -32,6 +32,8 @@ final class AiSectionFields
         'image',
         'images',
         'link',
+        'video',
+        'audio',
         'color',
         'number',
         'toggle',
@@ -46,6 +48,8 @@ final class AiSectionFields
         'textarea',
         'image',
         'link',
+        'video',
+        'audio',
         'color',
         'toggle',
         'number',
@@ -166,6 +170,24 @@ final class AiSectionFields
                 case 'link':
                     if (isset($values[$key]) && is_array($values[$key]) && isset($values[$key]['type'])) {
                         $out[$key] = self::cleanLinkValue($values[$key], $kind);
+                    }
+                    break;
+
+                case 'video':
+                    if (array_key_exists($key, $values) && is_string($values[$key])) {
+                        $url = mb_substr(trim($values[$key]), 0, 500, 'UTF-8');
+                        if ($url !== '' && SafeUrl::isHttps($url)) {
+                            $out[$key] = $url;
+                        }
+                    }
+                    break;
+
+                case 'audio':
+                    if (array_key_exists($key, $values) && is_string($values[$key])) {
+                        $url = mb_substr(trim($values[$key]), 0, 500, 'UTF-8');
+                        if ($url !== '' && SafeUrl::isAudioUrl($url)) {
+                            $out[$key] = $url;
+                        }
                     }
                     break;
 
@@ -297,6 +319,18 @@ final class AiSectionFields
 
                 case 'date':
                     $raw[$key] = Carbon::now()->utc()->addDays(3)->toIso8601String();
+                    break;
+
+                case 'video':
+                    if (is_string($field['sample'] ?? null) && SafeUrl::isHttps(trim($field['sample']))) {
+                        $raw[$key] = trim($field['sample']);
+                    }
+                    break;
+
+                case 'audio':
+                    if (is_string($field['sample'] ?? null) && SafeUrl::isAudioUrl(trim($field['sample']))) {
+                        $raw[$key] = trim($field['sample']);
+                    }
                     break;
 
                 case 'products':
@@ -446,6 +480,16 @@ final class AiSectionFields
                 $out['sample'] = null;
                 break;
 
+            case 'video':
+                $sample = isset($entry['sample']) && is_string($entry['sample']) ? trim($entry['sample']) : '';
+                $out['sample'] = ($sample !== '' && mb_strlen($sample) <= 500 && SafeUrl::isHttps($sample)) ? $sample : null;
+                break;
+
+            case 'audio':
+                $sample = isset($entry['sample']) && is_string($entry['sample']) ? trim($entry['sample']) : '';
+                $out['sample'] = ($sample !== '' && mb_strlen($sample) <= 500 && SafeUrl::isAudioUrl($sample)) ? $sample : null;
+                break;
+
             case 'color':
                 $def = isset($entry['default']) && is_string($entry['default']) && in_array($entry['default'], self::COLOR_DEFAULTS, true)
                     ? $entry['default']
@@ -561,6 +605,16 @@ final class AiSectionFields
                     $item[$k] = isset($rawItem[$k]) && is_string($rawItem[$k]) && preg_match('/^#[0-9a-fA-F]{6}$/', $rawItem[$k])
                         ? strtolower($rawItem[$k])
                         : null;
+                } elseif ($t === 'video') {
+                    $url = isset($rawItem[$k]) && is_string($rawItem[$k]) ? trim($rawItem[$k]) : '';
+                    if ($url !== '' && mb_strlen($url) <= 500 && SafeUrl::isHttps($url)) {
+                        $item[$k] = $url;
+                    }
+                } elseif ($t === 'audio') {
+                    $url = isset($rawItem[$k]) && is_string($rawItem[$k]) ? trim($rawItem[$k]) : '';
+                    if ($url !== '' && mb_strlen($url) <= 500 && SafeUrl::isAudioUrl($url)) {
+                        $item[$k] = $url;
+                    }
                 }
             }
             $items[] = $item;
@@ -596,6 +650,12 @@ final class AiSectionFields
                 "{$prefix}.{$key}_media_ids.*" => ['integer', TenantExists::table('media')],
             ],
             'link' => self::linkFieldRules($path, $kind),
+            'video' => [
+                $path => ['nullable', 'string', 'max:500', new SafeUrl('https')],
+            ],
+            'audio' => [
+                $path => ['nullable', 'string', 'max:500', new SafeUrl('audio')],
+            ],
             'color' => [
                 $path => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             ],

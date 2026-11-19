@@ -21,10 +21,16 @@ final class MediaController extends Controller
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('q', ''));
+        $kind = (string) $request->query('kind', 'image');
         // ?ids=1,2,3 resolves specific items (used by pickers that store ids only).
         $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->query('ids', '')))));
 
         $media = Media::query()
+            ->when(
+                $kind === 'audio',
+                fn ($q) => $q->where(fn ($w) => $w->where('mime', 'like', 'audio/%')->orWhere('mime', 'application/ogg')),
+                fn ($q) => $q->where('mime', 'like', 'image/%'),
+            )
             ->when($ids !== [], fn ($q) => $q->whereIn('id', array_slice($ids, 0, 100)))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('original_name', 'like', '%'.addcslashes($search, '%_\\').'%')

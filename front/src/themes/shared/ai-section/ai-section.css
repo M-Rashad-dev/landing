@@ -21,3 +21,51 @@
   }
 }
 
+.ai-section [data-ai-video] {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.ai-section .ai-video-frame,
+.ai-section .ai-video-native {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+.ai-section [data-ai-audio] {
+  width: 100%;
+}
+
+.ai-section .ai-audio-native {
+  display: block;
+  width: 100%;
+}
+
+.ai-section .ai-media-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 3.25rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ai-muted, #64748b);
+  background: color-mix(in srgb, var(--ai-text, #0f172a) 6%, transparent);
+  border: 1px dashed var(--ai-border, rgba(148, 163, 184, 0.45));
+  border-radius: var(--ai-radius, 0.75rem);
+}
+
+.ai-section .ai-media-placeholder--video {
+  color: #cbd5e1;
+  background: #0f172a;
+}
+

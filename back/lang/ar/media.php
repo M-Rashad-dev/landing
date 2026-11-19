@@ -5,7 +5,9 @@ declare(strict_types=1);
 return [
     'invalid_file' => 'الملف ليس صورة صالحة.',
     'invalid_type' => 'نوع الملف غير مدعوم. المسموح: JPG وPNG وWebP فقط.',
+    'invalid_audio_type' => 'نوع الملف الصوتي غير مدعوم. المسموح: MP3 وWAV وOGG وM4A وAAC وWebM.',
     'too_large' => 'حجم الصورة أكبر من :max ميجابايت.',
+    'audio_too_large' => 'حجم الملف الصوتي أكبر من :max ميجابايت.',
     'too_big_dimensions' => 'أبعاد الصورة كبيرة جدًا (الحد الأقصى :max بكسل).',
     'too_small' => 'الصورة صغيرة جدًا (أقل عرض :min بكسل).',
     'processing_failed' => 'تعذرت معالجة الصورة. جرّب صورة أخرى.',

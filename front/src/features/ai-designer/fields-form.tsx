@@ -1,10 +1,11 @@
 "use client";
 
-import { Plus, RotateCcw, Sparkles } from "lucide-react";
+import { Plus, RotateCcw, Sparkles, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SwitchRow } from "@/components/ui/choice";
+import { toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { MultiSelect, Select } from "@/components/ui/select";
@@ -12,9 +13,10 @@ import { Segmented } from "@/components/ui/tabs";
 import { LinkField } from "@/features/builder/library-forms";
 import { Card, move } from "@/features/builder/section-forms";
 import { pathOf, useCategories } from "@/features/catalog/categories/api";
-import type { MediaItem } from "@/features/media/api";
+import { uploadAudio, type MediaItem } from "@/features/media/api";
 import { ImageField, ImageGallery } from "@/features/media/image-fields";
 import { useProductChoices } from "@/features/promotions/api";
+import { errorMessage } from "@/lib/api/errors";
 import { ar } from "@/messages/ar";
 import type { AiDefinition, AiField } from "@/themes/shared/ai-section/types";
 import { pick, type MediaUrls } from "@/themes/shared/design";
@@ -306,6 +308,34 @@ function FieldControl({
             </Field>
           ) : null}
         </div>
+      );
+    }
+
+    case "video": {
+      const val = typeof values[field.key] === "string" ? (values[field.key] as string) : "";
+      return (
+        <Field label={field.label} hint={field.hint ?? t.fields.videoHint} error={err} optional>
+          <Input
+            type="url"
+            dir="ltr"
+            maxLength={500}
+            value={val}
+            placeholder={t.fields.videoPlaceholder}
+            onChange={(e) => onSetKey(field.key, e.target.value.trim() === "" ? undefined : e.target.value)}
+          />
+        </Field>
+      );
+    }
+
+    case "audio": {
+      const val = typeof values[field.key] === "string" ? (values[field.key] as string) : "";
+      return (
+        <AudioFieldControl
+          field={field}
+          value={val}
+          error={err}
+          onChange={(v) => onSetKey(field.key, v)}
+        />
       );
     }
 
@@ -656,6 +686,81 @@ function ListFieldControl({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+function AudioFieldControl({
+  field,
+  value,
+  error,
+  onChange,
+}: {
+  field: AiField;
+  value: string;
+  error?: string;
+  onChange: (val: string | undefined) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadAudio(file);
+      onChange(url);
+      toast.success(t.fields.audioUploaded);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <Field label={field.label} hint={field.hint ?? t.fields.audioHint} error={error} optional>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Input
+            dir="ltr"
+            maxLength={500}
+            value={value}
+            placeholder={t.fields.audioPlaceholder}
+            onChange={(e) => onChange(e.target.value.trim() === "" ? undefined : e.target.value)}
+          />
+          <input
+            ref={inputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={(e) => void handleFile(e.target.files?.[0])}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload className="size-4" />
+            {uploading ? t.fields.audioUploading : t.fields.audioUpload}
+          </Button>
+          {value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={t.fields.audioClear}
+              onClick={() => onChange(undefined)}
+            >
+              <Trash2 className="size-4 text-ink-3" />
+            </Button>
+          ) : null}
+        </div>
+        {value ? <audio controls preload="metadata" src={value} className="w-full" /> : null}
+      </div>
+    </Field>
   );
 }
 
