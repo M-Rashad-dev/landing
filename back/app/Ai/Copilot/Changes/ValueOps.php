@@ -76,6 +76,7 @@ final class ValueOps
             'text', 'textarea' => self::text((string) ($current ?? ''), $name, $value),
             'date' => self::date($current, $name, $value),
             'ids' => self::ids((array) ($current ?? []), $name, $value),
+            'media' => $value === null || $value === '' ? null : (is_numeric($value) ? (int) $value : throw new CopilotToolError("{$field->key} needs a media id.")),
             default => throw new CopilotToolError("{$field->key} can't be changed."),
         };
     }

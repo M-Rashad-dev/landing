@@ -67,7 +67,7 @@ final class OrdersResource extends CopilotResource
     public function namedFilters(): array
     {
         return [
-            'q' => ['type' => 'string', 'description' => 'Order number (or the merchant\'s own search text).'],
+            'q' => ['type' => 'string', 'description' => 'Order number, or a customer name / phone (e.g. «محمد»). You never see names or phones, but this filter works: the merchant sees them in the table and you get the count.'],
             'status' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => OrderStatus::values()], 'description' => 'One or more statuses.'],
             'source' => ['type' => 'string', 'enum' => ['store', 'landing']],
             'page_id' => ['type' => 'integer', 'description' => 'Orders of one landing page.'],

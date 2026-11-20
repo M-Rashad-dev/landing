@@ -285,6 +285,16 @@ abstract class CopilotResource implements CopilotCapability
     }
 
     /**
+     * Request values a new record gets unless the item gives them (e.g. an empty list the request requires).
+     *
+     * @return array<string, mixed>
+     */
+    public function createDefaults(): array
+    {
+        return [];
+    }
+
+    /**
      * Values a new record gets as a draft (Hold): not live for customers until published.
      *
      * @return array<string, mixed>

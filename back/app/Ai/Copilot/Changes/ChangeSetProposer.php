@@ -58,7 +58,7 @@ final class ChangeSetProposer
                 continue;
             }
             try {
-                $requests[$i] = FormRequestRunner::run((string) $resource->request(), [...$item, ...$resource->draft()], $ctx->user);
+                $requests[$i] = FormRequestRunner::run((string) $resource->request(), [...$resource->createDefaults(), ...$item, ...$resource->draft()], $ctx->user);
             } catch (ValidationException $e) {
                 $errors["items.{$i}"] = FormRequestRunner::errors($e);
             }

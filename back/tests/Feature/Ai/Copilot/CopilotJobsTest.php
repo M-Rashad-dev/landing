@@ -279,3 +279,45 @@ it('uses an attached logo on the first photo only, and asks for a logo when the 
         ->and(imagecolorat($drawn, 20, imagesy($drawn) - 15) & 0xFF)->toBeGreaterThan(200)
         ->and((imagecolorat($drawn, 20, imagesy($drawn) - 15) >> 16) & 0xFF)->toBeLessThan(60);
 });
+
+it('creates shipping companies with their governorate fees in one go, and new drafts take a fee change at once', function () {
+    $made = jobTool('create_records', ['resource' => 'shipping_companies', 'items' => [
+        ['name' => 'شحن مكسب', 'default_fee' => 20, 'rates' => [['governorate' => 'الإسكندرية', 'fee' => 50, 'is_available' => true]]],
+        ['name' => 'شحن سريع', 'default_fee' => 20],
+    ]]);
+    expect($made['failed'])->toBeFalse();
+    $companies = inStore(fn () => ShippingCompany::query()->with('rates')->orderBy('id')->get());
+    expect($companies)->toHaveCount(2)
+        ->and($companies[0]->is_active)->toBeFalse()
+        ->and($companies[0]->rates->firstWhere('governorate', 'الإسكندرية')->fee)->toBe('50.00')
+        ->and($companies[1]->rates)->toBeEmpty();
+
+    // The second step in the same reply: a draft id goes straight into the fees action.
+    $fees = jobTool('run_action', ['action' => 'shipping.update_rates', 'args' => ['company_ids' => [$companies[1]->id], 'governorates' => ['الإسكندرية'], 'fee' => ['set' => 50]]]);
+    expect($fees['failed'])->toBeFalse((string) json_encode($fees['data']));
+});
+
+it('makes AI logos for shipping companies without one, previews them, and reverts', function () {
+    app(AiWallets::class)->credit($this->tenant, 100000, 'topup');
+    [$bare, $logo] = inStore(fn () => [
+        ShippingCompany::query()->create(['name' => 'شحن مكسب', 'default_fee' => '20.00', 'is_active' => true, 'position' => 0]),
+        ShippingCompany::query()->create(['name' => 'بوسطة', 'default_fee' => '30.00', 'is_active' => true, 'position' => 1, 'media_id' => Media::factory()->create()->id]),
+    ]);
+
+    expect(jobTool('run_action', ['action' => 'records.image', 'args' => ['resource' => 'products', 'prompt' => 'x']])['failed'])->toBeTrue();
+    $made = jobTool('run_action', ['action' => 'records.image', 'args' => ['resource' => 'shipping_companies', 'prompt' => 'A simple modern delivery truck icon, green']]);
+    $id = $made['data']['change_set_id'];
+    expect($made['data']['records'])->toBe(1);
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    $card = $this->getJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}")->json('data');
+    expect($card['status'])->toBe('proposed', (string) $card['error'])->and($card['columns'][0])->toMatchArray(['key' => 'media_id', 'kind' => 'images'])
+        ->and(AiUsage::query()->where('feature', 'copilot')->where('images', 1)->count())->toBe(1);
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    $now = fn () => inStore(fn () => ShippingCompany::query()->pluck('media_id', 'id'));
+    expect($now()[$bare->id])->not->toBeNull()->and($now()[$logo->id])->toBe($logo->media_id);
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/revert")->assertStatus(202);
+    expect($now()[$bare->id])->toBeNull();
+});

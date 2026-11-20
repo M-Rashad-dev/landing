@@ -54,6 +54,7 @@ final class ShippingCompaniesResource extends CopilotResource
             Field::int('delivery_days_min')->label('أقل مدة (أيام)')->editable(),
             Field::int('delivery_days_max')->label('أقصى مدة (أيام)')->editable(),
             Field::bool('is_active')->label('شغالة')->filterable()->bulk(),
+            Field::media('media_id')->label('اللوجو')->images()->notInTable()->editable(),
         ];
     }
 
@@ -99,9 +100,14 @@ final class ShippingCompaniesResource extends CopilotResource
         return app(SaveShippingCompany::class)->handle($validated->companyData(), $validated->rates(), $row instanceof ShippingCompany ? $row : null);
     }
 
+    public function createDefaults(): array
+    {
+        return ['rates' => []];
+    }
+
     public function draft(): array
     {
-        return ['is_active' => false, 'rates' => []];
+        return ['is_active' => false];
     }
 
     public function publish(): array
@@ -116,7 +122,7 @@ final class ShippingCompaniesResource extends CopilotResource
 
     public function createFields(): array
     {
-        return ['name' => 'required, ≤ 60', 'default_fee' => 'required, EGP', 'delivery_days_min' => '0–60', 'delivery_days_max' => '0–60'];
+        return ['name' => 'required, ≤ 60', 'default_fee' => 'required, EGP', 'delivery_days_min' => '0–60', 'delivery_days_max' => '0–60', 'rates' => 'optional: only governorates that differ from the default, list of {governorate (exact Arabic name, e.g. الإسكندرية), fee (EGP; null = the default fee), is_available (false = not served)}', 'media_id' => 'optional: an attached image as the logo'];
     }
 
     public function url(?Model $row): ?string

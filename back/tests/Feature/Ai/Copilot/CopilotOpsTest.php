@@ -152,3 +152,16 @@ it('reads the pixels and points to their page', function () {
 it('tells the support assistant to send store work to the copilot', function () {
     expect((string) file_get_contents(resource_path('prompts/support-assistant.md')))->toContain('«✨ المساعد»');
 });
+
+it('finds a customer\'s orders by name, showing the name to the merchant but not to the model', function () {
+    asTenant($this->tenant->id, fn () => [
+        Order::factory()->create(['customer_name' => 'محمد علي']),
+        Order::factory()->create(['customer_name' => 'سارة أحمد']),
+    ]);
+
+    $found = opsTool('find_records', ['resource' => 'orders', 'filters' => ['q' => 'محمد'], 'show' => true]);
+
+    expect($found['failed'])->toBeFalse()->and($found['data']['total'])->toBe(1)
+        ->and($found['json'])->not->toContain('محمد علي')
+        ->and(json_encode($found['blocks'], JSON_UNESCAPED_UNICODE))->toContain('محمد علي');
+});

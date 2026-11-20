@@ -43,7 +43,7 @@ final class ShippingUpdateRates extends CopilotAction
     public function schema(): array
     {
         return ['type' => 'object', 'properties' => [
-            'company_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Default: every active company.'],
+            'company_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Default: every active company. May list drafts just made by create_records (their ids are in its result), so new companies and their fees go in one reply.'],
             'fee' => ['type' => 'object', 'description' => 'A money op: {"add": 10} | {"percent": 15} | {"set": 60}, optional round {to, mode}.'],
             'governorates' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Only these governorates (default: all governorates + the default fee).'],
         ], 'required' => ['fee']];

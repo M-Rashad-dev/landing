@@ -1017,3 +1017,12 @@ change-set (each status and kind), estimate, import progress · history page · 
   logo (or an attached image, by media id, which the engine now tells the model) drawn by us with GD on the first
   photo or every photo, in a corner, 10–40 % of the width; free (estimate «مجاني», no balance needed), job path
   (≤ 50 products / 100 photos), preview, revert. Tests: CopilotJobsTest (2), copilot.test.tsx (1).
+- 2026-11-21: **owner fixes, round 2:** (1) «طلبات واحد اسمه محمد» got only a page button: the orders `q` filter
+  says it matches customer names / phones (the model still never sees them; the card shows them), and the prompt
+  forbids a bare page button when a tool can answer. (2) Shipping companies + their governorate fees in one reply:
+  create_records takes `rates` (new `createDefaults()` hook on resources), drafts can go straight into
+  `shipping.update_rates`, and the prompt line «one proposal per request» became «do the whole request now». (3) New
+  generic action `records.image`: an AI image / logo for any resource with an editable `Field::media()->images()`
+  field (shipping company logo, category picture, and any later resource with no new code); cost first, preview,
+  revert. update_records can also set such a field to an attached image (ValueOps `media`). Tests: CopilotJobsTest
+  (+2), CopilotOpsTest (+1). Back 1058 green.

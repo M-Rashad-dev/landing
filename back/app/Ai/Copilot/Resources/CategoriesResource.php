@@ -56,6 +56,7 @@ final class CategoriesResource extends CopilotResource
             Field::int('depth')->label('المستوى')->filterable(),
             Field::bool('is_visible')->label('ظاهر')->filterable()->bulk(),
             Field::textarea('description')->label('الوصف')->notInTable()->editable(),
+            Field::media('media_id')->label('الصورة')->images()->notInTable()->editable(),
             Field::int('products_count')->label('المنتجات')->using(fn (Model $c) => (int) $c->getAttribute('products_count')),
         ];
     }
