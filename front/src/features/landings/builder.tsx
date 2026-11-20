@@ -55,6 +55,7 @@ import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogHeader, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
 import { createAiSectionPlacement, useDesignerStatus, type AiMessageMedia, type MyAiSection } from "@/features/ai-designer/api";
 import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
+import { useDesignerHandoff } from "@/features/ai-designer/handoff";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
 import { CanvasChip, DeviceFrame, GroupRow, Inspector, PanelIcon, PanelTitle, PinnedRow, RailButton, SaveStatus, ToolButton, useDraftEditor, type Device } from "@/features/builder/kit";
@@ -163,6 +164,13 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
   const [designerOpen, setDesignerOpen] = React.useState(false);
   const [designerInsert, setDesignerInsert] = React.useState<"after_selected" | "end">("end");
   const [designerFocus, setDesignerFocus] = React.useState<FocusedAiSection | null>(null);
+  const [designerPrompt, setDesignerPrompt] = React.useState("");
+  useDesignerHandoff(aiEnabled, (prompt) => {
+    setDesignerPrompt(prompt);
+    setDesignerInsert("end");
+    setDesignerFocus(null);
+    setDesignerOpen(true);
+  });
   const frame = React.useRef<HTMLDivElement>(null);
 
   const theme = landingBuilderTheme(initial.theme_key);
@@ -804,6 +812,7 @@ function Editor({ initial, data, onDataStale }: { initial: PageDetail; data: Lan
       <DesignerDialog
         open={designerOpen}
         onOpenChange={setDesignerOpen}
+        initialText={designerPrompt}
         kind="landing"
         themeKey={initial.theme_key}
         landingPageId={detail.id}

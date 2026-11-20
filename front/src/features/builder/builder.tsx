@@ -39,6 +39,7 @@ import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
 import { createAiSectionPlacement, useDesignerStatus, type AiMessageMedia, type MyAiSection } from "@/features/ai-designer/api";
 import { DesignerDialog, type FocusedAiSection } from "@/features/ai-designer/designer-dialog";
+import { useDesignerHandoff } from "@/features/ai-designer/handoff";
 import { AiSectionInspector } from "@/features/ai-designer/fields-form";
 import type { MediaItem } from "@/features/media/api";
 import { errorMessage, isApiError } from "@/lib/api/errors";
@@ -127,6 +128,13 @@ function Editor({ initial }: { initial: DesignPayload }) {
   const [designerOpen, setDesignerOpen] = React.useState(false);
   const [designerInsert, setDesignerInsert] = React.useState<"after_selected" | "end">("end");
   const [designerFocus, setDesignerFocus] = React.useState<FocusedAiSection | null>(null);
+  const [designerPrompt, setDesignerPrompt] = React.useState("");
+  useDesignerHandoff(aiEnabled, (prompt) => {
+    setDesignerPrompt(prompt);
+    setDesignerInsert("end");
+    setDesignerFocus(null);
+    setDesignerOpen(true);
+  });
   const frame = React.useRef<HTMLDivElement>(null);
   const editor = useDraftEditor<AnyDesign, DesignPayload>({
     initial: initial.draft as AnyDesign,
@@ -669,6 +677,7 @@ function Editor({ initial }: { initial: DesignPayload }) {
       <DesignerDialog
         open={designerOpen}
         onOpenChange={setDesignerOpen}
+        initialText={designerPrompt}
         kind="store"
         themeKey={initial.theme.key}
         focusSection={designerFocus}

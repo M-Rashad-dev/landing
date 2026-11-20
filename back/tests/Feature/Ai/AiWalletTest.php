@@ -234,7 +234,7 @@ it('lets the owner give or take back balance with a reason, logged', function ()
 
 it('saves the balance settings and refuses wrong ones', function () {
     Sanctum::actingAs(User::factory()->superAdmin()->create());
-    $base = ['features' => ['support' => false, 'designer' => false], 'daily_cap_usd' => 20, 'usd_rate' => 50, 'margin_percent' => 10, 'support_daily_messages' => 30];
+    $base = ['features' => ['support' => false, 'designer' => false, 'copilot' => false], 'daily_cap_usd' => 20, 'usd_rate' => 50, 'margin_percent' => 10, 'support_daily_messages' => 30];
 
     $this->putJson('/api/v1/admin/ai/settings', $base + ['topup_packages' => [200, 100], 'topup_min' => 60, 'topup_offers' => [['min' => 1000, 'bonus' => 50]], 'welcome_credit' => 15, 'low_balance' => 5])
         ->assertOk()->assertJsonPath('data.settings.topup_packages', [100, 200])->assertJsonPath('data.settings.topup_offers.0.bonus', 50)->assertJsonPath('data.settings.welcome_credit', 15);

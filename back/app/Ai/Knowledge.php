@@ -104,13 +104,16 @@ final class Knowledge
      *
      * @throws AiUnavailable
      */
-    public function search(string $question, ?int $tenantId = null): array
+    public function search(string $question, ?int $tenantId = null, string $feature = 'support'): array
     {
         $vectors = $this->vectors();
         if ($vectors === []) {
             return [];
         }
-        $query = $this->ai->embed('support', 'embedding', [$question], $tenantId)->vectors[0] ?? [];
+        // Same text shape as the pieces (cut() drops \r): Windows / form line breaks never change the vector.
+        $question = str_replace("\r", '', $question);
+        // The asking feature pays the question's vector (and must be on): support, or the store copilot.
+        $query = $this->ai->embed($feature, 'embedding', [$question], $tenantId)->vectors[0] ?? [];
         $min = (float) config('ai.knowledge.min_score', 0.35);
 
         $scored = [];

@@ -36,9 +36,14 @@ final class OpenRouterClient implements AiClient
             default => ['max_tokens' => self::LIGHT_REASONING],
         };
 
+        $wire = array_map(fn (array $m) => self::message($m), $messages);
+        if (($options['cache'] ?? false) && self::cachesWithMarks($model)) {
+            $wire = self::markCache($wire);
+        }
+
         $body = [
             'model' => $model,
-            'messages' => array_map(fn (array $m) => ['role' => $m['role'], 'content' => self::content($m['content'])], $messages),
+            'messages' => $wire,
             // Thinking is billed, so it uses an explicit effort level, full adaptive thinking, or a small
             // token budget. Never «enabled: false»: qwen4-max on OpenRouter then answers broken JSON.
             'reasoning' => $reasoning,
@@ -52,18 +57,136 @@ final class OpenRouterClient implements AiClient
         if ($options['json'] ?? false) {
             $body['response_format'] = ['type' => 'json_object'];
         }
+        if (! empty($options['tools'])) {
+            $body['tools'] = array_values($options['tools']);
+            if (isset($options['tool_choice'])) {
+                $body['tool_choice'] = $options['tool_choice'];
+            }
+        }
 
         $json = $this->post('chat/completions', $body);
         $usage = (array) ($json['usage'] ?? []);
+        $message = (array) ($json['choices'][0]['message'] ?? []);
+        [$toolCalls, $assistant] = self::toolCalls($message);
 
         return new AiReply(
-            text: (string) ($json['choices'][0]['message']['content'] ?? ''),
+            text: (string) ($message['content'] ?? ''),
             // The id asked for (prices are kept by it; a «:free» id answers with the paid model's name).
             model: $model,
             inputTokens: (int) ($usage['prompt_tokens'] ?? 0),
             outputTokens: (int) ($usage['completion_tokens'] ?? 0),
             cachedTokens: (int) ($usage['prompt_tokens_details']['cached_tokens'] ?? 0),
+            toolCalls: $toolCalls,
+            assistantMessage: $assistant,
+            finishReason: isset($json['choices'][0]['finish_reason']) ? (string) $json['choices'][0]['finish_reason'] : null,
         );
+    }
+
+    /**
+     * One message in the wire shape: content converted, and the tool fields (an assistant's tool calls
+     * and reasoning blocks, a tool result's call id) passed through unchanged.
+     *
+     * @param  array<string, mixed>  $m
+     * @return array<string, mixed>
+     */
+    private static function message(array $m): array
+    {
+        $content = $m['content'] ?? null;
+        $out = ['role' => $m['role'], 'content' => $content === null ? null : self::content($content)];
+        foreach (['tool_calls', 'reasoning_details', 'tool_call_id'] as $key) {
+            if (isset($m[$key])) {
+                $out[$key] = $m[$key];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The tool calls of an answer (arguments decoded; broken JSON is flagged so the caller can tell the
+     * model) and the assistant message to send back next round.
+     *
+     * @param  array<string, mixed>  $message
+     * @return array{0: list<array{id: string, name: string, arguments: array<string, mixed>, invalid?: bool}>, 1: array<string, mixed>}
+     */
+    private static function toolCalls(array $message): array
+    {
+        $calls = [];
+        foreach ((array) ($message['tool_calls'] ?? []) as $call) {
+            if (! is_array($call) || ! isset($call['function']['name'])) {
+                continue;
+            }
+            $raw = $call['function']['arguments'] ?? '{}';
+            $args = is_array($raw) ? $raw : json_decode((string) $raw, true);
+            $calls[] = ['id' => (string) ($call['id'] ?? ''), 'name' => (string) $call['function']['name'], 'arguments' => is_array($args) ? $args : []]
+                + (is_array($args) ? [] : ['invalid' => true]);
+        }
+        if ($calls === []) {
+            return [[], []];
+        }
+
+        $assistant = ['role' => 'assistant', 'content' => $message['content'] ?? null, 'tool_calls' => $message['tool_calls']];
+        if (isset($message['reasoning_details'])) {
+            $assistant['reasoning_details'] = $message['reasoning_details'];
+        }
+
+        return [$calls, $assistant];
+    }
+
+    /** Models whose prompt cache needs explicit marks (config ai.cache_control_prefixes). */
+    private static function cachesWithMarks(string $model): bool
+    {
+        foreach ((array) config('ai.cache_control_prefixes', []) as $prefix) {
+            if (is_string($prefix) && $prefix !== '' && str_starts_with($model, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Two cache marks: the end of the system message (the fixed prompt, and the tools before it) and the
+     * last user message (the history), so later tool rounds of the same turn read it from the cache.
+     *
+     * @param  list<array<string, mixed>>  $wire
+     * @return list<array<string, mixed>>
+     */
+    private static function markCache(array $wire): array
+    {
+        $lastUser = null;
+        foreach ($wire as $i => $m) {
+            if ($m['role'] === 'user') {
+                $lastUser = $i;
+            }
+        }
+        foreach ($wire as $i => $m) {
+            if (($m['role'] === 'system' && $i === 0) || $i === $lastUser) {
+                $wire[$i]['content'] = self::marked($m['content']);
+            }
+        }
+
+        return $wire;
+    }
+
+    /**
+     * @param  string|list<array<string, mixed>>|null  $content
+     * @return list<array<string, mixed>>|string|null
+     */
+    private static function marked(string|array|null $content): string|array|null
+    {
+        if ($content === null || $content === '' || $content === []) {
+            return $content;
+        }
+        $parts = is_string($content) ? [['type' => 'text', 'text' => $content]] : $content;
+        for ($i = count($parts) - 1; $i >= 0; $i--) {
+            if (($parts[$i]['type'] ?? '') === 'text') {
+                $parts[$i]['cache_control'] = ['type' => 'ephemeral'];
+                break;
+            }
+        }
+
+        return $parts;
     }
 
     public function embed(string $model, array $texts): AiEmbeddings

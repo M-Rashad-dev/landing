@@ -23,6 +23,9 @@ return [
     'tasks' => [
         'support' => env('AI_MODEL_SUPPORT', 'qwen/qwen4-max'),
         'designer' => env('AI_MODEL_DESIGNER', 'anthropic/claude-sonnet-5.5'),
+        // The store copilot (tool calling), and the bulk texts it writes (descriptions, SEO).
+        'copilot' => env('AI_MODEL_COPILOT', 'anthropic/claude-sonnet-5.5'),
+        'copilot_content' => env('AI_MODEL_COPILOT_CONTENT', 'anthropic/claude-sonnet-5.5'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
@@ -36,7 +39,21 @@ return [
     'effort' => [
         'support' => env('AI_EFFORT_SUPPORT'),
         'designer' => env('AI_EFFORT_DESIGNER', 'medium'),
+        // Low: the copilot's hard work (math, validation) is done by PHP, so rounds stay fast and cheap.
+        'copilot' => env('AI_EFFORT_COPILOT', 'low'),
+        'copilot_content' => env('AI_EFFORT_COPILOT_CONTENT', 'none'),
     ],
+
+    // The store copilot's tool loop (docs/plans/ai-copilot.md §3.5): the most model rounds per merchant
+    // message, and the most one message may spend (USD) before it must answer with what it has.
+    'copilot' => [
+        'max_rounds' => (int) env('AI_COPILOT_MAX_ROUNDS', 8),
+        'max_message_usd' => (float) env('AI_COPILOT_MAX_MESSAGE_USD', 0.50),
+        'max_output' => 4000,
+    ],
+
+    // Models whose prompt cache needs explicit cache_control marks (OpenRouter → Anthropic).
+    'cache_control_prefixes' => ['anthropic/'],
 
     // USD per image (an estimate for checking the balance before; the real cost OpenRouter reports
     // is what gets charged). «:free» models cost nothing.

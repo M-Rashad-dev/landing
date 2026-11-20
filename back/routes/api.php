@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\CopilotController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\DomainController;
@@ -140,6 +141,15 @@ Route::prefix('dashboard')
             Route::post('runs/{run}/apply', [AiDesignerController::class, 'applyRun'])->whereNumber('run');
             Route::post('runs/{run}/reject', [AiDesignerController::class, 'rejectRun'])->whereNumber('run');
             Route::post('runs/{run}/revert', [AiDesignerController::class, 'revertRun'])->whereNumber('run');
+        });
+
+        // The store copilot (docs/plans/ai-copilot.md §3.14).
+        Route::prefix('ai/copilot')->group(function (): void {
+            Route::get('status', [CopilotController::class, 'status']);
+            Route::post('chat', [CopilotController::class, 'chat']);
+            Route::post('chat/new', [CopilotController::class, 'newChat']);
+            Route::get('chats/{chat}', [CopilotController::class, 'show'])->whereNumber('chat');
+            Route::post('chats/{chat}/messages', [CopilotController::class, 'send'])->whereNumber('chat')->middleware('throttle:copilot');
         });
 
         Route::patch('store', [AccountController::class, 'updateStore']);

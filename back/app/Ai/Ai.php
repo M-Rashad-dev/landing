@@ -88,7 +88,9 @@ final class Ai
     public function chatPaid(Tenant $tenant, string $feature, string $task, array $messages, array $options, string $description): AiReply
     {
         $this->guard($feature);
-        $this->wallets->ensureCanSpend($tenant, self::estimate(self::model($task), $messages, (int) ($options['max_tokens'] ?? 2000)));
+        // Tool definitions are sent as input too.
+        $forEstimate = empty($options['tools']) ? $messages : [...$messages, ['role' => 'system', 'content' => (string) json_encode($options['tools'], JSON_UNESCAPED_UNICODE)]];
+        $this->wallets->ensureCanSpend($tenant, self::estimate(self::model($task), $forEstimate, (int) ($options['max_tokens'] ?? 2000)));
         $reply = $this->chat($feature, $task, $messages, $options, $tenant->id);
         if ($this->last !== null) {
             $this->wallets->charge($tenant, $this->last, $feature, $description);
@@ -153,6 +155,9 @@ final class Ai
         $chars = 0;
         $images = 0;
         foreach ($messages as $message) {
+            if (isset($message['tool_calls'])) {
+                $chars += mb_strlen((string) json_encode($message['tool_calls'], JSON_UNESCAPED_UNICODE));
+            }
             $content = $message['content'] ?? '';
             foreach (is_array($content) ? $content : [['type' => 'text', 'text' => $content]] as $part) {
                 ($part['type'] ?? 'text') === 'image' ? $images++ : $chars += mb_strlen((string) ($part['text'] ?? ''));

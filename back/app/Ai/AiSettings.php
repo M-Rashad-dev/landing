@@ -10,7 +10,7 @@ use App\Billing\PlatformSettings;
 final class AiSettings
 {
     /** Every AI feature, in the order the admin page lists them (more come with each phase). */
-    public const FEATURES = ['support', 'designer'];
+    public const FEATURES = ['support', 'designer', 'copilot'];
 
     public function __construct(private readonly PlatformSettings $settings) {}
 

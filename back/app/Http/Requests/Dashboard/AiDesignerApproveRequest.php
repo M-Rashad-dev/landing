@@ -30,4 +30,3 @@ final class AiDesignerApproveRequest extends FormRequest
         ];
     }
 }
-

@@ -18,8 +18,13 @@ interface AiClient
      * A conversation turn. A message's content is a text, or a list of parts:
      * ['type' => 'text', 'text' => '…'] and ['type' => 'image', 'url' => 'https://…'].
      *
-     * @param  list<array{role: 'system'|'user'|'assistant', content: string|list<array<string, string>>}>  $messages
-     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool, effort?: string}  $options
+     * With tools (OpenAI function definitions in `tools`), the reply may carry tool calls. The next round
+     * sends back AiReply::assistantMessage as it is, then one ['role' => 'tool', 'tool_call_id' => …,
+     * 'content' => '…'] message per call. `cache` asks the provider to cache the prompt's prefix (the end of
+     * the system message and the last user message), where the model supports it.
+     *
+     * @param  list<array<string, mixed>>  $messages
+     * @param  array{max_tokens?: int, temperature?: float, json?: bool, thinking?: bool, effort?: string, tools?: list<array<string, mixed>>, tool_choice?: string, cache?: bool}  $options
      */
     public function chat(string $model, array $messages, array $options = []): AiReply;
 

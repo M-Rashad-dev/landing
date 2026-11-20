@@ -86,6 +86,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Support: opening conversations and sending messages (files can be big).
         RateLimiter::for('support', fn (Request $request) => Limit::perMinute(20)->by('support:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        // Messages to the store copilot (each one is paid AI work).
+        RateLimiter::for('copilot', fn (Request $request) => Limit::perMinute(20)->by('copilot:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Product sheet uploads are read in the request (columns, sample rows): a few per minute.
         RateLimiter::for('product-imports', fn (Request $request) => Limit::perMinute(10)->by('product-imports:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

@@ -11,7 +11,7 @@ namespace App\Ai;
  */
 final class FakeAiClient implements AiClient
 {
-    /** @var list<string|AiError> */
+    /** @var list<string|AiError|AiReply> */
     private array $queue = [];
 
     /** @var list<array{model: string, messages: array<int, mixed>, options: array<string, mixed>}> */
@@ -27,23 +27,94 @@ final class FakeAiClient implements AiClient
         return $this->configured;
     }
 
-    /** The next answers, in order (an AiError is thrown instead of answered). */
-    public function answer(string|AiError ...$replies): self
+    /** The next answers, in order (an AiError is thrown instead of answered; an AiReply can carry tool calls). */
+    public function answer(string|AiError|AiReply ...$replies): self
     {
         array_push($this->queue, ...$replies);
 
         return $this;
     }
 
+    /**
+     * A scripted answer that asks for tool calls (each [name, arguments]), in the shape OpenRouterClient
+     * returns: parsed calls + the assistant message to send back.
+     *
+     * @param  array{0: string, 1: array<string, mixed>}  ...$calls
+     */
+    public static function toolCalls(array ...$calls): AiReply
+    {
+        $parsed = [];
+        $wire = [];
+        foreach ($calls as $i => [$name, $args]) {
+            $id = 'call_'.($i + 1).'_'.substr(md5($name.json_encode($args)), 0, 8);
+            $parsed[] = ['id' => $id, 'name' => $name, 'arguments' => $args];
+            $wire[] = ['id' => $id, 'type' => 'function', 'function' => ['name' => $name, 'arguments' => json_encode($args, JSON_UNESCAPED_UNICODE)]];
+        }
+
+        return new AiReply('', '', 1000, 200, 400, $parsed, ['role' => 'assistant', 'content' => null, 'tool_calls' => $wire], 'tool_calls');
+    }
+
+    /** @param array<string, mixed> $args */
+    public static function toolCall(string $name, array $args = []): AiReply
+    {
+        return self::toolCalls([$name, $args]);
+    }
+
     public function chat(string $model, array $messages, array $options = []): AiReply
     {
         $this->chats[] = ['model' => $model, 'messages' => $messages, 'options' => $options];
-        $next = array_shift($this->queue) ?? self::defaultReply($messages);
+        $next = array_shift($this->queue) ?? (self::isCopilot($messages) ? self::copilotReply($messages, $options) : self::defaultReply($messages));
         if ($next instanceof AiError) {
             throw $next;
         }
+        if ($next instanceof AiReply) {
+            return new AiReply($next->text, $model, $next->inputTokens, $next->outputTokens, $next->cachedTokens, $next->toolCalls, $next->assistantMessage, $next->finishReason);
+        }
 
         return new AiReply($next, $model, inputTokens: 1000, outputTokens: 200, cachedTokens: 400);
+    }
+
+    /** @param array<int, mixed> $messages */
+    private static function isCopilot(array $messages): bool
+    {
+        $first = $messages[0] ?? null;
+
+        return is_array($first) && ($first['role'] ?? null) === 'system' && is_string($first['content'] ?? null)
+            && str_contains($first['content'], 'MKSAB_AI_COPILOT');
+    }
+
+    /**
+     * Local runs of the copilot without a provider: a tiny router over the merchant's words, so the whole
+     * flow (tool call → tool result → final text) can be seen. After a tool result it answers in text.
+     *
+     * @param  array<int, mixed>  $messages
+     * @param  array<string, mixed>  $options
+     */
+    private static function copilotReply(array $messages, array $options): string|AiReply
+    {
+        $last = end($messages);
+        if (is_array($last) && ($last['role'] ?? null) === 'tool') {
+            return 'تمام، ده رد تجريبي من غير ذكاء اصطناعي حقيقي. جرّبت الأداة وجبتلك النتيجة اللي فوق.';
+        }
+        if (($options['tool_choice'] ?? null) === 'none' || empty($options['tools'])) {
+            return 'تمام، أقدر أساعدك في المنتجات والطلبات والتقارير.';
+        }
+
+        $text = '';
+        foreach ($messages as $m) {
+            if (is_array($m) && ($m['role'] ?? null) === 'user') {
+                $text = is_string($m['content'] ?? null) ? $m['content']
+                    : implode("\n", array_map(fn ($p) => is_array($p) ? (string) ($p['text'] ?? '') : '', (array) ($m['content'] ?? [])));
+            }
+        }
+
+        return match (true) {
+            str_contains($text, 'صمم') || str_contains($text, 'صمّم') => self::toolCall('open_page', ['target' => 'designer', 'prompt' => mb_substr($text, 0, 300)]),
+            str_contains($text, 'تقرير') || str_contains($text, 'مبيعات') => self::toolCall('run_report', ['report' => 'sales_summary', 'params' => ['period' => 'last_7_days'], 'show' => true]),
+            str_contains($text, 'باقت') || str_contains($text, 'متجري') => self::toolCall('store_overview'),
+            str_contains($text, 'إزاي') || str_contains($text, 'ازاي') => self::toolCall('help_search', ['query' => mb_substr($text, 0, 200)]),
+            default => 'تمام، أقدر أساعدك في المنتجات والطلبات والتقارير.',
+        };
     }
 
     /**
@@ -57,8 +128,9 @@ final class FakeAiClient implements AiClient
             if (! is_array($msg)) {
                 continue;
             }
+            // Every system message counts (a feature may add a reminder after the history).
             if (($msg['role'] ?? null) === 'system' && is_string($msg['content'] ?? null)) {
-                $systemText = $msg['content'];
+                $systemText .= "\n".$msg['content'];
             }
             if (($msg['role'] ?? null) === 'user') {
                 if (is_string($msg['content'] ?? null)) {

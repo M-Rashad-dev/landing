@@ -74,6 +74,7 @@ export function DesignerDialog({
   onUseImage,
   onApproved,
   onDesignUpdated,
+  initialText = "",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -92,6 +93,8 @@ export function DesignerDialog({
     chatMedia?: Record<string, MediaUrls>,
   ) => void;
   onDesignUpdated?: () => Promise<void> | void;
+  /** A request to fill in the composer when it opens (from the store copilot's button). */
+  initialText?: string;
 }) {
   const client = useQueryClient();
   const [chatId, setChatId] = React.useState<number | null>(null);
@@ -100,6 +103,10 @@ export function DesignerDialog({
 
   const [focus, setFocus] = React.useState<FocusedAiSection | null>(initialFocus);
   const [text, setText] = React.useState("");
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fill the composer once from the copilot's handoff
+    if (open && initialText) setText((current) => current || initialText);
+  }, [open, initialText]);
   const [attachments, setAttachments] = React.useState<MediaItem[]>([]);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [sending, setSending] = React.useState(false);

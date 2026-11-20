@@ -10,6 +10,7 @@ export const nav = {
   },
   items: {
     home: "الرئيسية",
+    copilot: "المساعد الذكي",
     orders: "الطلبات",
     abandoned: "الطلبات المتروكة",
     customers: "العملاء",

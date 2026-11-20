@@ -10,6 +10,7 @@ use App\Ai\AiCost;
 use App\Ai\AiUnavailable;
 use App\Ai\AiWallets;
 use App\Ai\Images\StockPhotos;
+use App\Ai\MediaDataUrl;
 use App\Exceptions\ApiException;
 use App\Jobs\RunDesign;
 use App\Models\AiChat;
@@ -17,7 +18,6 @@ use App\Models\AiChatMessage;
 use App\Models\AiDesignRun;
 use App\Models\AiSection;
 use App\Models\LandingPage;
-use App\Models\Media;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Pricing\Shipping;
@@ -28,7 +28,6 @@ use App\Themes\Store\StoreDesigner;
 use App\Themes\Store\StoreThemes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -37,10 +36,6 @@ use Throwable;
  */
 final class AiDesignRunner
 {
-    private const IMAGE_MAX_BYTES = 5_000_000;
-
-    private const FAKE_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-
     public function __construct(
         private readonly Ai $ai,
         private readonly AiWallets $wallets,
@@ -1265,27 +1260,7 @@ final class AiDesignRunner
 
     private function singleMediaDataUrl(int $mediaId): ?string
     {
-        $media = Media::query()->find($mediaId);
-        if (! $media instanceof Media) {
-            return null;
-        }
-
-        $relPath = $media->variants['medium'] ?? $media->path;
-        $disk = Storage::disk($media->disk);
-        if ($disk->exists($relPath)) {
-            $bytes = (string) $disk->get($relPath);
-            if ($bytes !== '' && strlen($bytes) <= self::IMAGE_MAX_BYTES) {
-                $mime = $media->mime !== '' ? $media->mime : 'image/webp';
-
-                return "data:{$mime};base64,".base64_encode($bytes);
-            }
-        }
-
-        if (config('ai.driver') === 'fake') {
-            return self::FAKE_DATA_URL;
-        }
-
-        return null;
+        return MediaDataUrl::for($mediaId);
     }
 
     private function failRun(AiDesignRun $run, string $error): void

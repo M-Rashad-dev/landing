@@ -34,6 +34,8 @@ export function AppShell({
   userId,
   bellExtra,
   bellExtraCount = 0,
+  headerExtra,
+  sidePanel,
 }: {
   children: React.ReactNode;
   account: ShellAccount;
@@ -45,6 +47,10 @@ export function AppShell({
   /** Shown above the bell's list (the admin's "what waits"), with its count for the dot. */
   bellExtra?: React.ReactNode;
   bellExtraCount?: number;
+  /** Extra top-bar buttons (the copilot's), before the bell. */
+  headerExtra?: React.ReactNode;
+  /** A panel docked beside the page at the end side (the copilot drawer); it draws nothing when closed. */
+  sidePanel?: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -118,6 +124,7 @@ export function AppShell({
                   </a>
                 </Button>
               ) : null}
+              {headerExtra}
               <NotificationBell area={area} userId={userId} extra={bellExtra} extraCount={bellExtraCount} />
               <Menu>
                 <MenuTrigger asChild>
@@ -151,6 +158,7 @@ export function AppShell({
           </header>
           <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
         </div>
+        {sidePanel}
       </div>
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} area={area} />
     </TooltipProvider>
