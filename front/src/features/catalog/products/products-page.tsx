@@ -20,6 +20,7 @@ import { useUrlState } from "@/lib/use-url-state";
 import { ar } from "@/messages/ar";
 import { pathOf, useCategories } from "../categories/api";
 import { bulkProducts, deleteProduct, duplicateProduct, SORTS, STATUSES, toggleProduct, useProducts, useRefreshProducts, type BulkAction, type ProductCard as Product, type Sort, type Status } from "./api";
+import { useCopilotContext } from "@/features/copilot/copilot-provider";
 import { ProductCard } from "./product-card";
 
 const t = ar.catalog.products;
@@ -41,6 +42,8 @@ export function ProductsPage() {
   const categories = useCategories();
   const refresh = useRefreshProducts();
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
+  // «دول» in the store copilot = the selected products.
+  useCopilotContext(selected.size > 0 ? { selection: { type: "products", ids: [...selected] } } : null);
   const [deleting, setDeleting] = React.useState<Product | null>(null);
   const [inUse, setInUse] = React.useState<Array<{ id: number; title: string }> | null>(null);
   const [busy, setBusy] = React.useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Sparkles, X } from "lucide-react";
+import { History, Maximize2, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -64,6 +64,11 @@ export function CopilotDrawer({ userId }: { userId: number }) {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button asChild variant="ghost" size="icon-sm" aria-label={t.history.link}>
+            <Link href="/dashboard/copilot/history">
+              <History />
+            </Link>
+          </Button>
           <Button asChild variant="ghost" size="icon-sm" aria-label={t.openFull}>
             <Link href="/dashboard/copilot" onClick={() => setOpen(false)}>
               <Maximize2 />

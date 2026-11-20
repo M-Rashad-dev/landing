@@ -3,12 +3,15 @@
 import { notFound } from "next/navigation";
 import { ErrorState, Skeleton } from "@/components/ui/feedback";
 import { errorMessage, isApiError } from "@/lib/api/errors";
+import { useCopilotContext } from "@/features/copilot/copilot-provider";
 import { useProduct } from "./api";
 import { ProductForm } from "./product-form";
 
 /** Loads the product then opens the form (keyed by id so switching products starts clean). */
 export function EditProduct({ id }: { id: number }) {
   const query = useProduct(Number.isInteger(id) && id > 0 ? id : null);
+  // «ده» in the store copilot = this product.
+  useCopilotContext(Number.isInteger(id) && id > 0 ? { entity: { type: "products", id } } : null);
 
   if (!Number.isInteger(id) || id <= 0 || (query.isError && isApiError(query.error) && query.error.status === 404)) notFound();
   if (query.isPending) {

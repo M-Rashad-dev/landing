@@ -928,3 +928,33 @@ change-set (each status and kind), estimate, import progress · history page · 
   report).
 - 2026-11-20: **2.8 (Stage 2 complete):** gates green (back 1025 tests + Pint; front lint, typecheck, 319 tests, build).
   Committed «AI copilot stage 2: reading the store», pushed. **Next: Stage 3** (wait for «كمّل»).
+- 2026-11-20: Owner said «كمّل»: Stage 3 started.
+- 2026-11-20: **3.1 done:** `Support/FormRequestRunner` (a dashboard FormRequest run on the copilot's data with the
+  user and the route model: prepareForValidation, rules, after hooks, unique-ignoring-itself) + `CopilotValidationError`.
+- 2026-11-20: **3.2 done:** `Changes/ValueOps` (money in piastres: set / add / percent + round to 1/5/10/50/100
+  nearest|up|down, clear; int; bool; enum; text set / replace / prepend / append; date set / shift_days; ids add /
+  remove / set; `same()` for the stale check; Arabic `describe()`), `Changes/Selector` (ids / filters / page context,
+  ≤ 5000).
+- 2026-11-20: **3.3 done:** `Changes/ChangeSetProposer` (create = drafts at once through request + action, all-or-none,
+  plan limit first; update = before / after per record, rule breaks saved as `skipped_invalid` with the reason, ≤ 10
+  open proposals, items inserted 500 at a time), `Changes/ChangeSetApplier` (accept / reject / revert / run: stale
+  check on the changed fields only, fast path = one grouped Eloquent update per distinct new values, full path =
+  request + action per record, publish recorded as before / after so «تراجع» puts drafts back, a chat message after
+  each apply), `Changes/ChangeSetPresenter`, job `ApplyCopilotChangeSet`, command `copilot:expire` (hourly).
+  Contract additions: `raw()`, `limit()`, `createFields()`, `Field::notInTable()`, `Field::names()`.
+- 2026-11-20: **3.4 done:** `products` writes (ProductRequest + SaveProduct; bulk: price, compare_at_price, is_active;
+  full: name, description, short_description, stock (product mode only), category_ids; draft `is_active = false`;
+  remove via DeleteProduct; limit Products; compare_at must stay above price), `categories` writes (CategoryRequest
+  + Categories service; draft `is_visible = false`; limit StoreCategories).
+- 2026-11-20: **3.5–3.6 done:** tools `create_records`, `update_records` (offered only when a resource can be created /
+  written); endpoints `change-sets` (index, show, items, items/file, accept 202, reject, revert 202) in
+  `CopilotChangeController`; history lines of change cards carry their status.
+- 2026-11-20: **3.7 done:** front `change-set-card.tsx` (summary, counts, before → after table, new drafts as links,
+  «انشر» / «سيبهم مسودة» / «امسح» / «نفّذ» / «ارفض» / «تراجع» with confirms, progress while applying, «عرض المزيد», full
+  preview Excel, skip reasons), history page `/dashboard/copilot/history` (links from the drawer and the page), page
+  context on the product page (`entity`) and the products list selection (`selection`).
+- 2026-11-20: **3.8 done:** back `tests/Feature/Ai/Copilot/CopilotChangesTest.php` (15), front
+  `change-set-card.test.tsx` (5). Found on the way: `ValueOps::check` asked numbers for id lists (fixed).
+  Gates green (back 1040 + Pint; front lint, typecheck, 324 tests, build). Note: one front test failed once while
+  the back-end suite ran at the same time and passed on the rerun (load-related flakiness, not the copilot).
+  Committed «AI copilot stage 3: the change pipeline», pushed. **Next: Stage 4** (wait for «كمّل»).

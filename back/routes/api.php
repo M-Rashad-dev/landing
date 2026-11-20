@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
+use App\Http\Controllers\Api\V1\Dashboard\CopilotChangeController;
 use App\Http\Controllers\Api\V1\Dashboard\CopilotController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DiscountCodeController;
@@ -152,6 +153,13 @@ Route::prefix('dashboard')
             Route::post('chats/{chat}/messages', [CopilotController::class, 'send'])->whereNumber('chat')->middleware('throttle:copilot');
             Route::post('exports', [CopilotController::class, 'buildExport'])->middleware('throttle:orders-export');
             Route::get('exports/{token}', [CopilotController::class, 'downloadExport'])->where('token', '[A-Za-z0-9]{48}');
+            Route::get('change-sets', [CopilotChangeController::class, 'index']);
+            Route::get('change-sets/{changeSet}', [CopilotChangeController::class, 'show'])->whereNumber('changeSet');
+            Route::get('change-sets/{changeSet}/items', [CopilotChangeController::class, 'items'])->whereNumber('changeSet');
+            Route::get('change-sets/{changeSet}/items/file', [CopilotChangeController::class, 'itemsFile'])->whereNumber('changeSet')->middleware('throttle:orders-export');
+            Route::post('change-sets/{changeSet}/accept', [CopilotChangeController::class, 'accept'])->whereNumber('changeSet');
+            Route::post('change-sets/{changeSet}/reject', [CopilotChangeController::class, 'reject'])->whereNumber('changeSet');
+            Route::post('change-sets/{changeSet}/revert', [CopilotChangeController::class, 'revert'])->whereNumber('changeSet');
         });
 
         Route::patch('store', [AccountController::class, 'updateStore']);

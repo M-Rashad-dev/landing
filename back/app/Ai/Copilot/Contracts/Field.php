@@ -48,6 +48,9 @@ final class Field
 
     public bool $nullable = false;
 
+    /** Shown in the merchant's tables and files (false for helper fields like category_ids). */
+    public bool $inTable = true;
+
     /** @var list<mixed> */
     public array $rules = [];
 
@@ -59,6 +62,9 @@ final class Field
 
     /** @var (Closure(Model): mixed)|null a computed value (not a column: never filtered, sorted or edited) */
     public ?Closure $using = null;
+
+    /** @var (Closure(list<int>): list<string>)|null names of an ids field, for the merchant's previews */
+    public ?Closure $names = null;
 
     private function __construct(public readonly string $key, public readonly string $type)
     {
@@ -194,10 +200,26 @@ final class Field
         return $this;
     }
 
+    /** @param Closure(list<int>): list<string> $names */
+    public function names(Closure $names): self
+    {
+        $this->names = $names;
+
+        return $this;
+    }
+
     /** @param array<string, string> $labels */
     public function labels(array $labels): self
     {
         $this->labels = $labels;
+
+        return $this;
+    }
+
+    /** Kept out of the merchant's tables and files (still known to the model). */
+    public function notInTable(): self
+    {
+        $this->inTable = false;
 
         return $this;
     }

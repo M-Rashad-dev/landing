@@ -76,7 +76,7 @@ final class ExportBuilder
         if ($count > self::MAX_ROWS) {
             throw new CopilotToolError("That is {$count} rows; a file holds at most ".self::MAX_ROWS.'. Narrow the filters (a shorter period, a status…).');
         }
-        $fields = $resource->fields();
+        $fields = array_values(array_filter($resource->fields(), fn ($f) => $f->inTable));
         $headers = ['#', ...array_map(fn ($f) => $f->label, $fields)];
         $rows = (function () use ($query, $resource, $fields) {
             foreach ($query->with($resource->with())->lazy(500) as $row) {

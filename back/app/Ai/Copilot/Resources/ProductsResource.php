@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace App\Ai\Copilot\Resources;
 
+use App\Actions\Products\DeleteProduct;
+use App\Actions\Products\SaveProduct;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
+use App\Enums\PlanLimit;
+use App\Http\Requests\Dashboard\ProductRequest;
+use App\Models\Category;
 use App\Models\Product;
 use App\Store\ProductList;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\FormRequest;
 
 /** «المنتجات»: the store's products (also the ones its landing pages sell). Status tabs and sorts come from ProductList. */
 final class ProductsResource extends CopilotResource
@@ -38,15 +45,21 @@ final class ProductsResource extends CopilotResource
     public function fields(): array
     {
         return [
-            Field::text('name')->label('الاسم')->sortable(),
+            Field::text('name')->label('الاسم')->sortable()->editable(),
             Field::text('sku')->label('SKU')->filterable(),
-            Field::money('price')->label('السعر')->filterable()->sortable(),
-            Field::money('compare_at_price')->label('السعر قبل الخصم')->filterable()->nullable(),
-            Field::bool('is_active')->label('شغال')->filterable(),
+            Field::money('price')->label('السعر')->filterable()->sortable()->bulk()->rules(['required', 'numeric', 'gt:0', 'max:9999999.99']),
+            Field::money('compare_at_price')->label('السعر قبل الخصم')->filterable()->nullable()->bulk()->rules(['nullable', 'numeric', 'max:9999999.99']),
+            Field::bool('is_active')->label('شغال')->filterable()->bulk(),
             Field::enum('stock_mode', [Product::STOCK_UNLIMITED, Product::STOCK_PRODUCT, Product::STOCK_VARIANT])->label('نوع المخزون')
                 ->labels([Product::STOCK_UNLIMITED => 'غير محدود', Product::STOCK_PRODUCT => 'للمنتج', Product::STOCK_VARIANT => 'لكل اختيار'])->filterable(),
-            Field::int('stock')->label('المخزون')->filterable()->sortable(),
+            // Full path (SaveProduct logs the stock movement); variant products keep stock per option.
+            Field::int('stock')->label('المخزون')->filterable()->sortable()->editable()->rules(['integer', 'between:0,1000000']),
             Field::text('categories')->label('التصنيفات')->using(fn (Model $p) => $p->relationLoaded('categories') ? $p->categories->pluck('name')->all() : []),
+            Field::ids('category_ids')->label('التصنيفات (أرقام)')->notInTable()->editable()
+                ->using(fn (Model $p) => $p->relationLoaded('categories') ? $p->categories->pluck('id')->map(fn ($id) => (int) $id)->all() : [])
+                ->names(fn (array $ids) => Category::query()->whereIn('id', $ids)->pluck('name')->all()),
+            Field::textarea('short_description')->label('وصف قصير')->notInTable()->editable(),
+            Field::textarea('description')->label('الوصف')->notInTable()->editable(),
             Field::date('created_at')->label('اتضاف')->filterable()->sortable(),
         ];
     }
@@ -74,6 +87,84 @@ final class ProductsResource extends CopilotResource
     public function with(): array
     {
         return ['categories:id,name'];
+    }
+
+    public function request(): ?string
+    {
+        return ProductRequest::class;
+    }
+
+    public function routeParameter(): string
+    {
+        return 'product';
+    }
+
+    /** The fields SaveProduct overwrites when missing: always sent with a change. */
+    public function body(Model $row): array
+    {
+        return [
+            'name' => $row->getAttribute('name'),
+            'description' => $row->getAttribute('description'),
+            'price' => (string) $row->getAttribute('price'),
+            'compare_at_price' => $row->getAttribute('compare_at_price') === null ? null : (string) $row->getAttribute('compare_at_price'),
+            'sku' => $row->getAttribute('sku'),
+            'is_active' => (bool) $row->getAttribute('is_active'),
+        ];
+    }
+
+    public function persist(FormRequest $validated, ?Model $row): Model
+    {
+        // The batch refreshes the store once at the end (afterBulk).
+        return app(SaveProduct::class)->handle($validated->validated(), $row instanceof Product ? $row : null, false);
+    }
+
+    public function draft(): array
+    {
+        return ['is_active' => false];
+    }
+
+    public function publish(): array
+    {
+        return ['is_active' => true];
+    }
+
+    public function remove(Model $row): void
+    {
+        app(DeleteProduct::class)->handle($row instanceof Product ? $row : throw new \LogicException('Not a product.'));
+    }
+
+    public function limit(): ?PlanLimit
+    {
+        return PlanLimit::Products;
+    }
+
+    public function createFields(): array
+    {
+        return [
+            'name' => 'required, ≤ 150',
+            'price' => 'required, EGP',
+            'compare_at_price' => 'old price, above price',
+            'description' => 'long description (plain text)',
+            'short_description' => '≤ 300',
+            'sku' => '≤ 60',
+            'category_ids' => 'list of category ids',
+            'stock_mode' => 'unlimited | product',
+            'stock' => 'with stock_mode product',
+        ];
+    }
+
+    public function validateRow(array $after, Model $row): ?string
+    {
+        if (array_key_exists('stock', $after) && $row->getAttribute('stock_mode') !== Product::STOCK_PRODUCT) {
+            return $row->getAttribute('stock_mode') === Product::STOCK_VARIANT ? 'المخزون هنا لكل اختيار، عدّله من صفحة المنتج' : 'المنتج ده مخزونه غير محدود';
+        }
+        $price = array_key_exists('price', $after) ? $after['price'] : $row->getAttribute('price');
+        $compare = array_key_exists('compare_at_price', $after) ? $after['compare_at_price'] : $row->getAttribute('compare_at_price');
+        if ($compare !== null && $compare !== '' && Money::toCents((string) $compare) <= Money::toCents((string) $price)) {
+            return 'السعر قبل الخصم لازم يبقى أكبر من السعر';
+        }
+
+        return null;
     }
 
     public function url(?Model $row): ?string

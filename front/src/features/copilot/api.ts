@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
-import { api } from "@/lib/api/client";
+import { api, apiPage } from "@/lib/api/client";
 import { useRealtime } from "@/lib/realtime/realtime";
 
 /** A card under an assistant reply, built by the server (docs/plans/ai-copilot.md §3.8). Unknown types render nothing. */
@@ -15,7 +15,52 @@ export type CopilotHandoffBlock = { type: "handoff"; target: "designer" | "page"
 export type CopilotTableBlock = { type: "table"; title: string; columns: CopilotTableColumn[]; rows: Record<string, string | number | null>[]; total: number; export?: CopilotExportSource; link?: string | null };
 export type CopilotExportBlock = { type: "export"; token: string; filename: string; rows: number };
 
-export type CopilotBlock = CopilotHandoffBlock | CopilotTableBlock | CopilotExportBlock | { type: string; [key: string]: unknown };
+export type CopilotChangeSetBlock = { type: "change_set"; id: number };
+
+export type CopilotBlock = CopilotHandoffBlock | CopilotTableBlock | CopilotExportBlock | CopilotChangeSetBlock | { type: string; [key: string]: unknown };
+
+export type ChangeStatus = "estimate" | "running" | "proposed" | "applying" | "applied" | "rejected" | "expired" | "failed" | "reverted";
+export type ChangeItemStatus = "pending" | "applied" | "skipped_stale" | "skipped_invalid" | "failed" | "reverted" | "kept";
+
+export type ChangeItem = {
+  id: number;
+  entity_id: number | null;
+  label: string;
+  url: string | null;
+  before: Record<string, string | null>;
+  after: Record<string, string | null>;
+  status: ChangeItemStatus;
+  note: string | null;
+};
+
+/** One change the copilot prepared (§3.6): drafts to publish, or a preview to apply; the merchant's buttons decide. */
+export type ChangeSet = {
+  id: number;
+  kind: "create" | "update" | "action" | "revert" | "job";
+  target: string;
+  target_label: string;
+  summary: string;
+  status: ChangeStatus;
+  keep_draft: boolean;
+  reversible: boolean;
+  items_count: number;
+  applied_count: number;
+  skipped_count: number;
+  failed_count: number;
+  counts: Partial<Record<ChangeItemStatus, number>>;
+  columns: CopilotTableColumn[];
+  items: ChangeItem[];
+  has_more_items: boolean;
+  link: string | null;
+  error: string | null;
+  can: { accept: boolean; reject: boolean; revert: boolean };
+  expires_at: string | null;
+  applied_at: string | null;
+  reverted_at: string | null;
+  created_at: string | null;
+};
+
+export type ChangeItemsPage = { columns: CopilotTableColumn[]; items: ChangeItem[]; total: number; page: number; last_page: number };
 
 export type CopilotMessage = {
   id: number;
@@ -45,6 +90,7 @@ export type CopilotPageContext = {
 
 export const copilotStatusKey = ["copilot", "status"] as const;
 export const copilotChatKey = ["copilot", "chat"] as const;
+export const changeSetKey = (id: number) => ["copilot", "change-set", id] as const;
 
 /** Stop polling a reply after this long (the server marks it failed after 5 minutes). */
 const POLL_LIMIT_MS = 300_000;
@@ -76,7 +122,11 @@ export function useCopilotChat(userId: number, enabled: boolean) {
     enabled,
     refetchInterval: (q) => (waiting(q.state.data) ? 3000 : false),
   });
-  const refetch = React.useCallback(() => void queryClient.invalidateQueries({ queryKey: copilotChatKey }), [queryClient]);
+  const refetch = React.useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: copilotChatKey });
+    void queryClient.invalidateQueries({ queryKey: ["copilot", "change-set"] });
+    void queryClient.invalidateQueries({ queryKey: ["copilot", "history"] });
+  }, [queryClient]);
   useRealtime(enabled ? `user.${userId}` : null, "copilot.updated", refetch, refetch);
   return query;
 }
@@ -99,4 +149,39 @@ export const copilotExportUrl = (token: string) => `/api/bff/dashboard/ai/copilo
 
 export function olderCopilotMessages(chatId: number, before: number): Promise<CopilotChat> {
   return api<CopilotChat>(`/dashboard/ai/copilot/chats/${chatId}`, { query: { before } });
+}
+
+/** A change card's data; polls while it is being applied (realtime refreshes it too). */
+export function useChangeSet(id: number) {
+  return useQuery({
+    queryKey: changeSetKey(id),
+    queryFn: () => api<ChangeSet>(`/dashboard/ai/copilot/change-sets/${id}`),
+    refetchInterval: (q) => (q.state.data?.status === "applying" || q.state.data?.status === "running" ? 2000 : false),
+  });
+}
+
+export function changeSetItems(id: number, page: number, status?: ChangeItemStatus): Promise<ChangeItemsPage> {
+  return api<ChangeItemsPage>(`/dashboard/ai/copilot/change-sets/${id}/items`, { query: { page, status } });
+}
+
+export function acceptChangeSet(id: number): Promise<ChangeSet> {
+  return api<ChangeSet>(`/dashboard/ai/copilot/change-sets/${id}/accept`, { method: "POST" });
+}
+
+export function rejectChangeSet(id: number): Promise<ChangeSet> {
+  return api<ChangeSet>(`/dashboard/ai/copilot/change-sets/${id}/reject`, { method: "POST" });
+}
+
+export function revertChangeSet(id: number): Promise<ChangeSet> {
+  return api<ChangeSet>(`/dashboard/ai/copilot/change-sets/${id}/revert`, { method: "POST" });
+}
+
+export const changeSetFileUrl = (id: number) => `/api/bff/dashboard/ai/copilot/change-sets/${id}/items/file`;
+
+/** The history page: every change, newest first. */
+export function useChangeSets(page: number, status?: ChangeStatus) {
+  return useQuery({
+    queryKey: ["copilot", "history", page, status ?? "all"],
+    queryFn: () => apiPage<ChangeSet>("/dashboard/ai/copilot/change-sets", { query: { page, status } }),
+  });
 }

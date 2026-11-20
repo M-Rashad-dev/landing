@@ -6,6 +6,7 @@ namespace App\Ai\Copilot\Contracts;
 
 use App\Ai\Copilot\CopilotContext;
 use App\Ai\Copilot\Support\CopilotToolError;
+use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Support\CairoTime;
 use BackedEnum;
@@ -154,6 +155,24 @@ abstract class CopilotResource implements CopilotCapability
         };
     }
 
+    /**
+     * The stored value the change math works on: money «199.00», ints, bools, enum values, dates as UTC
+     * «Y-m-d H:i:s», ids lists (computed fields through using()).
+     */
+    public function raw(Model $row, Field $field): mixed
+    {
+        $value = $field->using !== null ? ($field->using)($row) : $row->getAttribute($field->column);
+
+        return match (true) {
+            $value instanceof BackedEnum => $value->value,
+            $value instanceof DateTimeInterface => CarbonImmutable::instance($value)->utc()->format('Y-m-d H:i:s'),
+            $field->type === 'money' && $value !== null && is_numeric($value) => number_format((float) $value, 2, '.', ''),
+            $field->type === 'int' && $value !== null => (int) $value,
+            $field->type === 'bool' => (bool) $value,
+            default => $value,
+        };
+    }
+
     /** The value as the merchant reads it in tables and files: enum labels, «نعم / لا», lists joined. */
     public function cell(Model $row, Field $field): string
     {
@@ -161,7 +180,7 @@ abstract class CopilotResource implements CopilotCapability
 
         return match (true) {
             $value === null => '',
-            $field->type === 'bool' => $value ? 'نعم' : 'لا',
+            $field->type === 'bool' => (string) __($value ? 'ai.copilot.yes' : 'ai.copilot.no'),
             $field->type === 'enum' => $field->labels[(string) $value] ?? (string) $value,
             is_array($value) => implode('، ', array_map(fn ($v) => is_scalar($v) ? (string) $v : '', $value)),
             is_scalar($value) => (string) $value,
@@ -176,7 +195,7 @@ abstract class CopilotResource implements CopilotCapability
      */
     public function columns(): array
     {
-        return array_map(fn (Field $f) => ['key' => $f->key, 'label' => $f->label, 'kind' => $f->type], $this->fields());
+        return array_values(array_map(fn (Field $f) => ['key' => $f->key, 'label' => $f->label, 'kind' => $f->type], array_filter($this->fields(), fn (Field $f) => $f->inTable)));
     }
 
     /**
@@ -188,7 +207,9 @@ abstract class CopilotResource implements CopilotCapability
     {
         $out = ['id' => (int) $row->getKey()];
         foreach ($this->fields() as $field) {
-            $out[$field->key] = $this->cell($row, $field);
+            if ($field->inTable) {
+                $out[$field->key] = $this->cell($row, $field);
+            }
         }
         $url = $this->url($row);
         if ($url !== null) {
@@ -264,6 +285,22 @@ abstract class CopilotResource implements CopilotCapability
         return [];
     }
 
+    /** The plan limit new records count against (checked before a batch is created). */
+    public function limit(): ?PlanLimit
+    {
+        return null;
+    }
+
+    /**
+     * What create_records accepts per item (request key => short English hint), for `describe`.
+     *
+     * @return array<string, string>
+     */
+    public function createFields(): array
+    {
+        return [];
+    }
+
     /** Whether new records can be created as drafts (create_records). */
     public function creatable(): bool
     {
@@ -327,6 +364,7 @@ abstract class CopilotResource implements CopilotCapability
             'fields' => array_map(fn (Field $f) => $f->describe(), $fields),
             'named_filters' => $this->namedFilters() !== [] ? $this->namedFilters() : null,
             'can_create' => $this->creatable(),
+            'create_fields' => $this->creatable() ? $this->createFields() : null,
             'can_update' => $this->writable() && array_filter($fields, fn (Field $f) => $f->editable) !== [],
         ];
     }

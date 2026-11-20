@@ -9,6 +9,7 @@ use App\Ai\AiUnavailable;
 use App\Ai\MediaDataUrl;
 use App\Events\CopilotUpdated;
 use App\Exceptions\ApiException;
+use App\Models\CopilotChangeSet;
 use App\Models\CopilotMessage;
 use App\Models\Tenant;
 use App\Models\User;
@@ -234,12 +235,20 @@ final class CopilotEngine
                 'handoff' => "[button shown: {$block['label']} → {$block['href']}]",
                 'table' => '[table shown: '.($block['title'] ?? '').', '.($block['total'] ?? count((array) ($block['rows'] ?? []))).' rows]',
                 'export' => "[excel file given: {$block['filename']}, {$block['rows']} rows]",
-                'change_set' => "[change card #{$block['id']}]",
+                'change_set' => self::changeLine((int) ($block['id'] ?? 0)),
                 default => '['.($block['type'] ?? 'card').']',
             };
         }
 
         return trim($text.($lines !== [] ? "\n".implode("\n", $lines) : ''));
+    }
+
+    /** «[change card #12 (update products): السعر: زيادة 30% — 120 من المنتجات — status: applied]». */
+    private static function changeLine(int $id): string
+    {
+        $set = CopilotChangeSet::query()->find($id);
+
+        return $set === null ? "[change card #{$id}]" : "[change card #{$id} ({$set->kind} {$set->target}): {$set->summary} — status: {$set->status}, applied {$set->applied_count}]";
     }
 
     /** @param array<string, mixed> $trace */

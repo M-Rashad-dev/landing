@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Ai\Copilot;
 
 use App\Ai\AiUnavailable;
+use App\Ai\Copilot\Changes\ChangeSetPresenter;
+use App\Ai\Copilot\Changes\ChangeSetProposer;
 use App\Ai\Copilot\Support\CopilotToolError;
+use App\Ai\Copilot\Support\CopilotValidationError;
 use App\Ai\Copilot\Support\ExportBuilder;
 use App\Ai\Copilot\Support\RecordQuery;
 use App\Ai\Copilot\Support\ToolResult;
@@ -14,6 +17,7 @@ use App\Ai\MerchantSnapshot;
 use App\Billing\Entitlements;
 use App\Billing\UsageCounter;
 use App\Enums\PlanLimit;
+use App\Exceptions\ApiException;
 use App\Models\LandingPage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -40,6 +44,8 @@ final class CopilotTools
         private readonly Entitlements $entitlements,
         private readonly UsageCounter $usage,
         private readonly ExportBuilder $exports,
+        private readonly ChangeSetProposer $proposer,
+        private readonly ChangeSetPresenter $presenter,
     ) {}
 
     /** @return list<string> the tool names usable now */
@@ -57,6 +63,13 @@ final class CopilotTools
         }
         if ($this->catalog->resources($ctx) !== [] || $this->catalog->reports($ctx) !== []) {
             $names[] = 'export_xlsx';
+        }
+        $resources = $this->catalog->resources($ctx);
+        if (array_filter($resources, fn ($r) => $r->creatable()) !== []) {
+            $names[] = 'create_records';
+        }
+        if (array_filter($resources, fn ($r) => $r->writable()) !== []) {
+            $names[] = 'update_records';
         }
 
         return $names;
@@ -93,6 +106,16 @@ final class CopilotTools
                 'params' => ['type' => 'object'],
                 'filename' => ['type' => 'string', 'description' => 'Short Arabic file name (optional).'],
             ], []],
+            'create_records' => ['Create new records (products, categories…) AT ONCE AS DRAFTS: not visible to customers until the merchant presses «انشر» on the card. Up to 50 per call; all are validated first and none is created if one is invalid. See describe for create_fields.', [
+                'resource' => ['type' => 'string'],
+                'items' => ['type' => 'array', 'items' => ['type' => 'object'], 'description' => 'One object of fields per record.'],
+                'keep_draft' => ['type' => 'boolean', 'description' => 'true when the merchant asked to keep them as drafts (the card then confirms instead of publishing).'],
+            ], ['resource', 'items']],
+            'update_records' => ['Prepare a change to existing records as a PROPOSAL: the server computes every new value and shows the merchant a before → after preview card; nothing changes until he presses «نفّذ». Send operations, never computed values (e.g. price {"percent": 30, "round": {"to": 5, "mode": "nearest"}}).', [
+                'resource' => ['type' => 'string'],
+                'selector' => ['type' => 'object', 'description' => '{"ids": [...]} or {"filters": {...}} (like find_records; {} = all) or {"context": "entity" | "selection"} for what the merchant has open / selected.'],
+                'changes' => ['type' => 'object', 'description' => '{field: op}. Ops by type — money: set | add | percent (+ optional round {to: 1|5|10|50|100, mode: nearest|up|down}) | clear; int: set | add; bool / enum: set; text: set | replace {find, with} | prepend | append; ids: add | remove | set.'],
+            ], ['resource', 'selector', 'changes']],
             'open_page' => ['Give the merchant a button to a page: the AI designer (to design sections or pages), or a dashboard page. Use it for design requests and for anything you can\'t do here (payments, account, password, domain make-primary / delete).', [
                 'target' => ['type' => 'string', 'enum' => ['designer', 'page'], 'description' => 'designer = the AI designer in the Builder; page = a dashboard page.'],
                 'resource' => ['type' => 'string', 'description' => 'page: a catalog resource key whose page to open.'],
@@ -137,9 +160,16 @@ final class CopilotTools
                 'find_records' => $this->findRecords($args, $ctx),
                 'run_report' => $this->runReport($args, $ctx),
                 'export_xlsx' => $this->exportXlsx($args, $ctx),
+                'create_records' => $this->createRecords($args, $ctx),
+                'update_records' => $this->updateRecords($args, $ctx),
                 'open_page' => $this->openPage($args, $ctx),
             };
+        } catch (CopilotValidationError $e) {
+            return ToolResult::error($e->getMessage(), $e->fields);
         } catch (CopilotToolError $e) {
+            return ToolResult::error($e->getMessage());
+        } catch (ApiException $e) {
+            // A plan limit, a feature the plan lacks…: the message is for the merchant.
             return ToolResult::error($e->getMessage());
         } catch (ValidationException $e) {
             return ToolResult::error('Validation failed.', $e->errors());
@@ -267,6 +297,30 @@ final class CopilotTools
         $ctx->addBlock(ExportBuilder::block($export));
 
         return ToolResult::ok(['file' => $export->filename, 'rows' => $export->rows_count, 'shown' => 'A download button is shown under your reply (the file is kept 24 hours).']);
+    }
+
+    /** @param array<string, mixed> $args */
+    private function createRecords(array $args, CopilotContext $ctx): ToolResult
+    {
+        $resource = $this->catalog->resource((string) ($args['resource'] ?? ''), $ctx);
+        if ($resource === null || ! $resource->creatable()) {
+            return ToolResult::error('Records can be created for: '.implode(', ', array_keys(array_filter($this->catalog->resources($ctx), fn ($r) => $r->creatable()))).'.');
+        }
+        $set = $this->proposer->create($resource, is_array($args['items'] ?? null) ? array_values($args['items']) : [], (bool) ($args['keep_draft'] ?? false), $ctx);
+
+        return ToolResult::ok($this->presenter->forModel($set));
+    }
+
+    /** @param array<string, mixed> $args */
+    private function updateRecords(array $args, CopilotContext $ctx): ToolResult
+    {
+        $resource = $this->catalog->resource((string) ($args['resource'] ?? ''), $ctx);
+        if ($resource === null || ! $resource->writable()) {
+            return ToolResult::error('Records can be changed for: '.implode(', ', array_keys(array_filter($this->catalog->resources($ctx), fn ($r) => $r->writable()))).'.');
+        }
+        $proposal = $this->proposer->update($resource, is_array($args['selector'] ?? null) ? $args['selector'] : [], is_array($args['changes'] ?? null) ? $args['changes'] : [], $ctx);
+
+        return ToolResult::ok($this->presenter->forModel($proposal['set'], $proposal['unchanged']));
     }
 
     /** @param array<string, mixed> $args */

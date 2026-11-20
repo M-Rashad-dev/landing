@@ -9,7 +9,8 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { type CopilotBlock, type CopilotExportBlock, type CopilotHandoffBlock, type CopilotTableBlock, buildCopilotExport, copilotExportUrl } from "./api";
+import { ChangeSetCard } from "./change-set-card";
+import { type CopilotBlock, type CopilotChangeSetBlock, type CopilotExportBlock, type CopilotHandoffBlock, type CopilotTableBlock, buildCopilotExport, copilotExportUrl } from "./api";
 
 const t = ar.copilot;
 
@@ -26,6 +27,10 @@ function isTable(block: CopilotBlock): block is CopilotTableBlock {
 
 function isExport(block: CopilotBlock): block is CopilotExportBlock {
   return block.type === "export" && typeof block.token === "string";
+}
+
+function isChangeSet(block: CopilotBlock): block is CopilotChangeSetBlock {
+  return block.type === "change_set" && typeof block.id === "number";
 }
 
 /** Only our own dashboard pages are links (the server builds them, this is a second guard). */
@@ -169,6 +174,7 @@ export function CopilotBlocks({ blocks }: { blocks: CopilotBlock[] }) {
     if (isHandoff(block)) nodes.push(<Handoff key={i} block={block} />);
     else if (isTable(block)) nodes.push(<Table key={i} block={block} />);
     else if (isExport(block)) nodes.push(<ExportFile key={i} block={block} />);
+    else if (isChangeSet(block)) nodes.push(<ChangeSetCard key={i} id={block.id} />);
   });
   return nodes.length > 0 ? <div className="flex min-w-0 flex-col gap-2">{nodes}</div> : null;
 }
