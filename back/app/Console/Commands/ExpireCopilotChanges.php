@@ -19,7 +19,7 @@ final class ExpireCopilotChanges extends Command
     {
         // Audited bypass: one sweep across all tenants, only proposals past their expiry.
         $count = Tenancy::withoutTenant(fn (): int => CopilotChangeSet::query()
-            ->where('status', CopilotChangeSet::STATUS_PROPOSED)
+            ->whereIn('status', [CopilotChangeSet::STATUS_PROPOSED, CopilotChangeSet::STATUS_ESTIMATE])
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
             ->update(['status' => CopilotChangeSet::STATUS_EXPIRED]));

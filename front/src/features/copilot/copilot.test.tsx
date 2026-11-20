@@ -19,7 +19,7 @@ let sent: { url: string; body: unknown }[];
 let sendResponse: () => Response;
 
 function message(over: Partial<CopilotMessage>): CopilotMessage {
-  return { id: 1, role: "assistant", text: null, media: [], blocks: [], status: "done", progress: null, error: null, error_code: null, created_at: new Date().toISOString(), ...over };
+  return { id: 1, role: "assistant", text: null, media: [], sheet: null, blocks: [], status: "done", progress: null, error: null, error_code: null, created_at: new Date().toISOString(), ...over };
 }
 
 beforeEach(() => {

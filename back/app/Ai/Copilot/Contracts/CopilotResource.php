@@ -259,6 +259,25 @@ abstract class CopilotResource implements CopilotCapability
         throw new LogicException(static::class.' does not support full updates.');
     }
 
+    /**
+     * A change's values as request keys (applied on top of body()). Default: dates go as ISO UTC («…Z»), which every
+     * dashboard date rule reads. Resources map virtual fields here (e.g. seo_title → seo.title).
+     *
+     * @param  array<string, mixed>  $after
+     * @return array<string, mixed>
+     */
+    public function requestData(array $after, Model $row): array
+    {
+        $map = $this->fieldMap();
+        foreach ($after as $key => $value) {
+            if (($map[$key] ?? null)?->type === 'date' && is_string($value) && $value !== '') {
+                $after[$key] = str_replace(' ', 'T', $value).'Z';
+            }
+        }
+
+        return $after;
+    }
+
     /** Saves through the platform Action, exactly like the dashboard controller. */
     public function persist(FormRequest $validated, ?Model $row): Model
     {

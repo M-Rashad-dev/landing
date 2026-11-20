@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, ImagePlus, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import { Check, Copy, FileSpreadsheet, ImagePlus, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
@@ -13,7 +13,7 @@ import { MediaPicker } from "@/features/media/media-picker";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
-import { type CopilotChat as ChatPayload, type CopilotMessage, copilotChatKey, newCopilotChat, olderCopilotMessages, sendCopilotMessage, useCopilotChat, useCopilotStatus } from "./api";
+import { type CopilotChat as ChatPayload, type CopilotMessage, type CopilotSheet, copilotChatKey, newCopilotChat, olderCopilotMessages, sendCopilotMessage, uploadCopilotSheet, useCopilotChat, useCopilotStatus } from "./api";
 import { CopilotBlocks } from "./blocks";
 import { useCopilot } from "./copilot-provider";
 
@@ -58,6 +58,12 @@ function Bubble({ message, onRetry }: { message: CopilotMessage; onRetry: () => 
       <div className="flex flex-col items-start">
         <div className="max-w-[85%] rounded-2xl rounded-ss-sm bg-brand px-3.5 py-2.5 text-sm text-white">
           <p className="whitespace-pre-wrap">{message.text}</p>
+          {message.sheet ? (
+            <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 text-[11px]">
+              <FileSpreadsheet className="size-3" />
+              {message.sheet.file_name} · {t.sheetRows(message.sheet.rows)}
+            </p>
+          ) : null}
           {message.media.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {message.media.map((m) => (
@@ -127,6 +133,9 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
   const [hasMoreOlder, setHasMoreOlder] = React.useState<boolean | null>(null);
   const [text, setText] = React.useState("");
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
+  const [sheet, setSheet] = React.useState<CopilotSheet | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const sheetInput = React.useRef<HTMLInputElement>(null);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [sending, setSending] = React.useState(false);
   const [sendError, setSendError] = React.useState<{ code: string; message: string } | null>(null);
@@ -154,9 +163,10 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
     setSendError(null);
     lastSent.current = { text: body, media };
     try {
-      const pending = await sendCopilotMessage(chatId, { text: body.trim(), media_ids: media.map((m) => m.id), context });
+      const pending = await sendCopilotMessage(chatId, { text: body.trim(), media_ids: media.map((m) => m.id), import_id: sheet?.import_id, context });
       setText("");
       setAttachments([]);
+      setSheet(null);
       // Show the merchant's message and the pending reply at once; the server copy replaces them on refetch.
       queryClient.setQueryData<ChatPayload>(copilotChatKey, (prev) =>
         prev
@@ -164,7 +174,7 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
               ...prev,
               messages: [
                 ...prev.messages,
-                { id: pending.id - 1, role: "user", text: body.trim(), media, blocks: [], status: "done", progress: null, error: null, error_code: null, created_at: pending.created_at },
+                { id: pending.id - 1, role: "user", text: body.trim(), media, sheet, blocks: [], status: "done", progress: null, error: null, error_code: null, created_at: pending.created_at },
                 pending,
               ],
             }
@@ -176,6 +186,18 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
       setSendError({ code: isApiError(err) ? (err.code ?? "unknown") : "unknown", message: errorMessage(err) });
     } finally {
       setSending(false);
+    }
+  }
+
+  async function attachSheet(file: File) {
+    setUploading(true);
+    try {
+      setSheet(await uploadCopilotSheet(file));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setUploading(false);
+      if (sheetInput.current) sheetInput.current.value = "";
     }
   }
 
@@ -295,6 +317,16 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
       ) : null}
 
       <div className="flex flex-col gap-2 border-t border-border bg-surface p-3">
+        {sheet ? (
+          <div className="flex items-center gap-2 self-start rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-ink">
+            <FileSpreadsheet className="size-3.5 text-success" />
+            <span className="max-w-48 truncate">{sheet.file_name}</span>
+            <span className="text-ink-3">{t.sheetRows(sheet.rows)}</span>
+            <button type="button" onClick={() => setSheet(null)} className="rounded p-0.5 text-ink-3 hover:text-danger" aria-label={ar.common.delete}>
+              <X className="size-3" />
+            </button>
+          </div>
+        ) : null}
         {attachments.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {attachments.map((item) => (
@@ -317,6 +349,20 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
           <Button type="button" size="icon" variant="outline" disabled={attachments.length >= MAX_IMAGES || hasPending} aria-label={t.attach} onClick={() => setPickerOpen(true)}>
             <ImagePlus />
           </Button>
+          <Button type="button" size="icon" variant="outline" disabled={hasPending || uploading || sheet !== null} loading={uploading} aria-label={t.attachSheet} onClick={() => sheetInput.current?.click()}>
+            <FileSpreadsheet />
+          </Button>
+          <input
+            ref={sheetInput}
+            type="file"
+            accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+            data-testid="copilot-sheet-input"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void attachSheet(file);
+            }}
+          />
           <Textarea
             rows={2}
             maxLength={2000}

@@ -11,6 +11,7 @@ use App\Jobs\CopilotReply;
 use App\Models\CopilotChat;
 use App\Models\CopilotMessage;
 use App\Models\Media;
+use App\Models\ProductImport;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -59,7 +60,7 @@ final class CopilotChats
      * @param  list<int>  $mediaIds  tenant images (checked by the request)
      * @param  array<string, mixed>  $context  the page the merchant is on
      */
-    public function send(CopilotChat $chat, User $user, Tenant $tenant, string $text, array $mediaIds, array $context): CopilotMessage
+    public function send(CopilotChat $chat, User $user, Tenant $tenant, string $text, array $mediaIds, array $context, ?int $importId = null): CopilotMessage
     {
         if ($chat->closed_at !== null || $chat->user_id !== $user->id) {
             throw new ApiException(422, 'copilot_chat_closed', (string) __('ai.copilot.chat_full'));
@@ -82,13 +83,14 @@ final class CopilotChats
 
         $context = $this->cleanContext($context, $tenant, $user);
 
-        $pending = DB::transaction(function () use ($chat, $text, $mediaIds, $context): CopilotMessage {
+        $attachments = array_filter(['media_ids' => $mediaIds ?: null, 'import_id' => $importId]);
+        $pending = DB::transaction(function () use ($chat, $text, $attachments, $context): CopilotMessage {
             CopilotMessage::query()->create([
                 'chat_id' => $chat->id,
                 'role' => 'user',
                 'text' => $text,
                 'context' => $context !== [] ? $context : null,
-                'attachments' => $mediaIds !== [] ? ['media_ids' => $mediaIds] : null,
+                'attachments' => $attachments !== [] ? $attachments : null,
                 'status' => 'done',
             ]);
             if ($chat->title === null) {
@@ -189,11 +191,14 @@ final class CopilotChats
             }
         }
 
+        $import = isset($m->attachments['import_id']) ? ProductImport::query()->find((int) $m->attachments['import_id'], ['id', 'file_name', 'total_rows']) : null;
+
         return [
             'id' => $m->id,
             'role' => $m->role,
             'text' => $m->text,
             'media' => $items,
+            'sheet' => $import === null ? null : ['import_id' => $import->id, 'file_name' => $import->file_name, 'rows' => (int) $import->total_rows],
             'blocks' => $m->blocks ?? [],
             'status' => $m->status,
             'progress' => $m->status === 'pending' ? $m->progress : null,

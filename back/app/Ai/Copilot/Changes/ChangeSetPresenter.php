@@ -10,7 +10,9 @@ use App\Ai\Copilot\CopilotCatalog;
 use App\Ai\Copilot\CopilotContext;
 use App\Models\CopilotChangeItem;
 use App\Models\CopilotChangeSet;
+use App\Models\Media;
 use App\Support\CairoTime;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** A change as the chat card and the history page show it: counts, the changed columns, the records page by page. */
@@ -26,17 +28,19 @@ final class ChangeSetPresenter
     public function set(CopilotChangeSet $set, CopilotContext $ctx): array
     {
         $resource = $this->catalog->resource($set->target, $ctx);
+        $action = $resource === null ? $this->catalog->action($set->target, $ctx) : null;
         $counts = CopilotChangeItem::query()->where('change_set_id', $set->id)->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n)->all();
         $page = $this->items($set, $ctx, null, 1, self::SAMPLE);
-        $open = $set->status === CopilotChangeSet::STATUS_PROPOSED && ($set->expires_at === null || $set->expires_at->isFuture());
+        $waiting = in_array($set->status, [CopilotChangeSet::STATUS_PROPOSED, CopilotChangeSet::STATUS_ESTIMATE], true);
+        $open = $waiting && ($set->expires_at === null || $set->expires_at->isFuture());
 
         return [
             'id' => $set->id,
             'kind' => $set->kind,
             'target' => $set->target,
-            'target_label' => $resource?->label() ?? $set->target,
+            'target_label' => $resource?->label() ?? $action?->label() ?? $set->target,
             'summary' => $set->summary,
-            'status' => $open || $set->status !== CopilotChangeSet::STATUS_PROPOSED ? $set->status : CopilotChangeSet::STATUS_EXPIRED,
+            'status' => $open || ! $waiting ? $set->status : CopilotChangeSet::STATUS_EXPIRED,
             'keep_draft' => $set->keep_draft,
             'reversible' => $set->reversible,
             'items_count' => $set->items_count,
@@ -48,6 +52,9 @@ final class ChangeSetPresenter
             'items' => $page['items'],
             'has_more_items' => $page['total'] > self::SAMPLE,
             'link' => $resource?->url(null),
+            'estimate' => $set->estimate_cents === null ? null : (string) __('ai.copilot.changes.estimate', ['amount' => Money::toDecimal($set->estimate_cents)]),
+            'side_effects' => array_values(array_map(fn (array $e) => (string) $e['text'], (array) ($set->side_effects ?? []))),
+            'extra' => $action?->card($set),
             'error' => $set->error,
             'can' => ['accept' => $open, 'reject' => $open, 'revert' => $this->applier->canRevert($set)],
             'expires_at' => $set->expires_at?->toIso8601ZuluString(),
@@ -61,7 +68,9 @@ final class ChangeSetPresenter
     public function items(CopilotChangeSet $set, CopilotContext $ctx, ?string $status, int $page, int $perPage = self::PAGE): array
     {
         $resource = $this->catalog->resource($set->target, $ctx);
+        $action = $resource === null ? $this->catalog->action($set->target, $ctx) : null;
         $map = $resource?->fieldMap() ?? [];
+        $actionColumns = $action?->columns() ?? [];
         $query = CopilotChangeItem::query()->where('change_set_id', $set->id)->when($status !== null, fn ($q) => $q->where('status', $status))->orderBy('id');
         $total = (clone $query)->count();
         $items = $query->forPage(max(1, $page), $perPage)->get();
@@ -70,7 +79,11 @@ final class ChangeSetPresenter
             (array) ($set->spec['fields'] ?? []),
             ...$items->map(fn (CopilotChangeItem $i) => array_keys(array_diff_key((array) ($i->after ?? []), ['updated_at' => true])))->all(),
         )));
-        $columns = array_values(array_map(fn (string $k) => ['key' => $k, 'label' => ($map[$k] ?? null)?->label ?? $k, 'kind' => ($map[$k] ?? null)?->type ?? 'text'], $keys));
+        $columns = array_values(array_map(fn (string $k) => [
+            'key' => $k,
+            'label' => ($map[$k] ?? null)?->label ?? ($actionColumns[$k][0] ?? $k),
+            'kind' => ($map[$k] ?? null) !== null ? ($map[$k]->media ? 'images' : $map[$k]->type) : ($actionColumns[$k][1] ?? 'text'),
+        ], $keys));
 
         return [
             'columns' => $columns,
@@ -78,7 +91,7 @@ final class ChangeSetPresenter
                 'id' => $i->id,
                 'entity_id' => $i->entity_id,
                 'label' => $i->label,
-                'url' => $resource !== null && $i->entity_id !== null ? $this->url($resource, (int) $i->entity_id, $ctx) : null,
+                'url' => $i->entity_id !== null && ($owner = $resource ?? $this->catalog->resource($i->entity_type, $ctx)) !== null ? $this->url($owner, (int) $i->entity_id, $ctx) : null,
                 'before' => $this->display((array) ($i->before ?? []), $keys, $map),
                 'after' => $this->display((array) ($i->after ?? []), $keys, $map),
                 'status' => $i->status,
@@ -101,6 +114,16 @@ final class ChangeSetPresenter
         $reasons = CopilotChangeItem::query()->where('change_set_id', $set->id)->where('status', CopilotChangeItem::SKIPPED_INVALID)
             ->distinct()->limit(5)->pluck('note')->filter()->values()->all();
 
+        if ($set->kind === CopilotChangeSet::KIND_JOB) {
+            return [
+                'change_set_id' => $set->id,
+                'summary' => $set->summary,
+                'records' => $set->items_count,
+                'estimated_cost_egp' => $set->estimate_cents === null ? null : Money::toDecimal($set->estimate_cents),
+                'note' => 'Nothing has run and nothing is charged yet. A card shows the estimated cost; the work starts only when the merchant presses «ابدأ», then a preview comes to approve.',
+            ];
+        }
+
         return array_filter([
             'change_set_id' => $set->id,
             'kind' => $set->kind,
@@ -110,6 +133,8 @@ final class ChangeSetPresenter
             'skip_reasons' => $reasons ?: null,
             'unchanged_already' => $unchanged ?: null,
             'sample' => $items->map(fn (CopilotChangeItem $i) => array_filter(['label' => $i->label, 'before' => $i->before, 'after' => $set->kind === CopilotChangeSet::KIND_CREATE ? null : $i->after, 'skipped' => $i->note]))->all(),
+            'side_effects' => array_values(array_map(fn (array $e) => (string) $e['text'], (array) ($set->side_effects ?? []))) ?: null,
+            'reversible' => $set->reversible ? null : false,
             'note' => $set->kind === CopilotChangeSet::KIND_CREATE
                 ? 'Created now as drafts (not visible to customers). A card under your reply lets the merchant publish them («انشر») or delete them («امسح»).'
                 : 'Nothing has changed yet. A card under your reply shows the preview; the change happens only when the merchant presses «نفّذ».',
@@ -136,13 +161,28 @@ final class ChangeSetPresenter
                 $field?->type === 'bool' => $value ? (string) __('ai.copilot.yes') : (string) __('ai.copilot.no'),
                 $field?->type === 'enum' => $field->labels[(string) $value] ?? (string) $value,
                 $field?->type === 'date' => CarbonImmutable::parse((string) $value, 'UTC')->setTimezone(CairoTime::ZONE)->format('Y-m-d H:i'),
+                $field?->media === true => implode('|', self::mediaUrls(array_map('intval', (array) $value))),
                 $field?->type === 'ids' && $field->names !== null => implode('، ', ($field->names)(array_map('intval', (array) $value))),
+                is_array($value) && ! array_is_list($value) => mb_substr(implode('، ', array_map(fn ($k, $v) => $k.': '.(is_scalar($v) ? (string) $v : ''), array_keys($value), $value)), 0, 600),
                 is_array($value) => implode('، ', array_map(fn ($v) => is_scalar($v) ? (string) $v : '', $value)),
                 default => mb_substr((string) $value, 0, 300),
             };
         }
 
         return $out;
+    }
+
+    /**
+     * Thumbnails of media ids (this store's only), in the given order.
+     *
+     * @param  list<int>  $ids
+     * @return list<string>
+     */
+    private static function mediaUrls(array $ids): array
+    {
+        $media = Media::query()->whereIn('id', $ids)->get()->keyBy('id');
+
+        return array_values(array_filter(array_map(fn (int $id) => $media->get($id)?->urls()['thumb'] ?? null, $ids)));
     }
 
     private function url(CopilotResource $resource, int $id, CopilotContext $ctx): ?string

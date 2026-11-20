@@ -63,7 +63,11 @@ final class FakeAiClient implements AiClient
     public function chat(string $model, array $messages, array $options = []): AiReply
     {
         $this->chats[] = ['model' => $model, 'messages' => $messages, 'options' => $options];
-        $next = array_shift($this->queue) ?? (self::isCopilot($messages) ? self::copilotReply($messages, $options) : self::defaultReply($messages));
+        $next = array_shift($this->queue) ?? match (true) {
+            self::isCopilot($messages) => self::copilotReply($messages, $options),
+            self::isContent($messages) => self::contentReply($messages),
+            default => self::defaultReply($messages),
+        };
         if ($next instanceof AiError) {
             throw $next;
         }
@@ -72,6 +76,41 @@ final class FakeAiClient implements AiClient
         }
 
         return new AiReply($next, $model, inputTokens: 1000, outputTokens: 200, cachedTokens: 400);
+    }
+
+    /** @param array<int, mixed> $messages */
+    private static function isContent(array $messages): bool
+    {
+        $first = $messages[0] ?? null;
+
+        return is_array($first) && is_string($first['content'] ?? null) && str_contains($first['content'], 'MKSAB_COPILOT_CONTENT');
+    }
+
+    /**
+     * The copilot's product texts without a provider: one plain sample text per product and field asked.
+     *
+     * @param  array<int, mixed>  $messages
+     */
+    private static function contentReply(array $messages): string
+    {
+        $payload = json_decode((string) (end($messages)['content'] ?? '{}'), true);
+        $fields = (array) ($payload['fields'] ?? ['description']);
+        $products = [];
+        foreach ((array) ($payload['products'] ?? []) as $product) {
+            $name = (string) ($product['name'] ?? '');
+            $row = ['id' => (int) ($product['id'] ?? 0)];
+            foreach ($fields as $field) {
+                $row[$field] = match ($field) {
+                    'short_description' => "{$name} بجودة عالية وسعر مناسب.",
+                    'seo_title' => mb_substr($name, 0, 60),
+                    'seo_description' => mb_substr("اشتري {$name} أونلاين بسعر مناسب والدفع عند الاستلام.", 0, 155),
+                    default => "{$name} اختيار ممتاز لاستخدامك اليومي.\n- جودة عالية\n- سعر مناسب",
+                };
+            }
+            $products[] = $row;
+        }
+
+        return (string) json_encode(['products' => $products], JSON_UNESCAPED_UNICODE);
     }
 
     /** @param array<int, mixed> $messages */

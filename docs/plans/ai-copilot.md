@@ -958,3 +958,35 @@ change-set (each status and kind), estimate, import progress · history page · 
   Gates green (back 1040 + Pint; front lint, typecheck, 324 tests, build). Note: one front test failed once while
   the back-end suite ran at the same time and passed on the rerun (load-related flakiness, not the copilot).
   Committed «AI copilot stage 3: the change pipeline», pushed. **Next: Stage 4** (wait for «كمّل»).
+- 2026-11-20: Owner said «ابدأ المرحلة 4»: Stage 4 started.
+- 2026-11-20: **Core for actions:** `CopilotAction` now has `preview()` / `current()` / `apply()` / `columns()` / `card()`
+  (approval actions) and `estimate()` / `work()` (costly jobs); value objects `ActionPreview`, `JobEstimate`,
+  `JobResult`. `ChangeSetProposer::action()` (costly → set `kind = job`, `status = estimate`, `estimate_cents`;
+  otherwise `kind = action`, proposed, with side effects), `fromJob()` (the job's result becomes a normal `update`
+  of its resource, so preview / stale check / «تراجع» are the same). `ChangeSetApplier::start()` («ابدأ»: balance
+  check, `running`, job `RunCopilotJob`), `work()`, action items applied one by one with `current()` as the stale
+  check. Tool `run_action`. `copilot:expire` also expires unstarted estimates. Presenter: estimate text, side effects,
+  action columns, image thumbnails (`Field::images()`), assoc arrays as «key: value».
+- 2026-11-20: **4.1 done:** `products.write_content` (description / short_description / seo_title / seo_description,
+  ≤ 200 products, only empty by default, batches of 10 on task `copilot_content`, prompt
+  `resources/prompts/copilot-content.md`, a run stops cleanly when the balance ends). Products got `seo_title`,
+  `seo_description` (into `seo` via `requestData()`) and `media_ids` fields.
+- 2026-11-20: **4.2 done (differs from the plan):** `products.images` (no image → generate, has photos → improve the
+  first: studio / remove_bg / enhance; ≤ 20; saved with `AiImages::store`). **Drafts are not attached at once:** every
+  result goes through the same preview → «نفّذ» (one simple path; the images are in the library either way).
+- 2026-11-20: **4.3 done:** sheet attach `POST ai/copilot/attachments/sheet` (the importer's own `ImportFiles::upload`),
+  messages carry `import_id`, the model is told about it; action `products.import` (approval, no undo, drafts by
+  default, ProductImportStartRequest checks). `ProductImportController::start` logic moved to
+  `App\Imports\Products\StartImport` (used by both).
+- 2026-11-20: **4.4 done:** writes for `discount_codes`, `offers`, `upsells`, `shipping_companies`, `shipping_offers`
+  (their requests + actions; percentages sent as whole numbers; dates as ISO UTC; promotion targets kept). Upsell
+  validation moved from the controller to `UpsellRequest` (plan check in `authorize()` so 403 still comes first).
+  Action `shipping.update_rates` (default + every governorate fee with one money op, reversible).
+- 2026-11-20: **4.5 done:** front cost card («ابدأ» / «إلغاء»), running state, side effects + «ملهاش تراجع», image
+  thumbnails, import progress (the importer's own `useImport`), sheet attach button + chip in the composer and the
+  bubble.
+- 2026-11-20: **4.6 done:** back `tests/Feature/Ai/Copilot/CopilotJobsTest.php` (7), front 2 more card tests. Gates
+  green (back 1047 + Pint; front lint, typecheck, 326 tests, build). Notes: the support widget front test is flaky
+  under load (passes alone); one build attempt hit a locked `.next` folder while the owner's `next dev` ran, the
+  retry passed. Committed «AI copilot stage 4: AI content, images, sheets, promotions and shipping», pushed.
+  **Next: Stage 5** (wait for «كمّل»).

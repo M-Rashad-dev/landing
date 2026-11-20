@@ -18,6 +18,7 @@ final class CopilotMessageRequest extends ApiRequest
             'text' => ['required', 'string', 'min:1', 'max:2000'],
             'media_ids' => ['nullable', 'array', 'max:'.CopilotMessage::MAX_IMAGES],
             'media_ids.*' => ['integer', 'distinct', TenantExists::table('media')],
+            'import_id' => ['nullable', 'integer', TenantExists::table('product_imports')],
             'context' => ['nullable', 'array'],
             'context.page' => ['nullable', 'string', 'max:200'],
             'context.entity' => ['nullable', 'array'],
@@ -34,6 +35,11 @@ final class CopilotMessageRequest extends ApiRequest
     public function mediaIds(): array
     {
         return array_values(array_map('intval', (array) ($this->validated('media_ids') ?? [])));
+    }
+
+    public function importId(): ?int
+    {
+        return $this->validated('import_id') === null ? null : (int) $this->validated('import_id');
     }
 
     /** @return array<string, mixed> */

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog } from "@/components/ui/overlay";
+import { useImport } from "@/features/catalog/imports/api";
 import { errorMessage } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -44,15 +45,45 @@ function safeHref(href: string | null | undefined): string | null {
   return typeof href === "string" && href.startsWith("/dashboard/") ? href : null;
 }
 
-function show(kind: string, value: string | null | undefined): string {
+function show(kind: string, value: string | null | undefined): React.ReactNode {
   if (value === null || value === undefined || value === "") return "—";
+  if (kind === "images") {
+    const urls = value.split("|").filter((u) => u.startsWith("/") || u.startsWith("https://"));
+    return (
+      <span className="inline-flex gap-1">
+        {urls.slice(0, 4).map((url) => (
+          // eslint-disable-next-line @next/next/no-img-element -- the store's own media thumbnails
+          <img key={url} src={url} alt="" className="size-10 rounded-md border border-border object-cover" />
+        ))}
+      </span>
+    );
+  }
   return kind === "money" ? formatMoney(value) : value;
+}
+
+/** The import a copilot change started: the importer's own progress (polls while it runs). */
+function ImportProgress({ id }: { id: number }) {
+  const query = useImport(id);
+  if (!query.data) return null;
+  const i = query.data;
+  const active = i.status === "queued" || i.status === "processing";
+  return (
+    <div className="flex flex-col gap-1 rounded-lg bg-surface-2 px-2.5 py-2 text-[11px] text-ink-2">
+      <span className="font-semibold text-ink">{t.importTitle}: {i.file_name}</span>
+      <span>{active ? t.importProgress(i.processed, i.total_products || i.total_rows) : t.importDone(i.created, i.failed)}</span>
+      <Link href="/dashboard/catalog/products/import" className="font-semibold text-brand-strong hover:underline">
+        {t.importOpen}
+      </Link>
+    </div>
+  );
 }
 
 function Counts({ set }: { set: ChangeSet }) {
   const c = set.counts;
   const parts: string[] = [];
-  if (set.kind === "create" && set.status === "proposed") parts.push(t.drafts(c.pending ?? set.items_count));
+  if (set.status === "estimate" && set.estimate) parts.push(set.estimate);
+  else if (set.status === "running") parts.push(t.running);
+  else if (set.kind === "create" && set.status === "proposed") parts.push(t.drafts(c.pending ?? set.items_count));
   else if (set.status === "proposed") parts.push(t.willChange(c.pending ?? 0));
   else if (set.status === "applying") parts.push(t.progress(set.applied_count, set.items_count));
   else if (set.applied_count > 0) parts.push(t.applied(set.applied_count, set.items_count));
@@ -208,20 +239,35 @@ export function ChangeSetCard({ id }: { id: number }) {
         </div>
       ) : null}
 
+      {set.side_effects.length > 0 || (set.status === "proposed" && !set.reversible) ? (
+        <ul className="flex flex-col gap-0.5 text-[11px] text-warning">
+          {set.side_effects.map((e) => (
+            <li key={e}>• {e}</li>
+          ))}
+          {set.status === "proposed" && !set.reversible ? <li>• {t.noUndo}</li> : null}
+        </ul>
+      ) : null}
+      {set.status === "running" ? (
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-brand" />
+        </div>
+      ) : null}
+
       {items.length > 0 ? <Items set={set} items={items} /> : null}
+      {set.extra?.import_id && (set.status === "applied" || set.status === "applying") ? <ImportProgress id={set.extra.import_id} /> : null}
       {set.error ? <p className="text-[11px] text-danger">{set.error}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         {set.can.accept ? (
           <Button type="button" size="sm" loading={busy === "accept"} disabled={busy !== null} onClick={() => void act("accept")}>
             <Check className="size-3.5" />
-            {isCreate ? (set.keep_draft ? t.keepDraft : t.publish) : t.apply}
+            {set.status === "estimate" ? t.start : isCreate ? (set.keep_draft ? t.keepDraft : t.publish) : t.apply}
           </Button>
         ) : null}
         {set.can.reject ? (
           <Button type="button" size="sm" variant="outline" loading={busy === "reject"} disabled={busy !== null} onClick={() => (isCreate ? setConfirm("remove") : void act("reject"))}>
             {isCreate ? <Trash2 className="size-3.5" /> : <X className="size-3.5" />}
-            {isCreate ? t.remove : t.reject}
+            {set.status === "estimate" ? t.cancel : isCreate ? t.remove : t.reject}
           </Button>
         ) : null}
         {set.can.revert ? (

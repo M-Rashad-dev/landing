@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
-import { api, apiPage } from "@/lib/api/client";
+import { api, apiPage, apiUpload } from "@/lib/api/client";
 import { useRealtime } from "@/lib/realtime/realtime";
 
 /** A card under an assistant reply, built by the server (docs/plans/ai-copilot.md §3.8). Unknown types render nothing. */
@@ -54,6 +54,12 @@ export type ChangeSet = {
   link: string | null;
   error: string | null;
   can: { accept: boolean; reject: boolean; revert: boolean };
+  /** «التكلفة التقديرية حوالي 18 ج.م» while a costly job waits for «ابدأ». */
+  estimate: string | null;
+  /** What else happens (customer messages, drafts…), in Arabic. */
+  side_effects: string[];
+  /** The action's own card data (e.g. the import it started). */
+  extra: { import_id?: number } | null;
   expires_at: string | null;
   applied_at: string | null;
   reverted_at: string | null;
@@ -67,6 +73,7 @@ export type CopilotMessage = {
   role: "user" | "assistant";
   text: string | null;
   media: { id: number; url: string }[];
+  sheet: { import_id: number; file_name: string; rows: number } | null;
   blocks: CopilotBlock[];
   status: "pending" | "done" | "failed";
   progress: string | null;
@@ -131,7 +138,16 @@ export function useCopilotChat(userId: number, enabled: boolean) {
   return query;
 }
 
-export function sendCopilotMessage(chatId: number, body: { text: string; media_ids?: number[]; context?: CopilotPageContext }): Promise<CopilotMessage> {
+export type CopilotSheet = { import_id: number; file_name: string; rows: number };
+
+/** A sheet attached in the chat: uploaded with the product importer (the copilot can import it after approval). */
+export function uploadCopilotSheet(file: File): Promise<CopilotSheet> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiUpload<CopilotSheet>("/dashboard/ai/copilot/attachments/sheet", form);
+}
+
+export function sendCopilotMessage(chatId: number, body: { text: string; media_ids?: number[]; import_id?: number; context?: CopilotPageContext }): Promise<CopilotMessage> {
   return api<CopilotMessage>(`/dashboard/ai/copilot/chats/${chatId}/messages`, { method: "POST", body });
 }
 

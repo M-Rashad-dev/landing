@@ -151,6 +151,7 @@ Route::prefix('dashboard')
             Route::post('chat/new', [CopilotController::class, 'newChat']);
             Route::get('chats/{chat}', [CopilotController::class, 'show'])->whereNumber('chat');
             Route::post('chats/{chat}/messages', [CopilotController::class, 'send'])->whereNumber('chat')->middleware('throttle:copilot');
+            Route::post('attachments/sheet', [CopilotController::class, 'attachSheet'])->middleware('throttle:product-imports');
             Route::post('exports', [CopilotController::class, 'buildExport'])->middleware('throttle:orders-export');
             Route::get('exports/{token}', [CopilotController::class, 'downloadExport'])->where('token', '[A-Za-z0-9]{48}');
             Route::get('change-sets', [CopilotChangeController::class, 'index']);

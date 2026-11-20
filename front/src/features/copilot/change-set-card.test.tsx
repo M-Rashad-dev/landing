@@ -37,6 +37,9 @@ function changeSet(over: Partial<ChangeSet>): ChangeSet {
     link: "/dashboard/catalog/products",
     error: null,
     can: { accept: true, reject: true, revert: false },
+    estimate: null,
+    side_effects: [],
+    extra: null,
     expires_at: null,
     applied_at: null,
     reverted_at: null,
@@ -126,6 +129,31 @@ describe("change set card", () => {
     const buttons = screen.getAllByRole("button", { name: t.revert });
     fireEvent.click(buttons[buttons.length - 1]!);
     await waitFor(() => expect(posted).toEqual(["/dashboard/ai/copilot/change-sets/5/revert"]));
+  });
+
+  it("shows the estimated cost of a costly job and starts it only on «ابدأ»", async () => {
+    set = changeSet({ kind: "job", status: "estimate", summary: "كتابة الوصف لـ 3 منتج بالذكاء الاصطناعي", estimate: "التكلفة التقديرية حوالي 2.50 ج.م", columns: [], items: [] });
+    show();
+    expect(await screen.findByText("التكلفة التقديرية حوالي 2.50 ج.م")).toBeTruthy();
+    expect(screen.getByRole("button", { name: t.cancel })).toBeTruthy();
+    expect(posted).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: t.start }));
+    await waitFor(() => expect(posted).toEqual(["/dashboard/ai/copilot/change-sets/5/accept"]));
+  });
+
+  it("shows new photos as thumbnails and says when there is no undo", async () => {
+    set = changeSet({
+      reversible: false,
+      side_effects: ["المنتجات هتتضاف مسودات"],
+      columns: [{ key: "media_ids", label: "الصور", kind: "images" }],
+      items: [{ id: 1, entity_id: 11, label: "كوباية", url: null, before: { media_ids: null }, after: { media_ids: "/storage/a-thumb.webp|/storage/b-thumb.webp" }, status: "pending", note: null }],
+    });
+    const { container } = show();
+    await screen.findByText("كوباية");
+    expect([...container.querySelectorAll("img")].map((i) => i.getAttribute("src"))).toEqual(["/storage/a-thumb.webp", "/storage/b-thumb.webp"]);
+    expect(screen.getByText(/المنتجات هتتضاف مسودات/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(t.noUndo))).toBeTruthy();
   });
 
   it("shows why a record was skipped", async () => {

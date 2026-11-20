@@ -11,6 +11,7 @@ use App\Events\CopilotUpdated;
 use App\Exceptions\ApiException;
 use App\Models\CopilotChangeSet;
 use App\Models\CopilotMessage;
+use App\Models\ProductImport;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\CairoTime;
@@ -190,6 +191,11 @@ final class CopilotEngine
         }
 
         $parts = [['type' => 'text', 'text' => $this->contextBlock($ctx)], ['type' => 'text', 'text' => (string) $request->text]];
+        $import = isset($request->attachments['import_id']) ? ProductImport::query()->find((int) $request->attachments['import_id']) : null;
+        if ($import !== null) {
+            $columns = implode(', ', array_slice(array_map('strval', (array) ($import->headers ?? [])), 0, 30));
+            $parts[] = ['type' => 'text', 'text' => "[The merchant attached a sheet: import_id {$import->id} «{$import->file_name}», {$import->total_rows} rows, columns: {$columns}. To import it use run_action products.import with this import_id.]"];
+        }
         foreach (MediaDataUrl::many(array_slice($request->mediaIds(), 0, CopilotMessage::MAX_IMAGES)) as $url) {
             $parts[] = ['type' => 'image', 'url' => $url];
         }

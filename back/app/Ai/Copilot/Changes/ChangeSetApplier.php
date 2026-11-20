@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Ai\Copilot\Changes;
 
+use App\Ai\AiUnavailable;
+use App\Ai\AiWallets;
+use App\Ai\Copilot\Contracts\CopilotAction;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotCatalog;
@@ -12,6 +15,7 @@ use App\Ai\Copilot\Support\FormRequestRunner;
 use App\Events\CopilotUpdated;
 use App\Exceptions\ApiException;
 use App\Jobs\ApplyCopilotChangeSet;
+use App\Jobs\RunCopilotJob;
 use App\Models\CopilotChangeItem;
 use App\Models\CopilotChangeSet;
 use App\Models\CopilotChat;
@@ -42,6 +46,9 @@ final class ChangeSetApplier
 
     public function accept(CopilotChangeSet $set, User $user): CopilotChangeSet
     {
+        if ($set->status === CopilotChangeSet::STATUS_ESTIMATE) {
+            return $this->start($set, $user);
+        }
         $this->ensureProposed($set);
         if ($set->expires_at !== null && $set->expires_at->isPast()) {
             $set->forceFill(['status' => CopilotChangeSet::STATUS_EXPIRED])->save();
@@ -60,7 +67,9 @@ final class ChangeSetApplier
 
     public function reject(CopilotChangeSet $set, User $user): CopilotChangeSet
     {
-        $this->ensureProposed($set);
+        if ($set->status !== CopilotChangeSet::STATUS_ESTIMATE) {
+            $this->ensureProposed($set);
+        }
         $ctx = $this->context($set, $user);
         if ($set->kind === CopilotChangeSet::KIND_CREATE && ($resource = $this->catalog->resource($set->target, $ctx)) !== null) {
             $this->removeDrafts($set, $resource, $ctx);
@@ -69,6 +78,52 @@ final class ChangeSetApplier
         $this->notify($set, $user);
 
         return $set->refresh();
+    }
+
+    /**
+     * «ابدأ» on a costly job: the balance must cover the estimate, then the job does the AI work and leaves a preview.
+     */
+    public function start(CopilotChangeSet $set, User $user): CopilotChangeSet
+    {
+        if ($set->expires_at !== null && $set->expires_at->isPast()) {
+            $set->forceFill(['status' => CopilotChangeSet::STATUS_EXPIRED])->save();
+            throw new ApiException(422, 'change_expired', (string) __('ai.copilot.changes.expired'));
+        }
+        app(AiWallets::class)->ensureCanSpend(Tenant::query()->findOrFail($set->tenant_id), (float) ($set->spec['usd'] ?? 0));
+        $moved = CopilotChangeSet::query()->whereKey($set->id)->where('status', CopilotChangeSet::STATUS_ESTIMATE)
+            ->update(['status' => CopilotChangeSet::STATUS_RUNNING, 'decided_at' => now(), 'decided_by' => $user->id]);
+        if ($moved === 0) {
+            throw ApiException::conflict('change_decided', (string) __('ai.copilot.changes.decided'));
+        }
+        RunCopilotJob::dispatch($set->tenant_id, $set->id, $user->id);
+
+        return $set->refresh();
+    }
+
+    /** The costly job's work (inside the tenant). Never throws: a failure leaves the set failed (what ran is charged). */
+    public function work(CopilotChangeSet $set, User $user): void
+    {
+        if ($set->status !== CopilotChangeSet::STATUS_RUNNING) {
+            return;
+        }
+        $ctx = $this->context($set, $user);
+        try {
+            $action = $this->catalog->action($set->target, $ctx) ?? throw new \RuntimeException("Unknown action {$set->target}");
+            $result = $action->work($set, $ctx);
+            $set = app(ChangeSetProposer::class)->fromJob($set, $result);
+            $text = $set->status === CopilotChangeSet::STATUS_PROPOSED ? (string) __('ai.copilot.changes.job_ready') : (string) ($set->error ?? __('ai.copilot.changes.failed'));
+        } catch (Throwable $e) {
+            if (! $e instanceof ApiException && ! $e instanceof AiUnavailable) {
+                report($e);
+            }
+            $message = $e instanceof ApiException ? $e->getMessage() : ($e instanceof AiUnavailable ? (string) __('ai.copilot.unavailable') : (string) __('ai.copilot.changes.failed'));
+            $set->forceFill(['status' => CopilotChangeSet::STATUS_FAILED, 'error' => mb_substr($message, 0, 300)])->save();
+            $text = $message;
+        }
+        if ($set->chat_id !== null && CopilotChat::query()->whereKey($set->chat_id)->exists()) {
+            CopilotMessage::query()->create(['chat_id' => $set->chat_id, 'role' => 'assistant', 'text' => $text, 'blocks' => [['type' => 'change_set', 'id' => $set->id]], 'status' => 'done']);
+        }
+        $this->notify($set, $user);
     }
 
     /** Whether «تراجع» is offered: an applied, reversible change, within REVERT_HOURS, with something applied. */
@@ -136,6 +191,14 @@ final class ChangeSetApplier
         }
         $ctx = $this->context($set, $user);
         try {
+            $action = $this->catalog->action($set->target, $ctx);
+            if ($action !== null) {
+                $this->applyActionItems($set, $action, $ctx, $user);
+                $this->finish($set);
+                $this->report($set, $user);
+
+                return;
+            }
             $resource = $this->catalog->resource($set->target, $ctx) ?? throw new \RuntimeException("Unknown target {$set->target}");
             if ($set->kind === CopilotChangeSet::KIND_CREATE) {
                 $this->preparePublish($set, $resource, $ctx);
@@ -147,15 +210,46 @@ final class ChangeSetApplier
                     CopilotUpdated::notify($user->id, (int) $set->chat_id, null, $set->id);
                 });
             $resource->afterBulk($ctx);
-            $this->count($set);
-            $done = $set->applied_count > 0 || CopilotChangeItem::query()->where('change_set_id', $set->id)->where('status', CopilotChangeItem::KEPT)->exists();
-            $set->forceFill(['status' => $done ? CopilotChangeSet::STATUS_APPLIED : CopilotChangeSet::STATUS_FAILED, 'applied_at' => now(), 'error' => $done ? null : (string) __('ai.copilot.changes.nothing_applied')])->save();
+            $this->finish($set);
         } catch (Throwable $e) {
             report($e);
             $this->count($set);
             $set->forceFill(['status' => $set->applied_count > 0 ? CopilotChangeSet::STATUS_APPLIED : CopilotChangeSet::STATUS_FAILED, 'applied_at' => now(), 'error' => mb_substr((string) __('ai.copilot.changes.failed'), 0, 300)])->save();
         }
         $this->report($set, $user);
+    }
+
+    private function finish(CopilotChangeSet $set): void
+    {
+        $this->count($set);
+        $done = $set->applied_count > 0 || CopilotChangeItem::query()->where('change_set_id', $set->id)->where('status', CopilotChangeItem::KEPT)->exists();
+        $set->forceFill(['status' => $done ? CopilotChangeSet::STATUS_APPLIED : CopilotChangeSet::STATUS_FAILED, 'applied_at' => now(), 'error' => $done ? null : (string) __('ai.copilot.changes.nothing_applied')])->save();
+    }
+
+    /** An approval action's items, one by one (its own apply()), skipping those whose current values moved. */
+    private function applyActionItems(CopilotChangeSet $set, CopilotAction $action, CopilotContext $ctx, User $user): void
+    {
+        CopilotChangeItem::query()->where('change_set_id', $set->id)->where('status', CopilotChangeItem::PENDING)
+            ->orderBy('id')->chunkById(self::CHUNK, function (Collection $items) use ($set, $action, $ctx, $user): void {
+                foreach ($items as $item) {
+                    $current = $action->current($item, $ctx);
+                    if ($current !== null && $current != (array) $item->before) {
+                        $item->forceFill(['status' => CopilotChangeItem::SKIPPED_STALE, 'note' => (string) __('ai.copilot.changes.stale')])->save();
+
+                        continue;
+                    }
+                    try {
+                        DB::transaction(fn () => $action->apply($item, $set, $ctx));
+                        $item->forceFill(['status' => CopilotChangeItem::APPLIED, 'note' => null])->save();
+                    } catch (ValidationException $e) {
+                        $item->forceFill(['status' => CopilotChangeItem::FAILED, 'note' => mb_substr((string) (array_values(FormRequestRunner::errors($e))[0] ?? ''), 0, 200)])->save();
+                    } catch (ApiException $e) {
+                        $item->forceFill(['status' => CopilotChangeItem::FAILED, 'note' => mb_substr($e->getMessage(), 0, 200)])->save();
+                    }
+                }
+                $this->count($set);
+                CopilotUpdated::notify($user->id, (int) $set->chat_id, null, $set->id);
+            });
     }
 
     /** Publishing drafts = an update of the publish fields (so a later «تراجع» puts them back as drafts). */
@@ -226,7 +320,7 @@ final class ChangeSetApplier
             }
 
             try {
-                $request = FormRequestRunner::run((string) $resource->request(), [...$resource->body($row), ...$after], $ctx->user, $resource->routeParameter(), $row);
+                $request = FormRequestRunner::run((string) $resource->request(), [...$resource->body($row), ...$resource->requestData($after, $row)], $ctx->user, $resource->routeParameter(), $row);
                 $resource->persist($request, $row);
                 $item->forceFill(['status' => CopilotChangeItem::APPLIED, 'note' => null])->save();
             } catch (ValidationException $e) {
@@ -294,6 +388,9 @@ final class ChangeSetApplier
                     .($stale > 0 ? ' '.(string) __('ai.copilot.changes.stale_count', ['count' => $stale]) : '')
                     .($set->failed_count > 0 ? ' '.(string) __('ai.copilot.changes.failed_count', ['count' => $set->failed_count]) : '')
                 : (string) ($set->error ?? __('ai.copilot.changes.failed'));
+            if ($set->kind === CopilotChangeSet::KIND_ACTION && $set->status === CopilotChangeSet::STATUS_APPLIED) {
+                $text = (string) __('ai.copilot.changes.action_done', ['count' => $set->applied_count]);
+            }
             if ($set->keep_draft && $set->kind === CopilotChangeSet::KIND_CREATE) {
                 $text = (string) __('ai.copilot.changes.kept_done');
             }

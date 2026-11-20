@@ -71,6 +71,9 @@ final class CopilotTools
         if (array_filter($resources, fn ($r) => $r->writable()) !== []) {
             $names[] = 'update_records';
         }
+        if ($this->catalog->actions($ctx) !== []) {
+            $names[] = 'run_action';
+        }
 
         return $names;
     }
@@ -116,6 +119,10 @@ final class CopilotTools
                 'selector' => ['type' => 'object', 'description' => '{"ids": [...]} or {"filters": {...}} (like find_records; {} = all) or {"context": "entity" | "selection"} for what the merchant has open / selected.'],
                 'changes' => ['type' => 'object', 'description' => '{field: op}. Ops by type — money: set | add | percent (+ optional round {to: 1|5|10|50|100, mode: nearest|up|down}) | clear; int: set | add; bool / enum: set; text: set | replace {find, with} | prepend | append; ids: add | remove | set.'],
             ], ['resource', 'selector', 'changes']],
+            'run_action' => ['Run a catalog action (see describe for its args). Safe checks run at once; anything that changes the store becomes a card the merchant approves; AI / image work first shows its estimated cost and starts only on «ابدأ».', [
+                'action' => ['type' => 'string', 'description' => 'Catalog action key, e.g. "products.write_content".'],
+                'args' => ['type' => 'object'],
+            ], ['action']],
             'open_page' => ['Give the merchant a button to a page: the AI designer (to design sections or pages), or a dashboard page. Use it for design requests and for anything you can\'t do here (payments, account, password, domain make-primary / delete).', [
                 'target' => ['type' => 'string', 'enum' => ['designer', 'page'], 'description' => 'designer = the AI designer in the Builder; page = a dashboard page.'],
                 'resource' => ['type' => 'string', 'description' => 'page: a catalog resource key whose page to open.'],
@@ -162,6 +169,7 @@ final class CopilotTools
                 'export_xlsx' => $this->exportXlsx($args, $ctx),
                 'create_records' => $this->createRecords($args, $ctx),
                 'update_records' => $this->updateRecords($args, $ctx),
+                'run_action' => $this->runAction($args, $ctx),
                 'open_page' => $this->openPage($args, $ctx),
             };
         } catch (CopilotValidationError $e) {
@@ -321,6 +329,21 @@ final class CopilotTools
         $proposal = $this->proposer->update($resource, is_array($args['selector'] ?? null) ? $args['selector'] : [], is_array($args['changes'] ?? null) ? $args['changes'] : [], $ctx);
 
         return ToolResult::ok($this->presenter->forModel($proposal['set'], $proposal['unchanged']));
+    }
+
+    /** @param array<string, mixed> $args */
+    private function runAction(array $args, CopilotContext $ctx): ToolResult
+    {
+        $action = $this->catalog->action((string) ($args['action'] ?? ''), $ctx);
+        if ($action === null) {
+            return ToolResult::error('Unknown action. Known: '.implode(', ', array_keys($this->catalog->actions($ctx))).'.');
+        }
+        $actionArgs = is_array($args['args'] ?? null) ? $args['args'] : [];
+        if (! $action->approval()) {
+            return $action->run($actionArgs, $ctx);
+        }
+
+        return ToolResult::ok($this->presenter->forModel($this->proposer->action($action, $actionArgs, $ctx)));
     }
 
     /** @param array<string, mixed> $args */

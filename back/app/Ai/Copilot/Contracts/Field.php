@@ -48,6 +48,9 @@ final class Field
 
     public bool $nullable = false;
 
+    /** An ids field of media (images): previews show the pictures. */
+    public bool $media = false;
+
     /** Shown in the merchant's tables and files (false for helper fields like category_ids). */
     public bool $inTable = true;
 
@@ -212,6 +215,14 @@ final class Field
     public function labels(array $labels): self
     {
         $this->labels = $labels;
+
+        return $this;
+    }
+
+    /** An ids field holding images (media ids): previews show thumbnails. */
+    public function images(): self
+    {
+        $this->media = true;
 
         return $this;
     }

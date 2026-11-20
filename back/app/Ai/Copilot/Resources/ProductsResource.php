@@ -60,6 +60,10 @@ final class ProductsResource extends CopilotResource
                 ->names(fn (array $ids) => Category::query()->whereIn('id', $ids)->pluck('name')->all()),
             Field::textarea('short_description')->label('وصف قصير')->notInTable()->editable(),
             Field::textarea('description')->label('الوصف')->notInTable()->editable(),
+            Field::text('seo_title')->label('عنوان SEO')->notInTable()->editable()->using(fn (Model $p) => ((array) ($p->getAttribute('seo') ?? []))['title'] ?? null),
+            Field::text('seo_description')->label('وصف SEO')->notInTable()->editable()->using(fn (Model $p) => ((array) ($p->getAttribute('seo') ?? []))['description'] ?? null),
+            Field::ids('media_ids')->label('الصور')->images()->notInTable()->editable()
+                ->using(fn (Model $p) => $p->relationLoaded('media') ? $p->media->pluck('id')->map(fn ($id) => (int) $id)->all() : []),
             Field::date('created_at')->label('اتضاف')->filterable()->sortable(),
         ];
     }
@@ -86,7 +90,7 @@ final class ProductsResource extends CopilotResource
 
     public function with(): array
     {
-        return ['categories:id,name'];
+        return ['categories:id,name', 'media'];
     }
 
     public function request(): ?string
@@ -110,6 +114,24 @@ final class ProductsResource extends CopilotResource
             'sku' => $row->getAttribute('sku'),
             'is_active' => (bool) $row->getAttribute('is_active'),
         ];
+    }
+
+    /** seo_title / seo_description go into the product's seo (its other SEO keys kept). */
+    public function requestData(array $after, Model $row): array
+    {
+        $after = parent::requestData($after, $row);
+        if (array_key_exists('seo_title', $after) || array_key_exists('seo_description', $after)) {
+            $seo = (array) ($row->getAttribute('seo') ?? []);
+            foreach (['seo_title' => 'title', 'seo_description' => 'description'] as $field => $key) {
+                if (array_key_exists($field, $after)) {
+                    $seo[$key] = $after[$field];
+                    unset($after[$field]);
+                }
+            }
+            $after['seo'] = $seo;
+        }
+
+        return $after;
     }
 
     public function persist(FormRequest $validated, ?Model $row): Model

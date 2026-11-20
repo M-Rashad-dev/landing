@@ -14,10 +14,9 @@ use App\Http\Resources\ProductImportFailureResource;
 use App\Imports\Products\ColumnMapper;
 use App\Imports\Products\ImportFiles;
 use App\Imports\Products\ProductImporter;
-use App\Jobs\ProcessProductImport;
+use App\Imports\Products\StartImport;
 use App\Models\ProductImport;
 use App\Models\ProductImportFailure;
-use App\Tenancy\Tenancy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -53,24 +52,9 @@ final class ProductImportController extends Controller
         return $this->ok($this->row($productImport, $productImport->status === ImportStatus::Uploaded));
     }
 
-    public function start(ProductImportStartRequest $request, ProductImport $productImport): JsonResponse
+    public function start(ProductImportStartRequest $request, ProductImport $productImport, StartImport $start): JsonResponse
     {
-        if ($productImport->status !== ImportStatus::Uploaded || $productImport->file_path === null) {
-            throw ApiException::conflict('not_ready', __('imports.not_ready'));
-        }
-        $busy = ProductImport::query()->whereIn('status', [ImportStatus::Queued->value, ImportStatus::Processing->value])->exists();
-        if ($busy) {
-            throw ApiException::conflict('busy', __('imports.busy'));
-        }
-
-        $productImport->forceFill([
-            'mapping' => $request->mapping(),
-            'options' => [...($productImport->options ?? []), ...$request->validated('options'), 'visible' => (bool) $request->validated('options.visible')],
-            'status' => ImportStatus::Queued,
-        ])->save();
-        ProcessProductImport::dispatch((int) Tenancy::id(), $productImport->id)->afterCommit();
-
-        return $this->ok($this->row($productImport->refresh(), false));
+        return $this->ok($this->row($start->handle($productImport, $request->mapping(), (array) $request->validated('options')), false));
     }
 
     /** Stops after the product being saved now; what was saved stays. */

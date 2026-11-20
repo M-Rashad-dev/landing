@@ -12,6 +12,8 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\CopilotExportRequest;
 use App\Http\Requests\Dashboard\CopilotMessageRequest;
+use App\Http\Requests\Dashboard\ProductImportUploadRequest;
+use App\Imports\Products\ImportFiles;
 use App\Models\CopilotChat;
 use App\Models\CopilotExport;
 use App\Models\Tenant;
@@ -61,9 +63,21 @@ final class CopilotController extends Controller
             (string) $request->validated('text'),
             $request->mediaIds(),
             $request->context(),
+            $request->importId(),
         );
 
         return response()->json(['data' => $this->chats->message($pending)], 202);
+    }
+
+    /**
+     * A sheet attached in the chat: uploaded with the product importer's own code (its column guess), then the message
+     * carries its import_id so the copilot can import it (products.import).
+     */
+    public function attachSheet(ProductImportUploadRequest $request, ImportFiles $files): JsonResponse
+    {
+        $import = $files->upload($request->file('file'), $request->user()?->getAuthIdentifier());
+
+        return $this->created(['import_id' => $import->id, 'file_name' => $import->file_name, 'rows' => (int) $import->total_rows]);
     }
 
     /** «نزّل إكسيل» under a table card: builds the file of the same source (free, no AI). */

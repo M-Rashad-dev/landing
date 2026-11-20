@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Ai\Copilot\Changes;
 
+use App\Ai\AiWallets;
+use App\Ai\Copilot\Contracts\CopilotAction;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
@@ -112,11 +114,7 @@ final class ChangeSetProposer
             throw new CopilotToolError("{$resource->key()} can't be changed here.");
         }
         $fields = $this->changedFields($resource, $changes);
-        $open = CopilotChangeSet::query()->where('status', CopilotChangeSet::STATUS_PROPOSED)
-            ->whereIn('kind', [CopilotChangeSet::KIND_UPDATE, CopilotChangeSet::KIND_ACTION])->count();
-        if ($open >= CopilotChangeSet::MAX_OPEN) {
-            throw new CopilotToolError((string) __('ai.copilot.changes.too_many_open'));
-        }
+        $this->ensureRoom();
 
         $ids = Selector::ids($resource, $selector, $ctx);
         if ($ids === []) {
@@ -178,6 +176,134 @@ final class ChangeSetProposer
         $ctx->addBlock(['type' => 'change_set', 'id' => $set->id]);
 
         return ['set' => $set, 'unchanged' => $unchanged];
+    }
+
+    /**
+     * An action that needs the merchant: a costly one becomes an estimate card («ابدأ»); any other a preview card
+     * («نفّذ») with its items and side effects.
+     *
+     * @param  array<string, mixed>  $args
+     */
+    public function action(CopilotAction $action, array $args, CopilotContext $ctx): CopilotChangeSet
+    {
+        $this->ensureRoom();
+        $base = ['chat_id' => $ctx->chat?->id, 'message_id' => $ctx->message?->id, 'user_id' => $ctx->user?->id, 'target' => $action->key()];
+
+        if ($action->costly()) {
+            $estimate = $action->estimate($args, $ctx);
+            if ($estimate->count === 0) {
+                throw new CopilotToolError('Nothing to work on: no record matches.');
+            }
+            $set = CopilotChangeSet::query()->create($base + [
+                'kind' => CopilotChangeSet::KIND_JOB,
+                'summary' => mb_substr($estimate->summary, 0, 255),
+                'spec' => ['args' => $args, 'usd' => $estimate->usd, ...$estimate->spec],
+                'status' => CopilotChangeSet::STATUS_ESTIMATE,
+                'reversible' => true,
+                'estimate_cents' => app(AiWallets::class)->priceCents($estimate->usd),
+                'items_count' => $estimate->count,
+                'expires_at' => now()->addHours(CopilotChangeSet::PROPOSAL_HOURS),
+            ]);
+            $ctx->addBlock(['type' => 'change_set', 'id' => $set->id]);
+
+            return $set;
+        }
+
+        $preview = $action->preview($args, $ctx);
+        $pending = array_filter($preview->items, fn (array $i) => ($i['status'] ?? CopilotChangeItem::PENDING) === CopilotChangeItem::PENDING);
+        if ($pending === []) {
+            $reasons = array_values(array_unique(array_filter(array_column($preview->items, 'note'))));
+            throw new CopilotToolError('Nothing to do'.($reasons !== [] ? ': '.implode(' / ', array_slice($reasons, 0, 3)) : '.'));
+        }
+        $set = DB::transaction(function () use ($action, $preview, $base, $pending): CopilotChangeSet {
+            $set = CopilotChangeSet::query()->create($base + [
+                'kind' => CopilotChangeSet::KIND_ACTION,
+                'summary' => mb_substr($preview->summary, 0, 255),
+                'spec' => $preview->spec,
+                'status' => CopilotChangeSet::STATUS_PROPOSED,
+                'reversible' => $action->reversible(),
+                'side_effects' => $preview->sideEffects !== [] ? $preview->sideEffects : null,
+                'items_count' => count($preview->items),
+                'skipped_count' => count($preview->items) - count($pending),
+                'expires_at' => now()->addHours(CopilotChangeSet::PROPOSAL_HOURS),
+            ]);
+            $this->insertItems($set, array_map(fn (array $i) => [
+                'entity_type' => $i['entity_type'],
+                'entity_id' => $i['entity_id'],
+                'label' => $i['label'],
+                'before' => $i['before'] ?? [],
+                'after' => $i['after'] ?? [],
+                'status' => $i['status'] ?? CopilotChangeItem::PENDING,
+                'note' => isset($i['note']) ? mb_substr((string) $i['note'], 0, 200) : null,
+            ], $preview->items));
+
+            return $set;
+        });
+        $ctx->addBlock(['type' => 'change_set', 'id' => $set->id]);
+
+        return $set;
+    }
+
+    /**
+     * Saves a costly job's result as a normal update of its resource, waiting for «نفّذ».
+     */
+    public function fromJob(CopilotChangeSet $set, JobResult $result): CopilotChangeSet
+    {
+        $pending = array_filter($result->items, fn (array $i) => ($i['status'] ?? CopilotChangeItem::PENDING) === CopilotChangeItem::PENDING);
+        DB::transaction(function () use ($set, $result, $pending): void {
+            $this->insertItems($set, array_map(fn (array $i) => [
+                'entity_type' => $result->target,
+                'entity_id' => $i['entity_id'],
+                'label' => $i['label'],
+                'before' => $i['before'],
+                'after' => $i['after'],
+                'status' => $i['status'] ?? CopilotChangeItem::PENDING,
+                'note' => isset($i['note']) ? mb_substr((string) $i['note'], 0, 200) : null,
+            ], $result->items));
+            $set->forceFill([
+                'kind' => CopilotChangeSet::KIND_UPDATE,
+                'target' => $result->target,
+                'summary' => mb_substr($result->summary, 0, 255),
+                'status' => $pending === [] ? CopilotChangeSet::STATUS_FAILED : CopilotChangeSet::STATUS_PROPOSED,
+                'items_count' => count($result->items),
+                'skipped_count' => count($result->items) - count($pending),
+                'expires_at' => now()->addHours(CopilotChangeSet::PROPOSAL_HOURS),
+                'error' => $pending === [] ? (string) __('ai.copilot.changes.job_empty') : null,
+            ])->save();
+        });
+
+        return $set->refresh();
+    }
+
+    private function ensureRoom(): void
+    {
+        $open = CopilotChangeSet::query()->whereIn('status', [CopilotChangeSet::STATUS_PROPOSED, CopilotChangeSet::STATUS_ESTIMATE])
+            ->whereIn('kind', [CopilotChangeSet::KIND_UPDATE, CopilotChangeSet::KIND_ACTION, CopilotChangeSet::KIND_JOB])->count();
+        if ($open >= CopilotChangeSet::MAX_OPEN) {
+            throw new CopilotToolError((string) __('ai.copilot.changes.too_many_open'));
+        }
+    }
+
+    /** @param list<array{entity_type: string, entity_id: int|null, label: string, before: array<string, mixed>, after: array<string, mixed>, status: string, note: string|null}> $items */
+    private function insertItems(CopilotChangeSet $set, array $items): void
+    {
+        $now = now();
+        foreach (array_chunk($items, 500) as $chunk) {
+            // One insert per 500 records (tenant_id set here: insert() skips model events).
+            CopilotChangeItem::query()->insert(array_map(fn (array $i) => [
+                'tenant_id' => $set->tenant_id,
+                'change_set_id' => $set->id,
+                'entity_type' => $i['entity_type'],
+                'entity_id' => $i['entity_id'],
+                'label' => mb_substr($i['label'], 0, 160),
+                'before' => json_encode($i['before'], JSON_UNESCAPED_UNICODE),
+                'after' => json_encode($i['after'], JSON_UNESCAPED_UNICODE),
+                'status' => $i['status'],
+                'note' => $i['note'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $chunk));
+        }
     }
 
     /**
