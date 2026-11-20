@@ -97,7 +97,7 @@ it('answers a message, charges the reply once and titles the chat', function () 
     expect($sent['model'])->toBe('anthropic/claude-sonnet-5.5')
         ->and($sent['options']['cache'])->toBeTrue()
         ->and($sent['options']['effort'])->toBe('low')
-        ->and(collect($sent['options']['tools'])->pluck('function.name')->all())->toBe(['help_search', 'store_overview', 'open_page'])
+        ->and(collect($sent['options']['tools'])->pluck('function.name')->all())->toContain('help_search', 'store_overview', 'open_page')
         ->and($sent['messages'][0]['content'])->toContain('MKSAB_AI_COPILOT')->toContain('# CATALOG')
         // The new request: the context block, the merchant's words, then the reminder last.
         ->and(end($sent['messages'])['content'][1]['text'])->toBe('أهلا يا مساعد')

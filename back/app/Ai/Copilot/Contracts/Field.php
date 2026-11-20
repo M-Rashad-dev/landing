@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Ai\Copilot\Contracts;
 
 use BackedEnum;
+use Closure;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
@@ -52,6 +54,12 @@ final class Field
     /** @var list<string> */
     public array $values = [];
 
+    /** @var array<string, string> enum value → Arabic label (from the enum's label()) */
+    public array $labels = [];
+
+    /** @var (Closure(Model): mixed)|null a computed value (not a column: never filtered, sorted or edited) */
+    public ?Closure $using = null;
+
     private function __construct(public readonly string $key, public readonly string $type)
     {
         if (! preg_match('/^[a-z][a-z0-9_]{0,59}$/', $key)) {
@@ -93,6 +101,11 @@ final class Field
         $field->values = is_string($values)
             ? array_map(fn (BackedEnum $case) => (string) $case->value, $values::cases())
             : array_values(array_map('strval', $values));
+        if (is_string($values) && method_exists($values, 'label')) {
+            foreach ($values::cases() as $case) {
+                $field->labels[(string) $case->value] = (string) $case->label();
+            }
+        }
 
         return $field;
     }
@@ -173,6 +186,22 @@ final class Field
         return $this;
     }
 
+    /** @param Closure(Model): mixed $value */
+    public function using(Closure $value): self
+    {
+        $this->using = $value;
+
+        return $this;
+    }
+
+    /** @param array<string, string> $labels */
+    public function labels(array $labels): self
+    {
+        $this->labels = $labels;
+
+        return $this;
+    }
+
     public function nullable(): self
     {
         $this->nullable = true;
@@ -204,9 +233,10 @@ final class Field
             'type' => $this->type,
             'label' => $this->label,
             'values' => $this->values ?: null,
+            'labels' => $this->labels ?: null,
             'nullable' => $this->nullable ?: null,
-            'filterable' => $this->filterable ?: null,
-            'sortable' => $this->sortable ?: null,
+            'filterable' => $this->filterable && $this->using === null ? true : null,
+            'sortable' => $this->sortable && $this->using === null ? true : null,
             'searchable' => $this->searchable ?: null,
             'ops' => $this->editable ? $this->ops() : null,
         ], fn ($v) => $v !== null);

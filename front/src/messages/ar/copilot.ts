@@ -34,4 +34,15 @@ export const copilot = {
   errors: {
     unavailable: "المساعد مش متاح دلوقتي",
   },
+  table: {
+    rows: (shown: number, total: number) => (shown < total ? `أول ${shown} من ${total}` : `${total} صف`),
+    download: "نزّل إكسيل",
+    openPage: "افتح الصفحة",
+    showAll: "عرض الكل",
+    showLess: "عرض أقل",
+  },
+  file: {
+    download: "تحميل",
+    rows: (n: number) => `${n} صف · متاح 24 ساعة`,
+  },
 } as const;

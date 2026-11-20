@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Ai\Copilot\Contracts;
 
 use App\Ai\Copilot\CopilotContext;
+use App\Ai\Copilot\Support\CopilotToolError;
 use App\Jobs\RevalidateTenantHosts;
+use App\Support\CairoTime;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +44,71 @@ abstract class CopilotResource implements CopilotCapability
         return $this->model()::query();
     }
 
+    /**
+     * Filters of this resource beyond its fields, by name (key => JSON Schema), when the dashboard already has them
+     * (orders: q / status / source…, products: status tabs). They are applied by base(), the same code as the page.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function namedFilters(): array
+    {
+        return [];
+    }
+
+    /**
+     * The query with the named filters applied (default: no named filters). Field filters and the sort go on top.
+     *
+     * @param  array<string, mixed>  $named
+     */
+    public function base(array $named, CopilotContext $ctx): Builder
+    {
+        return $this->query($ctx);
+    }
+
+    /**
+     * A named filter's value checked against its allowed list (null when not given).
+     *
+     * @param  array<string, mixed>  $named
+     * @param  list<string>  $allowed
+     */
+    protected static function pick(array $named, string $key, array $allowed): ?string
+    {
+        if (! isset($named[$key]) || $named[$key] === '') {
+            return null;
+        }
+        $value = is_scalar($named[$key]) ? (string) $named[$key] : '';
+        if (! in_array($value, $allowed, true)) {
+            throw new CopilotToolError("{$key} is one of: ".implode(', ', $allowed).'.');
+        }
+
+        return $value;
+    }
+
+    /** @param array<string, mixed> $named */
+    protected static function pickId(array $named, string $key): ?int
+    {
+        if (! isset($named[$key]) || $named[$key] === '') {
+            return null;
+        }
+        if (! is_numeric($named[$key]) || (int) $named[$key] < 1) {
+            throw new CopilotToolError("{$key} must be an id.");
+        }
+
+        return (int) $named[$key];
+    }
+
+    /** Whether base() already sorts (a named «sort» filter): then the default newest-first order is not added. */
+    public function sortsItself(): bool
+    {
+        return array_key_exists('sort', $this->namedFilters());
+    }
+
+    /** @return list<string> relations loaded for the rows shown */
+    public function with(): array
+    {
+        return [];
+    }
+
     /** The name the merchant sees for a row («حذاء رياضي»). */
     public function labelOf(Model $row): string
     {
@@ -73,17 +141,61 @@ abstract class CopilotResource implements CopilotCapability
         return $out;
     }
 
-    /** One field's value in a plain shape (money as «199.00», dates Y-m-d H:i, enums as their value). */
+    /** One field's value in a plain shape (money as «199.00», Cairo dates Y-m-d H:i, enums as their value). */
     public function value(Model $row, Field $field): mixed
     {
-        $value = $row->getAttribute($field->column);
+        $value = $field->using !== null ? ($field->using)($row) : $row->getAttribute($field->column);
 
         return match (true) {
             $value instanceof BackedEnum => $value->value,
-            $value instanceof DateTimeInterface => $value->format('Y-m-d H:i'),
-            $field->type === 'money' && $value !== null => number_format((float) $value, 2, '.', ''),
+            $value instanceof DateTimeInterface => CarbonImmutable::instance($value)->setTimezone(CairoTime::ZONE)->format('Y-m-d H:i'),
+            $field->type === 'money' && $value !== null && is_numeric($value) => number_format((float) $value, 2, '.', ''),
             default => $value,
         };
+    }
+
+    /** The value as the merchant reads it in tables and files: enum labels, «نعم / لا», lists joined. */
+    public function cell(Model $row, Field $field): string
+    {
+        $value = $this->value($row, $field);
+
+        return match (true) {
+            $value === null => '',
+            $field->type === 'bool' => $value ? 'نعم' : 'لا',
+            $field->type === 'enum' => $field->labels[(string) $value] ?? (string) $value,
+            is_array($value) => implode('، ', array_map(fn ($v) => is_scalar($v) ? (string) $v : '', $value)),
+            is_scalar($value) => (string) $value,
+            default => '',
+        };
+    }
+
+    /**
+     * The merchant's table / file columns: every field (personal data included: it never reaches the model).
+     *
+     * @return list<array{key: string, label: string, kind: string}>
+     */
+    public function columns(): array
+    {
+        return array_map(fn (Field $f) => ['key' => $f->key, 'label' => $f->label, 'kind' => $f->type], $this->fields());
+    }
+
+    /**
+     * One row for the merchant's table / file.
+     *
+     * @return array<string, string|int>
+     */
+    public function tableRow(Model $row): array
+    {
+        $out = ['id' => (int) $row->getKey()];
+        foreach ($this->fields() as $field) {
+            $out[$field->key] = $this->cell($row, $field);
+        }
+        $url = $this->url($row);
+        if ($url !== null) {
+            $out['_url'] = $url;
+        }
+
+        return $out;
     }
 
     /** @return array<string, Field> */
@@ -213,6 +325,7 @@ abstract class CopilotResource implements CopilotCapability
             'label' => $this->label(),
             'summary' => $this->summary(),
             'fields' => array_map(fn (Field $f) => $f->describe(), $fields),
+            'named_filters' => $this->namedFilters() !== [] ? $this->namedFilters() : null,
             'can_create' => $this->creatable(),
             'can_update' => $this->writable() && array_filter($fields, fn (Field $f) => $f->editable) !== [],
         ];

@@ -895,3 +895,36 @@ change-set (each status and kind), estimate, import progress · history page · 
 - 2026-11-20: **1.10 (Stage 1 complete):** all gates green (back 1016 tests + Pint; front lint, typecheck, 317 tests,
   build). Pint also fixed formatting left in the designer files. Committed «AI copilot stage 1: engine and chat»,
   pushed. Not checked in a browser yet (the owner reviews). **Next: Stage 2** (wait for «كمّل»).
+- 2026-11-20: Owner said «كمّل»: Stage 2 started.
+- 2026-11-20: **2.1 done:** `Support/RecordQuery` (field filters only on `filterable` fields with the operators of their
+  type, `q` over `searchable` fields, `sort` on `sortable` ones, named filters handed to the resource), `Support/Period`
+  (Cairo presets, Egyptian week from Saturday, ≤ 366 days), `Support/CopilotToolError`. Masking = `hidden()` fields
+  never reach the model + customers' first names only. Contract additions: `namedFilters()` / `base()` (the page's own
+  filter code), `Field::using()` (computed), enum `labels`, `cell()` / `columns()` / `tableRow()` for the merchant.
+- 2026-11-20: **2.2 done (differs from the plan):** `App\Support\OrderFilters` already existed (the orders resource feeds
+  it the page's query string). Customers' list code moved to `App\Support\CustomerFilters` (the controller delegates).
+  **`csvSafe` not moved:** `XlsxWriter` writes every cell as an inline string, so no formula can ever run in a copilot
+  file; `csvSafe` stays for the orders CSV only.
+- 2026-11-20: **2.3 done (differs from the plan):** the dashboard home computes the all-orders sales, so its numbers
+  moved to `App\Analytics\SalesFigures` (`HomeController` delegates); the store analytics moved to
+  `App\Analytics\StoreTraffic` (`StoreAnalyticsController` delegates). Their tests stayed green. Reports:
+  `sales_summary`, `top_products`, `sales_by_governorate`, `low_stock` (ProductList tabs), `store_traffic` (store
+  only), `repeat_customers` (CustomerFilters), `promotions_performance`, `landing_pages` (PageAnalytics, needs
+  `AdvancedAnalytics` like its page).
+- 2026-11-20: **2.4 done:** read resources `products` (ProductList named filters), `orders` (OrderFilters named
+  filters; customer name / phones / address hidden), `customers` (CustomerFilters; phone / email / address hidden),
+  `categories` (store only), `discount_codes`, `offers`, `upsells` (needs `Upsells`), `shipping_companies`,
+  `shipping_offers`.
+- 2026-11-20: **2.5 done:** tools `find_records` (≤ 50 rows to the model, `show` → table card ≤ 200 rows with the export
+  source), `run_report`, `export_xlsx`; `Support/ExportBuilder` (≤ 20,000 rows, local disk
+  `copilot/exports/{tenant}/{token}.xlsx`, 24 h); endpoints `POST ai/copilot/exports` (the table's «نزّل إكسيل»,
+  `throttle:orders-export`) and `GET ai/copilot/exports/{token}`; command `copilot:prune` (daily, audited
+  `withoutTenant`). Prompt: when to use reports vs lists vs files, Egyptian period words.
+- 2026-11-20: **2.6 done:** front `blocks.tsx` table card (8 rows then «عرض الكل», row links, «نزّل إكسيل», «افتح الصفحة»)
+  and Excel file card; `api.ts` block types + `buildCopilotExport` / `copilotExportUrl`.
+- 2026-11-20: **2.7 done:** back `tests/Feature/Ai/Copilot/CopilotReadTest.php` (9: reports equal the home / analytics /
+  products pages, filters + errors, Cairo dates, hidden personal data, Excel file + download + other store 404 +
+  expiry + prune, table download endpoint, chat end to end); front 2 more tests. **Next: 2.8** (gates, commit, push,
+  report).
+- 2026-11-20: **2.8 (Stage 2 complete):** gates green (back 1025 tests + Pint; front lint, typecheck, 319 tests, build).
+  Committed «AI copilot stage 2: reading the store», pushed. **Next: Stage 3** (wait for «كمّل»).

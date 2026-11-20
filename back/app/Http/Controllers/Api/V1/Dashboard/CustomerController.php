@@ -13,7 +13,7 @@ use App\Http\Resources\OrderResource;
 use App\Models\AbandonedLead;
 use App\Models\BlockedCustomer;
 use App\Models\Customer;
-use App\Services\PhoneNormalizer;
+use App\Support\CustomerFilters;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -29,9 +29,9 @@ final class CustomerController extends Controller
 {
     use RespondsWithJson;
 
-    private const SEGMENTS = ['all', 'repeat', 'risky', 'blocked'];
+    private const SEGMENTS = CustomerFilters::SEGMENTS;
 
-    private const SORTS = ['latest', 'orders', 'spent', 'name'];
+    private const SORTS = CustomerFilters::SORTS;
 
     public function index(Request $request): JsonResponse
     {
@@ -44,12 +44,7 @@ final class CustomerController extends Controller
         $this->search($query, trim((string) $request->query('q', '')));
         $this->segment($query, (string) $request->query('segment', 'all'));
 
-        match ((string) $request->query('sort', 'latest')) {
-            'orders' => $query->orderByDesc('orders_count')->orderByDesc('id'),
-            'spent' => $query->orderByDesc('spent')->orderByDesc('id'),
-            'name' => $query->orderBy('name')->orderBy('id'),
-            default => $query->orderByDesc('last_order_at')->orderByDesc('id'),
-        };
+        CustomerFilters::sort($query, (string) $request->query('sort', 'latest'));
 
         $page = $query->paginate($this->perPage($request));
         $blocked = $this->blockedPhones($page->getCollection()->pluck('phone')->all());
@@ -131,41 +126,19 @@ final class CustomerController extends Controller
      */
     private function withStats(Builder $query): Builder
     {
-        return $query
-            ->withCount([
-                'orders',
-                'orders as delivered_count' => fn ($q) => $q->where('status', OrderStatus::Delivered),
-                'orders as open_count' => fn ($q) => $q->whereIn('status', [OrderStatus::New, OrderStatus::Confirmed, OrderStatus::Shipped]),
-                'orders as bad_count' => fn ($q) => $q->whereIn('status', [OrderStatus::Returned, OrderStatus::Damaged, OrderStatus::Fake]),
-            ])
-            ->withSum(['orders as spent' => fn ($q) => $q->where('status', OrderStatus::Delivered)], 'total');
+        return CustomerFilters::withStats($query);
     }
 
     /** @param Builder<Customer> $query */
     private function search(Builder $query, string $q): void
     {
-        if ($q === '') {
-            return;
-        }
-        $digits = (string) preg_replace('/\D+/', '', strtr($q, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']));
-        $query->where(function (Builder $w) use ($q, $digits): void {
-            $w->where('name', 'like', '%'.addcslashes($q, '%_\\').'%');
-            if ($digits !== '') {
-                $phone = app(PhoneNormalizer::class)->normalize($digits);
-                $w->orWhere('phone', 'like', '%'.($phone !== null ? substr($phone, 3) : ltrim($digits, '0')).'%');
-            }
-        });
+        CustomerFilters::search($query, $q);
     }
 
     /** @param Builder<Customer> $query */
     private function segment(Builder $query, string $segment): void
     {
-        match ($segment) {
-            'repeat' => $query->having('orders_count', '>=', 2),
-            'risky' => $query->having('bad_count', '>', 0),
-            'blocked' => $query->whereIn('phone', BlockedCustomer::query()->where('type', BlockType::Phone)->select('value')),
-            default => null,
-        };
+        CustomerFilters::segment($query, $segment);
     }
 
     /**

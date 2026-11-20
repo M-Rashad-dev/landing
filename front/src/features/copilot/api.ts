@@ -6,9 +6,16 @@ import { api } from "@/lib/api/client";
 import { useRealtime } from "@/lib/realtime/realtime";
 
 /** A card under an assistant reply, built by the server (docs/plans/ai-copilot.md §3.8). Unknown types render nothing. */
-export type CopilotBlock =
-  | { type: "handoff"; target: "designer" | "page"; label: string; href: string }
-  | { type: string; [key: string]: unknown };
+export type CopilotTableColumn = { key: string; label: string; kind: string };
+
+/** The source a table came from: «نزّل إكسيل» builds the same list / report on the server. */
+export type CopilotExportSource = { resource: string; filters?: Record<string, unknown>; sort?: string | null } | { report: string; params?: Record<string, unknown> };
+
+export type CopilotHandoffBlock = { type: "handoff"; target: "designer" | "page"; label: string; href: string };
+export type CopilotTableBlock = { type: "table"; title: string; columns: CopilotTableColumn[]; rows: Record<string, string | number | null>[]; total: number; export?: CopilotExportSource; link?: string | null };
+export type CopilotExportBlock = { type: "export"; token: string; filename: string; rows: number };
+
+export type CopilotBlock = CopilotHandoffBlock | CopilotTableBlock | CopilotExportBlock | { type: string; [key: string]: unknown };
 
 export type CopilotMessage = {
   id: number;
@@ -81,6 +88,14 @@ export function sendCopilotMessage(chatId: number, body: { text: string; media_i
 export function newCopilotChat(): Promise<CopilotChat> {
   return api<CopilotChat>("/dashboard/ai/copilot/chat/new", { method: "POST" });
 }
+
+/** Builds the Excel file of a table's source (free, no AI). */
+export function buildCopilotExport(source: CopilotExportSource, filename?: string): Promise<CopilotExportBlock> {
+  return api<CopilotExportBlock>("/dashboard/ai/copilot/exports", { method: "POST", body: { source, filename } });
+}
+
+/** A copilot file, downloaded through the BFF with the session. */
+export const copilotExportUrl = (token: string) => `/api/bff/dashboard/ai/copilot/exports/${token}`;
 
 export function olderCopilotMessages(chatId: number, before: number): Promise<CopilotChat> {
   return api<CopilotChat>(`/dashboard/ai/copilot/chats/${chatId}`, { query: { before } });

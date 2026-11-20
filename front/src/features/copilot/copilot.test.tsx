@@ -127,6 +127,50 @@ describe("copilot chat", () => {
     expect(screen.getByRole("link", { name: t.topUp }).getAttribute("href")).toBe("/dashboard/settings/ai");
   });
 
+  it("draws a table card with links, more rows and an Excel download of the same source", async () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `منتج ${i + 1}`, price: "199.00", _url: `/dashboard/catalog/products/${i + 1}` }));
+    chat = {
+      ...chat,
+      messages: [
+        message({
+          id: 2,
+          text: "دي منتجاتك.",
+          blocks: [{ type: "table", title: "المنتجات", columns: [{ key: "name", label: "الاسم", kind: "text" }, { key: "price", label: "السعر", kind: "money" }], rows, total: 10, export: { resource: "products", filters: {} }, link: "/dashboard/catalog/products" }],
+        }),
+      ],
+    };
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    const fetchMock = vi.mocked(fetch);
+    const base = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation(async (input, init) => {
+      if (String(input).includes("/dashboard/ai/copilot/exports")) {
+        sent.push({ url: String(input), body: JSON.parse(String(init?.body ?? "{}")) });
+        return Response.json({ data: { type: "export", token: "a".repeat(48), filename: "المنتجات.xlsx", rows: 10 } });
+      }
+      return base!(input as string, init);
+    });
+
+    show(<CopilotChat userId={1} />);
+    expect((await screen.findByRole("link", { name: "منتج 1" })).getAttribute("href")).toBe("/dashboard/catalog/products/1");
+    expect(screen.queryByText("منتج 9")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: t.table.showAll }));
+    expect(screen.getByText("منتج 10")).toBeTruthy();
+    expect(screen.getAllByText(/199/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: t.table.download }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(`/api/bff/dashboard/ai/copilot/exports/${"a".repeat(48)}`));
+    expect(sent.at(-1)?.body).toEqual({ source: { resource: "products", filters: {} }, filename: "المنتجات" });
+  });
+
+  it("draws an Excel file card as a download link", async () => {
+    chat = { ...chat, messages: [message({ id: 2, text: "الملف جاهز.", blocks: [{ type: "export", token: "b".repeat(48), filename: "طلبات-نوفمبر.xlsx", rows: 120 }] })] };
+    show(<CopilotChat userId={1} />);
+    const link = (await screen.findByText("طلبات-نوفمبر.xlsx")).closest("a");
+    expect(link?.getAttribute("href")).toBe(`/api/bff/dashboard/ai/copilot/exports/${"b".repeat(48)}`);
+    expect(screen.getByText(t.file.rows(120))).toBeTruthy();
+  });
+
   it("shows a failed reply with a retry", async () => {
     chat = { ...chat, messages: [message({ id: 1, role: "user", text: "سؤال" }), message({ id: 2, status: "failed", error: "المساعد مش متاح دلوقتي، جرّب بعد شوية." })] };
     show(<CopilotChat userId={1} />);

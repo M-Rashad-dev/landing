@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Ai\Copilot;
 
 use App\Ai\AiUnavailable;
+use App\Ai\Copilot\Support\CopilotToolError;
+use App\Ai\Copilot\Support\ExportBuilder;
+use App\Ai\Copilot\Support\RecordQuery;
 use App\Ai\Copilot\Support\ToolResult;
 use App\Ai\Knowledge;
 use App\Ai\MerchantSnapshot;
@@ -27,12 +30,16 @@ final class CopilotTools
     /** Tools that always exist. */
     private const CORE = ['help_search', 'store_overview', 'open_page'];
 
+    /** Rows a table card shows (the rest is in the file). */
+    public const TABLE_ROWS = 200;
+
     public function __construct(
         private readonly CopilotCatalog $catalog,
         private readonly Knowledge $knowledge,
         private readonly MerchantSnapshot $snapshot,
         private readonly Entitlements $entitlements,
         private readonly UsageCounter $usage,
+        private readonly ExportBuilder $exports,
     ) {}
 
     /** @return list<string> the tool names usable now */
@@ -41,6 +48,15 @@ final class CopilotTools
         $names = self::CORE;
         if ($this->catalog->available($ctx) !== []) {
             $names[] = 'describe';
+        }
+        if ($this->catalog->resources($ctx) !== []) {
+            $names[] = 'find_records';
+        }
+        if ($this->catalog->reports($ctx) !== []) {
+            $names[] = 'run_report';
+        }
+        if ($this->catalog->resources($ctx) !== [] || $this->catalog->reports($ctx) !== []) {
+            $names[] = 'export_xlsx';
         }
 
         return $names;
@@ -57,6 +73,26 @@ final class CopilotTools
             'describe' => ['Full detail of one catalog entry (fields, filters, change ops, params or args). Call it before the first use of a resource, report or action in this chat.', [
                 'name' => ['type' => 'string', 'description' => 'The catalog key, e.g. "products" or "orders.change_status".'],
             ], ['name']],
+            'find_records' => ['Find records of a catalog resource (products, orders, customers…). Returns the total count and up to `limit` rows for you (personal data left out). Set show=true to also show the merchant a table of the rows (with a download button). For totals and sums use a report, not this.', [
+                'resource' => ['type' => 'string', 'description' => 'Catalog resource key.'],
+                'filters' => ['type' => 'object', 'description' => 'Field filters {field: value} or {field: {op: value}} (ops by type: eq, ne, in, gt, gte, lt, lte, between [a,b], contains, empty, not_empty; dates YYYY-MM-DD or {period: last_7_days…}), the resource\'s named filters, and q for text search. See describe.'],
+                'sort' => ['type' => 'string', 'description' => 'A sortable field («price», «-price» for descending) or a named sort.'],
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'description' => 'Rows for you (default 20).'],
+                'show' => ['type' => 'boolean', 'description' => 'Show the merchant a table of the results (up to 200 rows).'],
+            ], ['resource']],
+            'run_report' => ['Run a catalog report (sales, best sellers, low stock…): exact numbers computed by the server, the same as the dashboard pages. Set show=true to show the merchant its table too.', [
+                'report' => ['type' => 'string', 'description' => 'Catalog report key.'],
+                'params' => ['type' => 'object', 'description' => 'The report\'s params (see describe); periods are presets like last_7_days or from / to dates.'],
+                'show' => ['type' => 'boolean', 'description' => 'Show the merchant the report table.'],
+            ], ['report']],
+            'export_xlsx' => ['Build an Excel file for the merchant to download (built on the server with all rows and every column, up to 20,000 rows). You only get the row count back.', [
+                'resource' => ['type' => 'string', 'description' => 'A resource to export (with filters / sort like find_records)…'],
+                'filters' => ['type' => 'object'],
+                'sort' => ['type' => 'string'],
+                'report' => ['type' => 'string', 'description' => '…or a report to export (with params).'],
+                'params' => ['type' => 'object'],
+                'filename' => ['type' => 'string', 'description' => 'Short Arabic file name (optional).'],
+            ], []],
             'open_page' => ['Give the merchant a button to a page: the AI designer (to design sections or pages), or a dashboard page. Use it for design requests and for anything you can\'t do here (payments, account, password, domain make-primary / delete).', [
                 'target' => ['type' => 'string', 'enum' => ['designer', 'page'], 'description' => 'designer = the AI designer in the Builder; page = a dashboard page.'],
                 'resource' => ['type' => 'string', 'description' => 'page: a catalog resource key whose page to open.'],
@@ -98,8 +134,13 @@ final class CopilotTools
                 'help_search' => $this->helpSearch($args, $ctx),
                 'store_overview' => $this->storeOverview($ctx),
                 'describe' => $this->describe($args, $ctx),
+                'find_records' => $this->findRecords($args, $ctx),
+                'run_report' => $this->runReport($args, $ctx),
+                'export_xlsx' => $this->exportXlsx($args, $ctx),
                 'open_page' => $this->openPage($args, $ctx),
             };
+        } catch (CopilotToolError $e) {
+            return ToolResult::error($e->getMessage());
         } catch (ValidationException $e) {
             return ToolResult::error('Validation failed.', $e->errors());
         } catch (AiUnavailable) {
@@ -153,6 +194,79 @@ final class CopilotTools
         }
 
         return ToolResult::ok($item->describe($ctx));
+    }
+
+    /** @param array<string, mixed> $args */
+    private function findRecords(array $args, CopilotContext $ctx): ToolResult
+    {
+        $resource = $this->catalog->resource((string) ($args['resource'] ?? ''), $ctx);
+        if ($resource === null) {
+            return ToolResult::error('Unknown resource. Known: '.implode(', ', array_keys($this->catalog->resources($ctx))).'.');
+        }
+        $filters = is_array($args['filters'] ?? null) ? $args['filters'] : [];
+        $sort = isset($args['sort']) && is_string($args['sort']) ? $args['sort'] : null;
+        $limit = max(1, min(50, (int) ($args['limit'] ?? 20)));
+        $query = RecordQuery::build($resource, $filters, $sort, $ctx)->with($resource->with());
+        $total = (clone $query)->toBase()->getCountForPagination();
+        $show = (bool) ($args['show'] ?? false);
+        $rows = (clone $query)->limit($show ? self::TABLE_ROWS : $limit)->get();
+
+        if ($show && $total > 0) {
+            $ctx->addBlock([
+                'type' => 'table',
+                'title' => $resource->label(),
+                'columns' => $resource->columns(),
+                'rows' => $rows->map(fn ($row) => $resource->tableRow($row))->all(),
+                'total' => $total,
+                'export' => ['resource' => $resource->key(), 'filters' => $filters, 'sort' => $sort],
+                'link' => $resource->url(null),
+            ]);
+        }
+
+        return ToolResult::ok([
+            'resource' => $resource->key(),
+            'total' => $total,
+            'rows' => $rows->take($limit)->map(fn ($row) => $resource->present($row, true))->values()->all(),
+            'shown_to_merchant' => $show && $total > 0,
+            'note' => $total > $limit ? "Only the first {$limit} of {$total} rows are here; for totals use a report, for all rows export_xlsx." : null,
+        ]);
+    }
+
+    /** @param array<string, mixed> $args */
+    private function runReport(array $args, CopilotContext $ctx): ToolResult
+    {
+        $report = $this->catalog->report((string) ($args['report'] ?? ''), $ctx);
+        if ($report === null) {
+            return ToolResult::error('Unknown report. Known: '.implode(', ', array_keys($this->catalog->reports($ctx))).'.');
+        }
+        $params = is_array($args['params'] ?? null) ? $args['params'] : [];
+        $result = $report->run($params, $ctx);
+        $show = (bool) ($args['show'] ?? false) && $result->hasTable() && $result->rows !== [];
+        if ($show) {
+            $ctx->addBlock([
+                'type' => 'table',
+                'title' => $result->title !== '' ? $result->title : $report->label(),
+                'columns' => $result->columns,
+                'rows' => array_slice($result->rows, 0, self::TABLE_ROWS),
+                'total' => count($result->rows),
+                'export' => ['report' => $report->key(), 'params' => $params],
+            ]);
+        }
+
+        return ToolResult::ok(['report' => $report->key(), 'result' => $result->summary, 'shown_to_merchant' => $show]);
+    }
+
+    /** @param array<string, mixed> $args */
+    private function exportXlsx(array $args, CopilotContext $ctx): ToolResult
+    {
+        $source = isset($args['resource'])
+            ? ['resource' => (string) $args['resource'], 'filters' => is_array($args['filters'] ?? null) ? $args['filters'] : [], 'sort' => isset($args['sort']) && is_string($args['sort']) ? $args['sort'] : null]
+            : ['report' => (string) ($args['report'] ?? ''), 'params' => is_array($args['params'] ?? null) ? $args['params'] : []];
+        $ctx->progress((string) __('ai.copilot.progress.export_xlsx'));
+        $export = $this->exports->build($source, isset($args['filename']) && is_string($args['filename']) ? $args['filename'] : null, $ctx);
+        $ctx->addBlock(ExportBuilder::block($export));
+
+        return ToolResult::ok(['file' => $export->filename, 'rows' => $export->rows_count, 'shown' => 'A download button is shown under your reply (the file is kept 24 hours).']);
     }
 
     /** @param array<string, mixed> $args */
