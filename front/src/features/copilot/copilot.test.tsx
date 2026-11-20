@@ -9,6 +9,7 @@ import { CopilotChat } from "./copilot-chat";
 import { CopilotButton } from "./copilot-drawer";
 import { CopilotProvider, useCopilotContext } from "./copilot-provider";
 
+vi.mock("./change-set-card", () => ({ ChangeSetCard: ({ id }: { id: number }) => <div>{`بطاقة التغيير ${id}`}</div> }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }), usePathname: () => "/dashboard/orders", useSearchParams: () => new URLSearchParams() }));
 
 const t = ar.copilot;
@@ -108,6 +109,21 @@ describe("copilot chat", () => {
     expect(await screen.findByText("تمام")).toBeTruthy();
     const link = screen.getByRole("link", { name: /افتح المصمم الذكي/ });
     expect(link.getAttribute("href")).toBe("/dashboard/design/builder?ai=1&prompt=x");
+  });
+
+  it("draws a change card once, where it was proposed, even when later notes repeat it", async () => {
+    chat = {
+      ...chat,
+      messages: [
+        message({ id: 1, text: "جهزتلك التغيير.", blocks: [{ type: "change_set", id: 5 }] }),
+        message({ id: 2, text: "اتنفذ.", blocks: [{ type: "change_set", id: 5 }] }),
+        message({ id: 3, text: "تغيير تاني.", blocks: [{ type: "change_set", id: 6 }] }),
+      ],
+    };
+    show(<CopilotChat userId={1} />);
+    expect(await screen.findByText("اتنفذ.")).toBeTruthy();
+    expect(screen.getAllByText("بطاقة التغيير 5")).toHaveLength(1);
+    expect(screen.getAllByText("بطاقة التغيير 6")).toHaveLength(1);
   });
 
   it("never renders raw HTML from a reply", async () => {

@@ -89,7 +89,11 @@ final class ChangeSetApplier
             $set->forceFill(['status' => CopilotChangeSet::STATUS_EXPIRED])->save();
             throw new ApiException(422, 'change_expired', (string) __('ai.copilot.changes.expired'));
         }
-        app(AiWallets::class)->ensureCanSpend(Tenant::query()->findOrFail($set->tenant_id), (float) ($set->spec['usd'] ?? 0));
+        $usd = (float) ($set->spec['usd'] ?? 0);
+        if ($usd > 0) {
+            // A free job (drawn by us, e.g. the logo) needs no balance.
+            app(AiWallets::class)->ensureCanSpend(Tenant::query()->findOrFail($set->tenant_id), $usd);
+        }
         $moved = CopilotChangeSet::query()->whereKey($set->id)->where('status', CopilotChangeSet::STATUS_ESTIMATE)
             ->update(['status' => CopilotChangeSet::STATUS_RUNNING, 'decided_at' => now(), 'decided_by' => $user->id]);
         if ($moved === 0) {
@@ -121,7 +125,7 @@ final class ChangeSetApplier
             $text = $message;
         }
         if ($set->chat_id !== null && CopilotChat::query()->whereKey($set->chat_id)->exists()) {
-            CopilotMessage::query()->create(['chat_id' => $set->chat_id, 'role' => 'assistant', 'text' => $text, 'blocks' => [['type' => 'change_set', 'id' => $set->id]], 'status' => 'done']);
+            CopilotMessage::query()->create(['chat_id' => $set->chat_id, 'role' => 'assistant', 'text' => mb_substr($set->summary, 0, 90).': '.$text, 'status' => 'done']);
         }
         $this->notify($set, $user);
     }
@@ -394,7 +398,7 @@ final class ChangeSetApplier
             if ($set->keep_draft && $set->kind === CopilotChangeSet::KIND_CREATE) {
                 $text = (string) __('ai.copilot.changes.kept_done');
             }
-            CopilotMessage::query()->create(['chat_id' => $set->chat_id, 'role' => 'assistant', 'text' => $text, 'blocks' => [['type' => 'change_set', 'id' => $set->id]], 'status' => 'done']);
+            CopilotMessage::query()->create(['chat_id' => $set->chat_id, 'role' => 'assistant', 'text' => mb_substr($set->summary, 0, 90).': '.$text, 'status' => 'done']);
         }
         $this->notify($set, $user);
     }

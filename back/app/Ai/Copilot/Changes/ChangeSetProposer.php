@@ -200,7 +200,7 @@ final class ChangeSetProposer
                 'spec' => ['args' => $args, 'usd' => $estimate->usd, ...$estimate->spec],
                 'status' => CopilotChangeSet::STATUS_ESTIMATE,
                 'reversible' => true,
-                'estimate_cents' => app(AiWallets::class)->priceCents($estimate->usd),
+                'estimate_cents' => $estimate->usd > 0 ? app(AiWallets::class)->priceCents($estimate->usd) : 0,
                 'items_count' => $estimate->count,
                 'expires_at' => now()->addHours(CopilotChangeSet::PROPOSAL_HOURS),
             ]);

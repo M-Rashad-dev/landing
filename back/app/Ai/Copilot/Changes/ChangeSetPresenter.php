@@ -52,7 +52,11 @@ final class ChangeSetPresenter
             'items' => $page['items'],
             'has_more_items' => $page['total'] > self::SAMPLE,
             'link' => $resource?->url(null),
-            'estimate' => $set->estimate_cents === null ? null : (string) __('ai.copilot.changes.estimate', ['amount' => Money::toDecimal($set->estimate_cents)]),
+            'estimate' => match (true) {
+                $set->estimate_cents === null => null,
+                $set->estimate_cents === 0 => (string) __('ai.copilot.changes.free'),
+                default => (string) __('ai.copilot.changes.estimate', ['amount' => Money::toDecimal($set->estimate_cents)]),
+            },
             'side_effects' => array_values(array_map(fn (array $e) => (string) $e['text'], (array) ($set->side_effects ?? []))),
             'extra' => $action?->card($set),
             'error' => $set->error,

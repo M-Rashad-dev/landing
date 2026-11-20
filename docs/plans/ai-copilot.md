@@ -1011,3 +1011,9 @@ change-set (each status and kind), estimate, import progress · history page · 
   finish», pushed. Going live: nothing new in the server `.env` (optional `AI_MODEL_COPILOT`, `AI_EFFORT_COPILOT`,
   `AI_COPILOT_MAX_MESSAGE_USD`); run the migration; restart the queue worker; turn on «المساعد التنفيذي» in
   `/admin/ai`; the scheduler runs `copilot:expire` (hourly) and `copilot:prune` (daily).
+- 2026-11-20: **after-launch fixes (owner):** (1) a change card showed 2–3 times: the job / apply notes no longer carry
+  the `change_set` block (plain text prefixed by the change summary); the original card updates live, and the chat
+  draws each change card once (old chats already had repeats). (2) New action `products.add_logo`: the store identity
+  logo (or an attached image, by media id, which the engine now tells the model) drawn by us with GD on the first
+  photo or every photo, in a corner, 10–40 % of the width; free (estimate «مجاني», no balance needed), job path
+  (≤ 50 products / 100 photos), preview, revert. Tests: CopilotJobsTest (2), copilot.test.tsx (1).

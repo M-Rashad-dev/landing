@@ -53,6 +53,9 @@ return [
         'images_result' => 'صور المنتجات — :count جاهزة للمراجعة',
         'images_charge' => 'المساعد التنفيذي: صورة منتج',
         'images_no_source' => 'مقدرتش أقرا صورة المنتج',
+        'logo_summary' => 'إضافة اللوجو على صور المنتجات: :products منتج (:photos صورة)',
+        'logo_result' => 'اللوجو على الصور — :count منتج جاهز للمراجعة',
+        'logo_missing' => 'مقدرتش أقرا صورة اللوجو، ارفعها تاني',
         'orders_summary' => 'تغيير حالة :count طلب إلى «:status»',
         'orders_messages' => 'هيتبعت لحد :count رسالة للعملاء بالحالة الجديدة',
         'orders_webhooks' => 'هيتبعت :count إشعار للربط (Webhooks / Google Sheets)',
@@ -103,6 +106,7 @@ return [
             'job_empty' => 'مطلعش حاجة تتعدل من الشغل ده.',
             'action_done' => 'اتنفّذ (:count).',
             'estimate' => 'التكلفة التقديرية حوالي :amount ج.م',
+            'free' => 'مجاني (من غير خصم من الرصيد)',
         ],
         'progress' => [
             'thinking' => 'بفكّر…',

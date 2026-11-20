@@ -52,7 +52,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function Bubble({ message, onRetry }: { message: CopilotMessage; onRetry: () => void }) {
+function Bubble({ message, onRetry, repeated }: { message: CopilotMessage; onRetry: () => void; repeated?: ReadonlySet<number> }) {
   if (message.role === "user") {
     return (
       <div className="flex flex-col items-start">
@@ -110,7 +110,7 @@ function Bubble({ message, onRetry }: { message: CopilotMessage; onRetry: () => 
         ) : (
           <>
             {message.text ? <ReplyText text={message.text} /> : null}
-            <CopilotBlocks blocks={message.blocks} />
+            <CopilotBlocks blocks={message.blocks} repeated={repeated} />
             {message.text ? <CopyButton text={message.text} /> : null}
           </>
         )}
@@ -147,6 +147,19 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
 
   const data = chat.data;
   const messages = React.useMemo(() => [...older, ...(data?.messages ?? [])], [older, data]);
+  // A change card shows once, where it was proposed (it updates live); older chats repeated it in status notes.
+  const repeats = React.useMemo(() => {
+    const seen = new Set<number>();
+    const byMessage = new Map<number, Set<number>>();
+    for (const m of messages) {
+      for (const b of m.blocks) {
+        if (b.type !== "change_set" || typeof b.id !== "number") continue;
+        if (!seen.has(b.id)) seen.add(b.id);
+        else byMessage.set(m.id, (byMessage.get(m.id) ?? new Set<number>()).add(b.id));
+      }
+    }
+    return byMessage;
+  }, [messages]);
   const hasPending = messages.some((m) => m.status === "pending");
   const lastId = messages.at(-1)?.id;
   const lastStatus = messages.at(-1)?.status;
@@ -286,6 +299,7 @@ export function CopilotChat({ userId, className }: { userId: number; className?:
               <Bubble
                 key={m.id}
                 message={m}
+                repeated={repeats.get(m.id)}
                 onRetry={() => {
                   const previous = lastSent.current;
                   const request = [...messages].reverse().find((x) => x.role === "user" && x.id < m.id);

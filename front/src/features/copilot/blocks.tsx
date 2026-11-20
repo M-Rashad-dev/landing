@@ -166,15 +166,15 @@ function ExportFile({ block }: { block: CopilotExportBlock }) {
 
 /**
  * One renderer per card type (the server builds the cards; the model never writes them). Each stage adds its types
- * here; an unknown type renders nothing.
+ * here; an unknown type renders nothing. `repeated` = change cards already shown higher in the chat.
  */
-export function CopilotBlocks({ blocks }: { blocks: CopilotBlock[] }) {
+export function CopilotBlocks({ blocks, repeated }: { blocks: CopilotBlock[]; repeated?: ReadonlySet<number> }) {
   const nodes: React.ReactNode[] = [];
   blocks.forEach((block, i) => {
     if (isHandoff(block)) nodes.push(<Handoff key={i} block={block} />);
     else if (isTable(block)) nodes.push(<Table key={i} block={block} />);
     else if (isExport(block)) nodes.push(<ExportFile key={i} block={block} />);
-    else if (isChangeSet(block)) nodes.push(<ChangeSetCard key={i} id={block.id} />);
+    else if (isChangeSet(block) && !repeated?.has(block.id)) nodes.push(<ChangeSetCard key={i} id={block.id} />);
   });
   return nodes.length > 0 ? <div className="flex min-w-0 flex-col gap-2">{nodes}</div> : null;
 }

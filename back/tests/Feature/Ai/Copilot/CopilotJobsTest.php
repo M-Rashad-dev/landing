@@ -16,6 +16,7 @@ use App\Models\AiWalletEntry;
 use App\Models\CopilotChangeSet;
 use App\Models\CopilotChat;
 use App\Models\DiscountCode;
+use App\Models\Identity;
 use App\Models\Media;
 use App\Models\PlanFeatureValue;
 use App\Models\Product;
@@ -195,4 +196,86 @@ it('hides upsells from the copilot on plans without them', function () {
     PlanCatalog::flush();
 
     expect(jobTool('find_records', ['resource' => 'upsells'])['data']['error'])->toContain('Unknown resource');
+});
+
+/** A real image file on the fake disk (the logo job draws on the bytes). */
+function storedImage(int $width, int $height, array $rgb): Media
+{
+    $gd = imagecreatetruecolor($width, $height);
+    imagefill($gd, 0, 0, (int) imagecolorallocate($gd, ...$rgb));
+    ob_start();
+    imagepng($gd);
+    $bytes = (string) ob_get_clean();
+    $media = Media::factory()->create(['width' => $width, 'height' => $height]);
+    Storage::disk('public')->put($media->path, $bytes);
+
+    return $media;
+}
+
+it('puts the store logo on every product photo for free, previews it, and reverts it', function () {
+    $logo = inStore(fn () => storedImage(100, 100, [255, 0, 0]));
+    inStore(fn () => Identity::factory()->default()->create(['logo_media_id' => $logo->id]));
+    [$product, $photos] = inStore(function () {
+        $product = Product::factory()->create(['name' => 'شنطة']);
+        $photos = [storedImage(400, 400, [255, 255, 255]), storedImage(400, 300, [255, 255, 255])];
+        foreach ($photos as $i => $photo) {
+            $product->media()->attach($photo->id, ['position' => $i, 'tenant_id' => test()->tenant->id]);
+        }
+        Product::factory()->create(['name' => 'بدون صور']);
+
+        return [$product, $photos];
+    });
+
+    $made = jobTool('run_action', ['action' => 'products.add_logo', 'args' => []]);
+    $id = $made['data']['change_set_id'];
+    expect($made['data']['records'])->toBe(1)->and(jobSet($id)->summary)->toContain('2 صورة');
+    expect($this->getJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}")->json('data.estimate'))->toContain('مجاني');
+
+    // No balance at all: a free job still starts.
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    $set = jobSet($id);
+    expect($set->status)->toBe('proposed', (string) $set->error)->and(jobCharges())->toBe(0);
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    $now = inStore(fn () => Product::query()->with('media')->find($product->id)->media);
+    expect($now)->toHaveCount(2)->and($now->pluck('id')->intersect(array_map(fn ($m) => $m->id, $photos)))->toBeEmpty();
+
+    // The logo sits in the top-right corner (red), the rest of the photo is untouched (white).
+    $drawn = imagecreatefromstring((string) Storage::disk('public')->get($now->first()->path));
+    $width = imagesx($drawn);
+    $red = fn (int $x, int $y) => (imagecolorat($drawn, $x, $y) >> 16) & 0xFF;
+    $green = fn (int $x, int $y) => (imagecolorat($drawn, $x, $y) >> 8) & 0xFF;
+    expect($red($width - 30, 30))->toBeGreaterThan(200)->and($green($width - 30, 30))->toBeLessThan(60)
+        ->and($green(30, 30))->toBeGreaterThan(200);
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/revert")->assertStatus(202);
+    expect(inStore(fn () => Product::query()->with('media')->find($product->id)->media->pluck('id')->all()))->toBe(array_map(fn ($m) => $m->id, $photos));
+});
+
+it('uses an attached logo on the first photo only, and asks for a logo when the store has none', function () {
+    $product = inStore(function () {
+        $product = Product::factory()->create();
+        foreach ([storedImage(300, 300, [255, 255, 255]), storedImage(300, 300, [255, 255, 255])] as $i => $photo) {
+            $product->media()->attach($photo->id, ['position' => $i, 'tenant_id' => test()->tenant->id]);
+        }
+
+        return $product;
+    });
+    $none = jobTool('run_action', ['action' => 'products.add_logo', 'args' => []]);
+    expect($none['failed'])->toBeTrue()->and(json_encode($none['data'], JSON_UNESCAPED_UNICODE))->toContain('no logo');
+
+    $logo = inStore(fn () => storedImage(80, 40, [0, 0, 255]));
+    $other = Tenant::factory()->create();
+    $foreign = asTenant($other->id, fn () => Media::factory()->create());
+    expect(jobTool('run_action', ['action' => 'products.add_logo', 'args' => ['logo_media_id' => $foreign->id]])['failed'])->toBeTrue();
+
+    $id = jobTool('run_action', ['action' => 'products.add_logo', 'args' => ['logo_media_id' => $logo->id, 'photos' => 'first', 'position' => 'bottom_left']])['data']['change_set_id'];
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+
+    $after = inStore(fn () => Product::query()->with('media')->find($product->id)->media);
+    $drawn = imagecreatefromstring((string) Storage::disk('public')->get($after->first()->path));
+    expect($after)->toHaveCount(2)
+        ->and(imagecolorat($drawn, 20, imagesy($drawn) - 15) & 0xFF)->toBeGreaterThan(200)
+        ->and((imagecolorat($drawn, 20, imagesy($drawn) - 15) >> 16) & 0xFF)->toBeLessThan(60);
 });

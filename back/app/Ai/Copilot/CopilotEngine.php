@@ -183,7 +183,7 @@ final class CopilotEngine
         foreach ($history as $old) {
             $text = $old->role === 'assistant' ? self::withBlocks((string) $old->text, (array) ($old->blocks ?? [])) : (string) $old->text;
             if ($old->role === 'user' && $old->mediaIds() !== []) {
-                $text .= "\n[".count($old->mediaIds()).' image(s) attached earlier]';
+                $text .= "\n[".count($old->mediaIds()).' image(s) attached earlier: media ids '.implode(', ', $old->mediaIds()).']';
             }
             if (trim($text) !== '') {
                 $messages[] = ['role' => $old->role === 'assistant' ? 'assistant' : 'user', 'content' => $text];
@@ -196,7 +196,12 @@ final class CopilotEngine
             $columns = implode(', ', array_slice(array_map('strval', (array) ($import->headers ?? [])), 0, 30));
             $parts[] = ['type' => 'text', 'text' => "[The merchant attached a sheet: import_id {$import->id} «{$import->file_name}», {$import->total_rows} rows, columns: {$columns}. To import it use run_action products.import with this import_id.]"];
         }
-        foreach (MediaDataUrl::many(array_slice($request->mediaIds(), 0, CopilotMessage::MAX_IMAGES)) as $url) {
+        $attached = array_slice($request->mediaIds(), 0, CopilotMessage::MAX_IMAGES);
+        if ($attached !== []) {
+            // The ids let an action use the image itself (e.g. products.add_logo logo_media_id).
+            $parts[] = ['type' => 'text', 'text' => '[Attached images, in order: media ids '.implode(', ', $attached).']'];
+        }
+        foreach (MediaDataUrl::many($attached) as $url) {
             $parts[] = ['type' => 'image', 'url' => $url];
         }
         $parts[] = ['type' => 'text', 'text' => self::REMINDER];

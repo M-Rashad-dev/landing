@@ -122,7 +122,8 @@ it('creates products at once as drafts, checks them all first, and publishes on 
         ->and(changeSet($setId)->status)->toBe('applied')
         ->and(changeSet($setId)->applied_count)->toBe(2);
     $note = CopilotMessage::query()->withoutGlobalScopes()->where('chat_id', $this->chat->id)->latest('id')->first();
-    expect($note->blocks)->toBe([['type' => 'change_set', 'id' => $setId]])->and($note->text)->toContain('2');
+    // A plain note: the card stays in the reply that proposed it (one card per change, updated live).
+    expect($note->blocks)->toBeEmpty()->and($note->text)->toContain(changeSet($setId)->summary)->toContain('2');
 });
 
 it('respects the plan limit before creating anything', function () {
