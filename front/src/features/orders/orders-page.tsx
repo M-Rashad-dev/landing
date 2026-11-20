@@ -4,6 +4,7 @@ import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, Shoppin
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { useCopilotContext } from "@/features/copilot/copilot-provider";
 import { DataTable, FilterBar, Pagination, type Column } from "@/components/data/data-table";
 import { OrderSourceTag, OrderStatusBadge } from "@/components/domain/order-status";
 import { DateRangePicker, type RangeValue } from "@/components/forms/date-pickers";
@@ -63,6 +64,9 @@ export function OrdersPage() {
   const shipping = useShipping();
   const refresh = useRefreshOrders();
   const [selected, setSelected] = React.useState<Array<string | number>>([]);
+  // «دول» in the store copilot = the selected orders.
+  const selectedIds = selected.map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  useCopilotContext(selectedIds.length > 0 ? { selection: { type: "orders", ids: selectedIds } } : null);
   const [quick, setQuick] = React.useState<OrderRow | null>(null);
   const [bulkOpen, setBulkOpen] = React.useState(false);
   const [exporting, setExporting] = React.useState(false);

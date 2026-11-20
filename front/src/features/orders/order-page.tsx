@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeftRight, Ban, Gift, MessageCircle, Pencil, Phone, PhoneOff, Printer, Truck, User } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { useCopilotContext } from "@/features/copilot/copilot-provider";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { DescriptionList, Timeline, type TimelineEvent } from "@/components/data/details";
@@ -36,6 +37,8 @@ export function OrderPage({ id }: { id: number }) {
   const session = useSession();
   const query = useOrder(id);
   const refresh = useRefreshOrders();
+  // «ده» in the store copilot = this order.
+  useCopilotContext(Number.isInteger(id) && id > 0 ? { entity: { type: "orders", id } } : null);
   const [changing, setChanging] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
 

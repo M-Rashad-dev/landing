@@ -990,3 +990,24 @@ change-set (each status and kind), estimate, import progress · history page · 
   under load (passes alone); one build attempt hit a locked `.next` folder while the owner's `next dev` ran, the
   retry passed. Committed «AI copilot stage 4: AI content, images, sheets, promotions and shipping», pushed.
   **Next: Stage 5** (wait for «كمّل»).
+- 2026-11-20: Owner said «ابدأ المرحلة 5»: Stage 5 started.
+- 2026-11-20: **5.1 done:** action `orders.change_status` (≤ 500, allowed transitions only, skipped ones with the
+  reason, side effects counted: customer messages for shipped / cancelled / delivered, webhook notices, restock; no
+  undo; each order through `ChangeOrderStatus` with `changed_by`; stale = status moved). Action columns may carry
+  labels (statuses shown in Arabic). Page context on the orders list selection and the order page.
+- 2026-11-20: **5.2 done:** actions `domains.add` (pending through `AddCustomDomain`, DNS instructions, button to the
+  domains page), `domains.verify`, `domains.check_ssl` (paced like the page: 10 a minute). No make-primary / delete.
+- 2026-11-20: **5.3 done:** read resources `webhooks` (URL hidden from the model, no secret field) and
+  `webhook_deliveries` (no payload); action `webhooks.test` (the page's sender, 5 a minute); action `pixels.show`
+  (+ button to the pixels page). No controller logic needed moving (the page already used services).
+- 2026-11-20: **5.4 done (simpler than the plan):** no new JSON field for the support assistant: its prompt sends store
+  work and reports to «✨ المساعد», and the support widget header has an «المساعد التنفيذي» button that opens the
+  copilot drawer (when the copilot is on).
+- 2026-11-20: **5.5–5.6 done:** admin «حسب الميزة» shows `copilot` (labels); `docs/PROJECT.md` «AI» (the copilot, its
+  tables, safety, shared code, and the checklist «Adding a platform feature to the copilot»), `DECISIONS.md`,
+  `CLAUDE.md` (every new feature is exposed to the copilot).
+- 2026-11-20: **5.7–5.8 (feature complete):** back `tests/Feature/Ai/Copilot/CopilotOpsTest.php` (6). Gates green (back
+  1053 + Pint; front lint, typecheck, 326 tests, build). Committed «AI copilot stage 5: orders, integrations,
+  finish», pushed. Going live: nothing new in the server `.env` (optional `AI_MODEL_COPILOT`, `AI_EFFORT_COPILOT`,
+  `AI_COPILOT_MAX_MESSAGE_USD`); run the migration; restart the queue worker; turn on «المساعد التنفيذي» in
+  `/admin/ai`; the scheduler runs `copilot:expire` (hourly) and `copilot:prune` (daily).

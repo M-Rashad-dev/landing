@@ -529,3 +529,11 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **Whole-page design & safety**: each of the 6 themes has a specification document (`back/resources/prompts/themes/{key}.md`) whose `defaults()` JSON is validated against the theme class. Whole-page runs (`ai_design_runs`, `RunDesign` job) execute images → auto-approved custom sections → full theme JSON with `upload:N` / `image:ID` / `keep` placeholders, validate through `StoreThemes` / `LandingThemes` (with 1 repair turn), save `previous_draft` on apply for 1-click revert on the latest applied run, and never touch product or SEO tables.
 
 
+
+## 2026-11-20 — AI store copilot («المساعد التنفيذي للمتجر»)
+- **Architecture (owner-approved)**: auto-discovered Resources / Reports / Actions behind 10 fixed model tools, so a new platform feature joins with one file and the tool list never grows. No cache file for discovery (a forgotten rebuild would hide features; scanning costs ~1 ms).
+- **Model**: `anthropic/claude-sonnet-5.5`, reasoning effort `low` by default (the math and validation are PHP), changeable in `.env`. Prompt caching with two `cache_control` marks; Claude's `reasoning_details` passed back across tool calls.
+- **Limits**: ≤ 8 rounds and ≤ $0.50 per message, ≤ 6 tool calls a round, ≤ 12 KB per tool result, ≤ 50 rows to the model, ≤ 5,000 records per change, ≤ 10 open proposals, ≤ 50 created per call, ≤ 200 texts / 20 images per AI job.
+- **Changes**: drafts for creations (owner), previews for updates (applied exactly as shown), stale = only the changed fields, revert window 24 h (owner), proposals expire after 24 h. Images: generated for products without any, improved otherwise (owner); estimated cost shown before AI jobs (owner). Image results go through the same preview as everything else (also for drafts).
+- **Never**: deletes existing records, touches money / plans / accounts, makes a domain primary or deletes it, gets customers' phones / addresses, webhook secrets or payloads.
+- **Refactors for shared code**: `SalesFigures`, `StoreTraffic`, `CustomerFilters`, `StartImport`, `UpsellRequest` (behaviour unchanged, tests green).

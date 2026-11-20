@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Headset, Loader2, MessageCirclePlus, MoreVertical, X } from "lucide-react";
+import { ArrowRight, Headset, Loader2, MessageCirclePlus, MoreVertical, Sparkles, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { useCopilotStatus } from "../copilot/api";
+import { useCopilotOptional } from "../copilot/copilot-provider";
 import { OPEN_SUPPORT_EVENT } from "../notifications/events";
 import { applyUpdate, askForPerson, closeTicket, markRead, openTicket, rateTicket, sendMessage, supportKey, useConversation, useMerchantTickets, useSummary, useSupportLive, type Conversation, type Ticket } from "./api";
 import { closesText, Composer, RatingForm, Thread } from "./chat";
@@ -24,6 +26,8 @@ type View = { name: "list" } | { name: "new" } | { name: "chat"; number: number 
  * «الدعم», a new one, and the chat itself (live through Reverb).
  */
 export function SupportWidget({ tenantId }: { tenantId: number }) {
+  const copilot = useCopilotOptional();
+  const copilotOn = useCopilotStatus().data?.enabled === true;
   const [open, setOpen] = React.useState(false);
   const [view, setView] = React.useState<View>({ name: "list" });
   const summary = useSummary();
@@ -69,6 +73,20 @@ export function SupportWidget({ tenantId }: { tenantId: number }) {
                 {t.available}
               </p>
             </div>
+            {copilot && copilotOn ? (
+              // Doing things in the store (and reports) is the store copilot's job: one click away, support stays free.
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  copilot.setOpen(true);
+                }}
+                className="flex h-8 items-center gap-1 rounded-lg bg-white/15 px-2 text-xs font-semibold hover:bg-white/25"
+              >
+                <Sparkles className="size-3.5" aria-hidden />
+                {ar.copilot.fromSupport}
+              </button>
+            ) : null}
             <button type="button" onClick={() => setOpen(false)} aria-label={t.close} className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15">
               <X className="size-5" aria-hidden />
             </button>

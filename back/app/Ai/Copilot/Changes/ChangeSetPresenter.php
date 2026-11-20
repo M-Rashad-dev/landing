@@ -71,6 +71,12 @@ final class ChangeSetPresenter
         $action = $resource === null ? $this->catalog->action($set->target, $ctx) : null;
         $map = $resource?->fieldMap() ?? [];
         $actionColumns = $action?->columns() ?? [];
+        // An action column with labels (e.g. order statuses) reads like an enum field.
+        foreach ($actionColumns as $key => $column) {
+            if (isset($column[2]) && is_array($column[2]) && ! isset($map[$key])) {
+                $map[$key] = Field::enum((string) $key, array_map('strval', array_keys($column[2])))->label($column[0])->labels($column[2]);
+            }
+        }
         $query = CopilotChangeItem::query()->where('change_set_id', $set->id)->when($status !== null, fn ($q) => $q->where('status', $status))->orderBy('id');
         $total = (clone $query)->count();
         $items = $query->forPage(max(1, $page), $perPage)->get();

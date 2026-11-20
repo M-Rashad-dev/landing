@@ -64,6 +64,11 @@ export function useCopilot(): CopilotState {
   return state;
 }
 
+/** The copilot state when there is one (null outside the dashboard layout, e.g. in tests of other widgets). */
+export function useCopilotOptional(): CopilotState | null {
+  return React.useContext(Context);
+}
+
 /**
  * A page tells the copilot what is open on it (one line, optional): `useCopilotContext({ entity: { type:
  * "products", id } })` or the selected rows `{ selection: { type: "orders", ids } }`. Cleared when the page goes.

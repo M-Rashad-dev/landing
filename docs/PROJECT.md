@@ -275,6 +275,34 @@ Works even when the plan expired.
     theme validator + 1-turn repair, previews the whole page in `RunPreviewDialog` (`Canvas` / `Page` inside
     `DeviceFrame`), applies with `previous_draft` backup, supports 1-click revert on the latest applied run, and
     handles direct `action: "design"` follow-up tweaks. Never touches product catalog or SEO tables.
+- **«المساعد التنفيذي للمتجر» (store copilot, plan `docs/plans/ai-copilot.md`, feature switch `copilot`, paid from
+  the AI wallet)**: a chat beside every dashboard page (`✨ المساعد` drawer + `/dashboard/copilot` +
+  `/dashboard/copilot/history`) that explains the platform, reads the store with the dashboard's own code, and
+  prepares changes the merchant approves.
+  - **Engine (`App\Ai\Copilot\CopilotEngine`, job `CopilotReply`)**: tool loop on `anthropic/claude-sonnet-5.5`
+    (`AI_MODEL_COPILOT`, effort `low` via `AI_EFFORT_COPILOT`), ≤ 8 rounds and ≤ $0.50 a message
+    (`config('ai.copilot')`), prompt caching (`cache_control` for `anthropic/`), each round charged through
+    `Ai::chatPaid`. Prompt `resources/prompts/copilot.md`. Personal data never reaches the model (`Field::hidden()`).
+  - **Catalog (`CopilotCatalog`)**: every class in `app/Ai/Copilot/{Resources,Reports,Actions}` is found on its own.
+    The model has 10 fixed tools (`help_search`, `store_overview`, `describe`, `find_records`, `run_report`,
+    `export_xlsx`, `create_records`, `update_records`, `run_action`, `open_page`); features add catalog lines, never
+    tools. Contract test `tests/Feature/Ai/Copilot/CatalogContractTest.php`; forbidden models (money, plans, users…).
+  - **Changes (`app/Ai/Copilot/Changes`)**: one pipeline (tables `copilot_change_sets` + `copilot_change_items`).
+    Create = drafts at once (through the dashboard's FormRequest via `FormRequestRunner` + the platform Action);
+    update = values computed in PHP (`ValueOps`, money in piastres) shown before → after, applied on «نفّذ» exactly as
+    previewed, records edited by hand since are skipped (only the changed fields compared), «تراجع» within 24 h through
+    the same apply; costly AI work (descriptions, images) shows an estimate first and starts on «ابدأ»; actions
+    declare `reversible()` and side effects (order statuses, imports have no undo). Proposals expire after 24 h
+    (`copilot:expire`, hourly); Excel files after 24 h (`copilot:prune`, daily).
+  - **Shared code it uses (never copied)**: `App\Analytics\SalesFigures` (home), `StoreTraffic` (store analytics),
+    `OrderFilters`, `CustomerFilters`, `ProductList`, `PageAnalytics`, `StartImport`, `UpsellRequest`.
+  - **Adding a platform feature to the copilot (checklist)**:
+    1. One file: a `CopilotResource` (records: fields, its FormRequest + Action for writes, `draft()` / `publish()`),
+       a `CopilotReport` (numbers from the same service as its page) or a `CopilotAction` (preview / apply, or run for
+       safe checks; `reversible()`, `costly()`). Logic that lives in a controller moves to a shared service first.
+    2. A knowledge article for the feature in `/admin/ai` (the copilot and the support assistant explain from it).
+    3. Run `tests/Feature/Ai/Copilot/CatalogContractTest.php` and add the feature's own copilot test.
+    Nothing else changes: not the engine, the tools, the prompt or the chat UI.
 
 ---
 

@@ -4,7 +4,7 @@ Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS
 
 The rebuilt front end (once `front-v2/`) is now `front/`; the old one is deleted. **Read [docs/PROJECT.md](docs/PROJECT.md) first**: the whole project, the owner's way of working, conventions and the agreed roadmap. Deploy guide: [deploy/DEPLOY.md](deploy/DEPLOY.md).
 
-**Active work:** the AI store copilot («المساعد التنفيذي للمتجر»), built in stages from [docs/plans/ai-copilot.md](docs/plans/ai-copilot.md). Read it and its PROGRESS LOG before doing anything on it, and keep the log updated. (The AI designer is done: [docs/plans/ai-designer.md](docs/plans/ai-designer.md).)
+**AI features:** the AI designer ([docs/plans/ai-designer.md](docs/plans/ai-designer.md)) and the store copilot «المساعد التنفيذي للمتجر» ([docs/plans/ai-copilot.md](docs/plans/ai-copilot.md)) are built; read their PROGRESS LOGs before changing them. **Every new platform feature is exposed to the copilot** with one Resource / Report / Action file (checklist in docs/PROJECT.md «AI»).
 
 ## Layout
 - `back/` Laravel 13 API only (PHP 8.3). `front/` Next.js 16 (dashboard, builder, public sites). `deploy/` + root compose files for the VPS.
