@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Ai\Ai;
+use App\Ai\AiClient;
+use App\Ai\AiError;
 use App\Ai\AiWallets;
 use App\Ai\Copilot\CopilotContext;
 use App\Ai\Copilot\CopilotTools;
@@ -16,6 +19,7 @@ use App\Models\AiUsage;
 use App\Models\AiWalletEntry;
 use App\Models\CopilotChangeSet;
 use App\Models\CopilotChat;
+use App\Models\CopilotMessage;
 use App\Models\DiscountCode;
 use App\Models\Identity;
 use App\Models\Media;
@@ -25,6 +29,7 @@ use App\Models\ProductImport;
 use App\Models\ShippingCompany;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -130,6 +135,52 @@ it('generates images for products without any and improves the photo of the othe
     expect(inStore(fn () => Product::query()->with('media')->find($bare->id)->media))->toHaveCount(1)
         ->and($old)->toHaveCount(1)
         ->and(inStore(fn () => Media::query()->count()))->toBe(3);
+});
+
+it('says the real reason when the provider refuses the platform account: stops, charges nothing, alerts the admins, no pause', function () {
+    app(AiWallets::class)->credit($this->tenant, 100000, 'topup');
+    $admin = User::factory()->superAdmin()->create();
+    $ids = inStore(fn () => Product::factory()->count(3)->create()->modelKeys());
+    app(AiClient::class)->imageError = new AiError('OpenRouter 402 This request requires at least $1.00 in balance for image or video output', 402);
+
+    $id = jobTool('run_action', ['action' => 'products.images', 'args' => ['selector' => ['ids' => $ids], 'mode' => 'generate']])['data']['change_set_id'];
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+
+    $set = jobSet($id);
+    $reason = __('ai.unavailable_reasons.provider');
+    expect($set->status)->toBe('failed')
+        ->and($set->error)->toContain($reason)->toContain(__('ai.copilot.not_charged'))->not->toContain('402')
+        // The first refusal stops the run: one provider call, not three.
+        ->and(AiUsage::query()->where('ok', false)->count())->toBe(1)
+        ->and(jobCharges())->toBe(0)
+        ->and(app(Ai::class)->pausedUntil())->toBeNull()
+        ->and(UserNotification::query()->where('user_id', $admin->id)->where('event', 'ai_paused')->count())->toBe(1);
+    // The chat's status line (the model reads it next turn) carries the reason, not «nothing came out».
+    $note = inStore(fn () => CopilotMessage::query()->where('chat_id', $this->chat->id)->latest('id')->value('text'));
+    expect($note)->toContain($reason)->not->toContain(__('ai.copilot.changes.job_empty'));
+});
+
+it('makes a product photo with the store logo on it in one run', function () {
+    app(AiWallets::class)->credit($this->tenant, 100000, 'topup');
+    $logo = inStore(fn () => storedImage(100, 100, [255, 0, 0]));
+    inStore(fn () => Identity::factory()->default()->create(['logo_media_id' => $logo->id]));
+    $product = inStore(fn () => Product::factory()->create(['name' => 'بطاطس مقليه']));
+
+    $id = jobTool('run_action', ['action' => 'products.images', 'args' => ['selector' => ['ids' => [$product->id]], 'logo' => true]])['data']['change_set_id'];
+    expect(jobSet($id)->summary)->toContain(__('ai.copilot.images_with_logo'));
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+    expect(jobSet($id)->status)->toBe('proposed', (string) jobSet($id)->error);
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+
+    $media = inStore(fn () => Product::query()->with('media')->find($product->id)->media);
+    expect($media)->toHaveCount(1)->and($media->first()->mime)->toBe('image/webp');
+    $drawn = imagecreatefromstring((string) Storage::disk('public')->get($media->first()->path));
+    $width = imagesx($drawn);
+    $green = fn (int $x, int $y) => (imagecolorat($drawn, $x, $y) >> 8) & 0xFF;
+    // The red logo in the top-right corner, the generated photo (a soft colour) elsewhere.
+    expect((imagecolorat($drawn, $width - 40, 40) >> 16) & 0xFF)->toBeGreaterThan(200)->and($green($width - 40, 40))->toBeLessThan(60)
+        ->and($green(40, 40))->toBeGreaterThan(120);
 });
 
 it('imports an attached sheet as drafts with the platform importer, only after approval', function () {

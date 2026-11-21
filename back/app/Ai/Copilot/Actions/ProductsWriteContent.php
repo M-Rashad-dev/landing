@@ -129,8 +129,15 @@ final class ProductsWriteContent extends CopilotAction
                 }
 
                 continue;
-            } catch (AiUnavailable) {
-                $written = collect();
+            } catch (AiUnavailable $e) {
+                // Nothing was charged. A provider hiccup may pass for the next batch; anything else stops the run.
+                $why = $e->reasonText().' '.__('ai.copilot.not_charged');
+                $stop = $e->retryable() ? null : $why;
+                foreach ($batch as $p) {
+                    $items[] = $this->failed($p, $why);
+                }
+
+                continue;
             }
             foreach ($batch as $product) {
                 $items[] = $this->item($product, $fields, (array) ($written->get($product->id) ?? []));

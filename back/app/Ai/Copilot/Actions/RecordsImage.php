@@ -140,8 +140,11 @@ final class RecordsImage extends CopilotAction
                 // Balance or storage ran out: stop here, list the rest.
                 $stop = $e->getMessage();
                 $items[] = self::failed((int) $row->getKey(), $label, $stop);
-            } catch (AiUnavailable) {
-                $items[] = self::failed((int) $row->getKey(), $label, (string) __('ai.designer.image_failed'));
+            } catch (AiUnavailable $e) {
+                // Nothing was charged. A provider hiccup may pass for the next one; anything else stops the run.
+                $why = $e->reasonText().' '.__('ai.copilot.not_charged');
+                $stop = $e->retryable() ? null : $why;
+                $items[] = self::failed((int) $row->getKey(), $label, $why);
             }
         }
 

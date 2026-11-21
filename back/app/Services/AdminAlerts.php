@@ -145,6 +145,20 @@ final class AdminAlerts
         ));
     }
 
+    /** The AI provider refused the platform's account (credit, key): once an hour at most. */
+    public function aiProvider(string $error): void
+    {
+        $this->center->toPlatform(new Notice(
+            NotificationEvent::AiPaused,
+            __('alerts.ai_provider.subject'),
+            __('alerts.ai_provider.intro'),
+            '/admin/ai',
+            [['label' => __('alerts.ai_paused.error'), 'value' => $error]],
+            __('alerts.ai_paused.action'),
+            dedupeKey: 'ai_provider:'.now()->format('YmdH'),
+        ));
+    }
+
     /** @param  array{new_stores: int, orders: int, sales: int, revenue: int, pending_payments: int, refund_requests: int, expiring_week: int}  $day */
     public function dailySummary(CarbonImmutable $date, array $day): void
     {

@@ -268,7 +268,8 @@ final class ChangeSetProposer
                 'items_count' => count($result->items),
                 'skipped_count' => count($result->items) - count($pending),
                 'expires_at' => now()->addHours(CopilotChangeSet::PROPOSAL_HOURS),
-                'error' => $pending === [] ? (string) __('ai.copilot.changes.job_empty') : null,
+                // Nothing to review: say why (the items' own reasons), never a bare «nothing came out».
+                'error' => $pending === [] ? mb_substr(implode(' / ', array_unique(array_filter(array_map(fn (array $i) => trim((string) ($i['note'] ?? '')), $result->items)))) ?: (string) __('ai.copilot.changes.job_empty'), 0, 300) : null,
             ])->save();
         });
 

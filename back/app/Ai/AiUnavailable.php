@@ -22,8 +22,23 @@ final class AiUnavailable extends RuntimeException
 
     public const FAILED = 'failed';
 
+    /** The provider refused the platform's own account (no credit, bad key): ours to fix, the admins are alerted. */
+    public const PROVIDER = 'provider';
+
     public function __construct(public readonly string $reason)
     {
         parent::__construct("AI unavailable: {$reason}");
+    }
+
+    /** Why, for the merchant (never the provider's own words). */
+    public function reasonText(): string
+    {
+        return (string) __('ai.unavailable_reasons.'.$this->reason);
+    }
+
+    /** Asking again a moment later may work (a provider hiccup); the other reasons stay until someone acts. */
+    public function retryable(): bool
+    {
+        return $this->reason === self::FAILED;
     }
 }

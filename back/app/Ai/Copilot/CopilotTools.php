@@ -181,8 +181,8 @@ final class CopilotTools
             return ToolResult::error($e->getMessage());
         } catch (ValidationException $e) {
             return ToolResult::error('Validation failed.', $e->errors());
-        } catch (AiUnavailable) {
-            return ToolResult::error('This tool is not available right now.');
+        } catch (AiUnavailable $e) {
+            return ToolResult::error('This tool is not available right now. Tell the merchant exactly this reason: '.$e->reasonText());
         } catch (Throwable $e) {
             report($e);
 

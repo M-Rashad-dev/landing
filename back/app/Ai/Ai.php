@@ -259,6 +259,14 @@ final class Ai
         report($e);
         AiUsage::query()->create(['tenant_id' => $tenantId, 'feature' => $feature, 'model' => $model, 'ok' => false, 'error' => mb_substr($e->getMessage(), 0, 300)]);
 
+        // The platform's provider account itself (no credit, bad key): no pause (other calls may still work, e.g. text
+        // when only images need more credit), the admins are told at once, the merchant learns it is not his account.
+        if ($e instanceof AiError && in_array($e->status, [401, 402, 403], true)) {
+            $this->alerts->aiProvider(mb_substr($e->getMessage(), 0, 200));
+
+            throw new AiUnavailable(AiUnavailable::PROVIDER);
+        }
+
         $failures = (int) Cache::increment(self::FAILURES_KEY);
         if ($failures >= (int) config('ai.breaker.failures', 3)) {
             $minutes = (int) config('ai.breaker.pause_minutes', 5);

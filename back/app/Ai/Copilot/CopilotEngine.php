@@ -86,8 +86,8 @@ final class CopilotEngine
             $this->fail($pending, $user, $e->getMessage(), $e->errorCode, $trace);
 
             return;
-        } catch (AiUnavailable) {
-            $this->fail($pending, $user, (string) __('ai.copilot.unavailable'), 'ai_unavailable', $trace);
+        } catch (AiUnavailable $e) {
+            $this->fail($pending, $user, $e->retryable() ? (string) __('ai.copilot.unavailable') : $e->reasonText(), 'ai_unavailable', $trace);
 
             return;
         } catch (Throwable $e) {

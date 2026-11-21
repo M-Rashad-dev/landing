@@ -120,7 +120,7 @@ final class ChangeSetApplier
             if (! $e instanceof ApiException && ! $e instanceof AiUnavailable) {
                 report($e);
             }
-            $message = $e instanceof ApiException ? $e->getMessage() : ($e instanceof AiUnavailable ? (string) __('ai.copilot.unavailable') : (string) __('ai.copilot.changes.failed'));
+            $message = $e instanceof ApiException ? $e->getMessage() : ($e instanceof AiUnavailable ? $e->reasonText() : (string) __('ai.copilot.changes.failed'));
             $set->forceFill(['status' => CopilotChangeSet::STATUS_FAILED, 'error' => mb_substr($message, 0, 300)])->save();
             $text = $message;
         }

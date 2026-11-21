@@ -23,7 +23,8 @@ type View = { name: "list" } | { name: "new" } | { name: "chat"; number: number 
 
 /**
  * The support bubble in the corner of the store's dashboard: the merchant's conversations with
- * «الدعم», a new one, and the chat itself (live through Reverb).
+ * «الدعم», a new one, and the chat itself (live through Reverb). Hidden while the copilot drawer is
+ * open (it would sit on the copilot's send button); it comes back when the drawer closes.
  */
 export function SupportWidget({ tenantId }: { tenantId: number }) {
   const copilot = useCopilotOptional();
@@ -33,17 +34,27 @@ export function SupportWidget({ tenantId }: { tenantId: number }) {
   const summary = useSummary();
   const live = useSupportLive("merchant", tenantId);
   const unread = summary.data?.unread ?? 0;
+  const copilotOpen = copilot?.open === true;
+  const closeCopilot = copilot?.setOpen;
+
+  // One panel at a time: opening the copilot closes support (adjusted while rendering, no effect).
+  const [copilotWasOpen, setCopilotWasOpen] = React.useState(copilotOpen);
+  if (copilotOpen !== copilotWasOpen) {
+    setCopilotWasOpen(copilotOpen);
+    if (copilotOpen) setOpen(false);
+  }
 
   // The bell's "رد جديد من الدعم" opens that conversation here.
   React.useEffect(() => {
     const onOpen = (e: Event) => {
       const number = (e as CustomEvent<number>).detail;
       setView(Number.isInteger(number) && number > 0 ? { name: "chat", number } : { name: "list" });
+      closeCopilot?.(false);
       setOpen(true);
     };
     window.addEventListener(OPEN_SUPPORT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_SUPPORT_EVENT, onOpen);
-  }, []);
+  }, [closeCopilot]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -51,6 +62,8 @@ export function SupportWidget({ tenantId }: { tenantId: number }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  if (copilotOpen) return null;
 
   return (
     <>

@@ -12,6 +12,7 @@ const replace = vi.fn((href: string) => {
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: replace, replace, refresh: vi.fn() }), usePathname: () => "/dashboard/orders", useSearchParams: () => params.value }));
 
 const { SupportWidget } = await import("./support-widget");
+const { CopilotProvider, useCopilot } = await import("../copilot/copilot-provider");
 const { SupportPage } = await import("../admin/support-page");
 const t = ar.support;
 
@@ -98,7 +99,39 @@ describe("files", () => {
   });
 });
 
+function CopilotToggle() {
+  const copilot = useCopilot();
+  return (
+    <button type="button" onClick={() => copilot.setOpen(!copilot.open)}>
+      copilot
+    </button>
+  );
+}
+
 describe("SupportWidget (the store)", () => {
+  it("steps aside while the copilot drawer is open (no bubble over its send button), and comes back closed", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (String(url).includes("/summary")) return Response.json({ data: { unread: 0, open: 0, can_open: true, reason: null } });
+      return Response.json({ data: [] });
+    });
+    wrap(
+      <CopilotProvider>
+        <CopilotToggle />
+        <SupportWidget tenantId={3} />
+      </CopilotProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: t.bubble }));
+    expect(screen.getByRole("dialog", { name: t.name })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "copilot" }));
+    expect(screen.queryByRole("button", { name: t.bubble })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: t.name })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "copilot" }));
+    expect(screen.getByRole("button", { name: t.bubble })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: t.name })).not.toBeInTheDocument();
+  });
+
   it("opens from the corner bubble with the unread count, and blocks a new conversation with the reason", async () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (String(url).includes("/summary")) return Response.json({ data: { unread: 1, open: 2, can_open: false, reason: "عندك 2 محادثات مفتوحة" } });

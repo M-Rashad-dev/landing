@@ -77,7 +77,7 @@ final class ProductsAddLogo extends CopilotAction
 
     public function estimate(array $args, CopilotContext $ctx): JobEstimate
     {
-        $logo = $this->logo($args);
+        $logo = self::logoMedia($args['logo_media_id'] ?? null);
         $position = in_array($args['position'] ?? null, self::POSITIONS, true) ? (string) $args['position'] : 'top_right';
         $size = max(10, min(40, (int) ($args['size_percent'] ?? 20)));
         $all = ($args['photos'] ?? 'all') !== 'first';
@@ -170,11 +170,11 @@ final class ProductsAddLogo extends CopilotAction
         return $image->toWebp(quality: 85)->toString();
     }
 
-    /** @param array<string, mixed> $args */
-    private function logo(array $args): Media
+    /** The logo to draw: the attached image with that media id, else the store identity logo (a tool error if none). */
+    public static function logoMedia(mixed $mediaId): Media
     {
-        if (isset($args['logo_media_id'])) {
-            return Media::query()->find((int) $args['logo_media_id'])
+        if ($mediaId !== null) {
+            return Media::query()->find((int) $mediaId)
                 ?? throw new CopilotToolError('No image with that logo_media_id in this store.');
         }
         $id = Identity::query()->where('is_default', true)->value('logo_media_id') ?? Identity::query()->whereNotNull('logo_media_id')->value('logo_media_id');
@@ -184,7 +184,7 @@ final class ProductsAddLogo extends CopilotAction
     }
 
     /** The largest stored copy of an image, or null when it can't be read. */
-    private static function bytes(Media $media): ?string
+    public static function bytes(Media $media): ?string
     {
         $path = $media->variants['large'] ?? $media->path;
         $disk = Storage::disk($media->disk);

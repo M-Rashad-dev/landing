@@ -548,8 +548,14 @@ final class FakeAiClient implements AiClient
     /** @var list<array{model: string, prompt: string, edit: bool}> */
     public array $images = [];
 
+    /** Image calls throw this instead (e.g. the provider's 402 «not enough credit for images»). */
+    public ?AiError $imageError = null;
+
     public function generateImage(string $model, string $prompt, string $aspect = '1:1'): AiImage
     {
+        if ($this->imageError !== null) {
+            throw $this->imageError;
+        }
         $this->images[] = ['model' => $model, 'prompt' => $prompt, 'edit' => false];
 
         return new AiImage(self::png(hexdec(substr(hash('sha256', $prompt), 0, 6))), 'image/png', $model, 0.0);
@@ -557,6 +563,9 @@ final class FakeAiClient implements AiClient
 
     public function editImage(string $model, string $imageDataUrl, string $instruction, string $aspect = '1:1'): AiImage
     {
+        if ($this->imageError !== null) {
+            throw $this->imageError;
+        }
         $this->images[] = ['model' => $model, 'prompt' => $instruction, 'edit' => true];
 
         return new AiImage(self::png(hexdec(substr(hash('sha256', $instruction), 0, 6))), 'image/png', $model, 0.0);

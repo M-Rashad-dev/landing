@@ -1036,3 +1036,13 @@ change-set (each status and kind), estimate, import progress · history page · 
   (`SheetNote`: still usable, or the real counts + each failed row's reason); the card shows added / updated /
   skipped / failed + the first failure reasons. Prompt: never guess a reason, know required fields before planning,
   sheet words are about the sheet's rows. Tests: CopilotJobsTest (+4, the owner's exact case).
+- 2026-11-21: **image job failures + logo in one run + support bubble (owner's chat):** a product photo job failed with
+  «مطلعش حاجة تتعدل» and the model said it didn't know why: OpenRouter answered 402 (the platform account had under
+  $1, the minimum for image output). Now a provider refusal of the platform's own account (401/402/403) is
+  `AiUnavailable::PROVIDER`: the admins are alerted at once (bell, once an hour), no breaker pause (text may still
+  work), the job stops at the first refusal, and every reason reaches the item note, the set error and the chat status
+  line (`AiUnavailable::reasonText`, «… من ناحية المنصة … ومتخصمش منك حاجة»). The same for write_content and
+  records.image; a job with nothing to review gives its items' reasons instead of «nothing came out».
+  products.images takes `logo` (+ logo_media_id / position / size) and draws it on the new photos in the same run.
+  The dashboard support bubble hides while the copilot drawer is open (it sat on the send button) and opening the
+  copilot closes the support panel. Tests: CopilotJobsTest (+2), support.test (+1).
