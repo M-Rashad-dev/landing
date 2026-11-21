@@ -1026,3 +1026,13 @@ change-set (each status and kind), estimate, import progress · history page · 
   field (shipping company logo, category picture, and any later resource with no new code); cost first, preview,
   revert. update_records can also set such a field to an attached image (ValueOps `media`). Tests: CopilotJobsTest
   (+2), CopilotOpsTest (+1). Back 1058 green.
+- 2026-11-21: **sheet import fixes (owner's chat):** the model saw only a sheet's headers, so it guessed («same as the
+  export», «duplicate SKU») while the real reason was an empty price; it forgot sheets from earlier messages; and it
+  planned «import first, set the price after» though a product can't exist without a price. Now: `ImportCheck` (a
+  dry run with the importer's own rules, writing nothing) is shown to the model when a sheet is attached and on the
+  products.import card (new / skipped with names / failing rows with reasons); an import where nothing would come in
+  is refused with the exact reasons; new import option `fill` (values for EMPTY cells, `ImportFill`, used by the
+  importer itself) so «empty price → 1500» happens in the same import; earlier sheets stay in the history
+  (`SheetNote`: still usable, or the real counts + each failed row's reason); the card shows added / updated /
+  skipped / failed + the first failure reasons. Prompt: never guess a reason, know required fields before planning,
+  sheet words are about the sheet's rows. Tests: CopilotJobsTest (+4, the owner's exact case).

@@ -24,6 +24,10 @@ final class ProductImportStartRequest extends ApiRequest
             'options.match' => ['required', 'string', 'in:sku,none'],
             'options.existing' => ['required', 'string', 'in:update,skip'],
             'options.visible' => ['required', 'boolean'],
+            // Values for empty cells (sent by the copilot; the import page doesn't).
+            'options.fill' => ['sometimes', 'array:price,stock'],
+            'options.fill.price' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:1000000'],
+            'options.fill.stock' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:1000000'],
         ];
         foreach (ColumnMapper::FIELDS as $field) {
             $rules["mapping.{$field}"] = in_array($field, ColumnMapper::MULTI, true)
@@ -63,7 +67,7 @@ final class ProductImportStartRequest extends ApiRequest
             if (! isset($mapping['name']) && ! ($updatesOnly && isset($mapping['sku']))) {
                 $validator->errors()->add('mapping.name', __('imports.mapping_name'));
             }
-            if (! isset($mapping['price']) && ! isset($mapping['sale_price']) && ! ($updatesOnly && isset($mapping['sku']))) {
+            if (! isset($mapping['price']) && ! isset($mapping['sale_price']) && $this->input('options.fill.price') === null && ! ($updatesOnly && isset($mapping['sku']))) {
                 $validator->errors()->add('mapping.price', __('imports.mapping_price'));
             }
         }];

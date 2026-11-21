@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { ConfirmDialog } from "@/components/ui/overlay";
-import { useImport } from "@/features/catalog/imports/api";
+import { useFailures, useImport } from "@/features/catalog/imports/api";
 import { errorMessage } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -70,11 +70,26 @@ function ImportProgress({ id }: { id: number }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-surface-2 px-2.5 py-2 text-[11px] text-ink-2">
       <span className="font-semibold text-ink">{t.importTitle}: {i.file_name}</span>
-      <span>{active ? t.importProgress(i.processed, i.total_products || i.total_rows) : t.importDone(i.created, i.failed)}</span>
+      <span>{active ? t.importProgress(i.processed, i.total_products || i.total_rows) : t.importDone(i.created, i.updated, i.skipped, i.failed)}</span>
+      {!active && i.failed > 0 ? <ImportFailures id={id} /> : null}
       <Link href="/dashboard/catalog/products/import" className="font-semibold text-brand-strong hover:underline">
         {t.importOpen}
       </Link>
     </div>
+  );
+}
+
+/** Why rows didn't come in (the importer's own reasons), so nobody has to guess. */
+function ImportFailures({ id }: { id: number }) {
+  const query = useFailures(id, 1, true);
+  const rows = query.data?.data.slice(0, 5) ?? [];
+  if (rows.length === 0) return null;
+  return (
+    <ul className="flex flex-col gap-0.5 text-danger">
+      {rows.map((f) => (
+        <li key={f.id}>{t.importFailure(f.row_number, f.name ?? f.identifier ?? "—", f.reasons.join("، "))}</li>
+      ))}
+    </ul>
   );
 }
 

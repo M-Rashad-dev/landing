@@ -85,7 +85,9 @@ export const copilot = {
     noUndo: "العملية دي ملهاش تراجع",
     importTitle: "الاستيراد",
     importProgress: (done: number, total: number) => `اتعالج ${done} من ${total}`,
-    importDone: (created: number, failed: number) => `اتضاف ${created}${failed > 0 ? ` · ${failed} منفعوش` : ""}`,
+    importDone: (created: number, updated: number, skipped: number, failed: number) =>
+      [`اتضاف ${created}`, updated > 0 ? `اتحدث ${updated}` : "", skipped > 0 ? `اتخطى ${skipped} (موجودين بنفس الـ SKU)` : "", failed > 0 ? `${failed} منفعوش` : ""].filter(Boolean).join(" · "),
+    importFailure: (row: number, name: string, reasons: string) => `صف ${row} «${name}»: ${reasons}`,
     importOpen: "افتح صفحة الاستيراد",
     publish: "انشر",
     keepDraft: "تمام، سيبهم مسودة",

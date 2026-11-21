@@ -11,6 +11,8 @@ use App\Ai\Copilot\Support\CopilotToolError;
 use App\Ai\Copilot\Support\FormRequestRunner;
 use App\Enums\ImportStatus;
 use App\Http\Requests\Dashboard\ProductImportStartRequest;
+use App\Imports\Products\ImportCheck;
+use App\Imports\Products\ImportFill;
 use App\Imports\Products\StartImport;
 use App\Models\CopilotChangeItem;
 use App\Models\CopilotChangeSet;
@@ -35,7 +37,7 @@ final class ProductsImport extends CopilotAction
 
     public function summary(): string
     {
-        return 'Import the products of an Excel / CSV sheet the merchant attached here (import_id from the CONTEXT), as drafts. update_existing: update products with the same SKU instead of skipping them.';
+        return 'Import the products of an Excel / CSV sheet the merchant attached in this chat (import_id from the [sheet …] lines), as drafts. update_existing: update products with the same SKU instead of skipping them. fill: values for EMPTY cells of the sheet (e.g. rows with no price get 1500). The result lists exactly what will be created / updated / skipped / fail and why.';
     }
 
     public function schema(): array
@@ -44,6 +46,10 @@ final class ProductsImport extends CopilotAction
             'import_id' => ['type' => 'integer', 'description' => 'The attached sheet (see CONTEXT).'],
             'update_existing' => ['type' => 'boolean', 'description' => 'Same SKU: update it (default: skip it).'],
             'visible' => ['type' => 'boolean', 'description' => 'true only if the merchant asked to publish them right away (default drafts).'],
+            'fill' => ['type' => 'object', 'description' => 'Values for the EMPTY cells of the sheet (only when the merchant asks), EGP / units.', 'properties' => [
+                'price' => ['type' => 'number'],
+                'stock' => ['type' => 'integer'],
+            ]],
         ], 'required' => ['import_id']];
     }
 
@@ -76,7 +82,12 @@ final class ProductsImport extends CopilotAction
             $columns[(string) __('ai.copilot.import_fields.'.$field)] = implode(' + ', array_filter($names));
         }
         $options = self::options($args);
-        $missing = array_values(array_diff(['name', 'price'], array_keys($mapping)));
+        // A dry run with the importer's own rules: what comes in, and why any row won't.
+        $check = app(ImportCheck::class)->run($import, $mapping, $options);
+        if ($check !== null && $check['create'] + $check['update'] === 0) {
+            throw new CopilotToolError(__('ai.copilot.import_nothing').': '.implode(' / ', ImportCheck::lines($check)));
+        }
+        $missing = array_values(array_diff(['name', 'price'], array_keys(ImportFill::mapping($mapping, $options['fill'], count($headers)))));
         $note = $missing !== [] && ! ($options['existing'] === 'update' && isset($mapping['sku'])) ? (string) __('ai.copilot.import_missing') : null;
 
         return new ActionPreview(
@@ -90,7 +101,11 @@ final class ProductsImport extends CopilotAction
                 'status' => $note === null ? CopilotChangeItem::PENDING : CopilotChangeItem::SKIPPED_INVALID,
                 'note' => $note,
             ]],
-            sideEffects: [['key' => 'drafts', 'count' => (int) $import->total_rows, 'text' => (string) __($options['visible'] ? 'ai.copilot.import_visible' : 'ai.copilot.import_drafts')]],
+            sideEffects: [
+                ['key' => 'drafts', 'count' => (int) $import->total_rows, 'text' => (string) __($options['visible'] ? 'ai.copilot.import_visible' : 'ai.copilot.import_drafts')],
+                ...(ImportFill::values($options['fill']) !== [] ? [['key' => 'fill', 'count' => 0, 'text' => (string) __('ai.copilot.import_fill', ['values' => self::fillText($options['fill'])])]] : []),
+                ...array_map(fn (string $line) => ['key' => 'check', 'count' => 0, 'text' => $line], $check !== null ? ImportCheck::lines($check) : [(string) __('ai.copilot.import_check.unreadable')]),
+            ],
             spec: ['import_id' => $import->id, 'options' => $options],
         );
     }
@@ -110,9 +125,20 @@ final class ProductsImport extends CopilotAction
         return ['import_id' => (int) ($set->spec['import_id'] ?? 0)];
     }
 
-    /** @return array{match: string, existing: string, visible: bool} */
+    /** @return array{match: string, existing: string, visible: bool, fill: array<string, string>} */
     private static function options(array $args): array
     {
-        return ['match' => 'sku', 'existing' => ($args['update_existing'] ?? false) ? 'update' : 'skip', 'visible' => (bool) ($args['visible'] ?? false)];
+        return [
+            'match' => 'sku',
+            'existing' => ($args['update_existing'] ?? false) ? 'update' : 'skip',
+            'visible' => (bool) ($args['visible'] ?? false),
+            'fill' => ImportFill::values(is_array($args['fill'] ?? null) ? $args['fill'] : []),
+        ];
+    }
+
+    /** @param array<string, string> $fill */
+    private static function fillText(array $fill): string
+    {
+        return implode('، ', array_map(fn (string $field, string $value) => __('ai.copilot.import_fields.'.$field).' '.$value, array_keys($fill), array_values($fill)));
     }
 }

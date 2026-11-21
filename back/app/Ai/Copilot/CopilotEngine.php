@@ -6,6 +6,7 @@ namespace App\Ai\Copilot;
 
 use App\Ai\Ai;
 use App\Ai\AiUnavailable;
+use App\Ai\Copilot\Support\SheetNote;
 use App\Ai\MediaDataUrl;
 use App\Events\CopilotUpdated;
 use App\Exceptions\ApiException;
@@ -44,6 +45,7 @@ final class CopilotEngine
         private readonly Ai $ai,
         private readonly CopilotTools $tools,
         private readonly CopilotCatalog $catalog,
+        private readonly SheetNote $sheets,
     ) {}
 
     public function reply(CopilotMessage $pending): void
@@ -185,6 +187,10 @@ final class CopilotEngine
             if ($old->role === 'user' && $old->mediaIds() !== []) {
                 $text .= "\n[".count($old->mediaIds()).' image(s) attached earlier: media ids '.implode(', ', $old->mediaIds()).']';
             }
+            $sheet = $old->role === 'user' && isset($old->attachments['import_id']) ? ProductImport::query()->find((int) $old->attachments['import_id']) : null;
+            if ($sheet !== null) {
+                $text .= "\n".$this->sheets->earlier($sheet);
+            }
             if (trim($text) !== '') {
                 $messages[] = ['role' => $old->role === 'assistant' ? 'assistant' : 'user', 'content' => $text];
             }
@@ -193,8 +199,7 @@ final class CopilotEngine
         $parts = [['type' => 'text', 'text' => $this->contextBlock($ctx)], ['type' => 'text', 'text' => (string) $request->text]];
         $import = isset($request->attachments['import_id']) ? ProductImport::query()->find((int) $request->attachments['import_id']) : null;
         if ($import !== null) {
-            $columns = implode(', ', array_slice(array_map('strval', (array) ($import->headers ?? [])), 0, 30));
-            $parts[] = ['type' => 'text', 'text' => "[The merchant attached a sheet: import_id {$import->id} «{$import->file_name}», {$import->total_rows} rows, columns: {$columns}. To import it use run_action products.import with this import_id.]"];
+            $parts[] = ['type' => 'text', 'text' => $this->sheets->attached($import)];
         }
         $attached = array_slice($request->mediaIds(), 0, CopilotMessage::MAX_IMAGES);
         if ($attached !== []) {

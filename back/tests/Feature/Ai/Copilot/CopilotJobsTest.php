@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Ai\AiWallets;
 use App\Ai\Copilot\CopilotContext;
 use App\Ai\Copilot\CopilotTools;
+use App\Ai\Copilot\Support\SheetNote;
 use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Enums\DiscountType;
@@ -320,4 +321,73 @@ it('makes AI logos for shipping companies without one, previews them, and revert
 
     $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/revert")->assertStatus(202);
     expect($now()[$bare->id])->toBeNull();
+});
+
+/** The owner's case (2026-11-21): one row already in the store, one new row with no price, one fine. */
+function ownerSheet(): int
+{
+    $path = tempnam(sys_get_temp_dir(), 't').'.xlsx';
+    app(XlsxWriter::class)->write($path, 'Sheet', ['الاسم', 'SKU', 'السعر'], [['شاورما فراخ', 'MUG-011', '120'], ['بطاطس مقليه', 'HD-S-BLK1', ''], ['وجبه زنجر', 'TS-0011', '390']]);
+
+    return (int) test()->post('/api/v1/dashboard/ai/copilot/attachments/sheet', ['file' => new UploadedFile($path, 'منتجات.xlsx', null, null, true)], ['Accept' => 'application/json'])
+        ->assertCreated()->json('data.import_id');
+}
+
+it('checks a sheet before importing: what is new, skipped and failing, with the importer\'s own reasons', function () {
+    inStore(fn () => Product::factory()->create(['name' => 'شاورما فراخ', 'sku' => 'MUG-011', 'price' => '99.00']));
+    $importId = ownerSheet();
+
+    $proposal = jobTool('run_action', ['action' => 'products.import', 'args' => ['import_id' => $importId]]);
+    $effects = implode("\n", $proposal['data']['side_effects']);
+
+    expect($effects)->toContain('1 جديد')->toContain('1 هيتخطى')->toContain('1 مش هينفع')
+        ->toContain('«بطاطس مقليه»')->toContain('السعر فاضي')
+        ->toContain('«شاورما فراخ» (mug-011)');
+});
+
+it('fills the empty price of the sheet\'s rows in the same import, leaving the store\'s products alone', function () {
+    $old = inStore(fn () => Product::factory()->create(['name' => 'شاورما فراخ', 'sku' => 'MUG-011', 'price' => '99.00']));
+    inStore(fn () => Product::factory()->create(['name' => 'قديم بسعر', 'price' => '50.00']));
+    $importId = ownerSheet();
+
+    $proposal = jobTool('run_action', ['action' => 'products.import', 'args' => ['import_id' => $importId, 'fill' => ['price' => 1500]]]);
+    expect(implode("\n", $proposal['data']['side_effects']))->toContain('2 جديد')->toContain('0 مش هينفع')->toContain('السعر 1500');
+
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$proposal['data']['change_set_id']}/accept")->assertStatus(202);
+
+    $prices = inStore(fn () => Product::query()->pluck('price', 'name'));
+    expect($prices['بطاطس مقليه'])->toBe('1500.00')
+        ->and($prices['وجبه زنجر'])->toBe('390.00')
+        ->and($prices['شاورما فراخ'])->toBe('99.00')
+        ->and($prices['قديم بسعر'])->toBe('50.00')
+        ->and(inStore(fn () => ProductImport::query()->find($importId)->skipped_count))->toBe(1)
+        ->and($old->fresh())->not->toBeNull();
+});
+
+it('refuses an import where nothing would come in, saying exactly why', function () {
+    inStore(fn () => Product::factory()->create(['sku' => 'MUG-011']));
+    inStore(fn () => Product::factory()->create(['sku' => 'TS-0011']));
+    $path = tempnam(sys_get_temp_dir(), 't').'.xlsx';
+    app(XlsxWriter::class)->write($path, 'Sheet', ['الاسم', 'SKU', 'السعر'], [['شاورما فراخ', 'MUG-011', '120'], ['بطاطس مقليه', 'NEW-1', '']]);
+    $importId = (int) $this->post('/api/v1/dashboard/ai/copilot/attachments/sheet', ['file' => new UploadedFile($path, 'منتجات.xlsx', null, null, true)], ['Accept' => 'application/json'])->json('data.import_id');
+
+    $refused = jobTool('run_action', ['action' => 'products.import', 'args' => ['import_id' => $importId]]);
+
+    expect($refused['failed'])->toBeTrue()
+        ->and((string) json_encode($refused['data'], JSON_UNESCAPED_UNICODE))->toContain('مفيش ولا منتج')->toContain('السعر فاضي')->toContain('هيتخطى')
+        ->and(CopilotChangeSet::query()->withoutGlobalScopes()->count())->toBe(0);
+});
+
+it('keeps the sheet in the chat: the model sees it later, and after the import why rows failed', function () {
+    $importId = ownerSheet();
+    $notes = app(SheetNote::class);
+    $import = fn () => inStore(fn () => ProductImport::query()->find($importId));
+
+    expect(inStore(fn () => $notes->attached($import())))->toContain('«بطاطس مقليه»')->toContain('السعر فاضي')->toContain('HD-S-BLK1')
+        ->and(inStore(fn () => $notes->earlier($import())))->toContain('still usable')->toContain("import_id {$importId}");
+
+    $id = jobTool('run_action', ['action' => 'products.import', 'args' => ['import_id' => $importId]])['data']['change_set_id'];
+    $this->postJson("/api/v1/dashboard/ai/copilot/change-sets/{$id}/accept")->assertStatus(202);
+
+    expect(inStore(fn () => $notes->earlier($import())))->toContain('created 2')->toContain('failed 1')->toContain('«بطاطس مقليه»: السعر فاضي');
 });

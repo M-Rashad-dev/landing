@@ -69,6 +69,16 @@ return [
         'import_missing' => 'الشيت ناقصه عمود اسم المنتج أو السعر',
         'import_drafts' => 'المنتجات هتتضاف مسودات (مش ظاهرة للعملاء) لحد ما تنشرها',
         'import_visible' => 'المنتجات هتتضاف ظاهرة للعملاء على طول',
+        'import_fill' => 'الخانات الفاضية في الشيت هتتملا بـ: :values',
+        'import_nothing' => 'مفيش ولا منتج هيتضاف أو يتحدث من الشيت ده',
+        'import_check' => [
+            'counts' => 'فحص الشيت: :create جديد · :update هيتحدث · :skip هيتخطى · :fail مش هينفع',
+            'problem' => 'صف :row «:name» (SKU: :sku): :reasons',
+            'skipped' => 'هيتخطى لأنه موجود بنفس الـ SKU: :list',
+            'partial' => 'اتفحص أول :max منتج بس',
+            'unreadable' => 'مقدرتش أفحص الشيت قبل الاستيراد',
+        ],
+        'import_result' => 'نتيجة الاستيراد: :created اتضاف · :updated اتحدث · :skipped اتخطى · :failed منفعش',
         'import_fields' => [
             'name' => 'الاسم', 'price' => 'السعر', 'sale_price' => 'سعر العرض', 'compare_at_price' => 'السعر قبل الخصم',
             'sku' => 'SKU', 'stock' => 'المخزون', 'description' => 'الوصف', 'short_description' => 'وصف قصير',

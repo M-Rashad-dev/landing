@@ -64,6 +64,9 @@ final class ProductImporter
         $mapping = (array) $import->mapping;
         $sheet = $this->reader->open(Storage::disk('local')->path((string) $import->file_path), $import->extension);
         $groups = $this->grouper->group($sheet['rows'], $mapping);
+        // Values for empty cells (the copilot's «no price → 1500»), after grouping (they never change the groups).
+        $fill = (array) $import->option('fill', []);
+        $mapping = ImportFill::mapping($mapping, $fill, count((array) $import->headers));
 
         $import->forceFill([
             'status' => ImportStatus::Processing,
@@ -85,7 +88,7 @@ final class ProductImporter
         // Products a restarted job already counted are only remembered for duplicate SKUs.
         foreach ($groups as $i => $rows) {
             if ($i < $done) {
-                $sku = $this->skuOf($rows, $mapping);
+                $sku = self::skuOf($rows, $mapping);
                 if ($sku !== null) {
                     $seenSkus[$sku] ??= $rows[0]['line'];
                 }
@@ -93,7 +96,7 @@ final class ProductImporter
                 continue;
             }
 
-            $outcome = $this->one($import, $rows, $mapping, $visible, $match, $onExisting, $existingBySku, $seenSkus);
+            $outcome = $this->one($import, ImportFill::rows($rows, $mapping, $fill), $mapping, $visible, $match, $onExisting, $existingBySku, $seenSkus);
             $counters[$outcome['counter']]++;
             $counters['images_total'] += $outcome['images'];
             $done++;
@@ -144,7 +147,7 @@ final class ProductImporter
      */
     private function one(ProductImport $import, array $rows, array $mapping, bool $visible, bool $match, string $onExisting, array &$existingBySku, array &$seenSkus): array
     {
-        $sku = $this->skuOf($rows, $mapping);
+        $sku = self::skuOf($rows, $mapping);
         $existing = null;
         if ($match && $sku !== null && isset($existingBySku[$sku]) && ! isset($seenSkus[$sku])) {
             if ($onExisting === 'skip') {
@@ -234,7 +237,7 @@ final class ProductImporter
      * @param  list<array{line: int, cells: list<string>}>  $rows
      * @param  array<string, int|list<int>>  $mapping
      */
-    private function skuOf(array $rows, array $mapping): ?string
+    public static function skuOf(array $rows, array $mapping): ?string
     {
         if (! isset($mapping['sku']) || ! is_int($mapping['sku'])) {
             return null;
