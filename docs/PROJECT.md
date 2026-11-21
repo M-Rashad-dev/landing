@@ -682,9 +682,10 @@ Landing Builder lives in `features/landings/`.
 3. **More paid themes** for stores and landing pages, from the owner's designs. Paid landing themes are bought like
    store themes (checkout `?theme=`). Future themes may restyle inner store pages.
 4. Suggested and discussed, **not yet requested**: staff accounts and permissions, shipping carrier integration
-   (Bosta first; merchant connects own account), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
+   (owner 2026-11-21: most merchants have no carrier account, so the platform provides shipping through its own
+   carrier contracts; a merchant's own account is only a second mode. Waiting on the owner's talks with carriers:
+   partner / sub-accounts, who receives the cash on delivery, papers needed, rates), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
    a showcase store for «أساس», dashboard dark mode,
-   `composer update` for pre-existing laravel/framework & symfony security advisories (do it as its own step),
    fixing the flaky support test properly, a sample EasyOrders export to tune the import mapper.
 
 ---
