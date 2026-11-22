@@ -86,6 +86,7 @@ final class DeleteTenant
         Storage::disk('local')->deleteDirectory("receipts/{$id}");
         Storage::disk('local')->deleteDirectory("support/{$id}");
         Storage::disk('local')->deleteDirectory("customer-uploads/{$id}");
+        Storage::disk('local')->deleteDirectory("order-receipts/{$id}");
         foreach ($imports as $path) {
             Storage::disk('local')->delete((string) $path);
         }

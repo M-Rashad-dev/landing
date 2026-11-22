@@ -9,6 +9,7 @@ import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
 import { useCustomerInputs } from "@/themes/shared/customer-inputs";
+import { defaultPayment } from "@/themes/shared/payment-choice";
 import type { PageMode } from "./context";
 import type { FormFieldKey, LandingData, LandingQuote, OrderFormProps } from "./types";
 
@@ -17,7 +18,7 @@ const c = ar.storefront.checkout;
 
 /** The order the visitor just placed, read by «طلبك وصل» (it fires the purchase event once). */
 export const PLACED_KEY = "bd_placed";
-export type Placed = { slug: string; number: number; total: number; quantity: number; product_id: number; product_name: string };
+export type Placed = { slug: string; number: number; total: number; quantity: number; product_id: number; product_name: string; pay_url?: string | null };
 
 const ORDER = ["name", "phone", "phone2", "email", "governorate", "city", "address", "notes"] as const satisfies readonly FormFieldKey[];
 
@@ -70,6 +71,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   const [values, setValues] = React.useState<Partial<Record<FormFieldKey, string>>>({});
   // Order messages on WhatsApp: only when the visitor ticks it (unchecked by default, Meta's rule).
   const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
+  // Cash on delivery or one of the store's prepaid methods.
+  const [payment, setPaymentState] = React.useState(() => defaultPayment(data.payments));
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [options, setOptions] = React.useState<Record<number, number>>(() => {
     const start: Record<number, number> = {};
@@ -260,11 +263,12 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         shipping_company_id: company,
         idempotency_key: crypto.randomUUID(),
         whatsapp_opt_in: whatsappOptIn,
+        payment_method: payment,
       });
-      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; code?: string; message?: string; errors?: Record<string, string[]> };
+      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null; pay_url?: string | null }; code?: string; message?: string; errors?: Record<string, string[]> };
       if (response.ok && json.data) {
         saveUpsell(json.data.order_number, json.data.upsell);
-        onPlaced({ slug, number: json.data.order_number, total: json.data.total, quantity, product_id: product.id, product_name: product.name });
+        onPlaced({ slug, number: json.data.order_number, total: json.data.total, quantity, product_id: product.id, product_name: product.name, pay_url: json.data.pay_url ?? null });
         return;
       }
       setStatus("error");
@@ -273,7 +277,7 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         for (const [key, messages] of Object.entries(json.errors)) mapped[key] = messages[0] ?? "";
         setErrors(mapped);
         custom.setServerErrors(mapped);
-        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("options.") || k.startsWith("inputs.") || k === "code")) setFormError(json.message ?? t.rejected);
+        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("options.") || k.startsWith("inputs.") || k === "code" || k === "payment_method")) setFormError(json.message ?? t.rejected);
       } else {
         setFormError(t.rejected);
       }
@@ -298,6 +302,16 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     setOption,
     /** «حسب الطلب» fields (draw them with <CustomerInputFields state={inputs} />). */
     inputs: custom,
+    paymentOptions: data.payments,
+    payment,
+    setPayment: (v: string) => {
+      setPaymentState(v);
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.payment_method;
+        return next;
+      });
+    },
     quantity,
     setQuantity,
     offers,

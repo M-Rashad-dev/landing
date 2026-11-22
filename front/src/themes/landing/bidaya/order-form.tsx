@@ -8,6 +8,7 @@ import { GOVERNORATES } from "@/lib/store/governorates";
 import { offerLabel, offerQuantity } from "@/lib/store/offers";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
 import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { QuantityStepper } from "@/themes/store/asas/parts";
 import { imageSrc, usePage, useProductImages } from "./context";
@@ -209,6 +210,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
 
         <Summary quote={q} loading={form.quoteLoading} />
 
+        {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} /> : null}
         <label className="as-sm flex cursor-pointer items-start gap-2 font-semibold">
           <input type="checkbox" checked={form.whatsappOptIn} onChange={(e) => form.setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
           <span>

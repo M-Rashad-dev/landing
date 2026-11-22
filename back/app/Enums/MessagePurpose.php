@@ -15,6 +15,9 @@ enum MessagePurpose: string
     case OrderShipped = 'order_shipped';
     case OrderCancelled = 'order_cancelled';
     case OrderDelivered = 'order_delivered';
+    case OrderPaymentDue = 'order_payment_due';
+    case OrderPaymentConfirmed = 'order_payment_confirmed';
+    case OrderPaymentRejected = 'order_payment_rejected';
 
     /** @return list<string> */
     public static function values(): array

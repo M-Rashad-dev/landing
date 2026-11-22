@@ -36,9 +36,9 @@ export type StoreState =
 const PAYMENT_METHODS = [
   { key: "cod", icon: Banknote, active: true },
   { key: "card", icon: CreditCard, active: false },
-  { key: "wallet", icon: Smartphone, active: false },
-  { key: "instapay", icon: Wallet, active: false },
-  { key: "bank", icon: Landmark, active: false },
+  { key: "wallet", icon: Smartphone, active: true },
+  { key: "instapay", icon: Wallet, active: true },
+  { key: "bank", icon: Landmark, active: true },
   { key: "installments", icon: Building2, active: false },
 ] as const;
 
@@ -253,7 +253,7 @@ function General() {
   );
 }
 
-/** Only cash on delivery works for now; the rest are shown as coming soon (owner decision). */
+/** What the store can take: cash on delivery and the prepaid methods (set in «الإعدادات» → «الدفع»); cards and installments come later. */
 function Payments() {
   return (
     <Panel>
@@ -281,6 +281,11 @@ function Payments() {
           </li>
         ))}
       </ul>
+      <PanelFooter>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/dashboard/settings/payments">{ar.settings.payments.open}</Link>
+        </Button>
+      </PanelFooter>
     </Panel>
   );
 }

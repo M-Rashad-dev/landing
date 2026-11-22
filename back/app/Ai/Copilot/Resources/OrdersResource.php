@@ -7,6 +7,7 @@ namespace App\Ai\Copilot\Resources;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
+use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Support\OrderFilters;
@@ -57,6 +58,10 @@ final class OrdersResource extends CopilotResource
                 : []),
             Field::money('total')->label('الإجمالي')->filterable()->sortable(),
             Field::money('shipping_fee')->label('الشحن'),
+            // Prepaid orders: awaiting_payment until the merchant accepts the receipt (he does it himself, never the copilot).
+            Field::enum('payment_method', [Order::COD, Order::PREPAID])->label('الدفع')->labels([Order::COD => 'عند الاستلام', Order::PREPAID => 'مقدمًا'])->filterable(),
+            Field::text('payment_method_name')->label('طريقة الدفع'),
+            Field::enum('payment_status', OrderPaymentState::class)->label('حالة الدفع')->labels(array_combine(OrderPaymentState::values(), array_map(fn (OrderPaymentState $s) => $s->label(), OrderPaymentState::cases())))->filterable(),
             Field::text('discount_code')->label('كود الخصم')->filterable(),
             Field::text('shipping_company_name')->label('شركة الشحن'),
             Field::text('source')->label('المصدر')->using(fn (Model $o) => $o->getAttribute('source') === 'store' ? 'المتجر' : 'صفحة هبوط'),

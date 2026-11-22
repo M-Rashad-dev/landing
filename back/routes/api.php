@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderPaymentController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderUploadController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
@@ -58,6 +59,7 @@ use App\Http\Controllers\Api\V1\Dashboard\StoreController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreMailController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
+use App\Http\Controllers\Api\V1\Dashboard\StorePaymentController;
 use App\Http\Controllers\Api\V1\Dashboard\SupportController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
 use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
@@ -66,6 +68,7 @@ use App\Http\Controllers\Api\V1\PlatformPageController;
 use App\Http\Controllers\Api\V1\PricingPageController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
+use App\Http\Controllers\Api\V1\Public\PaymentController as PublicPaymentController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
@@ -271,6 +274,10 @@ Route::prefix('dashboard')
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
         Route::get('orders/{order}/uploads/{upload}', [OrderUploadController::class, 'show'])->whereNumber('upload');
+        // Prepaid orders: the customer's receipts (docs/plans/digital-products.md, stage 3).
+        Route::get('orders/{order}/payments/{payment}/receipt', [OrderPaymentController::class, 'receipt'])->whereNumber('payment');
+        Route::post('orders/{order}/payments/{payment}/approve', [OrderPaymentController::class, 'approve'])->whereNumber('payment');
+        Route::post('orders/{order}/payments/{payment}/reject', [OrderPaymentController::class, 'reject'])->whereNumber('payment');
         // Shipping orders through connected carriers (docs/plans/shipping-carriers.md).
         Route::get('orders/{order}/shipping', [ShipmentController::class, 'prepare']);
         Route::post('orders/{order}/shipments', [ShipmentController::class, 'store'])->middleware('throttle:carrier-calls');
@@ -289,6 +296,13 @@ Route::prefix('dashboard')
         Route::get('leads', [LeadController::class, 'index']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
+
+        // «الدفع»: cash on delivery and the store's own prepaid methods.
+        Route::get('payments', [StorePaymentController::class, 'show']);
+        Route::put('payments/settings', [StorePaymentController::class, 'settings']);
+        Route::post('payments/methods', [StorePaymentController::class, 'store']);
+        Route::put('payments/methods/{method}', [StorePaymentController::class, 'update']);
+        Route::delete('payments/methods/{method}', [StorePaymentController::class, 'destroy']);
 
         // «الإيميلات»: the store's customer emails (docs/plans/digital-products.md, stage 1).
         Route::get('mail-settings', [StoreMailController::class, 'show']);
@@ -363,6 +377,9 @@ Route::prefix('public')
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
         // «حسب الطلب»: an image / file for a product field, before ordering (store and landing pages).
         Route::post('uploads', [PublicUploadController::class, 'store'])->middleware('throttle:public-uploads');
+        // The pay page of a prepaid order (its private token): where to pay, and the receipt.
+        Route::post('payments/lookup', [PublicPaymentController::class, 'show'])->middleware('throttle:public-track');
+        Route::post('payments', [PublicPaymentController::class, 'store'])->middleware('throttle:public-uploads');
         Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');
         Route::get('ab-routes', [EventController::class, 'abRoutes'])->middleware('throttle:public-read');
 

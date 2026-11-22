@@ -18,6 +18,7 @@ use App\Models\Media;
 use App\Models\Tenant;
 use App\Pricing\Shipping;
 use App\Store\Accounts\ProductReviews;
+use App\Store\Payments\StorePayments;
 use App\Support\Pixels;
 use App\Support\PlainText;
 use App\Tenancy\Tenancy;
@@ -195,6 +196,8 @@ final class PublicSite
             'seo' => $this->seo($page, $identity, $primaryHost),
             'tracking' => app(Pixels::class)->forLanding($page->tenant_id),
             'shipping' => $this->shipping->publicConfig(now()),
+            // How the customer can pay (cash on delivery and / or the store's own prepaid methods).
+            'payments' => app(StorePayments::class)->options(),
             // "Made with …" badge unless the plan removes it.
             'branding' => ! app(Entitlements::class)->allows(PlanFeature::RemoveBranding),
             'ai_sections' => (object) $aiResolved['definitions'],

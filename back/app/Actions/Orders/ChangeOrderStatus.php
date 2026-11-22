@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Orders;
 
 use App\Enums\BlockType;
+use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
@@ -48,6 +49,10 @@ final class ChangeOrderStatus
 
             // A scheduled callback only matters while the order is new.
             $locked->forceFill(['status' => $to, 'status_changed_at' => now(), 'follow_up_at' => $to === OrderStatus::New ? $locked->follow_up_at : null])->save();
+            // A prepaid order confirmed while waiting for its payment is paid (receipt accepted, or paid another way).
+            if ($from === OrderStatus::AwaitingPayment && $to === OrderStatus::Confirmed && $locked->payment_status !== OrderPaymentState::Paid) {
+                $locked->forceFill(['payment_status' => OrderPaymentState::Paid, 'paid_at' => now()])->save();
+            }
             // Shipping can carry the company's tracking number.
             $tracking = $options['tracking_number'] ?? null;
             if ($to === OrderStatus::Shipped && $tracking !== null && $tracking !== '') {

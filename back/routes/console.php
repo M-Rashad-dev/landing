@@ -9,6 +9,7 @@ Schedule::command('leads:prune')->daily();
 Schedule::command('imports:prune')->daily();
 Schedule::command('copilot:prune')->daily();
 Schedule::command('uploads:prune')->daily();
+Schedule::command('orders:cancel-unpaid')->hourly()->withoutOverlapping();
 Schedule::command('shipments:sync')->everyThirtyMinutes()->withoutOverlapping();
 Schedule::command('copilot:expire')->hourly()->withoutOverlapping();
 Schedule::command('support:close-idle')->everyFiveMinutes()->withoutOverlapping();

@@ -21,6 +21,7 @@ use App\Pricing\Quote;
 use App\Services\FormToken;
 use App\Services\Webhooks\WebhookDispatcher;
 use App\Store\CustomerUploads;
+use App\Store\Payments\StorePayments;
 use App\Store\Stock;
 use App\Support\Money;
 use App\Support\OrderForm;
@@ -57,6 +58,7 @@ final class CreateOrder
         private readonly StoreNotices $notices,
         private readonly CustomerNotices $customerNotices,
         private readonly CustomerUploads $uploads,
+        private readonly StorePayments $payments,
     ) {}
 
     /**
@@ -107,6 +109,7 @@ final class CreateOrder
         $quantity = (int) $input['quantity'];
         $options = (array) ($input['options'] ?? []);
         $inputs = (array) ($input['inputs'] ?? []);
+        $method = $this->payments->choose($input['payment_method'] ?? null);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $offerId = OrderForm::chosenOffer($props, $input['offer_id'] ?? null);
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
@@ -117,7 +120,7 @@ final class CreateOrder
         $this->uploads->assertClaimable(CustomerUploads::lineOptions([], $first->inputs), 'inputs');
 
         $low = [];
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId, $inputs, &$low) {
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId, $inputs, $method, &$low) {
             // 7. Lock the code row and re-check its limits.
             $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId, $companyId, $inputs);
 
@@ -139,7 +142,7 @@ final class CreateOrder
                 'landing_page_id' => $page->id,
                 'ab_test_id' => $this->events->testId($page, isset($input['ab']) ? (int) $input['ab'] : null) ?: null,
                 'product_id' => $product->id,
-                'status' => OrderStatus::New,
+                ...StorePayments::orderFields($method),
                 'status_changed_at' => now(),
                 'customer_name' => $customer['name'],
                 'customer_phone' => $phone,
@@ -207,7 +210,7 @@ final class CreateOrder
                 ]);
             }
 
-            $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
+            $order->logs()->create(['from_status' => null, 'to_status' => $order->status]);
             $this->customers->handle($order);
 
             if ($quote->code !== null) {
@@ -237,7 +240,7 @@ final class CreateOrder
         }
 
         // 12. Only what the visitor needs, plus the post-order offer (if any) with its signed token.
-        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];
+        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order), 'pay_url' => $order->isPrepaid() ? StorePayments::payUrl($order) : null];
     }
 
     /**

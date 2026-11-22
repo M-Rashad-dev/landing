@@ -7,8 +7,10 @@ namespace App\Http\Resources;
 use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\OrderItem;
+use App\Models\OrderPayment;
 use App\Models\OrderStatusLog;
 use App\Models\OutboundMessage;
+use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -54,6 +56,25 @@ final class OrderDetailResource extends OrderResource
                 'discount' => $money((string) $this->shipping_discount),
                 'tracking_number' => $this->tracking_number,
             ],
+            // Prepaid orders: the method chosen, the customer's receipts and where he pays.
+            'payment' => $this->isPrepaid() ? [
+                'method_name' => $this->payment_method_name,
+                'status' => $this->payment_status?->value,
+                'paid_at' => $this->paid_at?->toIso8601ZuluString(),
+                'pay_url' => StorePayments::payUrl($this->resource),
+                'receipts' => $this->payments()->with('reviewer:id,name')->get()->map(fn (OrderPayment $p) => [
+                    'id' => $p->id,
+                    'method_name' => $p->method_name,
+                    'amount' => Money::toFloat(Money::toCents((string) $p->amount)),
+                    'sender_ref' => $p->sender_ref,
+                    'status' => $p->status,
+                    'reject_reason' => $p->reject_reason,
+                    'is_pdf' => $p->receipt_mime === 'application/pdf',
+                    'reviewer' => $p->reviewer?->name,
+                    'reviewed_at' => $p->reviewed_at?->toIso8601ZuluString(),
+                    'created_at' => $p->created_at->toIso8601ZuluString(),
+                ])->values()->all(),
+            ] : null,
             'shipment' => $this->whenLoaded('shipment', fn () => $this->shipment === null ? null : ShipmentResource::make($this->shipment)->resolve()),
             'items' => $this->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,

@@ -13,6 +13,7 @@ use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
 use App\Store\Accounts\ProductReviews;
+use App\Store\Payments\StorePayments;
 use App\Support\Pixels;
 use App\Themes\Store\StoreDesigner;
 use Illuminate\Support\Collection;
@@ -89,6 +90,8 @@ final class StoreSite
             ],
             'tracking' => app(Pixels::class)->forStore($store->tenant_id),
             'shipping' => $this->shipping->publicConfig(now()),
+            // How the customer can pay (cash on delivery and / or the store's own prepaid methods).
+            'payments' => app(StorePayments::class)->options(),
             // «صنع بواسطة مكسب» always shows for now (owner: removable later on Max).
             'branding' => true,
             'primary_host' => $primaryHost,

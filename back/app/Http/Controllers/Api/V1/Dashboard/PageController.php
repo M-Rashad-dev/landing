@@ -24,6 +24,7 @@ use App\Models\PageStat;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Store\Accounts\ProductReviews;
+use App\Store\Payments\StorePayments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -139,6 +140,8 @@ final class PageController extends Controller
                 'ai_definitions' => $aiResolved['definitions'],
             ]),
             'shipping' => $shipping->publicConfig(now()),
+            // How the customer can pay (cash on delivery and / or the store's own prepaid methods).
+            'payments' => app(StorePayments::class)->options(),
             'reviews' => $page->product_id === null ? [] : app(ProductReviews::class)->forProduct($page->product_id),
             'store_name' => (string) $request->user()?->tenant?->name,
             'ai_sections' => (object) $aiResolved['definitions'],

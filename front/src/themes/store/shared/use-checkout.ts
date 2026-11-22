@@ -16,6 +16,7 @@ import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
+import { defaultPayment } from "@/themes/shared/payment-choice";
 import { clearCartNote, readCartNote } from "./cart-note";
 
 const t = ar.storefront.checkout;
@@ -65,6 +66,13 @@ export function useCheckout(config: StoreConfig) {
   const [keepAddress, setKeepAddress] = React.useState(true);
   // Order messages on WhatsApp: only when the customer ticks it (unchecked by default, Meta's rule).
   const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
+  // Cash on delivery or one of the store's prepaid methods.
+  const [payment, setPaymentState] = React.useState(() => defaultPayment(config.payments));
+  const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  const setPayment = (v: string) => {
+    setPaymentState(v);
+    setPaymentError(null);
+  };
   const filled = React.useRef(false);
   const preferred = me ? (me.addresses.find((a) => a.is_default) ?? me.addresses[0] ?? null) : null;
   // Until the customer picks, the default saved address is the one in use.
@@ -163,16 +171,19 @@ export function useCheckout(config: StoreConfig) {
           cart_token: cartToken() || null,
           save_address: me !== null && addressId === "new" && keepAddress,
           whatsapp_opt_in: whatsappOptIn,
+          payment_method: payment,
         }),
       });
-      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null }; errors?: Record<string, string[]>; message?: string };
+      const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null; pay_url?: string | null }; errors?: Record<string, string[]>; message?: string };
       if (response.ok && json.data) {
         track("Purchase", { content_ids: cart.items.map((i) => i.product_id), value: json.data.total, num_items: cart.items.reduce((s, i) => s + i.quantity, 0), transaction_id: json.data.order_number });
         clearCart();
         clearCartNote();
         resetCartToken();
         saveUpsell(json.data.order_number, json.data.upsell);
-        router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}`);
+        // A prepaid order: «طلبك وصل» shows «ادفع وارفع الإيصال» (its private token).
+        const pay = json.data.pay_url?.match(/\/pay\/([a-z0-9]{12})$/)?.[1];
+        router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}${pay ? `&pay=${pay}` : ""}`);
         return;
       }
       if (response.status === 422 && json.errors) {
@@ -184,7 +195,8 @@ export function useCheckout(config: StoreConfig) {
           if (line) lines[Number(line[1])] ??= messages[0] ?? "";
         }
         setLineErrors(lines);
-        const other = json.errors.code?.[0] ?? json.errors.shipping_company_id?.[0] ?? (Object.keys(lines).length ? t.errors.cart : null);
+        if (json.errors.payment_method?.[0]) setPaymentError(json.errors.payment_method[0]);
+        const other = json.errors.code?.[0] ?? json.errors.shipping_company_id?.[0] ?? json.errors.payment_method?.[0] ?? (Object.keys(lines).length ? t.errors.cart : null);
         setFailure(other ?? (Object.keys(json.errors).some((k) => k.startsWith("customer.")) ? t.errors.fix : (json.message ?? t.errors.generic)));
         return;
       }
@@ -198,6 +210,10 @@ export function useCheckout(config: StoreConfig) {
 
   return {
     cart,
+    paymentOptions: config.payments,
+    payment,
+    setPayment,
+    paymentError,
     form,
     submit,
     governorate,

@@ -3,10 +3,11 @@ import { Badge, type Tone } from "@/components/ui/badge";
 import { ar } from "@/messages/ar";
 
 /** Order statuses (back: App\Enums\OrderStatus) with one fixed color each, everywhere. */
-export const ORDER_STATUSES = ["new", "confirmed", "shipped", "delivered", "returned", "damaged", "fake", "cancelled"] as const;
+export const ORDER_STATUSES = ["awaiting_payment", "new", "confirmed", "shipped", "delivered", "returned", "damaged", "fake", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 const TONES: Record<OrderStatus, Tone> = {
+  awaiting_payment: "warning",
   new: "attention",
   confirmed: "info",
   shipped: "brand-soft",

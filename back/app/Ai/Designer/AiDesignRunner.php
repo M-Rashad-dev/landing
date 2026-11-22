@@ -23,6 +23,7 @@ use App\Models\Tenant;
 use App\Pricing\Shipping;
 use App\Services\PublicPageData;
 use App\Store\Accounts\ProductReviews;
+use App\Store\Payments\StorePayments;
 use App\Themes\Landing\LandingThemes;
 use App\Themes\Store\StoreDesigner;
 use App\Themes\Store\StoreThemes;
@@ -730,6 +731,8 @@ final class AiDesignRunner
                 'ai_definitions' => $aiResolved['definitions'],
             ]),
             'shipping' => $this->shipping->publicConfig(now()),
+            // How the customer can pay (cash on delivery and / or the store's own prepaid methods).
+            'payments' => app(StorePayments::class)->options(),
             'reviews' => ($page instanceof LandingPage && $page->product_id !== null)
                 ? app(ProductReviews::class)->forProduct($page->product_id)
                 : [],

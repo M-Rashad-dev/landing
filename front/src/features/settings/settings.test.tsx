@@ -68,7 +68,7 @@ describe("ReceiptForm", () => {
 });
 
 describe("StorePage", () => {
-  it("lists what stops the store and offers the fix, with cash on delivery the only live payment", async () => {
+  it("lists what stops the store and offers the fix, with the payments it takes", async () => {
     fetchMock.mockResolvedValue(
       Response.json({ data: { exists: true, is_enabled: false, live: false, theme_key: "asas_store", design: { published_at: null, has_unpublished_changes: true, updated_at: null }, themes: [{ key: "asas_store", name: "أساس", short_description: null, active: true, free: true }], counts: { products: 3, categories: 1 } } }),
     );
@@ -76,8 +76,10 @@ describe("StorePage", () => {
     expect(await screen.findByText(ar.settings.store.reasons.home)).toBeInTheDocument();
     expect(screen.getByText(ar.settings.store.reasons.enabled)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: ar.settings.store.publishHome })).toHaveAttribute("href", "/dashboard/design/builder");
-    expect(screen.getAllByText(ar.settings.store.soon)).toHaveLength(5);
-    expect(screen.getAllByText(ar.settings.store.active)).toHaveLength(1);
+    // Cash on delivery, wallets, InstaPay and bank transfer work; cards and installments come later.
+    expect(screen.getAllByText(ar.settings.store.soon)).toHaveLength(2);
+    expect(screen.getAllByText(ar.settings.store.active)).toHaveLength(4);
+    expect(screen.getByRole("link", { name: ar.settings.payments.open })).toHaveAttribute("href", "/dashboard/settings/payments");
   });
 
   it("asks for an upgrade when the plan has no store", async () => {

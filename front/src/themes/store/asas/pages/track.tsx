@@ -74,7 +74,16 @@ function OrderStatus({ order, onAnother }: { order: TrackedOrder; onAnother: () 
         <p className="as-xs as-muted">{t.placedAt(formatDateTime(order.created_at))}</p>
       </div>
 
-      {ended ? (
+      {order.stage === "awaiting_payment" ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg bg-(--as-soft) p-4 text-center">
+          <p className="as-sm font-bold">{t.awaitingPayment}</p>
+          {order.pay_url ? (
+            <a href={order.pay_url} className="as-btn as-base h-11 px-6">
+              {t.pay}
+            </a>
+          ) : null}
+        </div>
+      ) : ended ? (
         <p className="as-base rounded-lg bg-(--as-soft) p-3 text-center font-bold">{t.stages[order.stage]}</p>
       ) : (
         <ol className="grid grid-cols-4 gap-1">

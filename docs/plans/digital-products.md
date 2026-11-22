@@ -99,3 +99,18 @@ an attached sheet), deliver a service order with its message. Confirming payment
   three landing order forms), cart lines keyed by the answers, order page shows the answers with file downloads.
   Copilot: products resource reads the fields. Tests: `tests/Feature/Store/CustomInputsTest.php`,
   `front/src/themes/shared/customer-inputs.test.tsx`, `front/src/app/api/public/uploads.test.ts`.
+- **2026-11-22 — Stage 3 prepaid orders, built.** `store_payment_methods` (kind instapay / wallet / bank / link,
+  name, account, https link, instructions, on / off; ≤ 10), `store_payment_settings` (cash on delivery on / off — always
+  on while no prepaid method is active — and cancel-after days, default 3), orders `payment_method` (cod | prepaid),
+  `store_payment_method_id`, `payment_method_name`, `payment_status` (unpaid | review | paid), `paid_at`;
+  `order_payments` (receipts on the private disk `order-receipts/{tenant}/{order}`). New order status
+  `awaiting_payment` (→ confirmed / cancelled / fake). `App\Store\Payments\StorePayments`: checkout choice, receipt,
+  approve (= confirm through ChangeOrderStatus, which marks it paid), reject with a reason, `orders:cancel-unpaid`
+  (hourly, skips orders with a receipt waiting). Checkout (store + landing pages) sends `payment_method`; the answer
+  carries `pay_url` = `https://{store's primary host}/pay/{track token}`: one pay page for every store and landing page
+  (`front/src/app/sites/[host]/pay/[token]`, `themes/shared/pay-view.tsx`), linked from «طلبك وصل», the tracking page and
+  the emails (`payment_due` / `payment_confirmed` / `payment_rejected`, email only). Merchant: «الإعدادات» → «الدفع»,
+  the order's «الدفع مقدمًا» card (receipt preview, «الفلوس وصلت» / «ارفض الإيصال»), the «بانتظار الدفع» tab and
+  `?payment=review`, bell `payment_receipt`. Copilot: `payment_methods` resource, orders' payment fields; it never confirms
+  an order waiting for its payment. Tests: `tests/Feature/Orders/PrepaidOrdersTest.php`,
+  `front/src/themes/shared/pay-view.test.tsx`, `front/src/features/settings/payments-page.test.tsx`.

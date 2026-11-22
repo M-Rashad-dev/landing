@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Services\PhoneNormalizer;
@@ -75,6 +76,12 @@ final class OrderFilters
 
         if ($request->boolean('duplicate')) {
             $query->where('is_duplicate_suspect', true);
+        }
+
+        // «مدفوعات للمراجعة»: prepaid orders by payment state (review = a receipt waits).
+        $payment = (string) $request->query('payment', '');
+        if (in_array($payment, OrderPaymentState::values(), true)) {
+            $query->where('payment_status', $payment);
         }
 
         match ((string) $request->query('sort', 'latest')) {

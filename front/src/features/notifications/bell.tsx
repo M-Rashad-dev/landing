@@ -27,6 +27,7 @@ const ICONS: Record<string, { icon: LucideIcon; tone: string }> = {
   import_done: { icon: TableProperties, tone: "bg-brand-soft text-brand-strong" },
   shipment_problem: { icon: Truck, tone: "bg-warning-soft text-warning" },
   mailbox_failed: { icon: MailWarning, tone: "bg-danger-soft text-danger" },
+  payment_receipt: { icon: ReceiptText, tone: "bg-accent-soft text-accent-ink" },
   receipt_submitted: { icon: ReceiptText, tone: "bg-accent-soft text-accent-ink" },
   refund_requested: { icon: Undo2, tone: "bg-danger-soft text-danger" },
   store_registered: { icon: Store, tone: "bg-brand-soft text-brand-strong" },

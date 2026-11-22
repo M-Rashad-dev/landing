@@ -27,6 +27,7 @@ use App\Pricing\CartQuote;
 use App\Pricing\PriceCalculator;
 use App\Services\FormToken;
 use App\Services\Webhooks\WebhookDispatcher;
+use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use App\Support\OrderForm;
 use App\Tenancy\Tenancy;
@@ -57,6 +58,7 @@ final class CreateStoreOrder
         private readonly StoreNotices $notices,
         private readonly CustomerNotices $customerNotices,
         private readonly CustomerUploads $uploads,
+        private readonly StorePayments $payments,
     ) {}
 
     /**
@@ -95,6 +97,8 @@ final class CreateStoreOrder
         }
 
         $lines = $this->lines((array) $input['items']);
+        // Cash on delivery, or one of the store's prepaid methods (the order then waits for its payment).
+        $method = $this->payments->choose($input['payment_method'] ?? null);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $governorate = $customer['governorate'] ?? null;
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
@@ -104,13 +108,13 @@ final class CreateStoreOrder
         }
 
         $low = [];
-        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId, &$low): Order {
+        $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId, $method, &$low): Order {
             $quote = $this->quoteOrFail($lines, $code, $phone, true, $governorate, $companyId);
 
             $order = Order::query()->create([
                 'order_number' => $this->nextNumber($tenantId),
                 'source' => 'store',
-                'status' => OrderStatus::New,
+                ...StorePayments::orderFields($method),
                 'status_changed_at' => now(),
                 'customer_name' => $customer['name'],
                 'customer_phone' => $phone,
@@ -169,7 +173,7 @@ final class CreateStoreOrder
             }
             $low = $this->stock->take($order, $take);
 
-            $order->logs()->create(['from_status' => null, 'to_status' => OrderStatus::New]);
+            $order->logs()->create(['from_status' => null, 'to_status' => $order->status]);
             $this->customers->handle($order);
 
             if ($quote->code !== null) {
@@ -197,7 +201,7 @@ final class CreateStoreOrder
         }
 
         // The post-order offer for the thank-you screen (one click adds it to this order).
-        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order)];
+        return ['order_number' => $order->order_number, 'total' => (float) $order->total, 'upsell' => $this->upsells->offerFor($order), 'pay_url' => $order->isPrepaid() ? StorePayments::payUrl($order) : null];
     }
 
     /**

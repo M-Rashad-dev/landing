@@ -12,6 +12,7 @@ const TABS = [
   { href: "/dashboard/settings/ai", key: "ai" },
   { href: "/dashboard/settings/pixels", key: "pixels" },
   { href: "/dashboard/settings/integrations", key: "integrations" },
+  { href: "/dashboard/settings/payments", key: "payments" },
   { href: "/dashboard/settings/emails", key: "emails" },
 ] as const;
 

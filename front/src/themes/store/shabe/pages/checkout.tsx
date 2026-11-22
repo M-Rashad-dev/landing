@@ -9,6 +9,7 @@ import type { QuoteState } from "@/lib/store/quote";
 import type { StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
 import { StoreLink, useHydrated } from "@/themes/store/shared/context";
 import { useCheckout, type CheckoutValues } from "@/themes/store/shared/use-checkout";
 import { ShabeCartLines } from "./cart";
@@ -153,6 +154,7 @@ export function ShabeCheckoutView({ config }: { config: StoreConfig }) {
             <Field id="sc-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="sc-notes" rows={2} maxLength={500} className={cn(input, "h-auto py-3")} {...register("notes")} />
             </Field>
+            {hasPaymentChoice(c.paymentOptions) ? <PaymentChoice options={c.paymentOptions} value={c.payment} onChange={c.setPayment} error={c.paymentError} /> : null}
             <label className="as-sm flex items-start gap-2 font-bold">
               <input type="checkbox" checked={c.whatsappOptIn} onChange={(e) => c.setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
               <span>

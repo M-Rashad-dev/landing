@@ -55,3 +55,27 @@ describe("«حسب الطلب» uploads", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("receipts for prepaid orders", () => {
+  it("relays the receipt with the store's host, and refuses a bad token", async () => {
+    const { POST: pay } = await import("./payments/route");
+    fetchMock.mockResolvedValue(Response.json({ data: { can_send: false } }, { status: 201 }));
+    const form = new FormData();
+    form.set("token", "abcdefabcdef");
+    form.set("method_id", "3");
+    form.set("sender_ref", " 0109 ");
+    form.set("receipt", new File(["abc"], "r.jpg", { type: "image/jpeg" }));
+
+    expect((await pay(new Request("http://shop.example.com/api/public/payments", { method: "POST", body: form, headers: { host: "shop.example.com" } }))).status).toBe(201);
+    const body = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
+    expect(body.get("host")).toBe("shop.example.com");
+    expect(body.get("sender_ref")).toBe("0109");
+    expect(body.get("method_id")).toBe("3");
+
+    const bad = new FormData();
+    bad.set("token", "NOPE");
+    bad.set("method_id", "3");
+    bad.set("receipt", new File(["abc"], "r.jpg"));
+    expect((await pay(new Request("http://shop.example.com/api/public/payments", { method: "POST", body: bad, headers: { host: "shop.example.com" } }))).status).toBe(400);
+  });
+});

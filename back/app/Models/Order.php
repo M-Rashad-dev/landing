@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\Money;
@@ -60,10 +61,19 @@ use Illuminate\Support\Str;
  * @property string|null $ip_address
  * @property string|null $user_agent
  * @property array<string, string>|null $utm
+ * @property string $payment_method cod | prepaid
+ * @property int|null $store_payment_method_id
+ * @property string|null $payment_method_name
+ * @property OrderPaymentState|null $payment_status null for cash on delivery
+ * @property Carbon|null $paid_at
  * @property Carbon $created_at
  */
 class Order extends Model
 {
+    public const COD = 'cod';
+
+    public const PREPAID = 'prepaid';
+
     /** @use HasFactory<OrderFactory> */
     use BelongsToTenant, HasFactory;
 
@@ -74,6 +84,7 @@ class Order extends Model
         'quantity', 'unit_price', 'subtotal', 'offer_id', 'offer_name', 'offer_discount',
         'discount_code_id', 'discount_code', 'code_discount', 'shipping_fee', 'shipping_company_id', 'shipping_company_name', 'shipping_offer_name', 'shipping_discount', 'tracking_number', 'customer_id', 'total', 'currency',
         'is_duplicate_suspect', 'ip_address', 'user_agent', 'utm',
+        'payment_method', 'store_payment_method_id', 'payment_method_name', 'payment_status', 'paid_at',
     ];
 
     // contact_attempts / last_contacted_at / follow_up_at are written by RecordOrderContact only (forceFill).
@@ -99,7 +110,15 @@ class Order extends Model
             'is_duplicate_suspect' => 'boolean',
             'whatsapp_opt_in' => 'boolean',
             'utm' => 'array',
+            'payment_status' => OrderPaymentState::class,
+            'paid_at' => 'datetime',
         ];
+    }
+
+    /** Prepaid (paid before delivery through one of the store's own methods), not cash on delivery. */
+    public function isPrepaid(): bool
+    {
+        return $this->payment_method === self::PREPAID;
     }
 
     /** Every order gets a private tracking token (the customer's link /t/{token}, never guessable). */
@@ -126,6 +145,12 @@ class Order extends Model
     public function shipment(): HasOne
     {
         return $this->hasOne(Shipment::class)->latestOfMany();
+    }
+
+    /** Receipts the customer sent (prepaid orders), newest last. @return HasMany<OrderPayment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(OrderPayment::class)->orderBy('id');
     }
 
     /** @return HasMany<OrderStatusLog, $this> */

@@ -1,6 +1,7 @@
 /** Platform words shared by several screens (statuses, plans, money). */
 export const domain = {
   orderStatus: {
+    awaiting_payment: "بانتظار الدفع",
     new: "جديد",
     confirmed: "مؤكد",
     shipped: "تم الشحن",

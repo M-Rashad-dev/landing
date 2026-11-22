@@ -7,6 +7,7 @@ import type { LandingPayload } from "@/lib/public/landing";
 import { TrackingScripts } from "@/lib/tracking/scripts";
 import { track } from "@/lib/tracking/track";
 import { ar } from "@/messages/ar";
+import { PayNowBox } from "@/themes/shared/payment-choice";
 import type { LandingData } from "./bidaya/types";
 import { landingTheme } from "./registry";
 import { UpsellOffer } from "../upsell-offer";
@@ -99,6 +100,7 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
               ) : null}
             </dl>
           ) : null}
+          {placed?.pay_url ? <PayNowBox href={placed.pay_url} /> : null}
           <UpsellOffer orderNumber={number ?? null} onTotal={(total) => setPlaced((p) => (p ? { ...p, total } : p))} />
           <a href="/track" className="as-btn as-base h-12 w-full">
             <PackageSearch className="size-5" aria-hidden />

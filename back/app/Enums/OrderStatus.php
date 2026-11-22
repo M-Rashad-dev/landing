@@ -7,6 +7,8 @@ namespace App\Enums;
 /** Order lifecycle (section 7.4). */
 enum OrderStatus: string
 {
+    /** Prepaid order: waiting for the customer's payment (receipt) before the store works on it. */
+    case AwaitingPayment = 'awaiting_payment';
     case New = 'new';
     case Confirmed = 'confirmed';
     /** Handed to the shipping company (optional step between confirmed and delivered). */
@@ -20,6 +22,7 @@ enum OrderStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::AwaitingPayment => 'بانتظار الدفع',
             self::New => 'جديد',
             self::Confirmed => 'مؤكد',
             self::Shipped => 'تم الشحن',
@@ -38,6 +41,7 @@ enum OrderStatus: string
     public function customerStage(): string
     {
         return match ($this) {
+            self::AwaitingPayment => 'awaiting_payment',
             self::New => 'received',
             self::Confirmed => 'confirmed',
             self::Shipped => 'shipped',
@@ -51,6 +55,8 @@ enum OrderStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
+            // Paid (receipt confirmed, or the merchant got the money another way) → confirmed.
+            self::AwaitingPayment => [self::Confirmed, self::Cancelled, self::Fake],
             self::New => [self::Confirmed, self::Cancelled, self::Fake],
             self::Confirmed => [self::Shipped, self::Delivered, self::Cancelled, self::Damaged, self::Fake],
             // Refused at the door → returned; lost or broken on the way → damaged; called off → cancelled.
@@ -69,7 +75,7 @@ enum OrderStatus: string
     /** Customer details may be edited only while the order is open. */
     public function allowsCustomerEdits(): bool
     {
-        return $this === self::New || $this === self::Confirmed;
+        return $this === self::AwaitingPayment || $this === self::New || $this === self::Confirmed;
     }
 
     /** Moving here releases the discount code use. */

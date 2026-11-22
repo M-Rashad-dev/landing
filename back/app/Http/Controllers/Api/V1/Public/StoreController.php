@@ -124,6 +124,8 @@ final class StoreController extends Controller
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'save_address' => ['nullable', 'boolean'],
             'whatsapp_opt_in' => ['nullable', 'boolean'],
+            // "cod" or a store payment method id.
+            'payment_method' => ['nullable', 'string', 'max:20'],
         ]);
         $data['save_address'] = filter_var($data['save_address'] ?? false, FILTER_VALIDATE_BOOLEAN);
 

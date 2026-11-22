@@ -5,6 +5,7 @@ import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { PayNowBox } from "@/themes/shared/payment-choice";
 import { UpsellOffer } from "../../../upsell-offer";
 import { StoreLink } from "@/themes/store/shared/context";
 import { Breadcrumb, Container } from "../parts";
@@ -12,7 +13,7 @@ import { Breadcrumb, Container } from "../parts";
 const t = ar.storefront;
 
 /** After the order: its number, what happens next, and the way to track it. */
-export function OrderDone({ orderNumber, total: initialTotal }: { orderNumber: number | null; total: number | null }) {
+export function OrderDone({ orderNumber, total: initialTotal, pay = null }: { orderNumber: number | null; total: number | null; pay?: string | null }) {
   const [total, setTotal] = React.useState(initialTotal);
   return (
     <Container className="flex justify-center py-12">
@@ -23,6 +24,7 @@ export function OrderDone({ orderNumber, total: initialTotal }: { orderNumber: n
         <h1 className="as-2xl font-extrabold">{t.done.title}</h1>
         {orderNumber ? <p className="as-lg font-bold as-primary">{t.done.number(orderNumber)}</p> : null}
         <p className="as-sm as-muted">{t.done.text}</p>
+        {pay ? <PayNowBox href={`/pay/${pay}`} /> : null}
         {total !== null ? (
           <p className="as-sm flex w-full justify-between rounded-lg bg-(--as-card) px-4 py-3">
             <span className="as-muted">{t.done.total}</span>

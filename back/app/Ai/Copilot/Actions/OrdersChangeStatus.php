@@ -88,7 +88,9 @@ final class OrdersChangeStatus extends CopilotAction
 
         $items = [];
         foreach ($orders as $order) {
-            $allowed = $order->status->canTransitionTo($to);
+            // Confirming an order that waits for its payment says the money arrived: the merchant does that himself.
+            $payment = $order->status === OrderStatus::AwaitingPayment && $to === OrderStatus::Confirmed;
+            $allowed = ! $payment && $order->status->canTransitionTo($to);
             $items[] = [
                 'entity_type' => 'orders',
                 'entity_id' => $order->id,
@@ -96,7 +98,7 @@ final class OrdersChangeStatus extends CopilotAction
                 'before' => ['status' => $order->status->value],
                 'after' => ['status' => $to->value],
                 'status' => $allowed ? CopilotChangeItem::PENDING : CopilotChangeItem::SKIPPED_INVALID,
-                'note' => $allowed ? null : (string) __('orders.transition_not_allowed', ['from' => $order->status->label(), 'to' => $to->label()]),
+                'note' => $allowed ? null : ($payment ? (string) __('ai.copilot.payment_by_merchant') : (string) __('orders.transition_not_allowed', ['from' => $order->status->label(), 'to' => $to->label()])),
             ];
         }
         $count = count(array_filter($items, fn (array $i) => $i['status'] === CopilotChangeItem::PENDING));
@@ -131,6 +133,9 @@ final class OrdersChangeStatus extends CopilotAction
     public function apply(CopilotChangeItem $item, CopilotChangeSet $set, CopilotContext $ctx): void
     {
         $order = Order::query()->findOrFail($item->entity_id);
+        if ($order->status === OrderStatus::AwaitingPayment && (string) $set->spec['to'] === OrderStatus::Confirmed->value) {
+            throw new CopilotToolError((string) __('ai.copilot.payment_by_merchant'));
+        }
         $note = (string) ($set->spec['note'] ?? '');
         $this->change->handle($order, OrderStatus::from((string) $set->spec['to']), $note !== '' ? $note : null, $ctx->user?->id);
     }

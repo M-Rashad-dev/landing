@@ -20,11 +20,13 @@ use App\Enums\OfferType;
 use App\Enums\OrderStatus;
 use App\Enums\PromotionTarget;
 use App\Enums\ShippingBenefit;
+use App\Enums\StorePaymentKind;
 use App\Enums\UserRole;
 use App\Models\LandingPage;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ShippingSetting;
+use App\Models\StorePaymentMethod;
 use App\Models\User;
 use App\Services\FormToken;
 use App\Tenancy\Tenancy;
@@ -200,6 +202,8 @@ final class DemoSeeder extends Seeder
         $product->load('options.values');
         $statuses = [OrderStatus::New, OrderStatus::Confirmed, OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Fake, OrderStatus::Cancelled, OrderStatus::Damaged];
         $tokens = app(FormToken::class);
+        // A prepaid way to pay: the last order waits for its payment.
+        $wallet = StorePaymentMethod::query()->create(['kind' => StorePaymentKind::Wallet, 'name' => 'فودافون كاش', 'account' => '01000000000', 'instructions' => 'حوّل المبلغ واكتب رقم الطلب في الملاحظة.', 'position' => 1]);
 
         for ($i = 0; $i < 24; $i++) {
             [$name, $phone, $governorate, $city, $address] = self::CUSTOMERS[$i % count(self::CUSTOMERS)];
@@ -223,11 +227,12 @@ final class DemoSeeder extends Seeder
                 // One IP per order keeps the per-IP limit out of the way.
                 'ip' => '41.33.0.'.($i + 10),
                 'user_agent' => 'Mozilla/5.0 (Linux; Android 14)',
+                'payment_method' => $i === 23 ? (string) $wallet->id : null,
             ]);
 
             $order = Order::query()->where('order_number', $result['order_number'])->firstOrFail();
-            $status = $i < 4 ? OrderStatus::New : $statuses[$i % count($statuses)];
-            if ($status !== OrderStatus::New) {
+            $status = $i === 23 ? OrderStatus::AwaitingPayment : ($i < 4 ? OrderStatus::New : $statuses[$i % count($statuses)]);
+            if ($status !== OrderStatus::New && $status !== OrderStatus::AwaitingPayment) {
                 $path = match ($status) {
                     OrderStatus::Shipped, OrderStatus::Damaged => [OrderStatus::Confirmed],
                     OrderStatus::Delivered => [OrderStatus::Confirmed, OrderStatus::Shipped],

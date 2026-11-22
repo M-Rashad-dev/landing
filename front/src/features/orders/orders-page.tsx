@@ -232,7 +232,16 @@ export function OrdersPage() {
     {
       key: "status",
       header: t.columns.status,
-      cell: (o) => <OrderStatusBadge status={o.status} />,
+      cell: (o) => (
+        <span className="flex flex-wrap items-center gap-1.5">
+          <OrderStatusBadge status={o.status} />
+          {o.payment_status === "review" ? (
+            <Badge tone="attention" size="sm">
+              {t.receiptToReview}
+            </Badge>
+          ) : null}
+        </span>
+      ),
     },
   ];
 
@@ -258,7 +267,8 @@ export function OrdersPage() {
         tabs={
           <Tabs value={filters.tab} onValueChange={(v) => set({ tab: v === "all" ? null : v })}>
             <TabsList>
-              {ORDER_TABS.map((tab) => (
+              {/* «بانتظار الدفع» only when the store has some (or it is open). */}
+              {ORDER_TABS.filter((tab) => tab !== "awaiting_payment" || filters.tab === tab || (tabCount(tab) ?? 0) > 0).map((tab) => (
                 <TabsTrigger key={tab} value={tab} count={tabCount(tab)}>
                   {t.tabs[tab]}
                 </TabsTrigger>

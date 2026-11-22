@@ -34,6 +34,8 @@ final class PublicOrderRequest extends FormRequest
             'ab' => ['nullable', 'integer', 'min:1'],
             'offer_id' => ['nullable', 'integer', 'min:0'],
             'shipping_company_id' => ['nullable', 'integer', 'min:1'],
+            // "cod" or a store payment method id.
+            'payment_method' => ['nullable', 'string', 'max:20'],
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'idempotency_key' => ['nullable', 'uuid'],

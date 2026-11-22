@@ -152,6 +152,12 @@ final class WhatsAppTemplates
         return ['name' => $previous['name'], 'params' => array_map(fn (int $i): string => (string) ($params[$i] ?? ''), $previous['order'])];
     }
 
+    /** A utility template exists for this key (payment messages have none: they go by email). */
+    public static function has(string $key): bool
+    {
+        return isset(self::UTILITY[$key]);
+    }
+
     /** Meta's name for a utility template key. */
     public static function name(string $key): string
     {

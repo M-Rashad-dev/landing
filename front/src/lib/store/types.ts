@@ -1,3 +1,4 @@
+import type { PaymentOptions } from "@/themes/shared/payment-choice";
 /**
  * What the public store API returns (back end: App\Store\StoreSite, StoreCatalog, PublicProductResource,
  * PriceCalculator / CartQuote, TrackController). Shared by the server loaders and the storefront.
@@ -41,6 +42,8 @@ export type StoreConfig = {
   seo: { title: string; description: string; canonical: string; site_name: string };
   tracking: Tracking | null;
   shipping: ShippingConfig;
+  /** How the customer can pay (missing on older cached pages = cash on delivery). */
+  payments?: PaymentOptions;
   branding: boolean;
   primary_host: string;
 };
@@ -146,7 +149,7 @@ export type CartQuote = {
   total: number;
 };
 
-export type TrackStage = "received" | "confirmed" | "shipped" | "delivered" | "returned" | "cancelled";
+export type TrackStage = "awaiting_payment" | "received" | "confirmed" | "shipped" | "delivered" | "returned" | "cancelled";
 
 export type TrackedOrder = {
   order_number: number;
@@ -158,6 +161,8 @@ export type TrackedOrder = {
   shipping_company: string | null;
   tracking_number: string | null;
   history: Array<{ stage: TrackStage; at: string }>;
+  /** A prepaid order waiting for its payment: where the customer pays and sends the receipt. */
+  pay_url?: string | null;
   /** The carrier's timeline when the store ships through a connected carrier. */
   shipment?: { tracking_number: string; state: string; state_label: string; events: Array<{ state: string; label: string; at: string }> } | null;
 };

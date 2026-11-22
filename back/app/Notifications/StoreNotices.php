@@ -9,6 +9,7 @@ use App\Enums\NotificationEvent;
 use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\OrderPayment;
 use App\Models\ProductImport;
 use App\Models\Shipment;
 use App\Models\SupportTicket;
@@ -217,6 +218,25 @@ final class StoreNotices
             [['label' => __('notifications.shipment_problem.order'), 'value' => '#'.$order->order_number]],
             __('notifications.shipment_problem.action'),
             dedupeKey: 'shipment_failed:'.$order->id.':'.now()->format('YmdH'),
+        ));
+    }
+
+    /** A customer sent the receipt of a prepaid order: the merchant checks the money arrived and confirms it. */
+    public function receiptSubmitted(Order $order, OrderPayment $payment): void
+    {
+        $total = Money::toCents((string) $payment->amount);
+        $this->center->toStore($order->tenant_id, new Notice(
+            NotificationEvent::PaymentReceipt,
+            __('notifications.payment_receipt.title', ['number' => $order->order_number]),
+            __('notifications.payment_receipt.body', ['customer' => (string) ($order->customer_name ?: $order->customer_phone), 'total' => $this->money($total), 'method' => $payment->method_name]),
+            '/dashboard/orders/'.$order->id,
+            [
+                ['label' => __('notifications.new_order.number'), 'value' => '#'.$order->order_number],
+                ['label' => __('notifications.payment_receipt.method'), 'value' => $payment->method_name],
+                ['label' => __('notifications.new_order.total'), 'value' => $this->money($total)],
+            ],
+            __('notifications.payment_receipt.action'),
+            dedupeKey: 'payment_receipt:'.$payment->id,
         ));
     }
 

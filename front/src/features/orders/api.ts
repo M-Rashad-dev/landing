@@ -9,10 +9,11 @@ import { ApiError } from "@/lib/api/errors";
 export type { OrderStatus };
 
 /** Tabs: "returned" shows returned and damaged together. */
-export const ORDER_TABS = ["all", "new", "confirmed", "shipped", "delivered", "returned", "cancelled", "fake"] as const;
+export const ORDER_TABS = ["all", "awaiting_payment", "new", "confirmed", "shipped", "delivered", "returned", "cancelled", "fake"] as const;
 export type OrderTab = (typeof ORDER_TABS)[number];
 export const TAB_STATUSES: Record<OrderTab, OrderStatus[]> = {
   all: [],
+  awaiting_payment: ["awaiting_payment"],
   new: ["new"],
   confirmed: ["confirmed"],
   shipped: ["shipped"],
@@ -30,6 +31,9 @@ export type OrderRow = {
   order_number: number;
   status: OrderStatus;
   status_label: string;
+  /** cod | prepaid; payment_status null for cash on delivery. */
+  payment_method?: "cod" | "prepaid";
+  payment_status?: "unpaid" | "review" | "paid" | null;
   customer_id: number | null;
   customer_name: string;
   customer_phone: string;
@@ -68,8 +72,18 @@ export type OrderItem = {
 
 export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; via?: "platform" | "smtp" | null; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
 
+/** A prepaid order's payment (back: OrderDetailResource «payment»). */
+export type OrderPaymentInfo = {
+  method_name: string | null;
+  status: "unpaid" | "review" | "paid" | null;
+  paid_at: string | null;
+  pay_url: string | null;
+  receipts: Array<{ id: number; method_name: string; amount: number; sender_ref: string | null; status: "pending" | "approved" | "rejected"; reject_reason: string | null; is_pdf: boolean; reviewer: string | null; reviewed_at: string | null; created_at: string }>;
+};
+
 export type OrderDetail = Omit<OrderRow, "shipment"> & {
   shipment: Shipment | null;
+  payment: OrderPaymentInfo | null;
   customer_phone2: string | null;
   customer_email: string | null;
   whatsapp_opt_in: boolean;
@@ -249,6 +263,7 @@ export async function exportOrders(f: OrderFilters): Promise<void> {
 
 /** Where every status can go next (back: OrderStatus::allowedTransitions), for bulk changes. */
 export const NEXT: Record<OrderStatus, OrderStatus[]> = {
+  awaiting_payment: ["confirmed", "cancelled", "fake"],
   new: ["confirmed", "cancelled", "fake"],
   confirmed: ["shipped", "delivered", "cancelled", "damaged", "fake"],
   shipped: ["delivered", "returned", "damaged", "cancelled"],

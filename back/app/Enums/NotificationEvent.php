@@ -22,6 +22,8 @@ enum NotificationEvent: string
     case ShipmentProblem = 'shipment_problem';
     /** The store's own mailbox refused; its customer emails went from the platform's address. */
     case MailboxFailed = 'mailbox_failed';
+    /** A customer sent the receipt of a prepaid order. */
+    case PaymentReceipt = 'payment_receipt';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';

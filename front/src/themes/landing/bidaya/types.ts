@@ -1,3 +1,4 @@
+import type { PaymentOptions } from "@/themes/shared/payment-choice";
 /** «بداية» page content and the data it shows (back end: App\Themes\BidayaDesign, PublicSite::payload). */
 import type { ProductOffer, ShippingConfig, StoreProduct } from "@/lib/store/types";
 import type { AiDefinition, AiSectionProps } from "@/themes/shared/ai-section/types";
@@ -60,6 +61,8 @@ export type LandingData = {
   media: Record<string, PageImage>;
   reviews: Array<{ name: string; rating: number; text: string }>;
   shipping: ShippingConfig;
+  /** How the customer can pay (missing on older cached pages = cash on delivery). */
+  payments?: PaymentOptions;
   ai_sections?: Record<string, AiDefinition>;
   ai_sections_current?: Record<string, number>;
 };

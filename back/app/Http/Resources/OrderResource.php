@@ -24,6 +24,9 @@ class OrderResource extends JsonResource
             'order_number' => $this->order_number,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            // cod | prepaid; payment_status unpaid | review | paid (null for cash on delivery).
+            'payment_method' => $this->payment_method,
+            'payment_status' => $this->payment_status?->value,
             'customer_id' => $this->customer_id,
             'customer_name' => $this->customer_name,
             'customer_phone' => $this->customer_phone,

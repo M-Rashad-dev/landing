@@ -135,7 +135,7 @@ it('creates a full order with offer, code, snapshot, log and redemption', functi
     $response = placeOrder(['code' => 'save50'])->assertCreated();
 
     // 2 × (300 + 50) = 700; the bundle (600 + 2 × 50 deltas) saves nothing, the code takes 50.
-    expect($response->json('data'))->toBe(['order_number' => 1001, 'total' => 650, 'upsell' => null]);
+    expect($response->json('data'))->toBe(['order_number' => 1001, 'total' => 650, 'upsell' => null, 'pay_url' => null]);
 
     $order = asTenant($this->tenant, fn () => Order::query()->with(['items', 'logs', 'redemption'])->firstOrFail());
     expect($order->status)->toBe(OrderStatus::New)
