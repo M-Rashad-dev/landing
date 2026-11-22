@@ -10,6 +10,8 @@ export type Company = {
   id: number;
   name: string;
   media_id: number | null;
+  /** The connected carrier this company ships through (null: shipped by hand). */
+  carrier: string | null;
   logo: MediaUrls | null;
   delivery_days_min: number | null;
   delivery_days_max: number | null;
@@ -20,7 +22,9 @@ export type Company = {
   rates: Rate[];
 };
 
-export type ShippingSettings = { enabled: boolean; governorates: string[]; companies: Company[] };
+export type CompanyChoice = "customer" | "governorate";
+
+export type ShippingSettings = { enabled: boolean; company_choice: CompanyChoice; governorate_companies: Record<string, number>; governorates: string[]; companies: Company[] };
 
 export type CompanyInput = {
   name: string;
@@ -44,6 +48,8 @@ export function useRefreshShipping() {
 }
 
 export const setShippingEnabled = (enabled: boolean) => api<ShippingSettings>("/dashboard/shipping", { method: "PUT", body: { enabled } });
+export const saveCompanyChoice = (enabled: boolean, choice: CompanyChoice, assigned: Record<string, number | null>) =>
+  api<ShippingSettings>("/dashboard/shipping", { method: "PUT", body: { enabled, company_choice: choice, governorate_companies: assigned } });
 export const saveCompany = (body: CompanyInput, id?: number) => api<Company>(id ? `/dashboard/shipping-companies/${id}` : "/dashboard/shipping-companies", { method: id ? "PUT" : "POST", body });
 export const toggleCompany = (id: number) => api<Company>(`/dashboard/shipping-companies/${id}/toggle`, { method: "POST" });
 export const deleteCompany = (id: number) => api<void>(`/dashboard/shipping-companies/${id}`, { method: "DELETE" });

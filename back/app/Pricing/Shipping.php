@@ -18,13 +18,30 @@ use Illuminate\Database\Eloquent\Collection;
  * Delivery fee for the current tenant (used by PriceCalculator, the only price authority).
  * Off, or on with no active company → no fee. On → each active company that serves the
  * governorate gives its fee, the best shipping offer (or a free-shipping code) lowers it,
- * and the customer's company is used (else the cheapest).
+ * and the customer's company is used (else the cheapest). With «a company per governorate»
+ * the store's choice for the governorate is the only option (else the cheapest), so checkout
+ * shows no choice.
  */
 final class Shipping
 {
     public function enabled(): bool
     {
         return (bool) ShippingSetting::query()->value('enabled');
+    }
+
+    /**
+     * The store's company for each governorate, when it picks them itself (null: the customer chooses).
+     *
+     * @return array<string, int>|null
+     */
+    public function governorateCompanies(): ?array
+    {
+        $setting = ShippingSetting::query()->first();
+        if ($setting === null || $setting->company_choice !== ShippingSetting::CHOICE_GOVERNORATE) {
+            return null;
+        }
+
+        return array_map('intval', $setting->governorate_companies ?? []);
     }
 
     /** @return Collection<int, ShippingCompany> */
@@ -75,6 +92,14 @@ final class Shipping
             return new ShippingQuote(available: false);
         }
 
+        $assigned = $this->governorateCompanies();
+        if ($assigned !== null) {
+            // The store picks: its company for this governorate, else the cheapest; the customer sees no choice.
+            $own = array_values(array_filter($options, fn (array $o) => $o['id'] === ($assigned[$governorate] ?? null)));
+            $options = $own !== [] ? $own : [array_reduce($options, fn (?array $c, array $o) => $c === null || $o['fee'] < $c['fee'] ? $o : $c)];
+            $companyId = null;
+        }
+
         $chosen = null;
         foreach ($options as $option) {
             if ($companyId !== null && $option['id'] === $companyId) {
@@ -101,6 +126,22 @@ final class Shipping
             options: array_map(fn (array $o) => array_diff_key($o, ['offer_id' => true]), $options),
             companyMismatch: $mismatch,
         );
+    }
+
+    /**
+     * With «a company per governorate»: the store's company there if it delivers, else the cheapest that does.
+     *
+     * @param  array<string, int>  $assigned
+     * @param  Collection<int, ShippingCompany>  $companies
+     */
+    private function assignedFor(string $governorate, array $assigned, Collection $companies): ?int
+    {
+        $serving = $companies->filter(fn (ShippingCompany $c) => $c->feeFor($governorate) !== null);
+        if ($serving->contains('id', $assigned[$governorate] ?? null)) {
+            return (int) $assigned[$governorate];
+        }
+
+        return $serving->sortBy(fn (ShippingCompany $c) => $c->feeFor($governorate))->first()?->id;
     }
 
     /**
@@ -166,11 +207,13 @@ final class Shipping
         $fees = [];
         $unavailable = [];
         $perCompany = [];
+        $assigned = $this->governorateCompanies();
         foreach ((array) config('landing.governorates') as $governorate) {
             $cheapest = null;
+            $only = $assigned === null ? null : $this->assignedFor($governorate, $assigned, $companies);
             foreach ($companies as $company) {
                 $fee = $company->feeFor($governorate);
-                if ($fee === null) {
+                if ($fee === null || ($only !== null && $company->id !== $only)) {
                     $perCompany[$company->id]['unavailable'][] = $governorate;
 
                     continue;

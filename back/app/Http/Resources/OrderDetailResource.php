@@ -53,6 +53,7 @@ final class OrderDetailResource extends OrderResource
                 'discount' => $money((string) $this->shipping_discount),
                 'tracking_number' => $this->tracking_number,
             ],
+            'shipment' => $this->whenLoaded('shipment', fn () => $this->shipment === null ? null : ShipmentResource::make($this->shipment)->resolve()),
             'items' => $this->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,

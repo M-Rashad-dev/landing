@@ -10,6 +10,7 @@ use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\ProductImport;
+use App\Models\Shipment;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Support\CairoTime;
@@ -182,6 +183,40 @@ final class StoreNotices
             'merchant_import_done',
             [$this->store($import->tenant_id), (string) ($import->created_count + $import->updated_count), (string) $failed],
             dedupeKey: 'import_done:'.$import->id,
+        ));
+    }
+
+    /** A shipment the merchant should look at (bell + email; no WhatsApp template yet). */
+    public function shipmentProblem(Shipment $shipment, string $carrier): void
+    {
+        $number = (string) Order::query()->whereKey($shipment->order_id)->value('order_number');
+
+        $this->center->toStore($shipment->tenant_id, new Notice(
+            NotificationEvent::ShipmentProblem,
+            __('notifications.shipment_problem.title', ['number' => $number, 'state' => $shipment->state->label()]),
+            __('notifications.shipment_problem.body', ['carrier' => $carrier, 'state' => $shipment->state->label(), 'reason' => $shipment->exception ?? $shipment->carrier_label ?? '—']),
+            '/dashboard/orders/'.$shipment->order_id,
+            [
+                ['label' => __('notifications.shipment_problem.order'), 'value' => '#'.$number],
+                ['label' => __('notifications.shipment_problem.tracking'), 'value' => $shipment->tracking_number],
+                ['label' => __('notifications.shipment_problem.state'), 'value' => $shipment->state->label()],
+            ],
+            __('notifications.shipment_problem.action'),
+            dedupeKey: 'shipment:'.$shipment->id.':'.$shipment->state->value.':'.($shipment->carrier_code ?? 0),
+        ));
+    }
+
+    /** An order the store set to ship by itself on confirming couldn't be shipped. */
+    public function shipmentFailed(Order $order, string $carrier, string $reason): void
+    {
+        $this->center->toStore($order->tenant_id, new Notice(
+            NotificationEvent::ShipmentProblem,
+            __('notifications.shipment_failed.title', ['number' => $order->order_number, 'carrier' => $carrier]),
+            $reason,
+            '/dashboard/orders/'.$order->id,
+            [['label' => __('notifications.shipment_problem.order'), 'value' => '#'.$order->order_number]],
+            __('notifications.shipment_problem.action'),
+            dedupeKey: 'shipment_failed:'.$order->id.':'.now()->format('YmdH'),
         ));
     }
 

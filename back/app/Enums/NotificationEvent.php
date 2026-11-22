@@ -18,6 +18,8 @@ enum NotificationEvent: string
     case DomainReady = 'domain_ready';
     case ImportDone = 'import_done';
     case AiLowBalance = 'ai_low_balance';
+    /** A shipment needs the merchant (customer not answering, returning, lost…) or an order couldn't be shipped. */
+    case ShipmentProblem = 'shipment_problem';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';

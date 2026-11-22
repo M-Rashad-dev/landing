@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Public;
 
+use App\Enums\ShipmentState;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Identity;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ShipmentEvent;
 use App\Services\PhoneNormalizer;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
@@ -75,11 +77,11 @@ final class TrackController extends Controller
         $domain = $this->site->activeDomainOrFail($data['host']);
 
         if (isset($data['token'])) {
-            $order = Tenancy::runAs($domain->tenant_id, fn () => Order::query()->with(['items', 'logs'])->where('track_token', $data['token'])->first());
+            $order = Tenancy::runAs($domain->tenant_id, fn () => Order::query()->with(['items', 'logs', 'shipment.events'])->where('track_token', $data['token'])->first());
         } else {
             $phone = $phones->normalize((string) $data['phone']);
             $order = $phone === null ? null : Tenancy::runAs($domain->tenant_id, fn () => Order::query()
-                ->with(['items', 'logs'])
+                ->with(['items', 'logs', 'shipment.events'])
                 ->where('order_number', (int) $data['order_number'])
                 ->where(fn ($q) => $q->where('customer_phone', $phone)->orWhere('customer_phone2', $phone))
                 ->first());
@@ -104,6 +106,13 @@ final class TrackController extends Controller
             'shipping_company' => $order->shipping_company_name,
             'tracking_number' => $order->tracking_number,
             'history' => CustomerOrders::history($order),
+            // The carrier's timeline, when the store ships through a connected carrier (our words, never its internals).
+            'shipment' => $order->shipment === null || $order->shipment->state === ShipmentState::Cancelled ? null : [
+                'tracking_number' => $order->shipment->tracking_number,
+                'state' => $order->shipment->state->value,
+                'state_label' => $order->shipment->state->label(),
+                'events' => $order->shipment->events->map(fn (ShipmentEvent $e) => ['state' => $e->state->value, 'label' => $e->state->label(), 'at' => $e->happened_at->toIso8601ZuluString()])->values()->all(),
+            ],
         ])->header('Cache-Control', 'no-store, private');
     }
 }

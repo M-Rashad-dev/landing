@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AiWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
+use App\Http\Controllers\Api\V1\Dashboard\CarrierAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
 use App\Http\Controllers\Api\V1\Dashboard\CopilotChangeController;
 use App\Http\Controllers\Api\V1\Dashboard\CopilotController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
+use App\Http\Controllers\Api\V1\Dashboard\ShipmentController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
@@ -66,6 +68,7 @@ use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
+use App\Http\Controllers\Api\V1\Webhooks\ShippingWebhookController;
 use App\Http\Controllers\Api\V1\Webhooks\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -264,6 +267,13 @@ Route::prefix('dashboard')
         Route::patch('orders/{order}', [OrderController::class, 'update']);
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
+        // Shipping orders through connected carriers (docs/plans/shipping-carriers.md).
+        Route::get('orders/{order}/shipping', [ShipmentController::class, 'prepare']);
+        Route::post('orders/{order}/shipments', [ShipmentController::class, 'store'])->middleware('throttle:carrier-calls');
+        Route::post('shipments/bulk', [ShipmentController::class, 'bulk'])->middleware('throttle:carrier-calls');
+        Route::get('shipments/labels', [ShipmentController::class, 'labels'])->middleware('throttle:carrier-calls');
+        Route::post('shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])->middleware('throttle:carrier-calls');
+        Route::post('shipments/{shipment}/refresh', [ShipmentController::class, 'refresh'])->middleware('throttle:carrier-calls');
 
         Route::get('reviews', [ReviewController::class, 'index']);
         Route::patch('reviews/{review}', [ReviewController::class, 'update']);
@@ -288,6 +298,13 @@ Route::prefix('dashboard')
         Route::delete('integrations/{webhook}', [IntegrationController::class, 'destroy']);
 
         Route::get('shipping', [ShippingController::class, 'show']);
+        Route::get('shipping/carriers', [CarrierAccountController::class, 'index']);
+        Route::post('shipping/carriers/{carrier}', [CarrierAccountController::class, 'connect'])->middleware('throttle:carrier-calls');
+        Route::put('shipping/carriers/{carrier}', [CarrierAccountController::class, 'update']);
+        Route::post('shipping/carriers/{carrier}/check', [CarrierAccountController::class, 'check'])->middleware('throttle:carrier-calls');
+        Route::get('shipping/carriers/{carrier}/districts', [CarrierAccountController::class, 'districts']);
+        Route::post('shipping/carriers/{carrier}/pickups', [CarrierAccountController::class, 'pickup'])->middleware('throttle:carrier-calls');
+        Route::delete('shipping/carriers/{carrier}', [CarrierAccountController::class, 'destroy']);
         Route::put('shipping', [ShippingController::class, 'update']);
         Route::put('shipping-companies/order', [ShippingCompanyController::class, 'reorder']);
         Route::apiResource('shipping-companies', ShippingCompanyController::class)->except('index');
@@ -315,6 +332,7 @@ Route::prefix('webhooks')
     ->group(function (): void {
         Route::get('whatsapp', [WhatsAppWebhookController::class, 'verify']);
         Route::post('whatsapp', [WhatsAppWebhookController::class, 'receive']);
+        Route::post('shipping/{carrier}/{token}', [ShippingWebhookController::class, 'receive'])->where(['carrier' => '[a-z0-9_]{2,30}', 'token' => '[a-z0-9]{40}']);
     });
 
 Route::prefix('public')

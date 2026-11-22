@@ -38,7 +38,7 @@ final class OrderController extends Controller
 {
     use RespondsWithJson;
 
-    private const LIST_RELATIONS = ['product:id,name,deleted_at', 'page:id,title,slug,deleted_at', 'items:id,order_id,product_name,quantity,is_gift'];
+    private const LIST_RELATIONS = ['product:id,name,deleted_at', 'page:id,title,slug,deleted_at', 'items:id,order_id,product_name,quantity,is_gift', 'shipment'];
 
     public function index(Request $request): JsonResponse
     {
@@ -80,7 +80,7 @@ final class OrderController extends Controller
     public function show(Order $order): JsonResponse
     {
         // The page with its identity (the list loads only a few page columns).
-        $order->load(['product:id,name,deleted_at', 'page:id,title,slug,identity_id,deleted_at', 'page.identity.logo', 'items', 'logs.user:id,name', 'events.user:id,name']);
+        $order->load(['product:id,name,deleted_at', 'page:id,title,slug,identity_id,deleted_at', 'page.identity.logo', 'items', 'logs.user:id,name', 'events.user:id,name', 'shipment.events']);
 
         return $this->ok(array_merge(
             OrderDetailResource::make($order)->resolve(request()),

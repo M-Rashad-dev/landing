@@ -73,6 +73,17 @@ return [
         'failed' => 'صفوف فيها مشاكل',
         'action' => 'افتح الاستيراد',
     ],
+    'shipment_problem' => [
+        'title' => 'شحنة الطلب #:number: :state',
+        'body' => ':carrier: :state — :reason',
+        'order' => 'الطلب',
+        'tracking' => 'رقم التتبع',
+        'state' => 'الحالة',
+        'action' => 'افتح الطلب',
+    ],
+    'shipment_failed' => [
+        'title' => 'مقدرناش نشحن الطلب #:number مع :carrier',
+    ],
     'ai_low_balance' => [
         'title' => 'رصيد الذكاء الاصطناعي قرّب يخلص',
         'body' => 'فاضل :left جنيه في رصيد الذكاء الاصطناعي. اشحن عشان تكمّل تستخدمه.',

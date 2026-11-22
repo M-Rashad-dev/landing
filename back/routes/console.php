@@ -8,6 +8,7 @@ Schedule::command('domains:verify-pending')->everyFiveMinutes()->withoutOverlapp
 Schedule::command('leads:prune')->daily();
 Schedule::command('imports:prune')->daily();
 Schedule::command('copilot:prune')->daily();
+Schedule::command('shipments:sync')->everyThirtyMinutes()->withoutOverlapping();
 Schedule::command('copilot:expire')->hourly()->withoutOverlapping();
 Schedule::command('support:close-idle')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('subscriptions:sweep')->everyMinute()->withoutOverlapping();

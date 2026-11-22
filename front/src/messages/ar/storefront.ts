@@ -187,6 +187,7 @@ export const storefront = {
     stages: { received: "استلمنا الطلب", confirmed: "اتأكد", shipped: "اتشحن", delivered: "وصل", returned: "مرتجع", cancelled: "اتلغى" },
     carrier: "شركة الشحن",
     trackingNumber: "رقم الشحنة",
+    shipment: "مسار الشحنة",
     items: "المنتجات",
     total: "الإجمالي",
     another: "تتبّع طلب تاني",

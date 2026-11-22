@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeftRight, Ban, Gift, MessageCircle, Pencil, Phone, PhoneOff, Printer, Truck, User } from "lucide-react";
+import { ArrowLeftRight, Ban, Gift, MessageCircle, Pencil, Phone, PhoneOff, Printer, User } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useCopilotContext } from "@/features/copilot/copilot-provider";
@@ -21,6 +21,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from "@
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { useShipping } from "@/features/shipping/api";
+import { ShippingCard } from "./shipment-card";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useSession } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
@@ -273,49 +274,6 @@ function CustomerCard({ order, onEdit }: { order: OrderDetail; onEdit: () => voi
             </Link>
           </Button>
         ) : null}
-      </PanelBody>
-    </Panel>
-  );
-}
-
-function ShippingCard({ order, onSaved }: { order: OrderDetail; onSaved: () => Promise<unknown> }) {
-  const [tracking, setTracking] = React.useState(order.shipping.tracking_number ?? "");
-  const [busy, setBusy] = React.useState(false);
-  const dirty = tracking.trim() !== (order.shipping.tracking_number ?? "");
-
-  async function save() {
-    setBusy(true);
-    try {
-      await updateOrder(order.id, { tracking_number: tracking.trim() || null });
-      toast.success(d.trackingSaved);
-      await onSaved();
-    } catch (error) {
-      toast.error(errorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Panel>
-      <PanelHeader title={d.shipping_} />
-      <PanelBody className="flex flex-col gap-3">
-        {order.shipping.company ? (
-          <p className="flex items-center gap-2 text-sm">
-            <Truck className="size-4 text-ink-3" />
-            {order.shipping.company.name}
-          </p>
-        ) : null}
-        <Field label={d.trackingNumber} htmlFor="order-tracking">
-          <div className="flex gap-2">
-            <Input id="order-tracking" dir="ltr" maxLength={60} placeholder={d.trackingPlaceholder} value={tracking} onChange={(e) => setTracking(e.target.value)} />
-            {dirty ? (
-              <Button size="sm" loading={busy} onClick={() => void save()}>
-                {ar.common.save}
-              </Button>
-            ) : null}
-          </div>
-        </Field>
       </PanelBody>
     </Panel>
   );

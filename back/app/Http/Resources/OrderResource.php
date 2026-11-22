@@ -34,6 +34,7 @@ class OrderResource extends JsonResource
             'source' => $this->source,
             'shipping_company' => $this->shipping_company_name,
             'tracking_number' => $this->tracking_number,
+            'shipment' => $this->whenLoaded('shipment', fn () => $this->shipment === null ? null : ['id' => $this->shipment->id, 'state' => $this->shipment->state->value, 'state_label' => $this->shipment->state->label(), 'is_open' => $this->shipment->is_open, 'tracking_number' => $this->shipment->tracking_number]),
             // Store orders: "تيشيرت + 2 منتج تاني" in lists.
             'items_summary' => $this->whenLoaded('items', fn () => [
                 'first' => $this->items->firstWhere('is_gift', false)?->product_name,

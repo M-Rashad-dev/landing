@@ -37,6 +37,7 @@
         <!-- Never the developer's real WhatsApp keys: tests set their own and fake Meta. -->
         <env name="WHATSAPP_TOKEN" value=""/>
         <env name="AI_DRIVER" value="fake"/>
+        <env name="SHIPPING_CARRIERS_DRIVER" value="fake"/>
         <env name="OPENROUTER_API_KEY" value=""/>
         <env name="AI_VECTORS_CACHE" value="array"/>
         <env name="AI_MODEL_SUPPORT" value="qwen/qwen4-max"/>

@@ -8,7 +8,9 @@ use App\Enums\BlockType;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
+use App\Jobs\AutoShipOrder;
 use App\Models\BlockedCustomer;
+use App\Models\CarrierAccount;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
@@ -84,6 +86,10 @@ final class ChangeOrderStatus
         }
         $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
         $this->customerNotices->statusChanged($changed, $to);
+        // Stores that ship through a connected carrier by themselves: the courier is called once the order is confirmed.
+        if ($to === OrderStatus::Confirmed && CarrierAccount::query()->where('status', CarrierAccount::ACTIVE)->exists()) {
+            AutoShipOrder::dispatch($changed->tenant_id, $changed->id)->afterCommit();
+        }
 
         return $changed;
     }

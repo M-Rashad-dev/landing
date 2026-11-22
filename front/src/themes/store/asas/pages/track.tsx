@@ -113,6 +113,20 @@ function OrderStatus({ order, onAnother }: { order: TrackedOrder; onAnother: () 
         </dl>
       ) : null}
 
+      {order.shipment && order.shipment.events.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <p className="as-sm font-bold">{t.shipment}</p>
+          <ol className="flex flex-col gap-2 border-s-2 ps-3">
+            {[...order.shipment.events].reverse().map((e, i) => (
+              <li key={`${e.at}-${i}`} className="as-sm">
+                <span className={cn("font-semibold", i > 0 && "as-muted")}>{e.label}</span>
+                <span className="as-xs as-muted block">{formatDateTime(e.at)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-2">
         <p className="as-sm font-bold">{t.items}</p>
         <ul className="flex flex-col divide-y rounded-lg border">

@@ -116,6 +116,18 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasMany<Shipment, $this> */
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class)->orderBy('id');
+    }
+
+    /** @return HasOne<Shipment, $this> the open one (or the latest) */
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class)->latestOfMany();
+    }
+
     /** @return HasMany<OrderStatusLog, $this> */
     public function logs(): HasMany
     {

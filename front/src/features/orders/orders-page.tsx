@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, ShoppingBag } from "lucide-react";
+import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, Printer, ShoppingBag, Truck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MenuItem, Tooltip } from "@/components/ui/overlay";
 import { useShipping } from "@/features/shipping/api";
+import { labelsUrl, stateTone, useCarriers } from "@/features/shipping/carriers-api";
 import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { useUrlState } from "@/lib/use-url-state";
@@ -37,6 +38,7 @@ import {
 } from "./api";
 import { useConfirmQueue } from "./confirm-queue";
 import { OrderQuickView } from "./order-quick-view";
+import { BulkShipDialog } from "./bulk-ship";
 import { StatusDialog } from "./status-dialog";
 
 const t = ar.orders;
@@ -69,6 +71,9 @@ export function OrdersPage() {
   useCopilotContext(selectedIds.length > 0 ? { selection: { type: "orders", ids: selectedIds } } : null);
   const [quick, setQuick] = React.useState<OrderRow | null>(null);
   const [bulkOpen, setBulkOpen] = React.useState(false);
+  const [shipOpen, setShipOpen] = React.useState(false);
+  const carriers = useCarriers();
+  const canShip = (carriers.data ?? []).some((c) => c.account?.status === "active");
   const [exporting, setExporting] = React.useState(false);
 
   React.useEffect(() => {
@@ -210,6 +215,11 @@ export function OrdersPage() {
         <span className="flex flex-col">
           <span>{o.governorate ?? "—"}</span>
           {o.shipping_company ? <span className="text-xs text-ink-3">{o.shipping_company}</span> : null}
+          {o.shipment && o.shipment.state !== "cancelled" ? (
+            <Badge tone={stateTone(o.shipment.state)} size="sm" className="mt-0.5 w-fit">
+              {o.shipment.state_label}
+            </Badge>
+          ) : null}
         </span>
       ),
     },
@@ -360,10 +370,33 @@ export function OrdersPage() {
             selected={selected}
             onSelectedChange={setSelected}
             bulkActions={
-              <Button size="sm" variant="outline" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
-                <ArrowLeftRight />
-                {t.bulk.changeStatus}
-              </Button>
+              <>
+                <Button size="sm" variant="outline" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
+                  <ArrowLeftRight />
+                  {t.bulk.changeStatus}
+                </Button>
+                {canShip ? (
+                  <>
+                    <Button size="sm" variant="outline" disabled={!selectedRows.some((r) => r.status === "confirmed")} onClick={() => setShipOpen(true)}>
+                      <Truck />
+                      {ar.carriers.bulk.ship}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!selectedRows.some((r) => r.shipment?.is_open)}
+                      onClick={() => {
+                        const ids = selectedRows.filter((r) => r.shipment?.is_open).map((r) => r.id);
+                        if (ids.length > 50) toast.error(ar.carriers.bulk.labelsMax(50));
+                        else window.open(labelsUrl({ orderIds: ids }), "_blank", "noopener");
+                      }}
+                    >
+                      <Printer />
+                      {ar.carriers.bulk.labels}
+                    </Button>
+                  </>
+                ) : null}
+              </>
             }
             onRowClick={setQuick}
             rowActions={(o) => (
@@ -393,6 +426,15 @@ export function OrdersPage() {
       )}
 
       <OrderQuickView row={quick} onClose={() => setQuick(null)} onOpen={(id) => router.push(`/dashboard/orders/${id}`)} />
+      <BulkShipDialog
+        open={shipOpen}
+        onOpenChange={setShipOpen}
+        ids={selectedRows.filter((r) => r.status === "confirmed" && !r.shipment?.is_open).map((r) => r.id)}
+        onDone={async () => {
+          setSelected([]);
+          await refresh();
+        }}
+      />
       <StatusDialog
         open={bulkOpen}
         onOpenChange={setBulkOpen}

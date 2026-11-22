@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $name
  * @property int|null $media_id
+ * @property int|null $carrier_account_id
  * @property int|null $delivery_days_min
  * @property int|null $delivery_days_max
  * @property string $default_fee
@@ -26,7 +27,7 @@ class ShippingCompany extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['name', 'media_id', 'delivery_days_min', 'delivery_days_max', 'default_fee', 'is_active', 'position'];
+    protected $fillable = ['name', 'media_id', 'carrier_account_id', 'delivery_days_min', 'delivery_days_max', 'default_fee', 'is_active', 'position'];
 
     protected function casts(): array
     {
@@ -43,6 +44,12 @@ class ShippingCompany extends Model
     public function rates(): HasMany
     {
         return $this->hasMany(ShippingCompanyRate::class);
+    }
+
+    /** @return BelongsTo<CarrierAccount, $this> */
+    public function carrierAccount(): BelongsTo
+    {
+        return $this->belongsTo(CarrierAccount::class);
     }
 
     /** @return BelongsTo<Media, $this> */

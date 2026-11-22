@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\CarrierAccount;
 use App\Models\Media;
 use App\Models\ShippingCompany;
 use App\Models\ShippingCompanyRate;
@@ -33,6 +34,8 @@ final class ShippingCompanyResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'media_id' => $this->media_id,
+            // The connected carrier this company ships through (null: shipped by hand).
+            'carrier' => $this->carrier_account_id === null ? null : CarrierAccount::query()->whereKey($this->carrier_account_id)->value('carrier'),
             'logo' => $this->logo instanceof Media ? $this->logo->urls() : null,
             'delivery_days_min' => $this->delivery_days_min,
             'delivery_days_max' => $this->delivery_days_max,

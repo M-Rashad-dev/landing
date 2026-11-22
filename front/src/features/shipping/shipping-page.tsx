@@ -16,6 +16,8 @@ import { errorMessage, isApiError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
 import { deleteCompany, reorderCompanies, setShippingEnabled, toggleCompany, useRefreshShipping, useShipping, type Company } from "./api";
+import { CarriersSection } from "./carriers-section";
+import { CompanyChoicePanel } from "./company-choice";
 import { CompanyDrawer, type CompanyDrawerState } from "./company-drawer";
 
 const t = ar.shipping;
@@ -119,6 +121,14 @@ export function ShippingPage() {
             </PanelBody>
           </Panel>
 
+          <CarriersSection
+            companies={data.companies}
+            onEditCompany={(id) => {
+              const company = data.companies.find((c) => c.id === id);
+              if (company) setDrawer({ mode: "edit", company });
+            }}
+          />
+
           <section>
             <div className="mb-2 flex items-end justify-between gap-2">
               <div>
@@ -158,6 +168,7 @@ export function ShippingPage() {
                       <span className="flex flex-wrap items-center gap-2 font-semibold">
                         {c.name}
                         {!c.is_active ? <Badge tone="warning">{t.inactive}</Badge> : null}
+                        {c.carrier ? <Badge tone="info">{ar.carriers.linkedBadge(ar.carriers.names[c.carrier as keyof typeof ar.carriers.names] ?? c.carrier)}</Badge> : null}
                       </span>
                       <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-ink-3">
                         <span>{t.fee(c.default_fee)}</span>
@@ -190,6 +201,8 @@ export function ShippingPage() {
               />
             )}
           </section>
+
+          <CompanyChoicePanel key={`${data.company_choice}-${JSON.stringify(data.governorate_companies)}`} data={data} />
 
           <Panel>
             <PanelHeader

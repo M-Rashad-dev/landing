@@ -19,6 +19,7 @@ use App\Messaging\WhatsApp\CloudWhatsAppGateway;
 use App\Messaging\WhatsApp\WhatsAppGateway;
 use App\Services\Dns\DnsResolver;
 use App\Services\Dns\NativeDnsResolver;
+use App\Shipping\Carriers\Carriers;
 use App\Store\Accounts\CodeSender;
 use App\Store\Accounts\ScreenCodeSender;
 use App\Store\Accounts\WhatsAppCodeSender;
@@ -48,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
         // The AI provider (config/ai.php): the fake answers locally (tests, e2e) and is one instance, so a test can queue its answers.
         $this->app->singleton(AiClient::class, fn ($app): AiClient => config('ai.driver') === 'fake' ? new FakeAiClient : $app->make(OpenRouterClient::class));
         $this->app->singleton(StockPhotos::class, fn ($app): StockPhotos => config('ai.driver') === 'fake' ? new FakeStockPhotos : $app->make(PexelsStockPhotos::class));
+        // Shipping carriers (config/shipping.php): one registry, so a test reads what the fake carrier was asked.
+        $this->app->singleton(Carriers::class);
         // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
         $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()
             ? $app->make(WhatsAppCodeSender::class)
@@ -112,6 +115,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));
         // "Send test" makes a real outgoing request: 10 per minute per store.
         RateLimiter::for('integration-tests', fn (Request $request) => Limit::perMinute(10)->by('integration-tests:'.(Tenancy::id() ?? $request->ip())));
+        // Calls to a shipping carrier (ship, cancel, airway bills, connect): 60 per minute per store.
+        RateLimiter::for('carrier-calls', fn (Request $request) => Limit::perMinute(60)->by('carrier-calls:'.(Tenancy::id() ?? $request->ip())));
         RateLimiter::for('orders-export', fn (Request $request) => Limit::perMinute(10)->by('orders-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Manual DNS / SSL re-checks: 10 per minute per tenant.

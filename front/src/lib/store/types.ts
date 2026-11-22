@@ -146,4 +146,6 @@ export type TrackedOrder = {
   shipping_company: string | null;
   tracking_number: string | null;
   history: Array<{ stage: TrackStage; at: string }>;
+  /** The carrier's timeline when the store ships through a connected carrier. */
+  shipment?: { tracking_number: string; state: string; state_label: string; events: Array<{ state: string; label: string; at: string }> } | null;
 };

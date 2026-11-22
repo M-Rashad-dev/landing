@@ -12,15 +12,21 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property int $id
  * @property bool $enabled
+ * @property string $company_choice
+ * @property array<string, int>|null $governorate_companies
  */
 class ShippingSetting extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['enabled'];
+    public const CHOICE_CUSTOMER = 'customer';
+
+    public const CHOICE_GOVERNORATE = 'governorate';
+
+    protected $fillable = ['enabled', 'company_choice', 'governorate_companies'];
 
     protected function casts(): array
     {
-        return ['enabled' => 'boolean'];
+        return ['enabled' => 'boolean', 'governorate_companies' => 'array'];
     }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Shipment, ShipmentState } from "@/features/shipping/carriers-api";
 import type { OrderStatus } from "@/components/domain/order-status";
 import { api, apiPage, apiRaw } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
@@ -39,6 +40,7 @@ export type OrderRow = {
   source: "store" | "landing";
   shipping_company: string | null;
   tracking_number: string | null;
+  shipment?: { id: number; state: ShipmentState; state_label: string; is_open: boolean; tracking_number: string } | null;
   items_summary?: { first: string | null; count: number };
   total: number;
   is_duplicate_suspect: boolean;
@@ -65,7 +67,8 @@ export type OrderItem = {
 
 export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
 
-export type OrderDetail = OrderRow & {
+export type OrderDetail = Omit<OrderRow, "shipment"> & {
+  shipment: Shipment | null;
   customer_phone2: string | null;
   customer_email: string | null;
   whatsapp_opt_in: boolean;
