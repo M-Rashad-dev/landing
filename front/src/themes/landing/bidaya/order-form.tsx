@@ -8,6 +8,7 @@ import { GOVERNORATES } from "@/lib/store/governorates";
 import { offerLabel, offerQuantity } from "@/lib/store/offers";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { QuantityStepper } from "@/themes/store/asas/parts";
 import { imageSrc, usePage, useProductImages } from "./context";
 import { usePrice } from "./sections";
@@ -100,6 +101,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
             {form.errors[`options.${option.id}`] ? <p className="as-xs font-semibold text-red-600">{form.errors[`options.${option.id}`]}</p> : null}
           </fieldset>
         ))}
+        <CustomerInputFields state={form.inputs} classes={{ control: "bg-transparent" }} />
 
         {form.picker ? (
           <fieldset className="flex flex-col gap-2">

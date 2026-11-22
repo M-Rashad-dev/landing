@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 return [
+    'input_label_duplicate' => 'فيه خانتين بنفس الاسم.',
+    'input_not_found' => 'الخانة دي مش موجودة في المنتج.',
     'compare_at_gt_price' => 'السعر قبل الخصم يجب أن يكون أكبر من السعر.',
     'option_name_duplicate' => 'اسم الخيار مكرر في نفس المنتج.',
     'value_label_duplicate' => 'القيمة مكررة في نفس الخيار.',

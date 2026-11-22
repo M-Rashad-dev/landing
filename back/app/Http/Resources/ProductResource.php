@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Support\Money;
@@ -61,8 +62,22 @@ final class ProductResource extends JsonResource
                     'is_active' => $value->is_active,
                 ])->all() : [],
             ])->all()),
+            'inputs' => $this->whenLoaded('inputs', fn () => $this->inputs->map(fn (ProductInput $input) => self::input($input))->all()),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),
+        ];
+    }
+
+    /** A «حسب الطلب» field (same shape for the dashboard and the public pages). @return array<string, mixed> */
+    public static function input(ProductInput $input): array
+    {
+        return [
+            'id' => $input->id,
+            'kind' => $input->kind->value,
+            'label' => $input->label,
+            'placeholder' => $input->placeholder,
+            'is_required' => $input->is_required,
+            'price_delta' => Money::toFloat($input->priceDeltaCents()),
         ];
     }
 

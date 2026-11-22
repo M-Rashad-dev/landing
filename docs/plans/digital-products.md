@@ -85,3 +85,17 @@ an attached sheet), deliver a service order with its message. Confirming payment
   `DeliverCustomerNotice` sends through `StoreMailer`. Checked live: login to the Hostinger mailbox through
   `SmtpMailbox` (465 SSL and 587 STARTTLS, wrong password → the auth message). Tests: `tests/Feature/Messaging/StoreMailTest.php`,
   `front/src/features/settings/mail-page.test.tsx`. Also fixed: `SaveBar` buttons were submit buttons (double save).
+- **2026-11-22 — Stage 2 custom inputs («حسب الطلب»), built.** `product_inputs` (kind text / textarea / image /
+  file, label, placeholder, required, extra price; ≤ 5 a product, no variants) and `customer_uploads` (private disk
+  `customer-uploads/{tenant}/{Y-m}`, 40-char token, claimed once by an order line, unclaimed ones deleted daily by
+  `uploads:prune`). `PriceCalculator::resolveInputs` checks required / length / token and adds the extra price (offers
+  see it like option deltas). Orders (store cart + landing pages) keep the answers in `order_items.options` after the
+  option values (`kind`, `input_id`, files as their name + `upload_id`), so the order page, invoice, webhooks, Sheets
+  and exports show them as before. Public `POST /public/uploads` (Next `/api/public/uploads`, ≤ 10 MB, type read from
+  the file, 10 / min per visitor); dashboard download `GET /dashboard/orders/{order}/uploads/{id}` (always an
+  attachment, nosniff). Products with a required field are never quick-added, given as a gift or offered one-click;
+  the «صوفي» featured-product section sends them to their page. Front: product form section «حسب الطلب»
+  (`inputs-editor.tsx`), shared `themes/shared/customer-inputs.tsx` (hook + fields, drawn by «أساس», «شابع» and the
+  three landing order forms), cart lines keyed by the answers, order page shows the answers with file downloads.
+  Copilot: products resource reads the fields. Tests: `tests/Feature/Store/CustomInputsTest.php`,
+  `front/src/themes/shared/customer-inputs.test.tsx`, `front/src/app/api/public/uploads.test.ts`.

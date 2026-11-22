@@ -115,6 +115,8 @@ class AppServiceProvider extends ServiceProvider
         // Loose guard on attempts; the real 5-per-10-min / 3-per-phone limits count orders (CreateOrder).
         RateLimiter::for('public-order-attempts', fn (Request $request) => Limit::perMinute(20)->by('public-order:'.$visitor($request)));
         // Abandoned-form captures: the form sends one per phone change, so this is generous but bounded.
+        // «حسب الطلب» uploads (≤ 10 MB each): a few per product, bounded per visitor.
+        RateLimiter::for('public-uploads', fn (Request $request) => Limit::perMinute(10)->by('public-uploads:'.$visitor($request)));
         RateLimiter::for('public-leads', fn (Request $request) => Limit::perMinute(15)->by('public-leads:'.$visitor($request)));
         // Page visit counters: a few per page view (view + form start), generous per visitor IP.
         RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));

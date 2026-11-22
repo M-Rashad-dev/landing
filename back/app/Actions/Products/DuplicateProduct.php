@@ -7,6 +7,7 @@ namespace App\Actions\Products;
 use App\Billing\Entitlements;
 use App\Enums\PlanLimit;
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Support\Slugs;
@@ -51,6 +52,18 @@ final class DuplicateProduct
                         'position' => $value->position,
                     ]);
                 }
+            }
+
+            foreach ($source->inputs as $input) {
+                ProductInput::query()->create([
+                    'product_id' => $copy->id,
+                    'kind' => $input->kind,
+                    'label' => $input->label,
+                    'placeholder' => $input->placeholder,
+                    'is_required' => $input->is_required,
+                    'price_delta' => $input->price_delta,
+                    'position' => $input->position,
+                ]);
             }
 
             $now = now();

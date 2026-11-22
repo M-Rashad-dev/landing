@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/format";
 import { GOVERNORATES } from "@/lib/store/governorates";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { QuantityStepper } from "@/themes/store/asas/parts";
 import { imageSrc, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
 import { CodeBox, Summary } from "@/themes/landing/bidaya/order-form";
@@ -156,6 +157,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
                 {form.errors[`options.${option.id}`] ? <p className="as-xs font-semibold text-red-600">{form.errors[`options.${option.id}`]}</p> : null}
               </fieldset>
             ))}
+            <CustomerInputFields state={form.inputs} classes={{ control: "rounded-xl" }} />
 
             <div className="grid gap-3.5 @md:grid-cols-2">
               {form.fields.map((key) => {

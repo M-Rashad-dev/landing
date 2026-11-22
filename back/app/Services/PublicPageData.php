@@ -55,7 +55,7 @@ final class PublicPageData
             return null;
         }
 
-        $product->loadMissing(['options.values', 'media', 'variants']);
+        $product->loadMissing(['options.values', 'inputs', 'media', 'variants']);
 
         return PublicProductResource::make($product)->resolve(request());
     }

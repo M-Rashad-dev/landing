@@ -8,6 +8,7 @@ use App\Billing\Entitlements;
 use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
@@ -67,6 +68,10 @@ final class SaveProduct
 
             if (array_key_exists('options', $data)) {
                 $this->syncOptions($product, $data['options'] ?? []);
+            }
+
+            if (array_key_exists('inputs', $data)) {
+                $this->syncInputs($product, $data['inputs'] ?? []);
             }
 
             if ($product->stock_mode === Product::STOCK_VARIANT && array_key_exists('variants', $data)) {
@@ -194,6 +199,28 @@ final class SaveProduct
             ->where('product_id', $product->id)
             ->whereNotIn('id', $keptOptionIds === [] ? [0] : $keptOptionIds)
             ->delete();
+    }
+
+    /** @param array<int, array<string, mixed>> $inputs «حسب الطلب» fields, in their order */
+    private function syncInputs(Product $product, array $inputs): void
+    {
+        $kept = [];
+        foreach (array_values($inputs) as $position => $data) {
+            $input = isset($data['id'])
+                ? ProductInput::query()->where('product_id', $product->id)->findOrFail((int) $data['id'])
+                : new ProductInput(['product_id' => $product->id]);
+            $input->fill([
+                'kind' => $data['kind'],
+                'label' => $data['label'],
+                'placeholder' => $data['placeholder'] ?? null,
+                'is_required' => (bool) ($data['is_required'] ?? false),
+                'price_delta' => Money::toDecimal(Money::toCents((string) ($data['price_delta'] ?? '0'))),
+                'position' => $position,
+            ])->save();
+            $kept[] = $input->id;
+        }
+
+        ProductInput::query()->where('product_id', $product->id)->whereNotIn('id', $kept === [] ? [0] : $kept)->delete();
     }
 
     /** @param array<int, array<string, mixed>> $values */

@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Models\Media;
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Store\Stock;
@@ -64,6 +65,8 @@ final class PublicProductResource extends JsonResource
                 ->filter(fn (array $option) => $option['values'] !== [])
                 ->values()
                 ->all(),
+            // «حسب الطلب»: what the customer types or uploads when buying.
+            'inputs' => $this->inputs->map(fn (ProductInput $input) => ProductResource::input($input))->values()->all(),
         ];
     }
 }

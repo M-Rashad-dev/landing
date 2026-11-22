@@ -51,7 +51,7 @@ final class UpsellRequest extends ApiRequest
 
                 return;
             }
-            if (! PostOrderUpsell::sellable(Product::query()->with('options')->find($this->input('offer_product_id')))) {
+            if (! PostOrderUpsell::sellable(Product::query()->with(['options', 'inputs'])->find($this->input('offer_product_id')))) {
                 $validator->errors()->add('offer_product_id', __('orders.upsell_product_options'));
             }
         });

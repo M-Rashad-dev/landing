@@ -53,6 +53,16 @@ export type ProductOption = {
   values: Array<{ id: number; label: string; color_hex: string | null; price_delta: number }>;
 };
 
+/** A «حسب الطلب» field: the customer types it (text / textarea) or uploads it (image / file) when buying. */
+export type ProductInput = {
+  id: number;
+  kind: "text" | "textarea" | "image" | "file";
+  label: string;
+  placeholder: string | null;
+  is_required: boolean;
+  price_delta: number;
+};
+
 export type StoreProduct = {
   id: number;
   name: string;
@@ -68,6 +78,8 @@ export type StoreProduct = {
   variant_stock: Record<string, number> | null;
   images: StoreImage[];
   options: ProductOption[];
+  /** «حسب الطلب» fields (missing on older cached pages). */
+  inputs?: ProductInput[];
 };
 
 export type ProductOffer = {

@@ -111,7 +111,7 @@ final class PostOrderUpsell
         $products = $order->items()->whereNull('upsell_id')->pluck('product_id')->push($order->product_id)->filter()->unique()->values()->all();
 
         return Upsell::query()
-            ->with('offerProduct.options')
+            ->with(['offerProduct.options', 'offerProduct.inputs'])
             ->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('trigger_product_id')->orWhereIn('trigger_product_id', $products === [] ? [0] : $products))
             ->whereNotIn('offer_product_id', $products === [] ? [0] : $products)
@@ -122,11 +122,11 @@ final class PostOrderUpsell
             ->first(fn (Upsell $upsell) => self::sellable($upsell->offerProduct));
     }
 
-    /** One click means no option to choose: products with required options cannot be offered. */
+    /** One click means nothing to choose or type: products with required options or fields cannot be offered. */
     public static function sellable(?Product $product): bool
     {
         return $product !== null && ! $product->trashed() && $product->is_active && ! $product->isLockedByPlan()
-            && app(Stock::class)->available($product, []) !== 0 && ! $product->options->contains(fn ($option) => $option->is_required);
+            && app(Stock::class)->available($product, []) !== 0 && ! $product->needsChoices();
     }
 
     private function token(Order $order): string

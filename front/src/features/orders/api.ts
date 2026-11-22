@@ -59,7 +59,8 @@ export type OrderItem = {
   is_gift: boolean;
   unit_price: number;
   quantity: number;
-  options: Array<{ option: string; value: string; price_delta?: number }>;
+  /** Option values, then «حسب الطلب» fields (kind set; uploads carry upload_id). */
+  options: Array<{ option: string; value: string; price_delta?: number; kind?: "text" | "textarea" | "image" | "file"; upload_id?: number }>;
   offer_name: string | null;
   offer_discount: number;
   line_total: number;

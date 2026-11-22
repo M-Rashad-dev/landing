@@ -30,12 +30,13 @@ import { SeoFields } from "../seo/seo-fields";
 import { autoProductSeo } from "../seo/seo-model";
 import { saveProduct, useRefreshProducts, type ProductDetail } from "./api";
 import { EMPTY, fromDetail, productSchema, toPayload, type ProductValues } from "./form-model";
+import { InputsEditor } from "./inputs-editor";
 import { OptionsEditor } from "./options-editor";
 import { StockEditor } from "./stock-editor";
 
 const t = ar.catalog.form;
-const SECTIONS = ["basics", "images", "pricing", "categories", "options", "stock", "visibility", "seo"] as const;
-const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "sku", "category_ids", "primary_category_id", "options", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
+const SECTIONS = ["basics", "images", "pricing", "categories", "options", "inputs", "stock", "visibility", "seo"] as const;
+const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "sku", "category_ids", "primary_category_id", "options", "inputs", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
 
 /** New product or full edit: every field in titled sections, a live preview beside them. */
 export function ProductForm({ product }: { product: ProductDetail | null }) {
@@ -75,6 +76,7 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
     basics: !!(errors.name || errors.short_description || errors.description),
     pricing: !!(errors.price || errors.compare_at_price || errors.sku),
     options: !!errors.options,
+    inputs: !!errors.inputs,
     stock: !!(errors.stock || errors.low_stock_threshold),
     seo: !!(errors.slug || errors.seo),
   };
@@ -166,6 +168,12 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
           <div id="section-options" className="scroll-mt-36">
             <FormSection title={t.sections.options} description={t.options.hint} hasError={sectionError.options}>
               <OptionsEditor />
+            </FormSection>
+          </div>
+
+          <div id="section-inputs" className="scroll-mt-36">
+            <FormSection title={t.sections.inputs} description={t.inputs.hint} hasError={sectionError.inputs}>
+              <InputsEditor />
             </FormSection>
           </div>
 

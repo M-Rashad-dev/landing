@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Dashboard;
 
 use App\Enums\OptionDisplayType;
+use App\Enums\ProductInputKind;
 use App\Http\Requests\ApiRequest;
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Rules\PageSlug;
@@ -61,6 +63,22 @@ final class ProductRequest extends ApiRequest
                 }
             }
             $merge['options'] = $options;
+        }
+
+        $inputs = $this->input('inputs');
+        if (is_array($inputs)) {
+            foreach ($inputs as $i => $input) {
+                if (! is_array($input)) {
+                    continue;
+                }
+                foreach (['label', 'placeholder'] as $key) {
+                    if (isset($input[$key]) && is_string($input[$key])) {
+                        $value = trim(strip_tags($input[$key]));
+                        $inputs[$i][$key] = $value === '' ? null : $value;
+                    }
+                }
+            }
+            $merge['inputs'] = $inputs;
         }
 
         $this->merge($merge);
@@ -119,6 +137,15 @@ final class ProductRequest extends ApiRequest
             // A value may lower the price too (Salla-style fixed amount); the unit price never goes below 0.
             'options.*.values.*.price_delta' => ['sometimes', ...$money, 'min:-9999999.99', 'max:9999999.99'],
             'options.*.values.*.is_active' => ['sometimes', 'boolean'],
+
+            // «حسب الطلب»: fields the customer fills (text, long text, image, file); they make no variants.
+            'inputs' => ['sometimes', 'array', 'max:'.ProductInput::MAX],
+            'inputs.*.id' => ['nullable', 'integer'],
+            'inputs.*.kind' => ['required', 'string', 'in:'.implode(',', ProductInputKind::values())],
+            'inputs.*.label' => ['required', 'string', 'max:60'],
+            'inputs.*.placeholder' => ['nullable', 'string', 'max:120'],
+            'inputs.*.is_required' => ['sometimes', 'boolean'],
+            'inputs.*.price_delta' => ['sometimes', ...$money, 'min:0', 'max:9999999.99'],
         ];
     }
 
@@ -137,7 +164,28 @@ final class ProductRequest extends ApiRequest
             }
 
             $this->validateOptions($validator, $data['options'] ?? []);
+            $this->validateInputs($validator, $data['inputs'] ?? []);
         });
+    }
+
+    /** @param array<int, array<string, mixed>> $inputs */
+    private function validateInputs(Validator $validator, array $inputs): void
+    {
+        /** @var Product|null $product */
+        $product = $this->route('product');
+        $own = $product ? ProductInput::query()->where('product_id', $product->id)->pluck('id')->all() : [];
+
+        $labels = [];
+        foreach ($inputs as $i => $input) {
+            $label = mb_strtolower((string) $input['label']);
+            if (in_array($label, $labels, true)) {
+                $validator->errors()->add("inputs.{$i}.label", __('products.input_label_duplicate'));
+            }
+            $labels[] = $label;
+            if (isset($input['id']) && ! in_array((int) $input['id'], $own, true)) {
+                $validator->errors()->add("inputs.{$i}.id", __('products.input_not_found'));
+            }
+        }
     }
 
     /** @param array<int, array<string, mixed>> $options */

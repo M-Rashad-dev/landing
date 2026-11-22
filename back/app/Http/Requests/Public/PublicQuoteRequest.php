@@ -17,6 +17,9 @@ final class PublicQuoteRequest extends FormRequest
             'quantity' => ['required', 'integer', 'between:1,20'],
             'options' => ['nullable', 'array', 'max:20'],
             'options.*' => ['nullable', 'integer'],
+            // «حسب الطلب»: input id → text, or an upload token.
+            'inputs' => ['nullable', 'array', 'max:5'],
+            'inputs.*' => ['nullable', 'string', 'max:1000'],
             'code' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
             'governorate' => ['nullable', 'string', 'max:60'],

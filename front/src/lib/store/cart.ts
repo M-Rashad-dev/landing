@@ -18,6 +18,8 @@ export type CartItem = {
   quantity: number;
   /** option id → value id */
   options: Record<string, number>;
+  /** «حسب الطلب»: input id → the text typed, or the upload's token. */
+  inputs?: Record<string, string>;
   /** Display copies (the server prices the cart). */
   name: string;
   slug: string;
@@ -34,13 +36,17 @@ export type Cart = { items: CartItem[] };
 const EMPTY: Cart = { items: [] };
 let cached: { raw: string | null; cart: Cart } = { raw: null, cart: EMPTY };
 
-/** Same product + same options = same line. */
-export function lineKey(item: Pick<CartItem, "product_id" | "options">): string {
+/** Same product + same options + same «حسب الطلب» answers = same line. */
+export function lineKey(item: Pick<CartItem, "product_id" | "options" | "inputs">): string {
   const opts = Object.entries(item.options)
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([k, v]) => `${k}:${v}`)
     .join(",");
-  return `${item.product_id}|${opts}`;
+  const inputs = Object.entries(item.inputs ?? {})
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\u001F");
+  return inputs ? `${item.product_id}|${opts}|${inputs}` : `${item.product_id}|${opts}`;
 }
 
 function isItem(value: unknown): value is CartItem {
@@ -109,7 +115,7 @@ export function lineLimit(item: Pick<CartItem, "max">): number {
 }
 
 /** How many of this product (with these options) the cart has. */
-export function quantityInCart(cart: Cart, item: Pick<CartItem, "product_id" | "options">): number {
+export function quantityInCart(cart: Cart, item: Pick<CartItem, "product_id" | "options" | "inputs">): number {
   const key = lineKey(item);
   return cart.items.find((i) => lineKey(i) === key)?.quantity ?? 0;
 }
@@ -147,6 +153,6 @@ export function clearCart(): void {
 }
 
 /** What the server needs for a quote / order. */
-export function cartPayload(cart: Cart): Array<{ product_id: number; quantity: number; options: Record<string, number> }> {
-  return cart.items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, options: item.options }));
+export function cartPayload(cart: Cart): Array<{ product_id: number; quantity: number; options: Record<string, number>; inputs?: Record<string, string> }> {
+  return cart.items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, options: item.options, ...(item.inputs && Object.keys(item.inputs).length ? { inputs: item.inputs } : {}) }));
 }

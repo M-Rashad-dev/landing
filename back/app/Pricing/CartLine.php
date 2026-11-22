@@ -26,6 +26,8 @@ final readonly class CartLine
         public int $afterOffer,
         public array $selected,
         public ?array $gift,
+        /** @var list<array{input_id: int, label: string, kind: string, value: string, price_delta: int}> «حسب الطلب» fields filled */
+        public array $inputs = [],
     ) {}
 
     /** @return array<string, mixed> */

@@ -36,6 +36,8 @@ final readonly class Quote
         public ?array $gift = null,
         /** Why the offer the customer chose does not apply yet (e.g. needs a bigger quantity). */
         public ?string $offerError = null,
+        /** @var list<array{input_id: int, label: string, kind: string, value: string, price_delta: int}> «حسب الطلب» fields filled */
+        public array $inputs = [],
     ) {}
 
     /** Products after offer and code, before delivery. */

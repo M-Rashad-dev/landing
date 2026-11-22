@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeftRight, Ban, Gift, MessageCircle, Pencil, Phone, PhoneOff, Printer, User } from "lucide-react";
+import { ArrowLeftRight, Ban, Download, Gift, MessageCircle, Pencil, Phone, PhoneOff, Printer, User } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useCopilotContext } from "@/features/copilot/copilot-provider";
@@ -171,7 +171,36 @@ function Items({ order }: { order: OrderDetail }) {
                   </Badge>
                 ) : null}
               </p>
-              {item.options.length ? <p className="text-xs text-ink-3">{item.options.map((o) => `${o.option}: ${o.value}`).join(" · ")}</p> : null}
+              {item.options.some((o) => !o.kind) ? (
+                <p className="text-xs text-ink-3">
+                  {item.options
+                    .filter((o) => !o.kind)
+                    .map((o) => `${o.option}: ${o.value}`)
+                    .join(" · ")}
+                </p>
+              ) : null}
+              {item.options.some((o) => o.kind) ? (
+                // «حسب الطلب»: what the customer typed or uploaded.
+                <dl className="mt-1.5 flex flex-col gap-1 rounded-lg bg-surface-2/60 p-2 text-xs">
+                  {item.options
+                    .filter((o) => o.kind)
+                    .map((o, i) => (
+                      <div key={i} className="flex flex-wrap items-start gap-x-2">
+                        <dt className="text-ink-3">{o.option}:</dt>
+                        <dd className="min-w-0 whitespace-pre-line break-words font-medium text-ink">
+                          {o.upload_id ? (
+                            <a href={`/api/bff/dashboard/orders/${order.id}/uploads/${o.upload_id}`} className="inline-flex items-center gap-1 text-primary hover:underline" download>
+                              <Download className="size-3.5" aria-hidden />
+                              <span dir="ltr">{o.value}</span>
+                            </a>
+                          ) : (
+                            o.value
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                </dl>
+              ) : null}
               {item.offer_name ? <p className="text-xs text-success">{d.offer(item.offer_name)}</p> : null}
             </div>
             <div className="shrink-0 text-end text-sm tabular">

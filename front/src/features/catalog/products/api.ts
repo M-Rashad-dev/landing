@@ -33,6 +33,9 @@ export type ProductCard = {
 
 export type ProductOptionValue = { id: number; label: string; color_hex: string | null; price_delta: number; is_active: boolean };
 export type ProductOption = { id: number; name: string; display_type: DisplayType; is_required: boolean; values: ProductOptionValue[] };
+export type InputKind = "text" | "textarea" | "image" | "file";
+/** A «حسب الطلب» field: the customer types or uploads it when buying. */
+export type ProductInput = { id: number; kind: InputKind; label: string; placeholder: string | null; is_required: boolean; price_delta: number };
 
 export type ProductDetail = ProductCard & {
   description: string | null;
@@ -41,6 +44,7 @@ export type ProductDetail = ProductCard & {
   seo_defaults: SeoAuto;
   media: MediaItem[];
   options: ProductOption[];
+  inputs: ProductInput[];
   variants: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null }>;
 };
 

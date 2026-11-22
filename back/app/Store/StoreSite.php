@@ -131,7 +131,7 @@ final class StoreSite
     /** A sellable product by slug with what its page needs. @return array<string, mixed>|null */
     public function product(Store $store, string $slug): ?array
     {
-        $product = $this->catalog->sellable()->with(['options.values', 'media', 'variants', 'categories'])->where('slug', $slug)->first();
+        $product = $this->catalog->sellable()->with(['options.values', 'inputs', 'media', 'variants', 'categories'])->where('slug', $slug)->first();
         if (! $product instanceof Product) {
             return null;
         }

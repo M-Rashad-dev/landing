@@ -13,8 +13,10 @@ use App\Models\DiscountCodeRedemption;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\CustomerUploads;
 use App\Store\Stock;
 use Carbon\CarbonInterface;
 use Illuminate\Validation\ValidationException;
@@ -40,8 +42,9 @@ final class PriceCalculator
 
     /**
      * @param  array<int|string, int|string|null>  $selectedOptions  option_id => value_id
+     * @param  array<int|string, mixed>  $inputs  «حسب الطلب» input_id => text, or an upload token for image / file fields
      *
-     * @throws ValidationException on invalid quantity or options (keys: quantity, options.{option_id})
+     * @throws ValidationException on invalid quantity, options or inputs (keys: quantity, options.{option_id}, inputs.{input_id})
      */
     public function quote(
         Product $product,
@@ -54,6 +57,7 @@ final class PriceCalculator
         ?string $governorate = null,
         ?int $offerId = null,
         ?int $shippingCompanyId = null,
+        array $inputs = [],
     ): Quote {
         if ($quantity < self::MIN_QUANTITY || $quantity > self::MAX_QUANTITY) {
             throw ValidationException::withMessages([
@@ -63,6 +67,8 @@ final class PriceCalculator
 
         $productPrice = $product->priceCents();
         [$deltaSum, $selected] = $this->resolveOptions($product, $selectedOptions);
+        [$inputSum, $filled] = $this->resolveInputs($product, $inputs);
+        $deltaSum += $inputSum;
 
         // A value may lower the price; the unit price never goes below zero.
         $unitPrice = max(0, $productPrice + $deltaSum);
@@ -94,15 +100,16 @@ final class PriceCalculator
             delivery: $shipping,
             gift: $gift,
             offerError: $offerError,
+            inputs: $filled,
         );
     }
 
     /**
      * A store cart: each line priced like a page order (options, the product's automatic
      * offer, stock), then the code on the lines it applies to, then shipping on the total.
-     * Error keys: items.{i}.quantity, items.{i}.options.{option_id}, code.
+     * Error keys: items.{i}.quantity, items.{i}.options.{option_id}, items.{i}.inputs.{input_id}, code.
      *
-     * @param  list<array{product: Product, quantity: int, options: array<int|string, int|string|null>}>  $lines
+     * @param  list<array{product: Product, quantity: int, options: array<int|string, int|string|null>, inputs?: array<int|string, mixed>}>  $lines
      */
     public function quoteCart(array $lines, CarbonInterface $now, ?string $code = null, ?string $phone = null, bool $lockCode = false, ?string $governorate = null, ?int $shippingCompanyId = null): CartQuote
     {
@@ -121,6 +128,8 @@ final class PriceCalculator
                     throw ValidationException::withMessages(['quantity' => [__('pricing.quantity_range', ['min' => self::MIN_QUANTITY, 'max' => self::MAX_QUANTITY])]]);
                 }
                 [$deltaSum, $selected] = $this->resolveOptions($product, $line['options']);
+                [$inputSum, $filled] = $this->resolveInputs($product, $line['inputs'] ?? []);
+                $deltaSum += $inputSum;
                 $this->ensureStock($product, $selected, $quantity, 'quantity');
             } catch (ValidationException $e) {
                 foreach ($e->errors() as $key => $messages) {
@@ -135,7 +144,7 @@ final class PriceCalculator
             $base = $unit * $quantity;
             [$offer, $afterOffer, $gift] = $this->applyOffer($product, $ancestry[$product->id] ?? [], $now, $base, $quantity, $productPrice, $deltaSum, null);
 
-            $priced[] = new CartLine($product, $quantity, $unit, $base, $offer, $base - $afterOffer, $afterOffer, $selected, $gift);
+            $priced[] = new CartLine($product, $quantity, $unit, $base, $offer, $base - $afterOffer, $afterOffer, $selected, $gift, $filled);
         }
 
         if ($errors !== []) {
@@ -255,6 +264,55 @@ final class PriceCalculator
     }
 
     /**
+     * «حسب الطلب» fields: each required one filled; a text within its length, an upload as its token (the order
+     * claims it); a filled field adds its price. Unknown ids fail.
+     *
+     * @param  array<int|string, mixed>  $inputs
+     * @return array{0: int, 1: list<array{input_id: int, label: string, kind: string, value: string, price_delta: int}>}
+     */
+    private function resolveInputs(Product $product, array $inputs): array
+    {
+        $product->loadMissing('inputs');
+        $errors = [];
+        $sum = 0;
+        $filled = [];
+
+        $known = $product->inputs->keyBy('id');
+        foreach (array_keys($inputs) as $id) {
+            if (! $known->has((int) $id)) {
+                $errors["inputs.{$id}"] = [__('pricing.input_unknown')];
+            }
+        }
+
+        /** @var ProductInput $input */
+        foreach ($product->inputs as $input) {
+            $raw = $inputs[$input->id] ?? $inputs[(string) $input->id] ?? null;
+            $value = is_string($raw) ? trim(str_replace("\r\n", "\n", strip_tags($raw))) : '';
+            if ($value === '') {
+                if ($input->is_required) {
+                    $errors["inputs.{$input->id}"] = [__($input->kind->isUpload() ? 'pricing.input_upload_required' : 'pricing.input_required', ['field' => $input->label])];
+                }
+
+                continue;
+            }
+            if ($input->kind->isUpload() ? preg_match(CustomerUploads::TOKEN, $value) !== 1 : mb_strlen($value) > $input->kind->maxLength()) {
+                $errors["inputs.{$input->id}"] = [$input->kind->isUpload() ? __('store.upload.gone') : __('pricing.input_too_long', ['field' => $input->label, 'max' => $input->kind->maxLength()])];
+
+                continue;
+            }
+
+            $sum += $input->priceDeltaCents();
+            $filled[] = ['input_id' => $input->id, 'label' => $input->label, 'kind' => $input->kind->value, 'value' => $value, 'price_delta' => $input->priceDeltaCents()];
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return [$sum, $filled];
+    }
+
+    /**
      * The offer for this quantity. $offerId null = automatic (merchant priority, then cheapest);
      * 0 = the customer chose no offer; a positive id = the customer's choice, applied only when it
      * is active for this product and the quantity qualifies (otherwise no offer and a reason).
@@ -273,7 +331,7 @@ final class PriceCalculator
             ->servable()
             ->forProduct($product->id, $categoryIds)
             ->when($offerId !== null, fn ($q) => $q->whereKey($offerId))
-            ->with(['giftProduct' => fn ($q) => $q->with('options')])
+            ->with(['giftProduct' => fn ($q) => $q->with(['options', 'inputs'])])
             ->get();
 
         $candidates = [];
@@ -319,7 +377,7 @@ final class PriceCalculator
     private function gift(Offer $offer): ?array
     {
         $product = $offer->giftProduct;
-        if ($product === null || $product->trashed() || ! $product->is_active || $product->isLockedByPlan() || $product->options->contains(fn ($option) => $option->is_required)) {
+        if ($product === null || $product->trashed() || ! $product->is_active || $product->isLockedByPlan() || $product->needsChoices()) {
             return null;
         }
         // A tracked gift needs one unit left.

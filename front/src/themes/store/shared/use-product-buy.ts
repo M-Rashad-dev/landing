@@ -9,6 +9,7 @@ import type { ProductOption, ProductPage } from "@/lib/store/types";
 import { track } from "@/lib/tracking/track";
 import { toast } from "@/components/ui/feedback";
 import { ar } from "@/messages/ar";
+import { useCustomerInputs } from "../../shared/customer-inputs";
 import { pick } from "../../shared/design";
 
 const t = ar.storefront.product;
@@ -63,7 +64,8 @@ export function useProductBuy(page: ProductPage) {
     return () => window.clearTimeout(timer);
   }, [product.id, product.name, product.price]);
 
-  const deltas = product.options.reduce((sum, o) => sum + (o.values.find((v) => v.id === chosen[o.id])?.price_delta ?? 0), 0);
+  const inputs = useCustomerInputs(product.inputs);
+  const deltas = product.options.reduce((sum, o) => sum + (o.values.find((v) => v.id === chosen[o.id])?.price_delta ?? 0), 0) + inputs.delta;
   const price = Math.round((product.price + deltas) * 100) / 100;
   const compare = product.compare_at_price && product.compare_at_price > product.price ? product.compare_at_price + deltas : null;
   const offerPrice = unitPriceAfter(offers, price);
@@ -73,7 +75,8 @@ export function useProductBuy(page: ProductPage) {
   const max = Math.max(1, Math.min(MAX_LINE_QUANTITY, left ?? MAX_LINE_QUANTITY));
   // What this choice already has in the cart, and how many more fit (the stock is the limit).
   const options = Object.fromEntries(Object.entries(chosen).map(([k, v]) => [k, v]));
-  const inCart = quantityInCart(useCart(), { product_id: product.id, options });
+  const answers = inputs.payload();
+  const inCart = quantityInCart(useCart(), { product_id: product.id, options, inputs: answers });
   const room = Math.max(1, max - inCart);
   const low = left !== null && left > 0 && page.low_stock_threshold !== null && left <= page.low_stock_threshold;
 
@@ -90,6 +93,18 @@ export function useProductBuy(page: ProductPage) {
   };
 
   const add = (then: "cart" | "checkout") => {
+    // «حسب الطلب»: every required field filled and no upload still going.
+    const inputsReady = inputs.check();
+    if (inputs.uploading) {
+      setMessage(t.waitUpload);
+      return;
+    }
+    if (!missing.length && !inputsReady) {
+      setMessage(t.fillInputs);
+      toast.error(t.fillThese(inputs.missing.map((i) => i.label).join("، ")));
+      document.getElementById(`inp-${inputs.missing[0].id}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (missing.length) {
       // Each missing choice is marked where it is, a toast says what's missing, and the page goes to the first one.
       setShowMissing(true);
@@ -105,13 +120,16 @@ export function useProductBuy(page: ProductPage) {
         return v ? `${o.name}: ${v.label}` : null;
       })
       .filter(Boolean)
+      .concat(inputs.label() ? [inputs.label()] : [])
       .join("، ");
-    const result = addToCart({ product_id: product.id, quantity: Math.min(quantity, room), options, name: product.name, slug: product.slug, image: pick(product.images[0]?.urls, "thumb"), price, options_label: label, max: left });
+    const result = addToCart({ product_id: product.id, quantity: Math.min(quantity, room), options, ...(Object.keys(answers).length ? { inputs: answers } : {}), name: product.name, slug: product.slug, image: pick(product.images[0]?.urls, "thumb"), price, options_label: label, max: left });
     if (result === "full") {
       setMessage(t.cartFull);
       return;
     }
     if (result === "added") {
+      // The next one starts with empty fields (a different name, another photo).
+      if (inputs.list.length) inputs.reset();
       sendStoreEvent("add_to_cart");
       track("AddToCart", { content_ids: [product.id], content_name: product.name, value: price * quantity, num_items: quantity });
       setQuantity(1);
@@ -124,6 +142,8 @@ export function useProductBuy(page: ProductPage) {
   return {
     chosen,
     choose,
+    /** «حسب الطلب» fields (draw them with <CustomerInputFields state={inputs} />). */
+    inputs,
     /** True for a required option the customer skipped after trying to add. */
     lacking: (option: ProductOption) => showMissing && option.is_required && chosen[option.id] === undefined,
     valueOut,

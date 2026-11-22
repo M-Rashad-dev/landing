@@ -25,6 +25,17 @@ const option = z.object({
   values: z.array(optionValue).min(1).max(30),
 });
 
+export const MAX_INPUTS = 5;
+
+const input = z.object({
+  id: z.number().nullable(),
+  kind: z.enum(["text", "textarea", "image", "file"]),
+  label: zRequiredString(60),
+  placeholder: z.string().max(120, v.max(120)),
+  is_required: z.boolean(),
+  price_delta: z.string().refine((s) => s === "" || money().test(s), v.required),
+});
+
 export const productSchema = z
   .object({
     name: zRequiredString(150),
@@ -37,6 +48,7 @@ export const productSchema = z
     category_ids: z.array(z.number()).max(20),
     primary_category_id: z.number().nullable(),
     options: z.array(option).max(5),
+    inputs: z.array(input).max(MAX_INPUTS),
     stock_mode: z.enum(["unlimited", "product", "variant"]),
     stock: z.string(),
     low_stock_threshold: z.string().refine((s) => s === "" || /^\d{1,7}$/.test(s), v.required),
@@ -74,6 +86,7 @@ export const EMPTY: ProductValues = {
   category_ids: [],
   primary_category_id: null,
   options: [],
+  inputs: [],
   stock_mode: "unlimited",
   stock: "",
   low_stock_threshold: "",
@@ -132,6 +145,7 @@ export function fromDetail(p: ProductDetail): ProductValues {
     category_ids: p.category_ids,
     primary_category_id: p.primary_category_id,
     options,
+    inputs: (p.inputs ?? []).map((i) => ({ id: i.id, kind: i.kind, label: i.label, placeholder: i.placeholder ?? "", is_required: i.is_required, price_delta: i.price_delta ? String(i.price_delta) : "" })),
     stock_mode: p.stock_mode,
     stock: p.stock_mode === "product" ? String(p.stock ?? 0) : "",
     low_stock_threshold: p.low_stock_threshold === null ? "" : String(p.low_stock_threshold),
@@ -174,6 +188,14 @@ export function toPayload(v: ProductValues) {
         price_delta: x.price_delta && x.price_delta !== "-" ? x.price_delta : "0",
         is_active: x.is_active,
       })),
+    })),
+    inputs: v.inputs.map((i) => ({
+      ...(i.id ? { id: i.id } : {}),
+      kind: i.kind,
+      label: i.label.trim(),
+      placeholder: i.kind === "text" || i.kind === "textarea" ? i.placeholder.trim() || null : null,
+      is_required: i.is_required,
+      price_delta: i.price_delta || "0",
     })),
     stock_mode: mode,
     stock: mode === "product" ? Number(v.stock) : null,

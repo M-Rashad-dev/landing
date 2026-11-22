@@ -41,7 +41,7 @@ final class StoreCatalog
      */
     public function search(array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']));
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']));
 
         if (($filters['offers'] ?? false) === true) {
             $this->onOffer($query);
@@ -85,7 +85,7 @@ final class StoreCatalog
      */
     public function forSection(string $source, ?int $categoryId, int $limit, bool $inStockOnly = false): array
     {
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']));
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']));
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -111,7 +111,7 @@ final class StoreCatalog
         if ($ids === []) {
             return [];
         }
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']))->whereIn('id', $ids);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']))->whereIn('id', $ids);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -172,7 +172,7 @@ final class StoreCatalog
     public function related(Product $product, bool $inStockOnly = false, int $limit = 8): array
     {
         $ids = $product->categories->pluck('id')->all();
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options']))->whereKeyNot($product->id);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']))->whereKeyNot($product->id);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -200,7 +200,7 @@ final class StoreCatalog
         if ($words === []) {
             return $this->related($product, $inStockOnly, $limit);
         }
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'categories']))->whereKeyNot($product->id);
+        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs', 'categories']))->whereKeyNot($product->id);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -267,7 +267,7 @@ final class StoreCatalog
             'available' => $p->inStock(),
             'is_featured' => $p->is_featured,
             // A card can be added to the cart directly when nothing must be chosen.
-            'needs_options' => $p->options->contains(fn ($o) => $o->is_required),
+            'needs_options' => $p->needsChoices(),
             // Units in stock for a card that adds to the cart directly (null: no limit, or per option).
             'max_quantity' => $p->stock_mode === Product::STOCK_PRODUCT ? max(0, (int) $p->stock) : null,
             'rating' => (int) ($p->getAttribute('rating_count') ?? 0) > 0

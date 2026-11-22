@@ -56,6 +56,7 @@ final class CreateStoreOrder
         private readonly AutoBlock $autoBlock,
         private readonly StoreNotices $notices,
         private readonly CustomerNotices $customerNotices,
+        private readonly CustomerUploads $uploads,
     ) {}
 
     /**
@@ -97,7 +98,10 @@ final class CreateStoreOrder
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $governorate = $customer['governorate'] ?? null;
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
-        $this->quoteOrFail($lines, $code, $phone, false, $governorate, $companyId);
+        $first = $this->quoteOrFail($lines, $code, $phone, false, $governorate, $companyId);
+        foreach ($first->lines as $i => $line) {
+            $this->uploads->assertClaimable(CustomerUploads::lineOptions([], $line->inputs), "items.{$i}.inputs");
+        }
 
         $low = [];
         $order = DB::transaction(function () use ($lines, $code, $phone, $governorate, $companyId, $customer, $ip, $input, $tenantId, &$low): Order {
@@ -139,17 +143,23 @@ final class CreateStoreOrder
 
             $take = [];
             foreach ($quote->lines as $i => $line) {
-                $order->items()->create([
+                $options = CustomerUploads::lineOptions($line->selected, $line->inputs);
+                $item = $order->items()->create([
                     'product_id' => $line->product->id,
                     'variant_id' => null,
                     'product_name' => $line->product->name,
                     'unit_price' => Money::toDecimal($line->unitPrice),
                     'quantity' => $line->quantity,
-                    'options' => array_map(fn (array $v) => ['option' => $v['option'], 'value' => $v['value'], 'price_delta' => Money::toFloat($v['price_delta'])], $line->selected),
+                    'options' => $options,
                     'offer_name' => $line->offer['name'] ?? null,
                     'offer_discount' => Money::toDecimal($line->offerDiscount),
                     'line_total' => Money::toDecimal($line->afterOffer),
                 ]);
+                // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
+                $claimed = $this->uploads->claim($item, $options, "items.{$i}.inputs");
+                if ($claimed !== $options) {
+                    $item->forceFill(['options' => $claimed])->save();
+                }
                 $take[] = ['product' => $line->product, 'selected' => $line->selected, 'quantity' => $line->quantity, 'field' => "items.{$i}.quantity"];
 
                 if ($line->gift !== null && ($gift = Product::query()->find($line->gift['product_id'])) !== null) {
@@ -194,13 +204,13 @@ final class CreateStoreOrder
      * Cart items → sellable products (an item for a product that left the store fails on it).
      *
      * @param  list<array<string, mixed>>  $items
-     * @return list<array{product: Product, quantity: int, options: array<int|string, int|string|null>}>
+     * @return list<array{product: Product, quantity: int, options: array<int|string, int|string|null>, inputs: array<int|string, mixed>}>
      */
     public function lines(array $items): array
     {
         $ids = array_map(fn ($i) => (int) ($i['product_id'] ?? 0), $items);
         $products = Product::query()->where('in_store', true)->where('is_active', true)->servable()
-            ->with(['options.values', 'variants'])->whereIn('id', $ids)->get()->keyBy('id');
+            ->with(['options.values', 'inputs', 'variants'])->whereIn('id', $ids)->get()->keyBy('id');
 
         $lines = [];
         $errors = [];
@@ -211,7 +221,7 @@ final class CreateStoreOrder
 
                 continue;
             }
-            $lines[] = ['product' => $product, 'quantity' => (int) ($item['quantity'] ?? 1), 'options' => (array) ($item['options'] ?? [])];
+            $lines[] = ['product' => $product, 'quantity' => (int) ($item['quantity'] ?? 1), 'options' => (array) ($item['options'] ?? []), 'inputs' => (array) ($item['inputs'] ?? [])];
         }
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
@@ -220,7 +230,7 @@ final class CreateStoreOrder
         return $lines;
     }
 
-    /** @param list<array{product: Product, quantity: int, options: array<int|string, int|string|null>}> $lines */
+    /** @param list<array{product: Product, quantity: int, options: array<int|string, int|string|null>, inputs: array<int|string, mixed>}> $lines */
     private function quoteOrFail(array $lines, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $companyId = null): CartQuote
     {
         $quote = $this->calculator->quoteCart($lines, now(), $code, $phone, $lock, $governorate, $companyId);

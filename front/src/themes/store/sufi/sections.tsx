@@ -420,6 +420,11 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
       setMessage(t.featured.previewOnly);
       return;
     }
+    // Fields to type or upload live on the product page.
+    if (product.inputs?.length) {
+      router.push(href);
+      return;
+    }
     const missing = product.options.filter((o) => o.is_required && chosen[o.id] === undefined);
     if (missing.length) {
       setShowMissing(true);

@@ -11,6 +11,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Concerns\ServesLiveStore;
 use App\Http\Controllers\Controller;
+use App\Models\ProductInput;
 use App\Models\Store;
 use App\Models\StorePage;
 use App\Models\StoreStat;
@@ -234,6 +235,9 @@ final class StoreController extends Controller
             'items.*.quantity' => ['required', 'integer', 'between:1,'.PriceCalculator::MAX_QUANTITY],
             'items.*.options' => ['nullable', 'array', 'max:10'],
             'items.*.options.*' => ['nullable', 'integer'],
+            // «حسب الطلب»: input id → text, or an upload token.
+            'items.*.inputs' => ['nullable', 'array', 'max:'.ProductInput::MAX],
+            'items.*.inputs.*' => ['nullable', 'string', 'max:1000'],
         ];
     }
 

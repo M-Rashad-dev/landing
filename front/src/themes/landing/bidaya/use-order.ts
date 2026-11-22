@@ -8,6 +8,7 @@ import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
+import { useCustomerInputs } from "@/themes/shared/customer-inputs";
 import type { PageMode } from "./context";
 import type { FormFieldKey, LandingData, LandingQuote, OrderFormProps } from "./types";
 
@@ -89,6 +90,11 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   const busy = React.useRef(false);
   const lastLead = React.useRef("");
 
+  // «حسب الطلب» fields of the product (uploads go only from the live page).
+  const custom = useCustomerInputs(product?.inputs, mode === "live");
+  const answers = custom.payload();
+  const answersKey = JSON.stringify(answers);
+
   const offers = activeOffers(data.offers);
   const picker = props.offer_picker && offers.length > 0;
   const setQuantity = React.useCallback((n: number) => setQuantityState(Math.max(1, Math.min(20, Math.round(n) || 1))), []);
@@ -118,7 +124,7 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     const timer = window.setTimeout(async () => {
       setQuoteLoading(true);
       try {
-        const response = await post("/api/public/landing/quote", { slug, quantity, options, code: appliedCode || null, phone, governorate: governorate || null, offer_id: picker ? chosenOffer : null, shipping_company_id: company }, controller.signal);
+        const response = await post("/api/public/landing/quote", { slug, quantity, options, inputs: JSON.parse(answersKey) as Record<string, string>, code: appliedCode || null, phone, governorate: governorate || null, offer_id: picker ? chosenOffer : null, shipping_company_id: company }, controller.signal);
         const json = (await response.json().catch(() => ({}))) as { data?: LandingQuote };
         if (response.ok && json.data) setQuote(json.data);
       } catch {
@@ -131,7 +137,7 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [live, optionsReady, slug, quantity, options, appliedCode, phone, governorate, picker, chosenOffer, company]);
+  }, [live, optionsReady, slug, quantity, options, answersKey, appliedCode, phone, governorate, picker, chosenOffer, company]);
 
   // A valid phone typed but no order yet: the merchant can follow it up («الطلبات المتروكة»).
   const name = (values.name ?? "").trim();
@@ -218,8 +224,11 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
       if (option.is_required && !options[option.id]) next[`options.${option.id}`] = t.chooseFirst(option.name);
     }
     setErrors(next);
-    if (Object.keys(next).length > 0) {
-      document.querySelector<HTMLElement>(`[data-field="${CSS.escape(Object.keys(next)[0])}"]`)?.focus();
+    const inputsReady = custom.check();
+    if (Object.keys(next).length > 0 || !inputsReady) {
+      const first = Object.keys(next)[0] ?? (custom.missing[0] ? `inputs.${custom.missing[0].id}` : null);
+      if (first) document.querySelector<HTMLElement>(`[data-field="${CSS.escape(first)}"]`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      if (custom.uploading) setFormError(ar.storefront.product.waitUpload);
       return;
     }
     if (mode !== "live") {
@@ -240,6 +249,7 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         slug,
         quantity,
         options,
+        inputs: answers,
         code: appliedCode || (code.trim() ? code.trim().toUpperCase() : null),
         customer,
         form_token: token.current,
@@ -262,7 +272,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
         const mapped: Record<string, string> = {};
         for (const [key, messages] of Object.entries(json.errors)) mapped[key] = messages[0] ?? "";
         setErrors(mapped);
-        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("options.") || k === "code")) setFormError(json.message ?? t.rejected);
+        custom.setServerErrors(mapped);
+        if (!Object.keys(mapped).some((k) => k.startsWith("customer.") || k.startsWith("options.") || k.startsWith("inputs.") || k === "code")) setFormError(json.message ?? t.rejected);
       } else {
         setFormError(t.rejected);
       }
@@ -285,6 +296,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     errors: { ...errors, ...(quote?.code_error && appliedCode ? { code: quote.code_error } : {}) } as Record<string, string>,
     options,
     setOption,
+    /** «حسب الطلب» fields (draw them with <CustomerInputFields state={inputs} />). */
+    inputs: custom,
     quantity,
     setQuantity,
     offers,

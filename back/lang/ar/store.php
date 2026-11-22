@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 return [
     'out_of_stock' => 'الكمية نفذت.',
+    'upload' => [
+        'image_only' => 'الخانة دي بتقبل صور بس (JPG أو PNG أو WEBP).',
+        'file_type' => 'نوع الملف ده مش مسموح. ارفع صورة أو PDF أو Word أو Excel أو ZIP.',
+        'too_big' => 'الملف أكبر من :max ميجا.',
+        'gone' => 'الملف ده مش موجود، ارفعه تاني.',
+        'not_upload' => 'الخانة دي مش بتاعة رفع ملفات.',
+    ],
     'only_left' => 'متبقي :count بس.',
     'cart_size' => 'السلة لازم يكون فيها من 1 لـ :max منتج.',
     'product_unavailable' => 'المنتج ده مش متاح دلوقتي.',

@@ -20,6 +20,7 @@ use App\Pricing\PriceCalculator;
 use App\Pricing\Quote;
 use App\Services\FormToken;
 use App\Services\Webhooks\WebhookDispatcher;
+use App\Store\CustomerUploads;
 use App\Store\Stock;
 use App\Support\Money;
 use App\Support\OrderForm;
@@ -55,6 +56,7 @@ final class CreateOrder
         private readonly AutoBlock $autoBlock,
         private readonly StoreNotices $notices,
         private readonly CustomerNotices $customerNotices,
+        private readonly CustomerUploads $uploads,
     ) {}
 
     /**
@@ -104,18 +106,20 @@ final class CreateOrder
 
         $quantity = (int) $input['quantity'];
         $options = (array) ($input['options'] ?? []);
+        $inputs = (array) ($input['inputs'] ?? []);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $offerId = OrderForm::chosenOffer($props, $input['offer_id'] ?? null);
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
 
         // 6. Quote again (an invalid code fails the order on the "code" field).
         $governorate = $customer['governorate'] ?? null;
-        $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId, $companyId);
+        $first = $this->quoteOrFail($product, $quantity, $options, $code, $phone, false, $governorate, $offerId, $companyId, $inputs);
+        $this->uploads->assertClaimable(CustomerUploads::lineOptions([], $first->inputs), 'inputs');
 
         $low = [];
-        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId, &$low) {
+        $order = DB::transaction(function () use ($page, $product, $quantity, $options, $code, $phone, $customer, $clean, $ip, $input, $tenantId, $governorate, $offerId, $companyId, $inputs, &$low) {
             // 7. Lock the code row and re-check its limits.
-            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId, $companyId);
+            $quote = $this->quoteOrFail($product, $quantity, $options, $code, $phone, true, $governorate, $offerId, $companyId, $inputs);
 
             // 8. Sequential number per tenant.
             $number = $this->nextNumber($tenantId);
@@ -169,18 +173,20 @@ final class CreateOrder
                 'utm' => $this->utm($input['utm'] ?? null),
             ]);
 
-            $order->items()->create([
+            $lineOptions = CustomerUploads::lineOptions($quote->selectedValues, $quote->inputs);
+            $item = $order->items()->create([
                 'product_id' => $product->id,
                 'product_name' => $product->name,
                 'unit_price' => Money::toDecimal($quote->unitPrice),
                 'quantity' => $quote->quantity,
-                'options' => array_map(fn (array $v) => [
-                    'option' => $v['option'],
-                    'value' => $v['value'],
-                    'price_delta' => Money::toFloat($v['price_delta']),
-                ], $quote->selectedValues),
+                'options' => $lineOptions,
                 'line_total' => Money::toDecimal($quote->baseSubtotal),
             ]);
+            // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
+            $claimed = $this->uploads->claim($item, $lineOptions, 'inputs');
+            if ($claimed !== $lineOptions) {
+                $item->forceFill(['options' => $claimed])->save();
+            }
             // Stock (rows locked): a race for the last units fails here with the same message as the quote.
             $lines = [['product' => $product, 'selected' => $quote->selectedValues, 'quantity' => $quote->quantity, 'field' => 'quantity']];
             if ($quote->gift !== null && ($giftProduct = Product::query()->find($quote->gift['product_id'])) !== null) {
@@ -239,9 +245,10 @@ final class CreateOrder
      *
      * @throws ValidationException
      */
-    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $offerId = null, ?int $companyId = null): Quote
+    /** @param array<int|string, mixed> $inputs */
+    private function quoteOrFail(Product $product, int $quantity, array $options, ?string $code, string $phone, bool $lock, ?string $governorate, ?int $offerId = null, ?int $companyId = null, array $inputs = []): Quote
     {
-        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate, $offerId, $companyId);
+        $quote = $this->calculator->quote($product, $quantity, $options, now(), $code, $phone, $lock, $governorate, $offerId, $companyId, $inputs);
 
         if (! $quote->delivery->available) {
             throw ValidationException::withMessages(['customer.governorate' => [__('orders.shipping_unavailable')]]);

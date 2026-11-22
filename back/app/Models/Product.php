@@ -70,6 +70,18 @@ class Product extends Model
         return $this->hasMany(ProductOption::class)->orderBy('position')->orderBy('id');
     }
 
+    /** «حسب الطلب» fields the customer fills when buying (no variants). @return HasMany<ProductInput, $this> */
+    public function inputs(): HasMany
+    {
+        return $this->hasMany(ProductInput::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** Something must be typed or uploaded before it can be bought (no quick add, gift or one-click upsell). */
+    public function needsChoices(): bool
+    {
+        return $this->options->contains(fn (ProductOption $o) => $o->is_required) || $this->inputs->contains(fn (ProductInput $i) => $i->is_required);
+    }
+
     /** @return BelongsToMany<Media, $this> */
     public function media(): BelongsToMany
     {

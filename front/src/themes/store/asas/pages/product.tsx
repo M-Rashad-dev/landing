@@ -8,6 +8,7 @@ import { offerLabel } from "@/lib/store/offers";
 import type { ProductPage } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { pick } from "@/themes/shared/design";
 import { useTheme } from "@/themes/store/shared/context";
 import { useProductBuy } from "@/themes/store/shared/use-product-buy";
@@ -198,6 +199,8 @@ export function ProductView({ page }: { page: ProductPage }) {
             </fieldset>
             );
           })}
+
+          <CustomerInputFields state={buy.inputs} classes={{ label: "as-sm", control: "bg-(--as-bg) focus:border-(--as-primary) focus:outline-none" }} />
 
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">

@@ -34,7 +34,7 @@ final class ProductsResource extends CopilotResource
 
     public function summary(): string
     {
-        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories.';
+        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories, «حسب الطلب» fields (inputs: what the customer types or uploads when buying — a text, a long text, an image or a file — with its extra price; set on the product form).';
     }
 
     public function model(): string
@@ -64,6 +64,8 @@ final class ProductsResource extends CopilotResource
             Field::text('seo_description')->label('وصف SEO')->notInTable()->editable()->using(fn (Model $p) => ((array) ($p->getAttribute('seo') ?? []))['description'] ?? null),
             Field::ids('media_ids')->label('الصور')->images()->notInTable()->editable()
                 ->using(fn (Model $p) => $p->relationLoaded('media') ? $p->media->pluck('id')->map(fn ($id) => (int) $id)->all() : []),
+            Field::text('inputs')->label('خانات حسب الطلب')->notInTable()
+                ->using(fn (Model $p) => $p->relationLoaded('inputs') ? $p->inputs->map(fn ($i) => $i->label.' ('.$i->kind->label().($i->is_required ? '، إجباري' : '').((float) $i->price_delta > 0 ? '، +'.$i->price_delta : '').')')->all() : []),
             Field::date('created_at')->label('اتضاف')->filterable()->sortable(),
         ];
     }
@@ -90,7 +92,7 @@ final class ProductsResource extends CopilotResource
 
     public function with(): array
     {
-        return ['categories:id,name', 'media'];
+        return ['categories:id,name', 'media', 'inputs'];
     }
 
     public function request(): ?string

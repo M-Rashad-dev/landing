@@ -105,8 +105,8 @@ final class OfferRequest extends ApiRequest
             }
 
             if ($this->input('type') === OfferType::Gift->value) {
-                $gift = Product::query()->with('options')->find((int) $this->input('gift_product_id'));
-                if ($gift !== null && $gift->options->contains(fn ($option) => $option->is_required)) {
+                $gift = Product::query()->with(['options', 'inputs'])->find((int) $this->input('gift_product_id'));
+                if ($gift !== null && $gift->needsChoices()) {
                     $validator->errors()->add('gift_product_id', __('promotions.gift_has_options'));
                 }
             }

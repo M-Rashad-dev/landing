@@ -8,6 +8,7 @@ import { offerLabel } from "@/lib/store/offers";
 import type { ProductPage } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { pick } from "@/themes/shared/design";
 import { whatsappLink } from "@/themes/store/shared/contact";
 import { StoreLink } from "@/themes/store/shared/context";
@@ -276,6 +277,8 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
               </fieldset>
             );
           })}
+
+          <CustomerInputFields state={buy.inputs} classes={{ label: "as-sm font-extrabold", control: "rounded-2xl border-2 bg-(--as-bg) focus:border-(--as-primary) focus:outline-none" }} />
 
           <div className="flex flex-wrap items-center gap-3">
             <Stepper value={buy.quantity} max={room} onChange={buy.setQuantity} />

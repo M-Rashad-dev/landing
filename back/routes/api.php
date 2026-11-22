@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderUploadController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PixelController;
@@ -69,6 +70,7 @@ use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
+use App\Http\Controllers\Api\V1\Public\UploadController as PublicUploadController;
 use App\Http\Controllers\Api\V1\Webhooks\ShippingWebhookController;
 use App\Http\Controllers\Api\V1\Webhooks\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -268,6 +270,7 @@ Route::prefix('dashboard')
         Route::patch('orders/{order}', [OrderController::class, 'update']);
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
+        Route::get('orders/{order}/uploads/{upload}', [OrderUploadController::class, 'show'])->whereNumber('upload');
         // Shipping orders through connected carriers (docs/plans/shipping-carriers.md).
         Route::get('orders/{order}/shipping', [ShipmentController::class, 'prepare']);
         Route::post('orders/{order}/shipments', [ShipmentController::class, 'store'])->middleware('throttle:carrier-calls');
@@ -358,6 +361,8 @@ Route::prefix('public')
         Route::get('track-link', [TrackController::class, 'link'])->middleware('throttle:public-track');
         Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
+        // «حسب الطلب»: an image / file for a product field, before ordering (store and landing pages).
+        Route::post('uploads', [PublicUploadController::class, 'store'])->middleware('throttle:public-uploads');
         Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');
         Route::get('ab-routes', [EventController::class, 'abRoutes'])->middleware('throttle:public-read');
 
