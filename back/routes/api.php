@@ -55,6 +55,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
+use App\Http\Controllers\Api\V1\Dashboard\StoreMailController;
 use App\Http\Controllers\Api\V1\Dashboard\StorePageController;
 use App\Http\Controllers\Api\V1\Dashboard\SupportController;
 use App\Http\Controllers\Api\V1\Dashboard\ThemeStoreController;
@@ -285,6 +286,12 @@ Route::prefix('dashboard')
         Route::get('leads', [LeadController::class, 'index']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
+
+        // «الإيميلات»: the store's customer emails (docs/plans/digital-products.md, stage 1).
+        Route::get('mail-settings', [StoreMailController::class, 'show']);
+        Route::put('mail-settings', [StoreMailController::class, 'update'])->middleware('throttle:mail-checks');
+        Route::delete('mail-settings/mailbox', [StoreMailController::class, 'forget']);
+        Route::post('mail-settings/test', [StoreMailController::class, 'test'])->middleware('throttle:mail-checks');
 
         Route::get('pixels', [PixelController::class, 'show']);
         Route::put('pixels', [PixelController::class, 'update']);

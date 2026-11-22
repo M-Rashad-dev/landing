@@ -15,6 +15,9 @@ use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Billing\Themes\ThemeAccess;
 use App\Billing\Themes\ThemeCatalog;
+use App\Mail\Store\FakeMailbox;
+use App\Mail\Store\Mailbox;
+use App\Mail\Store\SmtpMailbox;
 use App\Messaging\WhatsApp\CloudWhatsAppGateway;
 use App\Messaging\WhatsApp\WhatsAppGateway;
 use App\Services\Dns\DnsResolver;
@@ -51,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StockPhotos::class, fn ($app): StockPhotos => config('ai.driver') === 'fake' ? new FakeStockPhotos : $app->make(PexelsStockPhotos::class));
         // Shipping carriers (config/shipping.php): one registry, so a test reads what the fake carrier was asked.
         $this->app->singleton(Carriers::class);
+        // The merchant's own mailbox (config mail.store_mailbox): the fake is one instance, so a test reads what it sent.
+        $this->app->singleton(Mailbox::class, fn ($app): Mailbox => config('mail.store_mailbox') === 'fake' ? new FakeMailbox : $app->make(SmtpMailbox::class));
         // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
         $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()
             ? $app->make(WhatsAppCodeSender::class)
@@ -117,6 +122,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('integration-tests', fn (Request $request) => Limit::perMinute(10)->by('integration-tests:'.(Tenancy::id() ?? $request->ip())));
         // Calls to a shipping carrier (ship, cancel, airway bills, connect): 60 per minute per store.
         RateLimiter::for('carrier-calls', fn (Request $request) => Limit::perMinute(60)->by('carrier-calls:'.(Tenancy::id() ?? $request->ip())));
+        // «ابعت إيميل تجربة» / saving a mailbox log in to the merchant's mail server: 6 per minute per store.
+        RateLimiter::for('mail-checks', fn (Request $request) => Limit::perMinute(6)->by('mail-checks:'.(Tenancy::id() ?? $request->ip())));
         RateLimiter::for('orders-export', fn (Request $request) => Limit::perMinute(10)->by('orders-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Manual DNS / SSL re-checks: 10 per minute per tenant.

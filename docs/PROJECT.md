@@ -684,7 +684,8 @@ Landing Builder lives in `features/landings/`.
 4. Suggested and discussed, **not yet requested**: staff accounts and permissions, shipping carrier integration
    (owner 2026-11-22: each merchant contracts the carrier himself and connects his own account here; the cash on
    delivery goes to the merchant, never through the platform. **Bosta and J&T built 2026-11-22**, docs/plans/shipping-carriers.md;
-   no more carriers for now (owner)), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
+   no more carriers for now (owner)), **digital products + prepaid orders + store emails + custom inputs**
+   (owner 2026-11-22, docs/plans/digital-products.md, four stages; stage 1 store emails built), Conversions API, AI copywriter, removing «صنع بواسطة مكسب» on Max,
    a showcase store for «أساس», dashboard dark mode,
    fixing the flaky support test properly, a sample EasyOrders export to tune the import mapper.
 

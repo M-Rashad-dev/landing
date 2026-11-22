@@ -65,7 +65,7 @@ export type OrderItem = {
   line_total: number;
 };
 
-export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
+export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; via?: "platform" | "smtp" | null; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
 
 export type OrderDetail = Omit<OrderRow, "shipment"> & {
   shipment: Shipment | null;

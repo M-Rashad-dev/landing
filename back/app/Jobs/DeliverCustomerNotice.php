@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Enums\MessagePurpose;
 use App\Mail\CustomerOrderMail;
+use App\Mail\Store\StoreMailer;
 use App\Messaging\WhatsApp\WhatsAppError;
 use App\Messaging\WhatsApp\WhatsAppMessenger;
 use App\Models\Customer;
@@ -18,14 +19,14 @@ use App\Support\Money;
 use App\Tenancy\Tenancy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * One order message to its customer. Channel: the customer's own choice (store account), else
  * email when they gave one, else WhatsApp when they agreed at checkout; nothing otherwise.
- * WhatsApp that can't go falls back to email. Logged on the order (outbound_messages). Never retried.
+ * WhatsApp that can't go falls back to email (the store's own mailbox when set, see StoreMailer). Logged on the
+ * order (outbound_messages). Never retried.
  */
 final class DeliverCustomerNotice implements ShouldQueue
 {
@@ -35,9 +36,9 @@ final class DeliverCustomerNotice implements ShouldQueue
 
     public function __construct(public readonly int $tenantId, public readonly int $orderId, public readonly string $event) {}
 
-    public function handle(WhatsAppMessenger $messenger): void
+    public function handle(WhatsAppMessenger $messenger, StoreMailer $mailer): void
     {
-        Tenancy::runAs($this->tenantId, function () use ($messenger): void {
+        Tenancy::runAs($this->tenantId, function () use ($messenger, $mailer): void {
             $order = Order::query()->with('items')->find($this->orderId);
             if ($order === null) {
                 return;
@@ -57,7 +58,7 @@ final class DeliverCustomerNotice implements ShouldQueue
                 return;
             }
             if ($email !== null && $email !== '') {
-                $this->mail($order, $email, $messenger);
+                $this->mail($order, $email, $messenger, $mailer);
             }
         });
     }
@@ -85,7 +86,7 @@ final class DeliverCustomerNotice implements ShouldQueue
         }
     }
 
-    private function mail(Order $order, string $email, WhatsAppMessenger $messenger): void
+    private function mail(Order $order, string $email, WhatsAppMessenger $messenger, StoreMailer $mailer): void
     {
         $store = $this->store();
         $key = 'customer_notices.'.$this->event;
@@ -99,7 +100,7 @@ final class DeliverCustomerNotice implements ShouldQueue
         }
 
         try {
-            Mail::to($email)->send(new CustomerOrderMail(
+            $via = $mailer->send($this->tenantId, $email, new CustomerOrderMail(
                 $this->event,
                 $store,
                 __($key.'.subject', ['number' => $order->order_number, 'store' => $store]),
@@ -109,7 +110,7 @@ final class DeliverCustomerNotice implements ShouldQueue
                 $order->track_token === null ? null : rtrim(PublicSite::url((string) config('landing.platform_domain')), '/').'/t/'.$order->track_token,
                 __('customer_notices.footer', ['store' => $store]),
             ));
-            $messenger->logEmail($email, $this->purpose(), $this->tenantId, $order->id);
+            $messenger->logEmail($email, $this->purpose(), $this->tenantId, $order->id, $via->value);
         } catch (Throwable $e) {
             report($e);
         }

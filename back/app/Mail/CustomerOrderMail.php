@@ -6,12 +6,11 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-/** An order update to a store's customer, in the store's name (the platform's address, the store as sender name). */
+/** An order update to a store's customer. Sent through StoreMailer, which sets the sender and where replies go. */
 final class CustomerOrderMail extends Mailable
 {
     use Queueable, SerializesModels;
@@ -30,10 +29,7 @@ final class CustomerOrderMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            from: new Address((string) config('mail.from.address'), mb_substr($this->store, 0, 60)),
-            subject: $this->heading,
-        );
+        return new Envelope(subject: $this->heading);
     }
 
     public function content(): Content

@@ -78,3 +78,10 @@ an attached sheet), deliver a service order with its message. Confirming payment
    page, templates, copilot, docs.
 
 ## PROGRESS LOG
+- **2026-11-22 — Stage 1 store emails, built.** `store_mail_settings` (+ `outbound_messages.via`), `App\Mail\Store`
+  (`Mailbox` / `SmtpMailbox` / `FakeMailbox`, `StoreMailer`, `StoreMailSettings`), `/dashboard/mail-settings` (show,
+  save with login check, forget, test email), `mailbox_failed` notice, copilot resource `mail_settings` (read only),
+  settings tab «الإيميلات» (Gmail / Outlook / Zoho / Hostinger presets), order message log shows «من إيميلك».
+  `DeliverCustomerNotice` sends through `StoreMailer`. Checked live: login to the Hostinger mailbox through
+  `SmtpMailbox` (465 SSL and 587 STARTTLS, wrong password → the auth message). Tests: `tests/Feature/Messaging/StoreMailTest.php`,
+  `front/src/features/settings/mail-page.test.tsx`. Also fixed: `SaveBar` buttons were submit buttons (double save).

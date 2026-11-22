@@ -33,6 +33,7 @@ final class OrderDetailResource extends OrderResource
                 'id' => $m->id,
                 'purpose' => $m->purpose->value,
                 'channel' => $m->channel,
+                'via' => $m->via,
                 'status' => $m->status->value,
                 'error' => $m->error_title,
                 'created_at' => $m->created_at->toIso8601ZuluString(),

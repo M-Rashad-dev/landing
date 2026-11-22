@@ -20,6 +20,8 @@ enum NotificationEvent: string
     case AiLowBalance = 'ai_low_balance';
     /** A shipment needs the merchant (customer not answering, returning, lost…) or an order couldn't be shipped. */
     case ShipmentProblem = 'shipment_problem';
+    /** The store's own mailbox refused; its customer emails went from the platform's address. */
+    case MailboxFailed = 'mailbox_failed';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';

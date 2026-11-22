@@ -112,6 +112,9 @@ return [
     |
     */
 
+    // The merchant's own mailbox for his customer emails (App\Mail\Store): smtp, or fake in tests / e2e.
+    'store_mailbox' => env('STORE_MAILBOX_DRIVER', 'smtp'),
+
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),

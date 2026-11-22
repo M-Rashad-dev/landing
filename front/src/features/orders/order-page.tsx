@@ -551,7 +551,7 @@ function CustomerMessages({ order }: { order: OrderDetail }) {
               <span className="flex min-w-0 flex-col">
                 <span className="font-semibold">{m.purpose[message.purpose]}</span>
                 <span className="text-xs text-ink-3">
-                  {message.channel === "email" ? m.email : m.whatsapp} · <span className="tabular">{formatDateTime(message.created_at)}</span>
+                  {message.channel === "email" ? (message.via === "smtp" ? m.emailOwn : m.email) : m.whatsapp} · <span className="tabular">{formatDateTime(message.created_at)}</span>
                 </span>
                 {message.error ? <span className="text-xs text-danger">{message.error}</span> : null}
               </span>

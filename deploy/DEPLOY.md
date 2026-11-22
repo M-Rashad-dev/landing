@@ -155,7 +155,7 @@ nano .env
 | `REVERB_APP_SECRET` | ناتج `openssl rand -hex 32` |
 | `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD` | حساب الأدمن بتاعك، ومكتوب جاهز: `m.rashad.dev@gmail.com` / `12345678` |
 | `PLATFORM_ADMIN_PHONE` | **رقم موبايلك المصري** (مطلوب، ولازم ميكونش مستخدم في متجر) |
-| `MAIL_*` | اختياري. سيبه `log` لحد ما يبقى عندك SMTP؛ ساعتها الإيميلات (زي تنبيهات الأدمن) بتتسجل في اللوج بس ومش بتتبعت |
+| `MAIL_*` | إيميل هوستنجر `noreply@mksab.store` مكتوب جاهز (`smtp.hostinger.com` بورت 465 SSL)؛ حط بس `MAIL_PASSWORD`. ده اللي بيبعت تنبيهات الأدمن وإيميلات المتاجر لعملائها (باسم المتجر والرد بيروح للتاجر). لو `MAIL_MAILER=log` الإيميلات بتتسجل في اللوج بس |
 
 **ملاحظات:**
 - لو في قيمة فيها مسافة، حطها بين علامتي تنصيص، زي `PLATFORM_ADMIN_NAME="Mohamed Rashad"`.

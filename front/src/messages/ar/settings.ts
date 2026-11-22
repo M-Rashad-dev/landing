@@ -3,7 +3,7 @@ import { formatMoney } from "@/lib/format";
 /** «إعدادات المتجر» and «الإعدادات» (account, domains, plan and invoices). */
 export const settings = {
   title: "الإعدادات",
-  tabs: { account: "حسابي", domains: "النطاقات", billing: "الباقة والفواتير", pixels: "البيكسلات", integrations: "الربط", ai: "رصيد الذكاء الاصطناعي" },
+  tabs: { account: "حسابي", domains: "النطاقات", billing: "الباقة والفواتير", pixels: "البيكسلات", integrations: "الربط", emails: "الإيميلات", ai: "رصيد الذكاء الاصطناعي" },
 
   store: {
     title: "إعدادات المتجر",

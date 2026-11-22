@@ -220,6 +220,20 @@ final class StoreNotices
         ));
     }
 
+    /** The store's own mailbox refused: its emails go from the platform's address until it is fixed (once a day). */
+    public function mailboxFailed(int $tenantId, string $reason): void
+    {
+        $this->center->toStore($tenantId, new Notice(
+            NotificationEvent::MailboxFailed,
+            __('notifications.mailbox_failed.title'),
+            __('notifications.mailbox_failed.body', ['reason' => $reason]),
+            '/dashboard/settings/emails',
+            [],
+            __('notifications.mailbox_failed.action'),
+            dedupeKey: 'mailbox_failed:'.now()->format('Ymd'),
+        ));
+    }
+
     private function store(int $tenantId): string
     {
         return (string) Tenant::query()->whereKey($tenantId)->value('name');

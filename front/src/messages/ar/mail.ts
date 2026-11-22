@@ -1,0 +1,55 @@
+/** «الإعدادات» → «الإيميلات»: how the store's customer emails go out. */
+export const mail = {
+  title: "الإيميلات",
+  description: "الإيميلات اللي بتتبعت لعملائك (تأكيد الطلب، الشحن، التسليم…) بتطلع باسم متجرك. اختار تطلع منين.",
+
+  mode: "بتتبعت منين",
+  modes: {
+    platform: { title: "من إيميل المنصة", description: (address: string) => `بتطلع من ${address} باسم متجرك، ولما العميل يرد الرد بيوصلك أنت.` },
+    smtp: { title: "من إيميلك أنت", description: "Gmail أو Outlook أو إيميل الدومين بتاعك، بكلمة سر تطبيق. حدود الإرسال بتاعة الإيميل نفسه." },
+  },
+
+  identity: "اسم الراسل والردود",
+  identityHint: "ده اللي العميل بيشوفه في صندوق الوارد.",
+  senderName: "اسم الراسل",
+  senderNameHint: (name: string) => `لو سبته فاضي هيظهر «${name}».`,
+  replyTo: "الردود بتروح لـ",
+  replyToHint: (email: string | null) => (email ? `لو سبته فاضي الردود هتروح لـ ${email}.` : "الإيميل اللي هتوصلك عليه ردود العملاء."),
+
+  mailbox: "بيانات إيميلك",
+  mailboxHint: "بنسجّل دخول لإيميلك قبل ما نحفظ، فلو فيه غلط هتعرف على طول.",
+  provider: "مزود الإيميل",
+  providers: { gmail: "Gmail", outlook: "Outlook", zoho: "Zoho", hostinger: "Hostinger", other: "غيره" },
+  host: "سيرفر الإيميل (SMTP)",
+  port: "البورت",
+  encryption: "التشفير",
+  encryptions: { ssl: "SSL", tls: "TLS (STARTTLS)" },
+  username: "الإيميل (اسم الدخول)",
+  password: "كلمة سر التطبيق",
+  passwordSaved: "محفوظة. سيبها فاضية عشان تفضل زي ما هي.",
+  passwordRequired: "اكتب كلمة سر التطبيق.",
+  fromAddress: "بيتبعت من",
+  fromAddressHint: "سيبه فاضي عشان الإيميلات تطلع من نفس إيميل الدخول (ده الأضمن).",
+  gmailHelp: "في Gmail: فعّل «التحقق بخطوتين» وبعدين اعمل «كلمة سر تطبيق» وانسخها هنا (مش كلمة سر حسابك).",
+  gmailLink: "اعمل كلمة سر تطبيق",
+  outlookHelp: "في Outlook: لو مفعّل التحقق بخطوتين، اعمل «كلمة سر تطبيق» من إعدادات الأمان.",
+  hostFormat: "اكتب اسم السيرفر بس، زي smtp.gmail.com.",
+
+  status: { active: "شغال", failed: "واقف" },
+  failedTitle: "إيميلك مش شغال دلوقتي",
+  failedText: (reason: string) => `${reason} لحد ما تصلّحه، الإيميلات بتطلع من إيميل المنصة باسم متجرك.`,
+  forget: "امسح بيانات إيميلي",
+  forgetTitle: "تمسح بيانات إيميلك؟",
+  forgetText: "هنمسح السيرفر وكلمة سر التطبيق، والإيميلات هترجع تطلع من إيميل المنصة باسم متجرك.",
+  forgotten: "بيانات إيميلك اتمسحت",
+
+  test: "إيميل تجربة",
+  testHint: "ابعت إيميل لنفسك عشان تشوف شكله عند العميل.",
+  testTo: "ابعت لـ",
+  testToPlaceholder: "إيميلك (لو سبته فاضي هيروح لإيميل حسابك)",
+  testSend: "ابعت إيميل تجربة",
+  testSaveFirst: "احفظ التغييرات الأول.",
+  testSent: (to: string) => `الإيميل اتبعت لـ ${to}. لو موصلش، بص في السبام.`,
+
+  saved: "إعدادات الإيميل اتحفظت",
+} as const;

@@ -77,6 +77,7 @@ function SectionTitle({ title, description, hasError }: { title: string; descrip
 }
 
 /** Sticky bar at the bottom while a form has unsaved changes. */
+/** Its buttons are type="button": inside a <form> they would also submit it (a second save). */
 export function SaveBar({ visible, saving, onSave, onDiscard }: { visible: boolean; saving?: boolean; onSave: () => void; onDiscard?: () => void }) {
   if (!visible) return null;
   return (
@@ -84,11 +85,11 @@ export function SaveBar({ visible, saving, onSave, onDiscard }: { visible: boole
       <span className="size-2 rounded-full bg-accent" aria-hidden />
       <span className="flex-1 text-sm">{ar.common.unsavedChanges}</span>
       {onDiscard ? (
-        <Button variant="ghost" size="sm" className="text-white/80 hover:bg-white/10 hover:text-white" onClick={onDiscard}>
+        <Button type="button" variant="ghost" size="sm" className="text-white/80 hover:bg-white/10 hover:text-white" onClick={onDiscard}>
           {ar.common.discard}
         </Button>
       ) : null}
-      <Button size="sm" className="bg-white text-ink hover:bg-white/90" loading={saving} onClick={onSave}>
+      <Button type="button" size="sm" className="bg-white text-ink hover:bg-white/90" loading={saving} onClick={onSave}>
         {ar.common.save}
       </Button>
     </div>
