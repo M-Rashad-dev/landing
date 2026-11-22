@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Link2, MoreHorizontal, PlugZap, RefreshCw, Settings2, Truck, Unplug } from "lucide-react";
+import { CalendarClock, Copy, Link2, MoreHorizontal, PlugZap, RefreshCw, Settings2, Truck, Unplug } from "lucide-react";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,13 +17,14 @@ import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { ar } from "@/messages/ar";
-import { shippingKeys, type Company } from "./api";
+import { shippingKeys, useShipping, type Company } from "./api";
 import {
   checkCarrier,
   connectCarrier,
   disconnectCarrier,
   requestPickup,
   saveCarrierSettings,
+  useCarrierDistricts,
   useCarrierLocations,
   useCarriers,
   useRefreshCarriers,
@@ -151,10 +152,12 @@ function CarrierCard({
         </div>
         {a ? (
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={onPickup} disabled={a.status !== "active"}>
-              <CalendarClock />
-              {t.pickup}
-            </Button>
+            {carrier.features.includes("pickup") ? (
+              <Button size="sm" variant="outline" onClick={onPickup} disabled={a.status !== "active"}>
+                <CalendarClock />
+                {t.pickup}
+              </Button>
+            ) : null}
             <Button size="sm" variant="outline" onClick={onSettings}>
               <Settings2 />
               {t.settings}
@@ -194,6 +197,25 @@ function CarrierCard({
           {a.last_error}
         </Alert>
       ) : null}
+      {a && carrier.webhook_url ? (
+        <div className="mt-3 rounded-lg bg-surface-2 p-3">
+          <p className="text-xs font-semibold text-ink-2">{t.webhook}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <code dir="ltr" className="min-w-0 flex-1 truncate text-xs">
+              {carrier.webhook_url}
+            </code>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={ar.common.copy}
+              onClick={() => void navigator.clipboard.writeText(carrier.webhook_url ?? "").then(() => toast.success(t.copied))}
+            >
+              <Copy />
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-ink-3">{t.webhookHint(carrier.name)}</p>
+        </div>
+      ) : null}
       {a?.company && !a.company.is_active ? (
         <Alert tone="warning" className="mt-3" action={<Button size="sm" variant="outline" onClick={() => onEditCompany(a.company!.id)}>{t.setPrices}</Button>}>
           {t.companyOff}
@@ -203,7 +225,10 @@ function CarrierCard({
   );
 }
 
-const connectSchema = z.object({ api_key: z.string().trim().min(8, ar.validation.min(8)).max(500, ar.validation.max(500)), company: z.string() });
+const connectSchema = z.object({
+  credentials: z.record(z.string(), z.string().trim().min(2, ar.validation.min(2)).max(500, ar.validation.max(500))),
+  company: z.string(),
+});
 
 function ConnectDialog({ carrier, companies, onClose }: { carrier: Carrier | null; companies: Company[]; onClose: () => void }) {
   return (
@@ -218,18 +243,21 @@ function ConnectForm({ carrier, companies, onDone }: { carrier: Carrier; compani
   const client = useQueryClient();
   const [formError, setFormError] = React.useState<string | null>(null);
   const linkable = companies.filter((c) => !c.carrier || c.carrier === carrier.key);
-  const form = useForm<z.infer<typeof connectSchema>>({ resolver: zodResolver(connectSchema), defaultValues: { api_key: "", company: carrier.account?.company ? String(carrier.account.company.id) : "" } });
+  const form = useForm<z.infer<typeof connectSchema>>({
+    resolver: zodResolver(connectSchema),
+    defaultValues: { credentials: Object.fromEntries(carrier.fields.map((f) => [f.key, ""])), company: carrier.account?.company ? String(carrier.account.company.id) : "" },
+  });
   const { errors, isSubmitting } = form.formState;
 
   async function onSubmit(values: z.infer<typeof connectSchema>) {
     setFormError(null);
     try {
-      await connectCarrier(carrier.key, { api_key: values.api_key.trim(), company_id: values.company ? Number(values.company) : null });
+      await connectCarrier(carrier.key, { credentials: Object.fromEntries(carrier.fields.map((f) => [f.key, (values.credentials[f.key] ?? "").trim()])), company_id: values.company ? Number(values.company) : null });
       toast.success(t.connectDialog.done(carrier.name));
       await Promise.all([refresh(), client.invalidateQueries({ queryKey: shippingKeys.all })]);
       onDone();
     } catch (error) {
-      const unmatched = applyServerErrors(error, form.setError, ["api_key"]);
+      const unmatched = applyServerErrors(error, form.setError, carrier.fields.map((f) => `credentials.${f.key}` as const));
       if (unmatched.length || !(isApiError(error) && error.isValidation)) setFormError(unmatched[0] ?? errorMessage(error));
     }
   }
@@ -240,13 +268,24 @@ function ConnectForm({ carrier, companies, onDone }: { carrier: Carrier; compani
       <DialogBody className="flex flex-col gap-4">
         {formError ? <Alert tone="danger">{formError}</Alert> : null}
         <ol className="flex list-decimal flex-col gap-1 ps-5 text-sm text-ink-2">
-          {t.connectDialog.steps(carrier.name).map((s) => (
+          {(t.connectDialog.steps[carrier.key] ?? []).map((s) => (
             <li key={s}>{s}</li>
           ))}
         </ol>
-        <Field label={t.connectDialog.key} htmlFor="carrier-key" error={errors.api_key?.message} required>
-          <Input id="carrier-key" dir="ltr" autoComplete="off" autoFocus placeholder={t.connectDialog.keyPlaceholder} aria-invalid={!!errors.api_key} {...form.register("api_key")} />
-        </Field>
+        {carrier.fields.map((f, i) => (
+          <Field key={f.key} label={f.label} htmlFor={`carrier-${f.key}`} error={errors.credentials?.[f.key]?.message} required>
+            <Input
+              id={`carrier-${f.key}`}
+              dir="ltr"
+              type={f.secret ? "password" : "text"}
+              autoComplete="off"
+              autoFocus={i === 0}
+              placeholder={t.connectDialog.keyPlaceholder}
+              aria-invalid={!!errors.credentials?.[f.key]}
+              {...form.register(`credentials.${f.key}`)}
+            />
+          </Field>
+        ))}
         {linkable.length > 0 ? (
           <Field label={t.connectDialog.company} hint={t.connectDialog.companyHint}>
             <Controller
@@ -282,7 +321,7 @@ function SettingsDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose
 function SettingsForm({ carrier, account, onDone }: { carrier: Carrier; account: CarrierAccount; onDone: () => void }) {
   const s = t.settingsDrawer;
   const refresh = useRefreshCarriers();
-  const locations = useCarrierLocations(carrier.key, true);
+  const locations = useCarrierLocations(carrier.key, carrier.features.includes("locations"));
   const [values, setValues] = React.useState<CarrierSettings>(account.settings);
   const [busy, setBusy] = React.useState(false);
   const set = <K extends keyof CarrierSettings>(key: K, value: CarrierSettings[K]) => setValues((v) => ({ ...v, [key]: value }));
@@ -303,25 +342,32 @@ function SettingsForm({ carrier, account, onDone }: { carrier: Carrier; account:
 
   const options = <T extends string>(labels: Record<T, string>) => (Object.keys(labels) as T[]).map((k) => ({ value: k, label: labels[k] }));
 
+  const has = (feature: (typeof carrier.features)[number]) => carrier.features.includes(feature);
+
   return (
     <div className="flex flex-col gap-4">
-      <Field label={s.location} hint={s.locationHint}>
-        {locations.isPending ? (
-          <Skeleton className="h-10 rounded-md" />
-        ) : locations.isError ? (
-          <Alert tone="warning">{errorMessage(locations.error) || s.locationsFailed}</Alert>
-        ) : (
-          <Select value={values.location_id ?? ""} onValueChange={(v) => set("location_id", v || null)} options={locations.data.locations.map((l) => ({ value: l.id, label: l.name }))} aria-label={s.location} />
-        )}
-      </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={s.packageType}>
-          <Select value={values.package_type} onValueChange={(v) => set("package_type", v as CarrierSettings["package_type"])} options={options(s.packageTypes)} aria-label={s.packageType} />
+      {has("locations") ? (
+        <Field label={s.location} hint={s.locationHint}>
+          {locations.isPending ? (
+            <Skeleton className="h-10 rounded-md" />
+          ) : locations.isError ? (
+            <Alert tone="warning">{errorMessage(locations.error) || s.locationsFailed}</Alert>
+          ) : (
+            <Select value={values.location_id ?? ""} onValueChange={(v) => set("location_id", v || null)} options={locations.data.locations.map((l) => ({ value: l.id, label: l.name }))} aria-label={s.location} />
+          )}
         </Field>
-        <Field label={s.size}>
-          <Select value={values.size} onValueChange={(v) => set("size", v as CarrierSettings["size"])} options={options(s.sizes)} aria-label={s.size} />
-        </Field>
-      </div>
+      ) : null}
+      {has("sender") ? <SenderFields carrier={carrier} values={values} set={set} /> : null}
+      {has("package") ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={s.packageType}>
+            <Select value={values.package_type} onValueChange={(v) => set("package_type", v as CarrierSettings["package_type"])} options={options(s.packageTypes)} aria-label={s.packageType} />
+          </Field>
+          <Field label={s.size}>
+            <Select value={values.size} onValueChange={(v) => set("size", v as CarrierSettings["size"])} options={options(s.sizes)} aria-label={s.size} />
+          </Field>
+        </div>
+      ) : null}
       <Field label={s.labelSize}>
         <Select value={values.label_size} onValueChange={(v) => set("label_size", v as CarrierSettings["label_size"])} options={options(s.labelSizes)} aria-label={s.labelSize} />
       </Field>
@@ -339,6 +385,66 @@ function SettingsForm({ carrier, account, onDone }: { carrier: Carrier; account:
         </Button>
       </div>
     </div>
+  );
+}
+
+/** The store's pickup address and parcel details, for carriers that need them (J&T). */
+function SenderFields({ carrier, values, set }: { carrier: Carrier; values: CarrierSettings; set: <K extends keyof CarrierSettings>(key: K, value: CarrierSettings[K]) => void }) {
+  const s = t.settingsDrawer;
+  const governorates = useShipping().data?.governorates ?? [];
+  const areas = useCarrierDistricts(carrier.key, values.sender_governorate ?? "");
+  const options = <T extends string>(labels: Record<T, string>) => (Object.keys(labels) as T[]).map((k) => ({ value: k, label: labels[k] }));
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-3">
+      <legend className="px-1 text-sm font-semibold">{s.sender}</legend>
+      <p className="text-xs text-ink-3">{s.senderHint}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={s.senderName} htmlFor="sender-name">
+          <Input id="sender-name" maxLength={50} value={values.sender_name ?? ""} onChange={(e) => set("sender_name", e.target.value)} />
+        </Field>
+        <Field label={s.senderPhone} hint={s.senderPhoneHint} htmlFor="sender-phone">
+          <Input id="sender-phone" dir="ltr" inputMode="tel" maxLength={11} value={values.sender_phone ?? ""} onChange={(e) => set("sender_phone", e.target.value.replace(/\D/g, ""))} />
+        </Field>
+        <Field label={s.senderGovernorate}>
+          <Select
+            value={values.sender_governorate ?? ""}
+            onValueChange={(v) => (set("sender_governorate", v || null), set("sender_area", null))}
+            options={governorates.map((g) => ({ value: g, label: g }))}
+            aria-label={s.senderGovernorate}
+          />
+        </Field>
+        <Field label={s.senderArea}>
+          {areas.isError ? (
+            <Alert tone="warning">{errorMessage(areas.error)}</Alert>
+          ) : (
+            <Select
+              value={values.sender_area ?? ""}
+              onValueChange={(v) => set("sender_area", v || null)}
+              placeholder={values.sender_governorate ? undefined : s.senderAreaPick}
+              disabled={!values.sender_governorate || areas.isPending}
+              searchable
+              options={(areas.data ?? []).map((a) => ({ value: a.id, label: a.name }))}
+              aria-label={s.senderArea}
+            />
+          )}
+        </Field>
+      </div>
+      <Field label={s.senderStreet} htmlFor="sender-street">
+        <Input id="sender-street" maxLength={200} value={values.sender_street ?? ""} onChange={(e) => set("sender_street", e.target.value)} />
+      </Field>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={s.serviceType}>
+          <Select value={values.service_type} onValueChange={(v) => set("service_type", v as CarrierSettings["service_type"])} options={options(s.serviceTypes)} aria-label={s.serviceType} />
+        </Field>
+        <Field label={s.goodsType}>
+          <Select value={values.goods_type} onValueChange={(v) => set("goods_type", v)} options={options(s.goodsTypes)} aria-label={s.goodsType} />
+        </Field>
+        <Field label={s.weight} htmlFor="sender-weight">
+          <Input id="sender-weight" dir="ltr" inputMode="decimal" value={values.weight} onChange={(e) => set("weight", e.target.value)} />
+        </Field>
+      </div>
+    </fieldset>
   );
 }
 

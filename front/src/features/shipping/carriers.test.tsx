@@ -39,10 +39,41 @@ const account: CarrierAccount = {
   status: "active",
   last_error: null,
   checked_at: null,
-  settings: { location_id: "loc-main", allow_open: false, package_type: "Parcel", size: "SMALL", label_size: "A4", auto_ship: false, notes: null },
+  settings: {
+    location_id: "loc-main",
+    allow_open: false,
+    package_type: "Parcel",
+    size: "SMALL",
+    label_size: "A4",
+    auto_ship: false,
+    notes: null,
+    sender_name: null,
+    sender_phone: null,
+    sender_governorate: null,
+    sender_area: null,
+    sender_street: null,
+    weight: "1",
+    goods_type: "ITN16",
+    service_type: "01",
+  },
   company: { id: 9, name: "بوسطة", is_active: false },
   open_shipments: 0,
 };
+
+const bosta = { key: "bosta", name: "بوسطة", fields: [{ key: "api_key", label: "مفتاح الربط (API Key)", secret: true }], features: ["locations", "pickup", "package"], webhook_url: null } as const;
+const jt = {
+  key: "jt",
+  name: "J&T Express",
+  fields: [
+    { key: "customer_code", label: "كود العميل", secret: false },
+    { key: "password", label: "كلمة سر العميل", secret: true },
+    { key: "api_account", label: "API Account", secret: false },
+    { key: "private_key", label: "Private Key", secret: true },
+  ],
+  features: ["sender", "webhook_url"],
+  webhook_url: null,
+} as const;
+const carrier = (c: typeof bosta | typeof jt, extra: Partial<Carrier> = {}): Carrier => ({ ...c, fields: [...c.fields], features: [...c.features], account: null, ...extra });
 
 const order = {
   id: 5,
@@ -56,7 +87,7 @@ const order = {
 
 describe("CarriersSection", () => {
   it("connects Bosta with the key, after showing where to find it", async () => {
-    const carriers: Carrier[] = [{ key: "bosta", name: "بوسطة", account: null }];
+    const carriers: Carrier[] = [carrier(bosta)];
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (String(url).endsWith("/dashboard/shipping/carriers") && (!init?.method || init.method === "GET")) return Response.json({ data: carriers });
       if (String(url).endsWith("/dashboard/shipping/carriers/bosta") && init?.method === "POST") return Response.json({ data: account });
@@ -67,21 +98,36 @@ describe("CarriersSection", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: new RegExp(t.connect) }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(t.connectDialog.steps("بوسطة")[1])).toBeInTheDocument();
+    expect(within(dialog).getByText(t.connectDialog.steps.bosta[1])).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole("button", { name: t.connectDialog.submit }));
-    expect(await within(dialog).findByText(ar.validation.min(8))).toBeInTheDocument();
+    expect(await within(dialog).findByText(ar.validation.min(2))).toBeInTheDocument();
 
-    await user.type(within(dialog).getByRole("textbox"), "live-key-123");
+    await user.type(within(dialog).getByLabelText(/API Key/), "live-key-123");
     fireEvent.click(within(dialog).getByRole("button", { name: t.connectDialog.submit }));
 
     await waitFor(() => expect(fetchMock.mock.calls.some(([u, i]) => String(u).endsWith("/carriers/bosta") && i?.method === "POST")));
     const [, init] = fetchMock.mock.calls.find(([u, i]) => String(u).endsWith("/carriers/bosta") && i?.method === "POST")!;
-    expect(JSON.parse(String(init.body))).toEqual({ api_key: "live-key-123", company_id: null });
+    expect(JSON.parse(String(init.body))).toEqual({ credentials: { api_key: "live-key-123" }, company_id: null });
+  });
+
+  it("asks J&T for its four fields, shows the address to paste in its console, and has no courier request", async () => {
+    fetchMock.mockResolvedValue(Response.json({ data: [carrier(jt, { webhook_url: "https://app.test/api/webhooks/shipping/jt/abc", account: { ...account, carrier: "jt", company: null } })] }));
+    wrap(<CarriersSection companies={[]} onEditCompany={() => undefined} />);
+
+    expect(await screen.findByText("https://app.test/api/webhooks/shipping/jt/abc")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: new RegExp(t.pickup) })).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: ar.common.actions }));
+    await user.click(await screen.findByRole("menuitem", { name: new RegExp(t.changeKey) }));
+    const dialog = await screen.findByRole("dialog");
+    for (const f of jt.fields) expect(within(dialog).getByLabelText(new RegExp(f.label))).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/Private Key/)).toHaveAttribute("type", "password");
   });
 
   it("asks to price and switch on the new company, and shows a stopped connection with its reason", async () => {
-    fetchMock.mockResolvedValue(Response.json({ data: [{ key: "bosta", name: "بوسطة", account: { ...account, status: "failed", last_error: "مفتاح بوسطة مش صحيح" } }] }));
+    fetchMock.mockResolvedValue(Response.json({ data: [carrier(bosta, { account: { ...account, status: "failed", last_error: "مفتاح بوسطة مش صحيح" } })] }));
     const onEdit = vi.fn();
     wrap(<CarriersSection companies={[]} onEditCompany={onEdit} />);
 
@@ -97,7 +143,7 @@ describe("Shipping an order", () => {
     const prepare: ShipPrepare = { carriers: [{ carrier: "bosta", name: "بوسطة", account }], default_carrier: "bosta", area: { matched: "d-nasr", districts: [], error: null }, cod: 450, items_count: 2, can_ship: true, shipment: null };
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const u = String(url);
-      if (u.endsWith("/dashboard/shipping/carriers")) return Response.json({ data: [{ key: "bosta", name: "بوسطة", account }] });
+      if (u.endsWith("/dashboard/shipping/carriers")) return Response.json({ data: [carrier(bosta, { account })] });
       if (u.includes("/orders/5/shipping")) return Response.json({ data: prepare });
       if (u.endsWith("/orders/5/shipments") && init?.method === "POST") return Response.json({ data: { id: 3, tracking_number: "5108002" } }, { status: 201 });
       return Response.json({ data: [] });
@@ -119,7 +165,7 @@ describe("Shipping an order", () => {
     const prepare: ShipPrepare = { carriers: [{ carrier: "bosta", name: "بوسطة", account }], default_carrier: "bosta", area: { matched: null, districts: [{ id: "d-maadi", name: "المعادي" }], error: null }, cod: 450, items_count: 1, can_ship: true, shipment: null };
     fetchMock.mockImplementation(async (url: string) => {
       const u = String(url);
-      if (u.endsWith("/dashboard/shipping/carriers")) return Response.json({ data: [{ key: "bosta", name: "بوسطة", account }] });
+      if (u.endsWith("/dashboard/shipping/carriers")) return Response.json({ data: [carrier(bosta, { account })] });
       if (u.includes("/orders/5/shipping")) return Response.json({ data: prepare });
       return Response.json({ data: [] });
     });
@@ -134,7 +180,7 @@ describe("Shipping an order", () => {
   });
 
   it("shows a shipment with its timeline, airway bill and cancel", async () => {
-    fetchMock.mockResolvedValue(Response.json({ data: [{ key: "bosta", name: "بوسطة", account }] }));
+    fetchMock.mockResolvedValue(Response.json({ data: [carrier(bosta, { account })] }));
     const shipped = {
       ...order,
       shipment: {

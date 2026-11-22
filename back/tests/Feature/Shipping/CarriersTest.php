@@ -34,7 +34,7 @@ function shipFake(): FakeCarrier
 
 function shipConnect(array $body = []): CarrierAccount
 {
-    test()->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'live-key-123'] + $body)->assertOk();
+    test()->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'live-key-123']] + $body)->assertOk();
 
     return asTenant(test()->user, fn () => CarrierAccount::query()->firstOrFail());
 }
@@ -52,11 +52,11 @@ function shipWebhook(CarrierAccount $account, array $payload, ?string $secret = 
 }
 
 it('connects the merchant\'s own Bosta account after checking the key, and never shows the key back', function () {
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', [])->assertStatus(422)->assertJsonValidationErrors(['api_key']);
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'bad'])->assertStatus(422)->assertJsonValidationErrors(['api_key']);
-    $this->postJson('/api/v1/dashboard/shipping/carriers/nope', ['api_key' => 'live-key-123'])->assertNotFound();
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', [])->assertStatus(422)->assertJsonValidationErrors(['credentials', 'credentials.api_key']);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'bad']])->assertStatus(422)->assertJsonValidationErrors(['credentials.api_key']);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/nope', ['credentials' => ['api_key' => 'live-key-123']])->assertNotFound();
 
-    $json = $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'live-key-123'])->assertOk()
+    $json = $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'live-key-123', 'extra' => 'dropped']])->assertOk()
         ->assertJsonPath('data.status', 'active')
         ->assertJsonPath('data.settings.location_id', 'loc-main')
         ->assertJsonPath('data.company.name', 'بوسطة')
@@ -69,10 +69,12 @@ it('connects the merchant\'s own Bosta account after checking the key, and never
         ->and($account->getRawOriginal('credentials'))->not->toContain('live-key-123')
         ->and($account->webhook_token)->toMatch('/^[a-z0-9]{40}$/');
     $this->getJson('/api/v1/dashboard/shipping/carriers')->assertOk()
-        ->assertJsonPath('data.0.key', 'bosta')->assertJsonPath('data.0.name', 'بوسطة')->assertJsonPath('data.0.account.status', 'active');
+        ->assertJsonPath('data.0.key', 'bosta')->assertJsonPath('data.0.name', 'بوسطة')->assertJsonPath('data.0.account.status', 'active')
+        ->assertJsonPath('data.0.fields.0.key', 'api_key')->assertJsonPath('data.0.features', ['locations', 'pickup', 'package'])
+        ->assertJsonPath('data.1.key', 'jt')->assertJsonPath('data.1.account', null)->assertJsonCount(4, 'data.1.fields');
 
     // Connecting again keeps the same webhook address and the same company.
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'other-key-456'])->assertOk();
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'other-key-456']])->assertOk();
     expect(asTenant($this->user, fn () => [CarrierAccount::query()->value('webhook_token'), ShippingCompany::query()->count()]))->toBe([$account->webhook_token, 1]);
 });
 
@@ -80,8 +82,8 @@ it('links an existing company, never another store\'s, and needs a signed-in use
     $company = asTenant($this->user, fn () => ShippingCompany::query()->create(['name' => 'بوسطة بتاعتي', 'default_fee' => 50, 'is_active' => true]));
     $foreign = asTenant(createOwner(), fn () => ShippingCompany::query()->create(['name' => 'غريبة', 'default_fee' => 50]));
 
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'live-key-123', 'company_id' => $foreign->id])->assertStatus(422)->assertJsonValidationErrors(['company_id']);
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'live-key-123', 'company_id' => $company->id])->assertOk()->assertJsonPath('data.company.id', $company->id);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'live-key-123'], 'company_id' => $foreign->id])->assertStatus(422)->assertJsonValidationErrors(['company_id']);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'live-key-123'], 'company_id' => $company->id])->assertOk()->assertJsonPath('data.company.id', $company->id);
     expect(asTenant($this->user, fn () => ShippingCompany::query()->count()))->toBe(1);
     $this->getJson('/api/v1/dashboard/shipping')->assertJsonPath('data.companies.0.carrier', 'bosta');
 
@@ -289,4 +291,21 @@ it('lets the store pick the company per governorate, so checkout shows no choice
     $other = asTenant($this->user, fn () => app(Shipping::class)->quote('الجيزة', null, 10000, new Basket([]), false, now()));
     expect($other->options)->toHaveCount(1)->and($other->company['id'])->toBe($cheap->id);
     expect(asTenant($this->user, fn () => ShippingSetting::query()->value('company_choice')))->toBe('governorate');
+});
+
+it('connects J&T with its four fields, shows the address to paste in its console, and saves the pickup address', function () {
+    $this->postJson('/api/v1/dashboard/shipping/carriers/jt', ['credentials' => ['customer_code' => 'J0086024225']])->assertStatus(422)
+        ->assertJsonValidationErrors(['credentials.password', 'credentials.api_account', 'credentials.private_key']);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/jt', ['credentials' => ['customer_code' => 'J1', 'password' => 'bad', 'api_account' => '10', 'private_key' => 'kk']])->assertStatus(422)
+        ->assertJsonValidationErrors(['credentials.customer_code']);
+    $this->postJson('/api/v1/dashboard/shipping/carriers/jt', ['credentials' => ['customer_code' => 'J0086024225', 'password' => 'p4ss', 'api_account' => '2925', 'private_key' => 'key-1']])->assertOk()
+        ->assertJsonPath('data.company.name', 'J&T Express');
+
+    $jt = collect($this->getJson('/api/v1/dashboard/shipping/carriers')->assertOk()->json('data'))->firstWhere('key', 'jt');
+    expect($jt['features'])->toBe(['sender', 'webhook_url'])->and($jt['webhook_url'])->toContain('/api/webhooks/shipping/jt/');
+
+    $this->putJson('/api/v1/dashboard/shipping/carriers/jt', ['sender_phone' => '+20100', 'service_type' => '03', 'weight' => 99])->assertStatus(422)
+        ->assertJsonValidationErrors(['sender_phone', 'service_type', 'weight']);
+    $this->putJson('/api/v1/dashboard/shipping/carriers/jt', ['sender_name' => 'متجر حبة', 'sender_phone' => '01012345678', 'sender_governorate' => 'الجيزة', 'sender_area' => 'الشيخ زايد|الشيخ زايد', 'sender_street' => 'شارع 1', 'service_type' => '02'])->assertOk()
+        ->assertJsonPath('data.settings.sender_phone', '01012345678')->assertJsonPath('data.settings.service_type', '02');
 });

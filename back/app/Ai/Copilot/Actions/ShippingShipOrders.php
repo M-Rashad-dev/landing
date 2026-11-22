@@ -139,7 +139,7 @@ final class ShippingShipOrders extends CopilotAction
         try {
             $carrier = $this->carriers->get($account->carrier);
 
-            return $carrier->matchDistrict((string) $order->governorate, $order->city) === null
+            return $carrier->matchDistrict($account, (string) $order->governorate, $order->city) === null
                 ? (string) __('ai.copilot.ship_pick_area', ['carrier' => $carrier->label()])
                 : null;
         } catch (CarrierError $e) {

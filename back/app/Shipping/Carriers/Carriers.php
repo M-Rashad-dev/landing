@@ -32,8 +32,14 @@ final class Carriers
             throw new ApiException(404, 'carrier_not_found', (string) __('shipping.carriers.not_found'));
         }
 
-        return $this->made[$key] ??= config('shipping.driver') === 'fake'
-            ? new FakeCarrier($key, (string) __('shipping.carriers.names.'.$key))
-            : $this->app->make((string) config('shipping.carriers.'.$key));
+        if (isset($this->made[$key])) {
+            return $this->made[$key];
+        }
+        /** @var Carrier $real */
+        $real = $this->app->make((string) config('shipping.carriers.'.$key));
+
+        return $this->made[$key] = config('shipping.driver') === 'fake'
+            ? new FakeCarrier($key, $real->label(), $real->credentialFields(), $real->features())
+            : $real;
     }
 }

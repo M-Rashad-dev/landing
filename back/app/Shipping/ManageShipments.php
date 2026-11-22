@@ -38,7 +38,7 @@ final class ManageShipments
             throw new ApiException(422, 'ship_cancel_late', (string) __('shipping.ship.cancel_late'));
         }
         $account = $this->account($shipment);
-        $this->guard(fn () => $this->carriers->get($shipment->carrier)->cancel($account, $shipment->tracking_number), $account);
+        $this->guard(fn () => $this->carriers->get($shipment->carrier)->cancel($account, $shipment->tracking_number, $shipment->external_id), $account);
         $shipment = $this->updates->handle($shipment, new CarrierUpdate($shipment->tracking_number, ShipmentState::Cancelled, null, null, CarbonImmutable::now()));
         Order::query()->whereKey($shipment->order_id)->where('tracking_number', $shipment->tracking_number)->update(['tracking_number' => null]);
 

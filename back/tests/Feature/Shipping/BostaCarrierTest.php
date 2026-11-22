@@ -55,12 +55,12 @@ it('lists the areas of a governorate and matches the customer\'s city', function
     bostaHttp();
     $bosta = new BostaCarrier;
 
-    expect($bosta->districts('القاهرة'))->toBe([['id' => 'dNasr1', 'name' => 'مدينه نصر - الحي الأول'], ['id' => 'dMaadi', 'name' => 'المعادي']])
-        ->and($bosta->matchDistrict('القاهرة', 'المعادى'))->toBe('dMaadi')
+    expect($bosta->districts(bostaAccount(), 'القاهرة'))->toBe([['id' => 'dNasr1', 'name' => 'مدينه نصر - الحي الأول'], ['id' => 'dMaadi', 'name' => 'المعادي']])
+        ->and($bosta->matchDistrict(bostaAccount(), 'القاهرة', 'المعادى'))->toBe('dMaadi')
         // Only the zone's name: the zone goes (Bosta takes a zone without a district).
-        ->and($bosta->matchDistrict('القاهرة', 'Nasr City'))->toBe('zone:z1')
-        ->and($bosta->matchDistrict('القاهرة', 'مكان تاني'))->toBeNull();
-    expect(fn () => $bosta->districts('أسوان'))->toThrow(CarrierError::class, 'بوسطة مش بتوصّل لمحافظة أسوان.');
+        ->and($bosta->matchDistrict(bostaAccount(), 'القاهرة', 'Nasr City'))->toBe('zone:z1')
+        ->and($bosta->matchDistrict(bostaAccount(), 'القاهرة', 'مكان تاني'))->toBeNull();
+    expect(fn () => $bosta->districts(bostaAccount(), 'أسوان'))->toThrow(CarrierError::class, 'بوسطة مش بتوصّل لمحافظة أسوان.');
 });
 
 it('creates a delivery with the merchant\'s key, our secret and the right address', function () {
@@ -140,7 +140,7 @@ it('checks the key with the pickup locations, prints airway bills and terminates
     $profile = $bosta->verify(['api_key' => 'KEY-1']);
     expect($profile->defaultLocation())->toBe('L2')->and($profile->accountName)->toBe('متجر حبة')->and($profile->locations)->toHaveCount(2);
     expect($bosta->labels(bostaAccount(), ['5108002', '5108003'], 'A6'))->toBe($pdf);
-    $bosta->cancel(bostaAccount(), '5108002');
+    $bosta->cancel(bostaAccount(), '5108002', 'X9');
 
     Http::assertSent(fn (Request $r) => str_contains($r->url(), 'mass-awb') && $r['trackingNumbers'] === '5108002,5108003' && $r['requestedAwbType'] === 'A6' && $r['lang'] === 'ar');
     Http::assertSent(fn (Request $r) => $r->method() === 'DELETE' && str_contains($r->url(), 'deliveries/business/5108002/terminate'));

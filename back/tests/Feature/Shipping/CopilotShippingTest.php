@@ -37,7 +37,7 @@ function shipTool(string $name, array $args): array
 it('ships confirmed orders from the chat after «نفّذ», listing the ones that can\'t go and why', function () {
     expect(shipTool('run_action', ['action' => 'shipping.ship_orders', 'args' => ['selector' => ['ids' => [1]]]])['failed'])->toBeTrue();
 
-    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['api_key' => 'live-key-123'])->assertOk();
+    $this->postJson('/api/v1/dashboard/shipping/carriers/bosta', ['credentials' => ['api_key' => 'live-key-123']])->assertOk();
     [$good, $new] = asTenant($this->user, fn () => [
         Order::factory()->create(['status' => OrderStatus::Confirmed, 'city' => 'المعادي', 'address' => 'شارع 9 المعادي']),
         Order::factory()->create(['status' => OrderStatus::New, 'city' => 'المعادي', 'address' => 'شارع 9 المعادي']),

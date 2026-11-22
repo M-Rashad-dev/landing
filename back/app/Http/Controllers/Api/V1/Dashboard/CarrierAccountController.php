@@ -13,10 +13,12 @@ use App\Http\Requests\Dashboard\ConnectCarrierRequest;
 use App\Http\Resources\CarrierAccountResource;
 use App\Models\CarrierAccount;
 use App\Models\User;
+use App\Shipping\Carriers\Carrier;
 use App\Shipping\Carriers\CarrierError;
 use App\Shipping\Carriers\Carriers;
 use App\Shipping\ConnectCarrier;
 use App\Shipping\ManageShipments;
+use App\Shipping\ShipOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -32,16 +34,25 @@ final class CarrierAccountController extends Controller
     {
         $accounts = CarrierAccount::query()->with('company')->get()->keyBy('carrier');
 
-        return $this->ok(array_map(fn (string $key) => [
-            'key' => $key,
-            'name' => $this->carriers->get($key)->label(),
-            'account' => $accounts->has($key) ? CarrierAccountResource::make($accounts->get($key))->resolve($request) : null,
-        ], $this->carriers->keys()));
+        return $this->ok(array_map(function (string $key) use ($accounts, $request): array {
+            $carrier = $this->carriers->get($key);
+            $account = $accounts->get($key);
+
+            return [
+                'key' => $key,
+                'name' => $carrier->label(),
+                'fields' => array_map(fn (array $f) => [...$f, 'label' => (string) __('shipping.carriers.fields.'.$key.'.'.$f['key'])], $carrier->credentialFields()),
+                'features' => $carrier->features(),
+                // Carriers whose console takes our address for status updates (J&T): shown to paste there.
+                'webhook_url' => $account !== null && in_array(Carrier::WEBHOOK_URL, $carrier->features(), true) ? ShipOrder::webhookUrl($account) : null,
+                'account' => $account !== null ? CarrierAccountResource::make($account)->resolve($request) : null,
+            ];
+        }, $this->carriers->keys()));
     }
 
     public function connect(ConnectCarrierRequest $request, string $carrier): JsonResponse
     {
-        $account = $this->connect->handle($this->carriers->get($carrier)->key(), ['api_key' => (string) $request->validated('api_key')], $request->validated('company_id') === null ? null : (int) $request->validated('company_id'));
+        $account = $this->connect->handle($this->carriers->get($carrier)->key(), $request->credentials(), $request->validated('company_id') === null ? null : (int) $request->validated('company_id'));
 
         return $this->ok(CarrierAccountResource::make($account));
     }
@@ -64,9 +75,9 @@ final class CarrierAccountController extends Controller
     public function districts(Request $request, string $carrier): JsonResponse
     {
         $data = $request->validate(['governorate' => ['required', 'string', 'in:'.implode(',', (array) config('landing.governorates'))]]);
-        $this->account($carrier);
+        $account = $this->account($carrier);
         try {
-            return $this->ok($this->carriers->get($carrier)->districts((string) $data['governorate']));
+            return $this->ok($this->carriers->get($carrier)->districts($account, (string) $data['governorate']));
         } catch (CarrierError $e) {
             throw new ApiException(422, 'carrier_refused', $e->getMessage());
         }

@@ -41,6 +41,22 @@ final class BostaCarrier implements Carrier
         return (string) __('shipping.carriers.names.bosta');
     }
 
+    public function credentialFields(): array
+    {
+        return [['key' => 'api_key', 'secret' => true]];
+    }
+
+    public function features(): array
+    {
+        return [self::LOCATIONS, self::PICKUP, self::PACKAGE];
+    }
+
+    /** Bosta has no signature: it sends back the secret we gave it per delivery (relayed as X-Carrier-Auth). */
+    public function webhookAuthentic(CarrierAccount $account, array $headers, array $payload): bool
+    {
+        return hash_equals($account->webhook_secret, (string) ($headers['x-carrier-auth'] ?? ''));
+    }
+
     public function verify(array $credentials): CarrierProfile
     {
         $data = $this->call(fn () => $this->http($credentials['api_key'] ?? '')->get('pickup-locations'));
@@ -61,13 +77,13 @@ final class BostaCarrier implements Carrier
         return new CarrierProfile(is_array($default) ? ($default['contactPerson']['name'] ?? null) : null, $locations);
     }
 
-    public function districts(string $governorate): array
+    public function districts(CarrierAccount $account, string $governorate): array
     {
         return array_map(fn (array $a) => ['id' => $a['id'], 'name' => $a['label']], $this->areas($governorate));
     }
 
     /** A district whose name is the city, else the one zone with that name («zone:<id>»: Bosta takes a zone alone). */
-    public function matchDistrict(string $governorate, ?string $city): ?string
+    public function matchDistrict(CarrierAccount $account, string $governorate, ?string $city): ?string
     {
         $areas = $this->areas($governorate);
         $district = PlaceNames::area($city, $areas);
@@ -138,7 +154,7 @@ final class BostaCarrier implements Carrier
         );
     }
 
-    public function cancel(CarrierAccount $account, string $trackingNumber): void
+    public function cancel(CarrierAccount $account, string $trackingNumber, ?string $externalId): void
     {
         $this->call(fn () => $this->forAccount($account)->delete('deliveries/business/'.rawurlencode($trackingNumber).'/terminate'));
     }

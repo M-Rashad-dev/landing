@@ -15,6 +15,11 @@ return [
         'linked_elsewhere' => 'الشركة دي مربوطة بحساب شحن تاني.',
         'names' => [
             'bosta' => 'بوسطة',
+            'jt' => 'J&T Express',
+        ],
+        'fields' => [
+            'bosta' => ['api_key' => 'مفتاح الربط (API Key)'],
+            'jt' => ['customer_code' => 'كود العميل (Customer Code)', 'password' => 'كلمة سر العميل', 'api_account' => 'API Account', 'private_key' => 'Private Key'],
         ],
     ],
 
@@ -32,6 +37,18 @@ return [
         'choose_carrier' => 'اختار شركة الشحن اللي هتشحن بيها (الطلب مش مربوط بشركة مربوطة).',
         'order_note' => ':carrier: :state',
         'refused' => ':carrier رفضت الشحنة: :reason',
+    ],
+
+    'jt' => [
+        'auth' => 'بيانات J&T مش صحيحة (كود العميل أو كلمة السر أو API Account أو Private Key). راجعها وجرّب تاني.',
+        'unreachable' => 'مقدرناش نوصل لـ J&T دلوقتي. جرّب كمان شوية.',
+        'unexpected' => 'J&T ردّت رد مش مفهوم. جرّب تاني.',
+        'refused' => 'J&T رفضت الطلب: :reason',
+        'no_city' => 'J&T مش بتوصّل لمحافظة :governorate.',
+        'area' => 'J&T مش عارفة منطقة العميل. اختار المنطقة من القايمة.',
+        'sender_missing' => 'كمّل عنوان الاستلام بتاعك في إعدادات J&T الأول (الاسم والموبايل والمحافظة والمنطقة والشارع).',
+        'labels_failed' => 'J&T مرجعتش ملف البوليصة. جرّب تاني.',
+        'no_pickup' => 'J&T بتبعت المندوب لوحدها مع كل شحنة، مش محتاج تطلبه.',
     ],
 
     'bosta' => [

@@ -29,6 +29,16 @@ final class ConnectCarrier
         'label_size' => 'A4',
         'auto_ship' => false,
         'notes' => null,
+        // Carriers that need the store's own pickup address (J&T): it, the parcel weight and goods type.
+        'sender_name' => null,
+        'sender_phone' => null,
+        'sender_governorate' => null,
+        'sender_area' => null,
+        'sender_street' => null,
+        'weight' => '1',
+        'goods_type' => 'ITN16',
+        // 01 = the courier picks up from the store, 02 = the store drops parcels at a branch.
+        'service_type' => '01',
     ];
 
     public function __construct(private readonly Carriers $carriers) {}
@@ -36,7 +46,7 @@ final class ConnectCarrier
     /** @param array<string, string> $credentials */
     public function handle(string $key, array $credentials, ?int $companyId): CarrierAccount
     {
-        $profile = $this->verify($key, $credentials, 'api_key');
+        $profile = $this->verify($key, $credentials);
 
         return DB::transaction(function () use ($key, $credentials, $companyId, $profile): CarrierAccount {
             /** @var CarrierAccount $account */
@@ -99,13 +109,14 @@ final class ConnectCarrier
     /**
      * @param  array<string, string>  $credentials
      */
-    private function verify(string $key, array $credentials, string $field): CarrierProfile
+    private function verify(string $key, array $credentials): CarrierProfile
     {
+        $carrier = $this->carriers->get($key);
         try {
-            return $this->carriers->get($key)->verify($credentials);
+            return $carrier->verify($credentials);
         } catch (CarrierError $e) {
             if ($e->auth) {
-                throw ValidationException::withMessages([$field => [$e->getMessage()]]);
+                throw ValidationException::withMessages(['credentials.'.$carrier->credentialFields()[0]['key'] => [$e->getMessage()]]);
             }
             throw new ApiException(422, 'carrier_unreachable', $e->getMessage());
         }

@@ -31,7 +31,16 @@ final class FakeCarrier implements Carrier
 
     private static int $next = 1000;
 
-    public function __construct(private readonly string $key, private readonly string $label) {}
+    /**
+     * @param  list<array{key: string, secret: bool}>  $fields  the real carrier's
+     * @param  list<string>  $features  the real carrier's
+     */
+    public function __construct(
+        private readonly string $key,
+        private readonly string $label,
+        private readonly array $fields = [['key' => 'api_key', 'secret' => true]],
+        private readonly array $features = [self::LOCATIONS, self::PICKUP, self::PACKAGE],
+    ) {}
 
     public function key(): string
     {
@@ -43,9 +52,24 @@ final class FakeCarrier implements Carrier
         return $this->label;
     }
 
+    public function credentialFields(): array
+    {
+        return $this->fields;
+    }
+
+    public function features(): array
+    {
+        return $this->features;
+    }
+
+    public function webhookAuthentic(CarrierAccount $account, array $headers, array $payload): bool
+    {
+        return hash_equals($account->webhook_secret, (string) ($headers['x-carrier-auth'] ?? ''));
+    }
+
     public function verify(array $credentials): CarrierProfile
     {
-        if (($credentials['api_key'] ?? '') === 'bad' || trim((string) ($credentials['api_key'] ?? '')) === '') {
+        if (in_array('bad', $credentials, true) || trim((string) reset($credentials)) === '') {
             throw new CarrierError((string) __('shipping.bosta.auth'), auth: true);
         }
 
@@ -55,12 +79,12 @@ final class FakeCarrier implements Carrier
         ]);
     }
 
-    public function districts(string $governorate): array
+    public function districts(CarrierAccount $account, string $governorate): array
     {
         return array_map(fn (array $a) => ['id' => $a['id'], 'name' => $a['names'][0]], $this->areas());
     }
 
-    public function matchDistrict(string $governorate, ?string $city): ?string
+    public function matchDistrict(CarrierAccount $account, string $governorate, ?string $city): ?string
     {
         return PlaceNames::area($city, $this->areas());
     }
@@ -85,7 +109,7 @@ final class FakeCarrier implements Carrier
         return new CarrierUpdate($trackingNumber, $state, null, $state->name, CarbonImmutable::now());
     }
 
-    public function cancel(CarrierAccount $account, string $trackingNumber): void
+    public function cancel(CarrierAccount $account, string $trackingNumber, ?string $externalId): void
     {
         $this->cancelled[] = $trackingNumber;
         $this->states[$trackingNumber] = ShipmentState::Cancelled;

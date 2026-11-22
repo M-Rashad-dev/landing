@@ -15,9 +15,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * A carrier's status updates (Bosta posts one per state change), relayed by Next from
- * /api/webhooks/shipping/{carrier}/{token} with the internal key and the carrier's Authorization header as
- * X-Carrier-Auth. The token names the store's account; the header must be the secret we gave the carrier.
+ * A carrier's status updates (Bosta, J&T post one per change), relayed by Next from
+ * /api/webhooks/shipping/{carrier}/{token} with the internal key, the body as sent (JSON or form) and the carrier's
+ * headers (Authorization as X-Carrier-Auth, J&T's digest). The token names the store's account; the carrier checks
+ * the call is really its own (our secret back, or its signature with the account's key).
  */
 final class ShippingWebhookController extends Controller
 {
@@ -33,11 +34,12 @@ final class ShippingWebhookController extends Controller
         if ($account === null) {
             throw new ApiException(404, 'not_found', __('landing.forbidden'));
         }
-        if (! hash_equals($account->webhook_secret, (string) $request->header('X-Carrier-Auth', ''))) {
+        $payload = $request->all();
+        $headers = array_map(fn ($v) => is_array($v) ? (string) ($v[0] ?? '') : (string) $v, $request->headers->all());
+        if (! $carriers->get($account->carrier)->webhookAuthentic($account, $headers, $payload)) {
             throw new ApiException(403, 'forbidden', __('landing.forbidden'));
         }
 
-        $payload = $request->json()->all();
         Tenancy::runAs($account->tenant_id, function () use ($payload, $account, $carriers, $updates): void {
             $update = $carriers->get($account->carrier)->webhook($payload);
             if ($update === null) {
@@ -49,7 +51,7 @@ final class ShippingWebhookController extends Controller
             }
         });
 
-        // Unknown shipments are fine too: a 2xx stops the carrier from retrying.
-        return response()->json(['ok' => true]);
+        // Unknown shipments are fine too: a 2xx stops the carrier from retrying (J&T reads this exact body).
+        return response()->json(['code' => '1', 'msg' => 'success', 'data' => 'SUCCESS']);
     }
 }

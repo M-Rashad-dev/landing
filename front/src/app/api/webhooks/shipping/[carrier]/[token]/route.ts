@@ -10,8 +10,8 @@ type Context = { params: Promise<{ carrier: string; token: string }> };
 
 /**
  * A shipping carrier's status updates (https://{APP_HOST}/api/webhooks/shipping/{carrier}/{token}). Laravel isn't on
- * the internet, so this relays them with the internal key; the carrier's Authorization header (the secret we gave it
- * for this store) goes as X-Carrier-Auth, and Laravel checks it.
+ * the internet, so this relays them with the internal key; the carrier's Authorization header (the secret we gave
+ * Bosta for this store) goes as X-Carrier-Auth, J&T's signature headers go as they are, and Laravel checks them.
  */
 export async function POST(request: NextRequest, context: Context) {
   const { carrier, token } = await context.params;
@@ -25,7 +25,14 @@ export async function POST(request: NextRequest, context: Context) {
       internal: true,
       method: "POST",
       body: raw,
-      headers: { "Content-Type": "application/json", "X-Carrier-Auth": request.headers.get("authorization") ?? "" },
+      // The body as the carrier sent it (Bosta: JSON, J&T: a form), with what each one signs or sends back.
+      headers: {
+        "Content-Type": request.headers.get("content-type") ?? "application/json",
+        "X-Carrier-Auth": request.headers.get("authorization") ?? "",
+        digest: request.headers.get("digest") ?? "",
+        apiAccount: request.headers.get("apiaccount") ?? "",
+        timestamp: request.headers.get("timestamp") ?? "",
+      },
     });
     // Carriers retry anything that isn't 2xx: only a wrong token or secret answers otherwise.
     return new NextResponse("", { status: upstream.ok ? 200 : upstream.status === 403 || upstream.status === 404 ? upstream.status : 500 });

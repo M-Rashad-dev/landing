@@ -66,7 +66,7 @@ final class ShipOrder
             }
 
             try {
-                $district = ($input['district_id'] ?? null) ?: $carrier->matchDistrict($governorate, $locked->city);
+                $district = ($input['district_id'] ?? null) ?: $carrier->matchDistrict($account, $governorate, $locked->city);
                 if ($district === null) {
                     throw new ApiException(422, 'ship_district_needed', (string) __('shipping.ship.district_needed', ['carrier' => $carrier->label()]));
                 }
@@ -74,8 +74,8 @@ final class ShipOrder
                 $made = $carrier->create($account, new ShipmentDraft(
                     reference: (string) $locked->order_number,
                     receiverName: trim((string) $locked->customer_name) ?: (string) $locked->customer_phone,
-                    phone: (string) $locked->customer_phone,
-                    phone2: $locked->customer_phone2 ?: null,
+                    phone: self::localPhone((string) $locked->customer_phone),
+                    phone2: $locked->customer_phone2 ? self::localPhone((string) $locked->customer_phone2) : null,
                     email: $locked->customer_email ?: null,
                     governorate: $governorate,
                     city: $locked->city,
@@ -126,6 +126,14 @@ final class ShipOrder
     public static function webhookUrl(CarrierAccount $account): string
     {
         return PublicSite::url((string) config('landing.app_host')).'api/webhooks/shipping/'.$account->carrier.'/'.$account->webhook_token;
+    }
+
+    /** +201012345678 → 01012345678 (Egyptian carriers want the local form). */
+    public static function localPhone(string $phone): string
+    {
+        $digits = (string) preg_replace('/\D+/', '', $phone);
+
+        return str_starts_with($digits, '20') && strlen($digits) === 12 ? '0'.substr($digits, 2) : $digits;
     }
 
     private function itemsCount(Order $order): int

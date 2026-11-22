@@ -25,7 +25,7 @@ final class ShipmentsResource extends CopilotResource
 
     public function summary(): string
     {
-        return 'Shipments sent through a connected carrier (Bosta…): order number, tracking number, where it is (created = waiting for the courier, picked_up, in_transit, out_for_delivery, delivered, returning, returned, exception, cancelled, lost, damaged), the cash to collect, the carrier\'s problem reason and delivery attempts.';
+        return 'Shipments sent through a connected carrier (Bosta, J&T): order number, tracking number, where it is (created = waiting for the courier, picked_up, in_transit, out_for_delivery, delivered, returning, returned, exception, cancelled, lost, damaged), the cash to collect, the carrier\'s problem reason and delivery attempts.';
     }
 
     public function model(): string

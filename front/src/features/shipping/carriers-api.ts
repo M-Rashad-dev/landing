@@ -13,7 +13,18 @@ export type CarrierSettings = {
   label_size: "A4" | "A6";
   auto_ship: boolean;
   notes: string | null;
+  /** Carriers that need the store's own pickup address (J&T). */
+  sender_name: string | null;
+  sender_phone: string | null;
+  sender_governorate: string | null;
+  sender_area: string | null;
+  sender_street: string | null;
+  weight: string;
+  goods_type: string;
+  service_type: "01" | "02";
 };
+
+export type CarrierFeature = "locations" | "pickup" | "package" | "sender" | "webhook_url";
 
 export type CarrierAccount = {
   id: number;
@@ -28,7 +39,16 @@ export type CarrierAccount = {
   open_shipments: number;
 };
 
-export type Carrier = { key: string; name: string; account: CarrierAccount | null };
+export type Carrier = {
+  key: string;
+  name: string;
+  /** What the merchant types to connect (Bosta: a key; J&T: four fields). */
+  fields: Array<{ key: string; label: string; secret: boolean }>;
+  features: CarrierFeature[];
+  /** The address to paste in the carrier's console for status updates (J&T), once connected. */
+  webhook_url: string | null;
+  account: CarrierAccount | null;
+};
 export type CarrierLocation = { id: string; name: string; is_default: boolean };
 
 export type ShipmentState = "created" | "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "returning" | "returned" | "exception" | "cancelled" | "lost" | "damaged";
@@ -97,10 +117,20 @@ export function useShipPrepare(orderId: number, enabled: boolean, carrier: strin
   });
 }
 
-export const connectCarrier = (key: string, body: { api_key: string; company_id: number | null }) => api<CarrierAccount>(`/dashboard/shipping/carriers/${key}`, { method: "POST", body });
+export const connectCarrier = (key: string, body: { credentials: Record<string, string>; company_id: number | null }) => api<CarrierAccount>(`/dashboard/shipping/carriers/${key}`, { method: "POST", body });
 export const saveCarrierSettings = (key: string, body: Partial<CarrierSettings>) => api<CarrierAccount>(`/dashboard/shipping/carriers/${key}`, { method: "PUT", body });
 export const checkCarrier = (key: string) => api<{ account: CarrierAccount; locations: CarrierLocation[] }>(`/dashboard/shipping/carriers/${key}/check`, { method: "POST" });
 export const disconnectCarrier = (key: string) => api<void>(`/dashboard/shipping/carriers/${key}`, { method: "DELETE" });
+export function useCarrierDistricts(key: string, governorate: string) {
+  return useQuery({
+    queryKey: ["carriers", "districts", key, governorate],
+    queryFn: () => api<Array<{ id: string; name: string }>>(`/dashboard/shipping/carriers/${key}/districts?governorate=${encodeURIComponent(governorate)}`),
+    enabled: governorate !== "",
+    retry: false,
+    staleTime: 3_600_000,
+  });
+}
+
 export const requestPickup = (key: string, body: { date: string; parcels: number; notes: string | null }) => api<void>(`/dashboard/shipping/carriers/${key}/pickups`, { method: "POST", body });
 
 export const shipOrder = (orderId: number, body: ShipInput) => api<Shipment>(`/dashboard/orders/${orderId}/shipments`, { method: "POST", body });

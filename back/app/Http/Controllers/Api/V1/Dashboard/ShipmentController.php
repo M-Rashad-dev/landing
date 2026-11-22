@@ -50,8 +50,8 @@ final class ShipmentController extends Controller
         if ($default !== null && trim((string) $order->governorate) !== '') {
             try {
                 $carrier = $this->carriers->get($default->carrier);
-                $area['matched'] = $carrier->matchDistrict((string) $order->governorate, $order->city);
-                $area['districts'] = $carrier->districts((string) $order->governorate);
+                $area['matched'] = $carrier->matchDistrict($default, (string) $order->governorate, $order->city);
+                $area['districts'] = $carrier->districts($default, (string) $order->governorate);
             } catch (CarrierError $e) {
                 $area['error'] = $e->getMessage();
             }
@@ -130,11 +130,12 @@ final class ShipmentController extends Controller
         $shipments = isset($data['ids'])
             ? Shipment::query()->whereKey($data['ids'])->orderBy('id')->get()
             : Shipment::query()->whereIn('order_id', $data['order_ids'])->where('is_open', true)->orderBy('id')->get();
-        $pdf = $this->shipments->labels($shipments, $data['size'] ?? null);
+        $file = $this->shipments->labels($shipments, $data['size'] ?? null);
+        $zip = str_starts_with($file, 'PK');
 
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="airway-bills.pdf"',
+        return response($file, 200, [
+            'Content-Type' => $zip ? 'application/zip' : 'application/pdf',
+            'Content-Disposition' => $zip ? 'attachment; filename="airway-bills.zip"' : 'inline; filename="airway-bills.pdf"',
             'Cache-Control' => 'no-store, private',
         ]);
     }
