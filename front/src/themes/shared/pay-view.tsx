@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCircle2, Clock, Copy, ExternalLink, FileUp, Loader2, Paperclip, X, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, Download, ExternalLink, FileUp, Loader2, Paperclip, X, XCircle } from "lucide-react";
 import * as React from "react";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ImageRejected, prepareImage } from "@/lib/media/compress";
@@ -24,6 +24,18 @@ export type PayInfo = {
   cancel_at: string | null;
   store: { brand_name: string; colors: Record<string, string>; logo: { urls: MediaUrls } | null } | null;
   track_url: string;
+  /** Digital products bought (once paid): downloads, codes, the link, a service's state. */
+  deliveries?: Delivery[];
+};
+
+export type Delivery = {
+  product: string | null;
+  type: "files" | "codes" | "links" | "services";
+  status: "pending" | "delivered";
+  message: string | null;
+  files: Array<{ id: number; name: string; size: number; left: number | null; url: string }>;
+  codes: string[];
+  link: { url: string; left: number | null } | null;
 };
 
 type Load = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; info: PayInfo };
@@ -122,10 +134,84 @@ function Pay({ info, token, onChange }: { info: PayInfo; token: string; onChange
 
       {info.can_send ? <PayForm info={info} token={token} onSent={onChange} /> : null}
 
+      {info.deliveries && info.deliveries.length > 0 ? <Deliveries deliveries={info.deliveries} /> : null}
+
       <a href={info.track_url} className="text-center text-sm font-semibold text-neutral-600 underline-offset-4 hover:underline">
         {t.track}
       </a>
     </Shell>
+  );
+}
+
+/** «منتجاتك»: each digital line with its files, codes, link, or the service's state. */
+function Deliveries({ deliveries }: { deliveries: Delivery[] }) {
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm">
+      <h2 className="font-extrabold">{t.yourProducts}</h2>
+      {deliveries.map((d, i) => (
+        <div key={i} className="flex flex-col gap-2 border-t border-neutral-100 pt-3 first:border-0 first:pt-0">
+          <p className="font-bold">{d.product}</p>
+          {d.status === "pending" ? (
+            <p className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+              <Clock className="size-4 shrink-0" aria-hidden />
+              {d.type === "services" ? t.serviceWaiting : t.codesWaiting}
+            </p>
+          ) : (
+            <>
+              {d.message ? <p className="whitespace-pre-line text-sm text-neutral-700">{d.message}</p> : null}
+              {d.files.map((f) => (
+                <a key={f.id} href={f.left === 0 ? undefined : f.url} aria-disabled={f.left === 0} className={cn("flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm", f.left === 0 ? "pointer-events-none opacity-50" : "hover:bg-neutral-50")}>
+                  <span className="flex min-w-0 items-center gap-2 font-semibold">
+                    <Download className="size-4 shrink-0" style={{ color: "var(--pay)" }} aria-hidden />
+                    <span className="truncate">{f.name}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-neutral-500">{f.left === null ? t.unlimited : f.left === 0 ? t.usedUp : t.left(f.left)}</span>
+                </a>
+              ))}
+              {d.codes.map((c, j) => (
+                <CodeBox key={j} code={c} />
+              ))}
+              {d.link ? (
+                d.link.left === 0 ? (
+                  <p className="text-sm text-neutral-500">{t.linkUsedUp}</p>
+                ) : (
+                  <a href={d.link.url} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-lg bg-(--pay) font-bold text-(--on-pay)">
+                    <ExternalLink className="size-4" aria-hidden />
+                    {t.openProduct}
+                    {d.link.left !== null ? <span className="text-xs font-normal opacity-80">({t.left(d.link.left)})</span> : null}
+                  </a>
+                )
+              ) : null}
+            </>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CodeBox({ code }: { code: string }) {
+  const [copied, setCopied] = React.useState(false);
+  return (
+    <div className="flex items-start justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2">
+      <pre className="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-sm font-bold" dir="ltr">
+        {code}
+      </pre>
+      <button
+        type="button"
+        className="flex shrink-0 items-center gap-1 text-xs font-semibold"
+        style={{ color: "var(--pay)" }}
+        onClick={() =>
+          void navigator.clipboard
+            .writeText(code)
+            .then(() => (setCopied(true), window.setTimeout(() => setCopied(false), 2000)))
+            .catch(() => undefined)
+        }
+      >
+        {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+        {copied ? t.copied : t.copy}
+      </button>
+    </div>
   );
 }
 

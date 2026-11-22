@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\Payments\StorePayments;
 use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -26,6 +27,9 @@ final class PublicProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         $compare = $this->compareAtCents();
+        // A codes product shows its codes left as stock (per option combination when it has options).
+        $codes = $this->deliversCodes() ? app(Stock::class)->codeStock($this->resource) : null;
+        $variantCodes = $codes !== null && $this->options->contains(fn (ProductOption $o) => $o->is_required);
 
         return [
             'id' => $this->id,
@@ -33,13 +37,16 @@ final class PublicProductResource extends JsonResource
             'description' => $this->description,
             'price' => Money::toFloat($this->priceCents()),
             'compare_at_price' => $compare === null ? null : Money::toFloat($compare),
-            'available' => $this->is_active && $this->inStock(),
+            // A digital product needs a prepaid way to pay.
+            'available' => $this->is_active && $this->inStock() && (! $this->isDigital() || app(StorePayments::class)->prepaidReady()),
+            'kind' => $this->kind,
+            'delivery_type' => $this->delivery_type?->value,
             'slug' => $this->slug,
             'short_description' => $this->short_description,
             // Stock: unlimited → null; product → units left; variant → units per combination key.
-            'stock_mode' => $this->stock_mode,
-            'stock' => $this->stock_mode === Product::STOCK_PRODUCT ? max(0, (int) $this->stock) : null,
-            'variant_stock' => $this->stock_mode === Product::STOCK_VARIANT ? app(Stock::class)->variantStock($this->resource) : null,
+            'stock_mode' => $codes !== null ? ($variantCodes ? Product::STOCK_VARIANT : Product::STOCK_PRODUCT) : $this->stock_mode,
+            'stock' => $codes !== null ? ($variantCodes ? null : (int) ($codes[''] ?? 0)) : ($this->stock_mode === Product::STOCK_PRODUCT ? max(0, (int) $this->stock) : null),
+            'variant_stock' => $codes !== null ? ($variantCodes ? (object) $codes : null) : ($this->stock_mode === Product::STOCK_VARIANT ? app(Stock::class)->variantStock($this->resource) : null),
             'images' => $this->media->map(fn (Media $media) => [
                 'id' => $media->id,
                 'alt' => $media->alt,

@@ -33,6 +33,9 @@ export type ProductCard = {
 
 export type ProductOptionValue = { id: number; label: string; color_hex: string | null; price_delta: number; is_active: boolean };
 export type ProductOption = { id: number; name: string; display_type: DisplayType; is_required: boolean; values: ProductOptionValue[] };
+export type DeliveryType = "files" | "codes" | "links" | "services";
+export type ProductFileRow = { id: number; name: string; original_name: string; size: number };
+export type DeliverySettings = { downloads?: number | null; link?: string | null; opens?: number | null; subject?: string | null; message?: string | null };
 export type InputKind = "text" | "textarea" | "image" | "file";
 /** A «حسب الطلب» field: the customer types or uploads it when buying. */
 export type ProductInput = { id: number; kind: InputKind; label: string; placeholder: string | null; is_required: boolean; price_delta: number };
@@ -45,6 +48,10 @@ export type ProductDetail = ProductCard & {
   media: MediaItem[];
   options: ProductOption[];
   inputs: ProductInput[];
+  kind?: "physical" | "digital";
+  delivery_type?: DeliveryType | null;
+  delivery_settings?: DeliverySettings | null;
+  files?: ProductFileRow[];
   variants: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null }>;
 };
 

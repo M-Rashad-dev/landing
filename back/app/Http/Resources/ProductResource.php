@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Product;
+use App\Models\ProductFile;
 use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -62,6 +64,12 @@ final class ProductResource extends JsonResource
                     'is_active' => $value->is_active,
                 ])->all() : [],
             ])->all()),
+            // «منتج رقمي» (the merchant's own settings: the link included).
+            'kind' => $this->kind,
+            'delivery_type' => $this->delivery_type?->value,
+            'delivery_settings' => $this->isDigital() ? (object) ($this->delivery_settings ?? []) : null,
+            'files' => $this->whenLoaded('files', fn () => $this->files->map(fn (ProductFile $f) => ['id' => $f->id, 'name' => $f->name, 'original_name' => $f->original_name, 'size' => $f->size])->all()),
+            'codes_left' => $this->deliversCodes() ? (object) app(Stock::class)->codeStock($this->resource) : null,
             'inputs' => $this->whenLoaded('inputs', fn () => $this->inputs->map(fn (ProductInput $input) => self::input($input))->all()),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),

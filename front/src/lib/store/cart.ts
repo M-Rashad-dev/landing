@@ -20,6 +20,8 @@ export type CartItem = {
   options: Record<string, number>;
   /** «حسب الطلب»: input id → the text typed, or the upload's token. */
   inputs?: Record<string, string>;
+  /** A digital product (prepaid, delivered by email, nothing to ship). */
+  digital?: boolean;
   /** Display copies (the server prices the cart). */
   name: string;
   slug: string;

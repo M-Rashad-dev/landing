@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Products;
 
 use App\Billing\Entitlements;
+use App\Enums\DeliveryType;
 use App\Enums\PlanLimit;
 use App\Jobs\RevalidateTenantHosts;
 use App\Models\Product;
@@ -104,6 +105,20 @@ final class SaveProduct
         }
         if (array_key_exists('stock_mode', $data)) {
             $product->stock_mode = $data['stock_mode'];
+        }
+        if (array_key_exists('kind', $data)) {
+            $digital = $data['kind'] === Product::DIGITAL;
+            $product->kind = $digital ? Product::DIGITAL : Product::PHYSICAL;
+            $product->delivery_type = $digital ? DeliveryType::from((string) $data['delivery_type']) : null;
+            if ($digital) {
+                $settings = array_filter(array_map(fn ($v) => is_string($v) ? (trim(strip_tags($v)) ?: null) : $v, (array) ($data['delivery_settings'] ?? [])), fn ($v) => $v !== null && $v !== '');
+                $product->delivery_settings = array_intersect_key($settings, array_flip(['downloads', 'link', 'opens', 'subject', 'message'])) ?: null;
+                // Codes count themselves; files, links and services never run out.
+                $product->stock_mode = Product::STOCK_UNLIMITED;
+                $product->stock = null;
+            } else {
+                $product->delivery_settings = null;
+            }
         }
         if ($product->stock_mode === Product::STOCK_PRODUCT && array_key_exists('stock', $data)) {
             $before = $product->exists ? (int) $product->getOriginal('stock') : 0;

@@ -40,13 +40,16 @@ use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderDeliveryController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderPaymentController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderUploadController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PageController;
 use App\Http\Controllers\Api\V1\Dashboard\PixelController;
 use App\Http\Controllers\Api\V1\Dashboard\PricingController;
+use App\Http\Controllers\Api\V1\Dashboard\ProductCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
+use App\Http\Controllers\Api\V1\Dashboard\ProductFileController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
@@ -66,6 +69,7 @@ use App\Http\Controllers\Api\V1\Dashboard\UpsellController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PlatformPageController;
 use App\Http\Controllers\Api\V1\PricingPageController;
+use App\Http\Controllers\Api\V1\Public\DeliveryController as PublicDeliveryController;
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\PaymentController as PublicPaymentController;
@@ -274,10 +278,23 @@ Route::prefix('dashboard')
         Route::post('orders/{order}/status', [OrderController::class, 'changeStatus']);
         Route::post('orders/{order}/contact', [OrderController::class, 'contact']);
         Route::get('orders/{order}/uploads/{upload}', [OrderUploadController::class, 'show'])->whereNumber('upload');
+        // A digital product's files and codes.
+        Route::post('products/{product}/files', [ProductFileController::class, 'store']);
+        Route::put('products/{product}/files/{file}', [ProductFileController::class, 'update'])->whereNumber('file');
+        Route::delete('products/{product}/files/{file}', [ProductFileController::class, 'destroy'])->whereNumber('file');
+        Route::get('products/{product}/codes', [ProductCodeController::class, 'index']);
+        Route::post('products/{product}/codes', [ProductCodeController::class, 'store']);
+        Route::put('products/{product}/codes/order', [ProductCodeController::class, 'reorder']);
+        Route::put('products/{product}/codes/{code}', [ProductCodeController::class, 'update'])->whereNumber('code');
+        Route::delete('products/{product}/codes/{code}', [ProductCodeController::class, 'destroy'])->whereNumber('code');
         // Prepaid orders: the customer's receipts (docs/plans/digital-products.md, stage 3).
         Route::get('orders/{order}/payments/{payment}/receipt', [OrderPaymentController::class, 'receipt'])->whereNumber('payment');
         Route::post('orders/{order}/payments/{payment}/approve', [OrderPaymentController::class, 'approve'])->whereNumber('payment');
         Route::post('orders/{order}/payments/{payment}/reject', [OrderPaymentController::class, 'reject'])->whereNumber('payment');
+        // Digital lines: send again, more downloads / opens, «تم التنفيذ» (docs/plans/digital-products.md, stage 4).
+        Route::post('orders/{order}/deliveries/{delivery}/resend', [OrderDeliveryController::class, 'resend'])->whereNumber('delivery')->middleware('throttle:mail-checks');
+        Route::post('orders/{order}/deliveries/{delivery}/grant', [OrderDeliveryController::class, 'grant'])->whereNumber('delivery');
+        Route::post('orders/{order}/deliveries/{delivery}/complete', [OrderDeliveryController::class, 'complete'])->whereNumber('delivery');
         // Shipping orders through connected carriers (docs/plans/shipping-carriers.md).
         Route::get('orders/{order}/shipping', [ShipmentController::class, 'prepare']);
         Route::post('orders/{order}/shipments', [ShipmentController::class, 'store'])->middleware('throttle:carrier-calls');
@@ -380,6 +397,9 @@ Route::prefix('public')
         // The pay page of a prepaid order (its private token): where to pay, and the receipt.
         Route::post('payments/lookup', [PublicPaymentController::class, 'show'])->middleware('throttle:public-track');
         Route::post('payments', [PublicPaymentController::class, 'store'])->middleware('throttle:public-uploads');
+        // A buyer's downloads and link (the delivery's private token).
+        Route::get('deliveries/{token}/files/{file}', [PublicDeliveryController::class, 'download'])->whereNumber('file')->middleware('throttle:public-downloads');
+        Route::post('deliveries/{token}/open', [PublicDeliveryController::class, 'open'])->middleware('throttle:public-downloads');
         Route::post('events', [EventController::class, 'store'])->middleware('throttle:public-events');
         Route::get('ab-routes', [EventController::class, 'abRoutes'])->middleware('throttle:public-read');
 

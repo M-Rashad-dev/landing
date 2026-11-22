@@ -83,6 +83,9 @@ export type StoreProduct = {
   options: ProductOption[];
   /** «حسب الطلب» fields (missing on older cached pages). */
   inputs?: ProductInput[];
+  /** «منتج رقمي»: delivered by email after a prepaid order. */
+  kind?: "physical" | "digital";
+  delivery_type?: "files" | "codes" | "links" | "services" | null;
 };
 
 export type ProductOffer = {
@@ -163,6 +166,8 @@ export type TrackedOrder = {
   history: Array<{ stage: TrackStage; at: string }>;
   /** A prepaid order waiting for its payment: where the customer pays and sends the receipt. */
   pay_url?: string | null;
+  /** Digital products: the order page with the downloads / codes. */
+  products_url?: string | null;
   /** The carrier's timeline when the store ships through a connected carrier. */
   shipment?: { tracking_number: string; state: string; state_label: string; events: Array<{ state: string; label: string; at: string }> } | null;
 };

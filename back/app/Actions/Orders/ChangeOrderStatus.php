@@ -10,6 +10,7 @@ use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
 use App\Jobs\AutoShipOrder;
+use App\Jobs\DeliverDigitalOrder;
 use App\Models\BlockedCustomer;
 use App\Models\CarrierAccount;
 use App\Models\DiscountCode;
@@ -34,7 +35,7 @@ final class ChangeOrderStatus
         private readonly CustomerNotices $customerNotices,
     ) {}
 
-    /** @param array{block_phone?: bool, block_ip?: bool, tracking_number?: string|null} $options */
+    /** @param array{block_phone?: bool, block_ip?: bool, tracking_number?: string|null, notify?: bool} $options notify false: no customer message (the digital delivery email already went) */
     public function handle(Order $order, OrderStatus $to, ?string $note, ?int $userId, array $options = []): Order
     {
         $from = $order->status;
@@ -90,7 +91,13 @@ final class ChangeOrderStatus
             $this->autoBlock->afterReturn($changed);
         }
         $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
-        $this->customerNotices->statusChanged($changed, $to);
+        if (($options['notify'] ?? true) !== false) {
+            $this->customerNotices->statusChanged($changed, $to);
+        }
+        // Digital lines are delivered once the order is confirmed (a digital order is always paid first).
+        if ($to === OrderStatus::Confirmed && $changed->items()->whereNotNull('delivery_type')->exists()) {
+            DeliverDigitalOrder::dispatch($changed->tenant_id, $changed->id)->afterCommit();
+        }
         // Stores that ship through a connected carrier by themselves: the courier is called once the order is confirmed.
         if ($to === OrderStatus::Confirmed && CarrierAccount::query()->where('status', CarrierAccount::ACTIVE)->exists()) {
             AutoShipOrder::dispatch($changed->tenant_id, $changed->id)->afterCommit();

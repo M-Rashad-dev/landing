@@ -42,6 +42,12 @@ final class StorePayments
         private readonly StoreNotices $notices,
     ) {}
 
+    /** Digital products can be sold (they need a prepaid method). */
+    public function prepaidReady(): bool
+    {
+        return StorePaymentMethod::query()->where('is_active', true)->exists();
+    }
+
     /** What a checkout offers: cash on delivery (when on) and the active methods. @return array{cod: bool, methods: list<array<string, mixed>>} */
     public function options(): array
     {
@@ -55,14 +61,18 @@ final class StorePayments
     }
 
     /**
-     * The customer's choice at checkout: "cod", a method id, or nothing (cash on delivery when it is on).
+     * The customer's choice at checkout: "cod", a method id, or nothing (cash on delivery when it is on). An order with
+     * digital products is always prepaid.
      *
      * @throws ValidationException on payment_method
      */
-    public function choose(mixed $raw): ?StorePaymentMethod
+    public function choose(mixed $raw, bool $prepaidOnly = false): ?StorePaymentMethod
     {
         $raw = is_scalar($raw) ? trim((string) $raw) : '';
         $options = $this->options();
+        if ($prepaidOnly && ($raw === '' || $raw === Order::COD)) {
+            throw ValidationException::withMessages(['payment_method' => [__($options['methods'] === [] ? 'digital.no_prepaid' : 'digital.prepaid_only')]]);
+        }
         if ($raw === '' || $raw === Order::COD) {
             if (! $options['cod']) {
                 throw ValidationException::withMessages(['payment_method' => [__('payments.choose')]]);

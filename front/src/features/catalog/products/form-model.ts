@@ -49,6 +49,14 @@ export const productSchema = z
     primary_category_id: z.number().nullable(),
     options: z.array(option).max(5),
     inputs: z.array(input).max(MAX_INPUTS),
+    // «منتج رقمي»
+    kind: z.enum(["physical", "digital"]),
+    delivery_type: z.enum(["files", "codes", "links", "services"]).or(z.literal("")),
+    downloads: z.string().refine((s) => s === "" || /^\d{1,4}$/.test(s), v.wholeNumber),
+    link: z.string().trim().max(1000, v.max(1000)),
+    opens: z.string().refine((s) => s === "" || /^\d{1,4}$/.test(s), v.wholeNumber),
+    subject: z.string().max(150, v.max(150)),
+    message: z.string().max(3000, v.max(3000)),
     stock_mode: z.enum(["unlimited", "product", "variant"]),
     stock: z.string(),
     low_stock_threshold: z.string().refine((s) => s === "" || /^\d{1,7}$/.test(s), v.required),
@@ -67,7 +75,9 @@ export const productSchema = z
     if (val.compare_at_price && Number(val.compare_at_price) > 0 && Number(val.compare_at_price) <= Number(val.price)) {
       ctx.addIssue({ code: "custom", path: ["compare_at_price"], message: ar.catalog.form.compareAtLower });
     }
-    if (val.stock_mode === "product" && !/^\d{1,7}$/.test(val.stock)) {
+    if (val.kind === "digital" && val.delivery_type === "") ctx.addIssue({ code: "custom", path: ["delivery_type"], message: ar.catalog.form.digital.typeRequired });
+    if (val.kind === "digital" && val.delivery_type === "links" && !/^https?:\/\/\S+$/.test(val.link)) ctx.addIssue({ code: "custom", path: ["link"], message: ar.catalog.form.digital.linkRequired });
+    if (val.kind === "physical" && val.stock_mode === "product" && !/^\d{1,7}$/.test(val.stock)) {
       ctx.addIssue({ code: "custom", path: ["stock"], message: v.required });
     }
   });
@@ -87,6 +97,13 @@ export const EMPTY: ProductValues = {
   primary_category_id: null,
   options: [],
   inputs: [],
+  kind: "physical",
+  delivery_type: "",
+  downloads: "",
+  link: "",
+  opens: "",
+  subject: "",
+  message: "",
   stock_mode: "unlimited",
   stock: "",
   low_stock_threshold: "",
@@ -146,6 +163,13 @@ export function fromDetail(p: ProductDetail): ProductValues {
     primary_category_id: p.primary_category_id,
     options,
     inputs: (p.inputs ?? []).map((i) => ({ id: i.id, kind: i.kind, label: i.label, placeholder: i.placeholder ?? "", is_required: i.is_required, price_delta: i.price_delta ? String(i.price_delta) : "" })),
+    kind: p.kind ?? "physical",
+    delivery_type: p.delivery_type ?? "",
+    downloads: p.delivery_settings?.downloads ? String(p.delivery_settings.downloads) : "",
+    link: p.delivery_settings?.link ?? "",
+    opens: p.delivery_settings?.opens ? String(p.delivery_settings.opens) : "",
+    subject: p.delivery_settings?.subject ?? "",
+    message: p.delivery_settings?.message ?? "",
     stock_mode: p.stock_mode,
     stock: p.stock_mode === "product" ? String(p.stock ?? 0) : "",
     low_stock_threshold: p.low_stock_threshold === null ? "" : String(p.low_stock_threshold),
@@ -197,10 +221,22 @@ export function toPayload(v: ProductValues) {
       is_required: i.is_required,
       price_delta: i.price_delta || "0",
     })),
-    stock_mode: mode,
-    stock: mode === "product" ? Number(v.stock) : null,
+    kind: v.kind,
+    delivery_type: v.kind === "digital" ? v.delivery_type || null : null,
+    delivery_settings:
+      v.kind === "digital"
+        ? {
+            downloads: v.delivery_type === "files" && v.downloads ? Number(v.downloads) : null,
+            link: v.delivery_type === "links" ? v.link.trim() || null : null,
+            opens: v.delivery_type === "links" && v.opens ? Number(v.opens) : null,
+            subject: v.subject.trim() || null,
+            message: v.message.trim() || null,
+          }
+        : null,
+    stock_mode: v.kind === "digital" ? ("unlimited" as StockMode) : mode,
+    stock: v.kind === "physical" && mode === "product" ? Number(v.stock) : null,
     low_stock_threshold: v.low_stock_threshold === "" ? null : Number(v.low_stock_threshold),
-    ...(mode === "variant"
+    ...(v.kind === "physical" && mode === "variant"
       ? {
           variants: combinations(v.options).map((c) => ({
             values: Object.fromEntries(stockOptions(v.options).map((d, i) => [d.name, c.labels[i]])),

@@ -65,14 +65,20 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   const product = data.product;
   const slug = data.page.slug;
   const live = mode === "live" && Boolean(product?.available);
-  const fields = React.useMemo(() => ORDER.filter((key) => key === "name" || key === "phone" || props.fields[key]?.enabled), [props.fields]);
-  const required = (key: FormFieldKey) => key === "name" || key === "phone" || Boolean(props.fields[key]?.required);
+  // A digital product: delivered by email (asked and required), nothing to ship (no address).
+  const digital = product?.kind === "digital";
+  const fields = React.useMemo(
+    () => ORDER.filter((key) => (digital ? !["governorate", "city", "address"].includes(key) : true) && (key === "name" || key === "phone" || (digital && key === "email") || props.fields[key]?.enabled)),
+    [props.fields, digital],
+  );
+  const required = (key: FormFieldKey) => key === "name" || key === "phone" || (digital && key === "email") || Boolean(props.fields[key]?.required);
 
   const [values, setValues] = React.useState<Partial<Record<FormFieldKey, string>>>({});
   // Order messages on WhatsApp: only when the visitor ticks it (unchecked by default, Meta's rule).
   const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
   // Cash on delivery or one of the store's prepaid methods.
-  const [payment, setPaymentState] = React.useState(() => defaultPayment(data.payments));
+  const paymentOptions = data.payments && digital ? { ...data.payments, cod: false } : data.payments;
+  const [payment, setPaymentState] = React.useState(() => defaultPayment(paymentOptions));
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [options, setOptions] = React.useState<Record<number, number>>(() => {
     const start: Record<number, number> = {};
@@ -302,7 +308,8 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     setOption,
     /** «حسب الطلب» fields (draw them with <CustomerInputFields state={inputs} />). */
     inputs: custom,
-    paymentOptions: data.payments,
+    paymentOptions,
+    digital,
     payment,
     setPayment: (v: string) => {
       setPaymentState(v);

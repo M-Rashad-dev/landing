@@ -106,7 +106,7 @@ export function ShabeCheckoutView({ config }: { config: StoreConfig }) {
 
           <section className={card}>
             <h2 className="ss-display as-2xl">{t.contact}</h2>
-            {me && me.addresses.length ? (
+            {c.needsAddress && me && me.addresses.length ? (
               <fieldset className="flex flex-col gap-2">
                 <legend className="as-sm mb-2 font-extrabold">{ta.savedAddresses}</legend>
                 {me.addresses.map((a) => (
@@ -131,24 +131,30 @@ export function ShabeCheckoutView({ config }: { config: StoreConfig }) {
               <Field id="sc-phone" label={t.phone} hint={me ? ta.signedInAs(formatPhoneLocal(me.phone)) : t.phoneHint} error={err("phone")}>
                 <input id="sc-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" maxLength={20} readOnly={me !== null} className={cn(input, "text-end", me && "opacity-70")} {...register("phone")} {...aria("phone")} />
               </Field>
-              <Field id="sc-governorate" label={t.governorate} error={err("governorate")}>
-                <select id="sc-governorate" className={input} {...register("governorate")} {...aria("governorate")}>
-                  <option value="">{t.chooseGovernorate}</option>
-                  {GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field id="sc-city" label={t.city} error={err("city")} optional>
-                <input id="sc-city" autoComplete="address-level2" maxLength={100} className={input} {...register("city")} {...aria("city")} />
-              </Field>
+              {c.needsAddress ? (
+                <>
+                  <Field id="sc-governorate" label={t.governorate} error={err("governorate")}>
+                    <select id="sc-governorate" className={input} {...register("governorate")} {...aria("governorate")}>
+                      <option value="">{t.chooseGovernorate}</option>
+                      {GOVERNORATES.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field id="sc-city" label={t.city} error={err("city")} optional>
+                    <input id="sc-city" autoComplete="address-level2" maxLength={100} className={input} {...register("city")} {...aria("city")} />
+                  </Field>
+                </>
+              ) : null}
             </div>
-            <Field id="sc-address" label={t.address} hint={t.addressHint} error={err("address")}>
-              <input id="sc-address" autoComplete="street-address" maxLength={300} className={input} {...register("address")} {...aria("address")} />
-            </Field>
-            <Field id="sc-email" label={t.email} hint={t.emailHint} error={err("email")} optional>
+            {c.needsAddress ? (
+              <Field id="sc-address" label={t.address} hint={t.addressHint} error={err("address")}>
+                <input id="sc-address" autoComplete="street-address" maxLength={300} className={input} {...register("address")} {...aria("address")} />
+              </Field>
+            ) : null}
+            <Field id="sc-email" label={t.email} hint={c.emailRequired ? t.emailDigital : t.emailHint} error={err("email")} optional={!c.emailRequired}>
               <input id="sc-email" type="email" inputMode="email" autoComplete="email" dir="ltr" maxLength={191} className={cn(input, "text-end")} {...register("email")} {...aria("email")} />
             </Field>
             <Field id="sc-notes" label={t.notes} error={err("notes")} optional>

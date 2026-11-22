@@ -92,6 +92,10 @@ final class CreateOrder
         }
 
         // 5. Dynamic validation from the published settings (+ phone normalization).
+        // A digital product: delivered by email (required), nothing to ship.
+        if ($product->isDigital()) {
+            $props['fields'] = OrderForm::forDigital(is_array($props['fields'] ?? null) ? $props['fields'] : OrderForm::DEFAULT_FIELDS, true);
+        }
         $clean = $this->form->validate($props, (array) ($input['customer'] ?? []), (array) ($input['answers'] ?? []));
         $customer = $clean['customer'];
         $phone = (string) $customer['phone'];
@@ -109,7 +113,7 @@ final class CreateOrder
         $quantity = (int) $input['quantity'];
         $options = (array) ($input['options'] ?? []);
         $inputs = (array) ($input['inputs'] ?? []);
-        $method = $this->payments->choose($input['payment_method'] ?? null);
+        $method = $this->payments->choose($input['payment_method'] ?? null, $product->isDigital());
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $offerId = OrderForm::chosenOffer($props, $input['offer_id'] ?? null);
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
@@ -147,6 +151,7 @@ final class CreateOrder
                 'customer_name' => $customer['name'],
                 'customer_phone' => $phone,
                 'customer_phone2' => $customer['phone2'] ?? null,
+                'customer_email' => $customer['email'] ?? null,
                 'whatsapp_opt_in' => filter_var($input['whatsapp_opt_in'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'governorate' => $customer['governorate'] ?? null,
                 'city' => $customer['city'] ?? null,
@@ -184,6 +189,7 @@ final class CreateOrder
                 'quantity' => $quote->quantity,
                 'options' => $lineOptions,
                 'line_total' => Money::toDecimal($quote->baseSubtotal),
+                'delivery_type' => $product->isDigital() ? $product->delivery_type?->value : null,
             ]);
             // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
             $claimed = $this->uploads->claim($item, $lineOptions, 'inputs');

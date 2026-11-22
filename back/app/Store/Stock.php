@@ -6,6 +6,7 @@ namespace App\Store;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductCode;
 use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
@@ -25,11 +26,30 @@ final class Stock
      */
     public function available(Product $product, array $selected): ?int
     {
+        // A codes product: the uses left of its entries for these choices.
+        if ($product->deliversCodes()) {
+            return $this->codesLeft($product, $this->keyFor($product, $selected));
+        }
+
         return match ($product->stock_mode) {
             Product::STOCK_PRODUCT => max(0, (int) $product->stock),
             Product::STOCK_VARIANT => max(0, (int) ($this->variant($product, $selected)?->stock ?? 0)),
             default => null,
         };
+    }
+
+    /** Uses left of a codes product's entries for one option combination ("" without options). */
+    public function codesLeft(Product $product, string $key): int
+    {
+        return (int) ProductCode::query()->where('product_id', $product->id)->where('combination_key', $key)->sum('uses_left');
+    }
+
+    /** Uses left per option combination of a codes product. @return array<string, int> */
+    public function codeStock(Product $product): array
+    {
+        return ProductCode::query()->where('product_id', $product->id)->where('uses_left', '>', 0)
+            ->selectRaw('combination_key, sum(uses_left) as left_count')->groupBy('combination_key')
+            ->pluck('left_count', 'combination_key')->map(fn ($n) => (int) $n)->all();
     }
 
     /**

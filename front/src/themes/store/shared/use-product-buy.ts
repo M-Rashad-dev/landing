@@ -122,7 +122,7 @@ export function useProductBuy(page: ProductPage) {
       .filter(Boolean)
       .concat(inputs.label() ? [inputs.label()] : [])
       .join("، ");
-    const result = addToCart({ product_id: product.id, quantity: Math.min(quantity, room), options, ...(Object.keys(answers).length ? { inputs: answers } : {}), name: product.name, slug: product.slug, image: pick(product.images[0]?.urls, "thumb"), price, options_label: label, max: left });
+    const result = addToCart({ product_id: product.id, quantity: Math.min(quantity, room), options, ...(Object.keys(answers).length ? { inputs: answers } : {}), ...(product.kind === "digital" ? { digital: true } : {}), name: product.name, slug: product.slug, image: pick(product.images[0]?.urls, "thumb"), price, options_label: label, max: left });
     if (result === "full") {
       setMessage(t.cartFull);
       return;
@@ -144,6 +144,7 @@ export function useProductBuy(page: ProductPage) {
     choose,
     /** «حسب الطلب» fields (draw them with <CustomerInputFields state={inputs} />). */
     inputs,
+    digital: product.kind === "digital",
     /** True for a required option the customer skipped after trying to add. */
     lacking: (option: ProductOption) => showMissing && option.is_required && chosen[option.id] === undefined,
     valueOut,

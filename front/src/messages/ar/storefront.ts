@@ -97,6 +97,14 @@ export const storefront = {
     wrongType: "الإيصال لازم يكون صورة أو PDF.",
     send: "ابعت الإيصال",
     track: "تابع طلبك",
+    yourProducts: "منتجاتك",
+    serviceWaiting: "المتجر بينفّذ طلبك، وهيوصلك إيميل أول ما يخلص.",
+    codesWaiting: "بنجهّز منتجك، وهيوصلك إيميل أول ما يبقى جاهز.",
+    unlimited: "تحميل غير محدود",
+    usedUp: "خلصت مرات التحميل",
+    left: (n: number) => `باقي ${n}`,
+    linkUsedUp: "استخدمت كل مرات الفتح المسموحة. كلّم المتجر لو محتاج مرات زيادة.",
+    openProduct: "افتح المنتج",
   },
   inputs: {
     chooseImage: "اختار صورة",
@@ -125,6 +133,7 @@ export const storefront = {
     pickAll: "اختار كل الاختيارات الأول",
     pickThese: (names: string) => `اختار ${names} الأول عشان تضيف المنتج للسلة`,
     fillInputs: "كمّل الخانات المطلوبة الأول",
+    digitalNote: "منتج رقمي: بيوصلك على الإيميل وفي صفحة طلبك أول ما الدفع يتأكد.",
     fillThese: (names: string) => `كمّل ${names} الأول عشان تضيف المنتج للسلة`,
     waitUpload: "استنى لحد ما الملف يترفع",
     pickOne: (name: string) => `اختار ${name}`,
@@ -168,6 +177,7 @@ export const storefront = {
   },
 
   checkout: {
+    emailDigital: "المنتجات الرقمية بتوصلك على الإيميل ده.",
     title: "إتمام الطلب",
     contact: "بياناتك",
     name: "الاسم",
@@ -208,6 +218,7 @@ export const storefront = {
     submit: "أكّد الطلب",
     submitting: "بنأكد طلبك...",
     errors: {
+      emailDigital: "اكتب إيميلك: المنتج الرقمي بيوصلك عليه.",
       name: "اكتب اسمك (حرفين على الأقل)",
       phone: "اكتب رقم موبايل مصري صحيح",
       governorate: "اختار المحافظة",
@@ -246,6 +257,7 @@ export const storefront = {
     placedAt: (d: string) => `اتطلب ${d}`,
     awaitingPayment: "الطلب مستني الدفع: ادفع وارفع صورة الإيصال عشان المتجر يبدأ يجهّزه.",
     pay: "ادفع وارفع الإيصال",
+    products: "افتح منتجاتك",
     stages: { awaiting_payment: "مستني الدفع", received: "استلمنا الطلب", confirmed: "اتأكد", shipped: "اتشحن", delivered: "وصل", returned: "مرتجع", cancelled: "اتلغى" },
     carrier: "شركة الشحن",
     trackingNumber: "رقم الشحنة",

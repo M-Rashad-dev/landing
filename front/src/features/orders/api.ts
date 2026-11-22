@@ -61,6 +61,8 @@ export type OrderItem = {
   product_name: string;
   is_upsell: boolean;
   is_gift: boolean;
+  /** A digital line: how it is delivered. */
+  delivery_type?: "files" | "codes" | "links" | "services" | null;
   unit_price: number;
   quantity: number;
   /** Option values, then «حسب الطلب» fields (kind set; uploads carry upload_id). */
@@ -81,9 +83,30 @@ export type OrderPaymentInfo = {
   receipts: Array<{ id: number; method_name: string; amount: number; sender_ref: string | null; status: "pending" | "approved" | "rejected"; reject_reason: string | null; is_pdf: boolean; reviewer: string | null; reviewed_at: string | null; created_at: string }>;
 };
 
+/** A digital line's delivery (back: OrderDetailResource «deliveries»). */
+export type OrderDelivery = {
+  id: number;
+  order_item_id: number;
+  type: "files" | "codes" | "links" | "services";
+  status: "pending" | "delivered";
+  codes: string[];
+  link: string | null;
+  subject: string | null;
+  message: string | null;
+  limit: number | null;
+  bonus: number;
+  usage: Record<string, number>;
+  files: Array<{ id: number; name: string }>;
+  default_subject: string | null;
+  default_message: string | null;
+  delivered_at: string | null;
+  emailed_at: string | null;
+};
+
 export type OrderDetail = Omit<OrderRow, "shipment"> & {
   shipment: Shipment | null;
   payment: OrderPaymentInfo | null;
+  deliveries?: OrderDelivery[];
   customer_phone2: string | null;
   customer_email: string | null;
   whatsapp_opt_in: boolean;

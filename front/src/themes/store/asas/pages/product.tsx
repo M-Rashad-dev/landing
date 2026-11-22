@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ImageOff, MessageCircle, ShoppingBag, Tag, Zap } from "lucide-react";
+import { Check, ImageOff, MessageCircle, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
@@ -200,6 +200,7 @@ export function ProductView({ page }: { page: ProductPage }) {
             );
           })}
 
+          {buy.digital ? <p className="as-xs as-muted flex items-center gap-1.5"><MailCheck className="size-4 shrink-0" aria-hidden />{ar.storefront.product.digitalNote}</p> : null}
           <CustomerInputFields state={buy.inputs} classes={{ label: "as-sm", control: "bg-(--as-bg) focus:border-(--as-primary) focus:outline-none" }} />
 
           <div className="flex flex-col gap-3">

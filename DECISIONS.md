@@ -564,3 +564,10 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **One pay page** at `/pay/{track token}` on the store's primary host, outside the store theme, so landing-only tenants work too (the tracking page needs a live store). The token is the 12-character private one already in the order messages.
 - **Never stuck**: cash on delivery can be turned off only while a prepaid method is active; a method with orders still waiting for payment can't be deleted (turn it off instead). Unpaid orders with no receipt waiting are cancelled after the store's days (default 3, owner) and their stock comes back.
 - **Payment emails are email only** (`payment_due`, `payment_confirmed`, `payment_rejected`): no approved WhatsApp templates for them yet.
+
+## 2026-11-22 — Digital products (digital products plan, stage 4)
+- **One kind, four deliveries (owner)**: files, codes, links, services; always prepaid; mixed carts allowed (the whole order prepaid, owner); landing pages sell them too (owner); codes per option combination (owner); every plan, ≤ 100 MB a file, counted in the plan's storage (owner).
+- **Delivered on confirmation**: the payment is the merchant's to confirm (stage 3); confirming runs the delivery once per line (idempotent). Codes are taken at delivery, not at checkout (owner's plan): a paid order that finds no codes waits, the merchant is alerted, and adding codes serves it.
+- **Codes**: encrypted at rest, one entry per unit and never the same entry twice in one purchase, in the merchant's order; uses_left is the stock (the public page shows it like product / variant stock). They never reach webhooks, Sheets, exports or the copilot (the copilot's add-codes change keeps them encrypted and shows a count).
+- **Links**: opened through `/api/public/open/{token}` (counted); once the real URL is open the customer can keep it, so the count limits access through us, not the content (owner told; files are the protected option).
+- **Files**: private, streamed through Next to the buyer only with the delivery token, counted before each download; used up → a readable page; the merchant can grant more per order.

@@ -80,12 +80,17 @@ final class CreateStoreOrder
             throw $this->rejected(429);
         }
 
+        $lines = $this->lines((array) $input['items']);
+        // Digital products: delivered by email, always prepaid; nothing to ship when every line is digital.
+        $digital = array_filter($lines, fn (array $l) => $l['product']->isDigital()) !== [];
+        $allDigital = $digital && array_filter($lines, fn (array $l) => ! $l['product']->isDigital()) === [];
+
         // Standard checkout fields (name, phone, governorate, city, address, notes).
         $fields = (array) ($input['customer'] ?? []);
         if ($account !== null) {
             $fields['phone'] = $account->phone;
         }
-        $clean = $this->form->validate(['fields' => OrderForm::STORE_FIELDS], $fields, []);
+        $clean = $this->form->validate(['fields' => $digital ? OrderForm::forDigital(OrderForm::STORE_FIELDS, $allDigital) : OrderForm::STORE_FIELDS], $fields, []);
         $customer = $clean['customer'];
         $phone = (string) $customer['phone'];
         $phoneKey = "orders:phone:{$tenantId}:{$phone}";
@@ -96,9 +101,8 @@ final class CreateStoreOrder
             throw $this->rejected();
         }
 
-        $lines = $this->lines((array) $input['items']);
         // Cash on delivery, or one of the store's prepaid methods (the order then waits for its payment).
-        $method = $this->payments->choose($input['payment_method'] ?? null);
+        $method = $this->payments->choose($input['payment_method'] ?? null, $digital);
         $code = isset($input['code']) && is_string($input['code']) && trim($input['code']) !== '' ? $input['code'] : null;
         $governorate = $customer['governorate'] ?? null;
         $companyId = isset($input['shipping_company_id']) ? (int) $input['shipping_company_id'] : null;
@@ -158,6 +162,7 @@ final class CreateStoreOrder
                     'offer_name' => $line->offer['name'] ?? null,
                     'offer_discount' => Money::toDecimal($line->offerDiscount),
                     'line_total' => Money::toDecimal($line->afterOffer),
+                    'delivery_type' => $line->product->isDigital() ? $line->product->delivery_type?->value : null,
                 ]);
                 // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
                 $claimed = $this->uploads->claim($item, $options, "items.{$i}.inputs");

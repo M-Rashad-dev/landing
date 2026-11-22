@@ -114,3 +114,24 @@ an attached sheet), deliver a service order with its message. Confirming payment
   `?payment=review`, bell `payment_receipt`. Copilot: `payment_methods` resource, orders' payment fields; it never confirms
   an order waiting for its payment. Tests: `tests/Feature/Orders/PrepaidOrdersTest.php`,
   `front/src/themes/shared/pay-view.test.tsx`, `front/src/features/settings/payments-page.test.tsx`.
+- **2026-11-22 — Stage 4 digital products, built (the plan is complete).** Products `kind` (physical | digital),
+  `delivery_type` (files | codes | links | services), `delivery_settings` (encrypted: downloads, link + opens, message
+  subject / text with {name} {order} {product} {store}); `product_files` (private disk `product-files/{tenant}/{product}`,
+  ≤ 10 a product, ≤ 100 MB each, in the plan's storage, scripts / pages refused); `product_codes` (encrypted, per option
+  combination like variant stock, uses_total / uses_left, sent in position order, never twice to one buyer);
+  `order_items.delivery_type`; `order_deliveries` (one per line: 40-char token, encrypted payload, usage per file / link,
+  limit + bonus). Checkout: a cart / page with a digital product is prepaid (no COD), needs the email (saved to the
+  customer), and with nothing physical asks no address and charges no shipping; digital products show as unavailable
+  without an active prepaid method. Delivery: confirming the order (receipt accepted) runs `DeliverDigitalOrder` →
+  `App\Store\Digital\DigitalDeliveries` (files / links / codes at once, services wait for «تم التنفيذ»; codes out →
+  pending + merchant alert, filled when codes are added); one email per line through `StoreMailer` (codes in it);
+  an order with only digital lines becomes «تم التسليم» by itself (no second email). Customer: the pay page lists
+  «منتجاتك» (downloads with what's left, codes with copy, the link through `/api/public/open/{token}`, a service's
+  state); downloads stream through `/api/public/downloads/{token}/{file}` (counted first; a readable page once used up);
+  the tracking page links «افتح منتجاتك». Merchant: product form «نوع المنتج» (types, files with names, codes manager:
+  per combination, paste one per line or blank-line separated, uses, reorder, uses left), order card «المنتجات
+  الرقمية» (codes sent, downloads used, resend, one more download / open, «تم التنفيذ» with an editable message).
+  Copilot: products resource `kind` / `delivery_type` / `codes_left` (never codes), actions `products.add_codes` (codes
+  encrypted in the change, counted in the preview) and `orders.deliver_service`. PHP upload limit raised to 110 MB
+  (`back/docker/php.ini`). Tests: `tests/Feature/Store/DigitalProductsTest.php`, `tests/Feature/Store/CopilotDigitalTest.php`,
+  `front/src/features/catalog/products/digital.test.tsx`.

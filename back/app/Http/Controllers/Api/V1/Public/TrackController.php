@@ -110,6 +110,8 @@ final class TrackController extends Controller
             'history' => CustomerOrders::history($order),
             // A prepaid order waiting for its payment: the pay page.
             'pay_url' => $order->status === OrderStatus::AwaitingPayment ? StorePayments::payUrl($order) : null,
+            // Digital products: the order page with the downloads / codes.
+            'products_url' => $order->isPrepaid() && $order->items->contains(fn (OrderItem $i) => $i->delivery_type !== null) ? StorePayments::payUrl($order) : null,
             // The carrier's timeline, when the store ships through a connected carrier (our words, never its internals).
             'shipment' => $order->shipment === null || $order->shipment->state === ShipmentState::Cancelled ? null : [
                 'tracking_number' => $order->shipment->tracking_number,

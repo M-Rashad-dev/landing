@@ -21,6 +21,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from "@
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { useShipping } from "@/features/shipping/api";
+import { DeliveriesCard } from "./deliveries-card";
 import { PaymentCard } from "./payment-card";
 import { ShippingCard } from "./shipment-card";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
@@ -112,6 +113,7 @@ export function OrderPage({ id }: { id: number }) {
 
         <div className="flex flex-col gap-4">
           <PaymentCard order={order} onSaved={refresh} />
+          <DeliveriesCard order={order} onSaved={refresh} />
           <CustomerCard order={order} onEdit={() => setEditing(true)} />
           <ShippingCard order={order} onSaved={refresh} />
           <InternalNote order={order} onSaved={refresh} />

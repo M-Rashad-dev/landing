@@ -117,6 +117,8 @@ class AppServiceProvider extends ServiceProvider
         // Abandoned-form captures: the form sends one per phone change, so this is generous but bounded.
         // «حسب الطلب» uploads (≤ 10 MB each): a few per product, bounded per visitor.
         RateLimiter::for('public-uploads', fn (Request $request) => Limit::perMinute(10)->by('public-uploads:'.$visitor($request)));
+        // Digital downloads and link opens (each one counted against the purchase too).
+        RateLimiter::for('public-downloads', fn (Request $request) => Limit::perMinute(30)->by('public-downloads:'.$visitor($request)));
         RateLimiter::for('public-leads', fn (Request $request) => Limit::perMinute(15)->by('public-leads:'.$visitor($request)));
         // Page visit counters: a few per page view (view + form start), generous per visitor IP.
         RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));

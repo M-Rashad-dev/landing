@@ -10,6 +10,7 @@ use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
 use App\Services\PublicPageData;
+use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -264,7 +265,8 @@ final class StoreCatalog
             'image' => $this->data->image($image),
             // Shown when the card is hovered (themes that use it).
             'image_2' => $this->data->image($second),
-            'available' => $p->inStock(),
+            'available' => $p->inStock() && (! $p->isDigital() || app(StorePayments::class)->prepaidReady()),
+            'digital' => $p->isDigital(),
             'is_featured' => $p->is_featured,
             // A card can be added to the cart directly when nothing must be chosen.
             'needs_options' => $p->needsChoices(),

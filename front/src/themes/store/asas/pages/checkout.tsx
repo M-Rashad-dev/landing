@@ -64,7 +64,7 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
           ) : null}
           <section className="flex flex-col gap-4 rounded-2xl border p-4 @3xl:p-5">
             <h2 className="as-lg font-bold">{t.contact}</h2>
-            {me && me.addresses.length ? (
+            {checkout.needsAddress && me && me.addresses.length ? (
               <fieldset className="flex flex-col gap-2">
                 <legend className="as-sm mb-2 font-semibold">{ta.savedAddresses}</legend>
                 {me.addresses.map((a) => (
@@ -89,26 +89,32 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
               <FormField id="co-phone" label={t.phone} hint={me ? ta.signedInAs(formatPhoneLocal(me.phone)) : t.phoneHint} error={err("phone")}>
                 <input id="co-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" maxLength={20} readOnly={me !== null} className={cn(inputClass, "text-end", me && "opacity-70")} {...register("phone")} {...aria("phone")} />
               </FormField>
-              <FormField id="co-governorate" label={t.governorate} error={err("governorate")}>
-                <select id="co-governorate" className={inputClass} {...register("governorate")} {...aria("governorate")}>
-                  <option value="">{t.chooseGovernorate}</option>
-                  {GOVERNORATES.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
-              <FormField id="co-city" label={t.city} error={err("city")} optional>
-                <input id="co-city" autoComplete="address-level2" maxLength={100} className={inputClass} {...register("city")} {...aria("city")} />
-              </FormField>
+              {checkout.needsAddress ? (
+                <>
+                  <FormField id="co-governorate" label={t.governorate} error={err("governorate")}>
+                    <select id="co-governorate" className={inputClass} {...register("governorate")} {...aria("governorate")}>
+                      <option value="">{t.chooseGovernorate}</option>
+                      {GOVERNORATES.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField id="co-city" label={t.city} error={err("city")} optional>
+                    <input id="co-city" autoComplete="address-level2" maxLength={100} className={inputClass} {...register("city")} {...aria("city")} />
+                  </FormField>
+                </>
+              ) : null}
             </div>
-            <FormField id="co-email" label={t.email} hint={t.emailHint} error={err("email")} optional>
+            <FormField id="co-email" label={t.email} hint={checkout.emailRequired ? t.emailDigital : t.emailHint} error={err("email")} optional={!checkout.emailRequired}>
               <input id="co-email" type="email" inputMode="email" autoComplete="email" dir="ltr" maxLength={191} className={cn(inputClass, "text-end")} {...register("email")} {...aria("email")} />
             </FormField>
-            <FormField id="co-address" label={t.address} hint={t.addressHint} error={err("address")}>
-              <input id="co-address" autoComplete="street-address" maxLength={300} className={inputClass} {...register("address")} {...aria("address")} />
-            </FormField>
+            {checkout.needsAddress ? (
+              <FormField id="co-address" label={t.address} hint={t.addressHint} error={err("address")}>
+                <input id="co-address" autoComplete="street-address" maxLength={300} className={inputClass} {...register("address")} {...aria("address")} />
+              </FormField>
+            ) : null}
             <FormField id="co-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="co-notes" rows={2} maxLength={500} className={cn(inputClass, "h-auto py-2")} {...register("notes")} />
             </FormField>

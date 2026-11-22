@@ -14,6 +14,7 @@ use App\Http\Requests\Dashboard\ProductRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Store\ProductList;
+use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -34,7 +35,7 @@ final class ProductsResource extends CopilotResource
 
     public function summary(): string
     {
-        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories, «حسب الطلب» fields (inputs: what the customer types or uploads when buying — a text, a long text, an image or a file — with its extra price; set on the product form).';
+        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories, digital products (kind digital, delivered by email once paid: files, codes, a link or a service the merchant does; codes_left for codes products), «حسب الطلب» fields (inputs: what the customer types or uploads when buying — a text, a long text, an image or a file — with its extra price; set on the product form).';
     }
 
     public function model(): string
@@ -64,6 +65,10 @@ final class ProductsResource extends CopilotResource
             Field::text('seo_description')->label('وصف SEO')->notInTable()->editable()->using(fn (Model $p) => ((array) ($p->getAttribute('seo') ?? []))['description'] ?? null),
             Field::ids('media_ids')->label('الصور')->images()->notInTable()->editable()
                 ->using(fn (Model $p) => $p->relationLoaded('media') ? $p->media->pluck('id')->map(fn ($id) => (int) $id)->all() : []),
+            // «منتج رقمي»: delivered by email after payment; codes products count their codes left (never the codes).
+            Field::enum('kind', [Product::PHYSICAL, Product::DIGITAL])->label('النوع')->labels([Product::PHYSICAL => 'عادي', Product::DIGITAL => 'رقمي'])->filterable(),
+            Field::text('delivery_type')->label('التسليم')->using(fn (Model $p) => $p->getAttribute('delivery_type')?->label()),
+            Field::int('codes_left')->label('الأكواد الباقية')->notInTable()->using(fn (Model $p) => $p instanceof Product && $p->deliversCodes() ? array_sum(app(Stock::class)->codeStock($p)) : null),
             Field::text('inputs')->label('خانات حسب الطلب')->notInTable()
                 ->using(fn (Model $p) => $p->relationLoaded('inputs') ? $p->inputs->map(fn ($i) => $i->label.' ('.$i->kind->label().($i->is_required ? '، إجباري' : '').((float) $i->price_delta > 0 ? '، +'.$i->price_delta : '').')')->all() : []),
             Field::date('created_at')->label('اتضاف')->filterable()->sortable(),

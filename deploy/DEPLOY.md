@@ -155,6 +155,7 @@ nano .env
 | `REVERB_APP_SECRET` | ناتج `openssl rand -hex 32` |
 | `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD` | حساب الأدمن بتاعك، ومكتوب جاهز: `m.rashad.dev@gmail.com` / `12345678` |
 | `PLATFORM_ADMIN_PHONE` | **رقم موبايلك المصري** (مطلوب، ولازم ميكونش مستخدم في متجر) |
+| (ملاحظة) | حد رفع الملفات في PHP بقى 110 ميجا (`back/docker/php.ini`) عشان ملفات المنتجات الرقمية (لحد 100 ميجا)؛ بيتطبق مع بناء الصورة في `deploy.sh` |
 | `MAIL_*` | إيميل هوستنجر `noreply@mksab.store` مكتوب جاهز (`smtp.hostinger.com` بورت 465 SSL)؛ حط بس `MAIL_PASSWORD`. ده اللي بيبعت تنبيهات الأدمن وإيميلات المتاجر لعملائها (باسم المتجر والرد بيروح للتاجر). لو `MAIL_MAILER=log` الإيميلات بتتسجل في اللوج بس |
 
 **ملاحظات:**

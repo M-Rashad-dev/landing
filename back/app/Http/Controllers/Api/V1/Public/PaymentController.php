@@ -15,6 +15,7 @@ use App\Models\StorePaymentMethod;
 use App\Models\StorePaymentSetting;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
+use App\Store\Digital\DigitalDeliveries;
 use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
@@ -30,13 +31,13 @@ final class PaymentController extends Controller
 {
     use RespondsWithJson;
 
-    public function __construct(private readonly PublicSite $site, private readonly StorePayments $payments, private readonly PublicPageData $data) {}
+    public function __construct(private readonly PublicSite $site, private readonly StorePayments $payments, private readonly PublicPageData $data, private readonly DigitalDeliveries $deliveries) {}
 
     public function show(Request $request): JsonResponse
     {
         $data = $request->validate(['host' => ['required', 'string', 'max:253'], 'token' => ['required', 'string', 'regex:/^[a-z0-9]{12}$/']]);
 
-        return $this->inOrder($data, fn (Order $order) => $this->ok($this->view($order)));
+        return $this->inOrder($data, fn (Order $order) => $this->ok($this->view($order, (string) $data['host'])));
     }
 
     public function store(Request $request): JsonResponse
@@ -60,7 +61,7 @@ final class PaymentController extends Controller
             }
             $this->payments->submit($order, $method, $data['sender_ref'] ?? null, $file);
 
-            return $this->created($this->view($order->refresh()));
+            return $this->created($this->view($order->refresh(), (string) $data['host']));
         });
     }
 
@@ -78,7 +79,7 @@ final class PaymentController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function view(Order $order): array
+    private function view(Order $order, string $host): array
     {
         $identity = Identity::query()->orderByDesc('is_default')->orderBy('id')->first();
         $receipts = $order->payments()->get();
@@ -100,6 +101,8 @@ final class PaymentController extends Controller
             'can_send' => $waiting && ! $receipts->contains(fn (OrderPayment $p) => $p->status === OrderPayment::PENDING),
             'cancel_at' => $waiting ? $order->created_at->copy()->addDays(max(1, StorePaymentSetting::current()->cancel_after_days))->toIso8601ZuluString() : null,
             'store' => $identity === null ? null : $this->data->identity($identity),
+            // Digital products bought: downloads, codes, the link, a service's message.
+            'deliveries' => $this->deliveries->customerView($order, $this->site->primaryHost($order->tenant_id) ?? $host),
             'track_url' => rtrim(PublicSite::url((string) config('landing.platform_domain')), '/').'/t/'.$order->track_token,
         ];
     }

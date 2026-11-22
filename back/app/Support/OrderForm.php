@@ -37,6 +37,28 @@ final class OrderForm
     /** The store checkout: the default fields plus an optional email (order news and offers). */
     public const STORE_FIELDS = ['email' => ['enabled' => true, 'required' => false]] + self::DEFAULT_FIELDS;
 
+    /**
+     * A form for an order with digital products: the email is required (they are delivered there); when nothing is
+     * physical, the address fields become optional (nothing to ship).
+     *
+     * @param  array<string, mixed>  $fields
+     * @return array<string, mixed>
+     */
+    public static function forDigital(array $fields, bool $allDigital): array
+    {
+        $fields['email'] = ['enabled' => true, 'required' => true] + (is_array($fields['email'] ?? null) ? $fields['email'] : []);
+        $fields['email']['required'] = true;
+        if ($allDigital) {
+            foreach (['governorate', 'city', 'address'] as $key) {
+                $fields[$key] = ['enabled' => true, 'required' => false] + (is_array($fields[$key] ?? null) ? $fields[$key] : []);
+                $fields[$key]['required'] = false;
+                $fields[$key]['enabled'] = true;
+            }
+        }
+
+        return $fields;
+    }
+
     private const CUSTOM_TYPES = ['text', 'textarea', 'number', 'select', 'radio', 'checkbox', 'date'];
 
     private const KEY_PATTERN = '/^[a-z][a-z0-9_]{0,59}$/';

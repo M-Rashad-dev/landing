@@ -29,6 +29,8 @@ export type ProductCard = {
   image: { id: number; alt: string | null; width: number | null; height: number | null; urls: Record<string, string> } | null;
   available: boolean;
   needs_options: boolean;
+  /** A digital product (prepaid, delivered by email). */
+  digital?: boolean;
   /** Units in stock (null: no limit, or chosen per option on the product page). */
   max_quantity?: number | null;
   /** Visible reviews (null: none yet). */

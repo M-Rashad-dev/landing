@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Dashboard;
 
+use App\Enums\DeliveryType;
 use App\Enums\OptionDisplayType;
 use App\Enums\ProductInputKind;
 use App\Http\Requests\ApiRequest;
@@ -97,6 +98,16 @@ final class ProductRequest extends ApiRequest
             'sku' => ['nullable', 'string', 'max:60'],
             'is_active' => ['sometimes', 'boolean'],
 
+            // «منتج رقمي»: how it is delivered and its settings (downloads / the link and its opens / the message).
+            'kind' => ['sometimes', 'string', 'in:'.Product::PHYSICAL.','.Product::DIGITAL],
+            'delivery_type' => ['nullable', 'string', 'in:'.implode(',', DeliveryType::values())],
+            'delivery_settings' => ['sometimes', 'nullable', 'array'],
+            'delivery_settings.downloads' => ['nullable', 'integer', 'between:1,1000'],
+            'delivery_settings.link' => ['nullable', 'string', 'max:1000', 'url:https,http'],
+            'delivery_settings.opens' => ['nullable', 'integer', 'between:1,1000'],
+            'delivery_settings.subject' => ['nullable', 'string', 'max:150'],
+            'delivery_settings.message' => ['nullable', 'string', 'max:3000'],
+
             // Store fields.
             'slug' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:'.PageSlug::PATTERN, TenantUnique::table('products', 'slug')->ignore($this->route('product')?->id)],
             'short_description' => ['sometimes', 'nullable', 'string', 'max:300'],
@@ -165,6 +176,13 @@ final class ProductRequest extends ApiRequest
 
             $this->validateOptions($validator, $data['options'] ?? []);
             $this->validateInputs($validator, $data['inputs'] ?? []);
+            if (($data['kind'] ?? null) === Product::DIGITAL) {
+                if (empty($data['delivery_type'])) {
+                    $validator->errors()->add('delivery_type', __('digital.type_required'));
+                } elseif ($data['delivery_type'] === DeliveryType::Links->value && empty($data['delivery_settings']['link'])) {
+                    $validator->errors()->add('delivery_settings.link', __('digital.link_required'));
+                }
+            }
         });
     }
 

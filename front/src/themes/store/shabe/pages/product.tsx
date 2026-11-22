@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, Eye, ImageOff, MessageCircle, Minus, Plus, ShoppingBag, Tag, Zap } from "lucide-react";
+import { Check, ChevronLeft, Eye, ImageOff, MessageCircle, Minus, Plus, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
@@ -278,6 +278,7 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
             );
           })}
 
+          {buy.digital ? <p className="as-xs as-muted flex items-center gap-1.5"><MailCheck className="size-4 shrink-0" aria-hidden />{ar.storefront.product.digitalNote}</p> : null}
           <CustomerInputFields state={buy.inputs} classes={{ label: "as-sm font-extrabold", control: "rounded-2xl border-2 bg-(--as-bg) focus:border-(--as-primary) focus:outline-none" }} />
 
           <div className="flex flex-wrap items-center gap-3">

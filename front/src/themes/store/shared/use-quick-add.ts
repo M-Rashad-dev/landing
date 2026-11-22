@@ -21,7 +21,7 @@ export function useQuickAdd(product: ProductCard) {
   const [note, setNote] = React.useState<string | null>(null);
 
   const add = () => {
-    const result = addToCart({ product_id: product.id, quantity: 1, options: {}, name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
+    const result = addToCart({ product_id: product.id, quantity: 1, options: {}, ...(product.digital ? { digital: true } : {}), name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
     if (result !== "added") {
       setNote(result === "max" ? ar.storefront.product.maxReached(inCart) : ar.storefront.product.cartFull);
       return;

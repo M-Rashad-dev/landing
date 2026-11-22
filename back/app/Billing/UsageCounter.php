@@ -15,6 +15,7 @@ use App\Models\LandingPage;
 use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
+use App\Models\ProductFile;
 use App\Models\Webhook;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,7 +39,8 @@ final class UsageCounter
 
     public function mediaBytes(): int
     {
-        return (int) Media::query()->sum('size_bytes');
+        // Images and the files digital products deliver.
+        return (int) Media::query()->sum('size_bytes') + (int) ProductFile::query()->sum('size');
     }
 
     /**

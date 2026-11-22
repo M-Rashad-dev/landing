@@ -83,7 +83,8 @@ final class PriceCalculator
         [$discountCode, $codeDiscount, $codeError] = $this->applyCode($code, $basket, $now, $phone, $lockCode);
 
         $itemsTotal = max(0, $afterOffer - $codeDiscount);
-        $shipping = $this->shipping->quote($governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
+        // A digital product is not shipped.
+        $shipping = $this->shipping->quote($product->isDigital() ? null : $governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
 
         return new Quote(
             unitPrice: $unitPrice,
@@ -162,7 +163,9 @@ final class PriceCalculator
         [$discountCode, $codeDiscount, $codeError] = $this->applyCode($code, $basket, $now, $phone, $lockCode);
 
         $itemsTotal = max(0, $subtotal - $codeDiscount);
-        $shipping = $this->shipping->quote($governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
+        // Nothing to ship when every line is digital.
+        $allDigital = array_filter($priced, fn (CartLine $l) => ! $l->product->isDigital()) === [];
+        $shipping = $this->shipping->quote($allDigital ? null : $governorate, $shippingCompanyId, $itemsTotal, $basket, $discountCode?->type === DiscountType::FreeShipping, $now);
 
         return new CartQuote(
             lines: $priced,

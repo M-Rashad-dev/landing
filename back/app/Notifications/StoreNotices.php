@@ -49,6 +49,20 @@ final class StoreNotices
         ));
     }
 
+    /** A paid order needs codes the product has run out of: it waits until the merchant adds more. */
+    public function codesOut(int $tenantId, int $productId, string $product): void
+    {
+        $this->center->toStore($tenantId, new Notice(
+            NotificationEvent::LowStock,
+            __('notifications.codes_out.title', ['product' => $product]),
+            __('notifications.codes_out.body', ['product' => $product]),
+            '/dashboard/catalog/products/'.$productId,
+            [['label' => __('notifications.low_stock.product'), 'value' => $product]],
+            __('notifications.codes_out.action'),
+            dedupeKey: 'codes_out:'.$productId.':'.now()->format('YmdH'),
+        ));
+    }
+
     /** A product (or one of its options) went down to its low-stock mark with this order. */
     public function lowStock(int $tenantId, int $productId, string $product, int $left): void
     {

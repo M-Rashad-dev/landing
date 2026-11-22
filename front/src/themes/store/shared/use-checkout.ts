@@ -21,7 +21,7 @@ import { clearCartNote, readCartNote } from "./cart-note";
 
 const t = ar.storefront.checkout;
 
-const schema = z.object({
+const base = z.object({
   name: z.string().trim().min(2, t.errors.name).max(80, t.errors.name),
   phone: z.string().trim().refine((v) => normalizePhone(v) !== null, t.errors.phone),
   governorate: z.string().refine((v) => (GOVERNORATES as readonly string[]).includes(v), t.errors.governorate),
@@ -35,7 +35,13 @@ const schema = z.object({
     .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), t.errors.email),
   website: z.string().max(200),
 });
-export type CheckoutValues = z.infer<typeof schema>;
+export type CheckoutValues = z.infer<typeof base>;
+
+/** Digital products need the email; with nothing physical there is no address to ask for. */
+function schemaFor(digital: boolean, allDigital: boolean) {
+  const shape = allDigital ? base.extend({ governorate: z.string(), address: z.string().max(300) }) : base;
+  return digital ? shape.extend({ email: z.string().trim().max(191, t.errors.email).refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), t.errors.emailDigital) }) : shape;
+}
 const FIELDS = ["name", "phone", "email", "governorate", "city", "address", "notes"] as const;
 
 /**
@@ -46,7 +52,14 @@ const FIELDS = ["name", "phone", "email", "governorate", "city", "address", "not
 export function useCheckout(config: StoreConfig) {
   const cart = useCart();
   const router = useRouter();
-  const form = useForm<CheckoutValues>({ resolver: zodResolver(schema), defaultValues: { name: "", phone: "", email: "", governorate: "", city: "", address: "", notes: "", website: "" }, mode: "onTouched" });
+  const digital = cart.items.some((i) => i.digital);
+  const allDigital = digital && cart.items.every((i) => i.digital);
+  // The rules follow the cart (read when the form validates).
+  const rules = React.useRef(schemaFor(digital, allDigital));
+  React.useEffect(() => {
+    rules.current = schemaFor(digital, allDigital);
+  }, [digital, allDigital]);
+  const form = useForm<CheckoutValues>({ resolver: (values, context, options) => zodResolver(rules.current)(values, context, options), defaultValues: { name: "", phone: "", email: "", governorate: "", city: "", address: "", notes: "", website: "" }, mode: "onTouched" });
   const { handleSubmit, setError, control } = form;
   const governorate = useWatch({ control, name: "governorate" });
   const phone = normalizePhone(useWatch({ control, name: "phone" }));
@@ -67,7 +80,10 @@ export function useCheckout(config: StoreConfig) {
   // Order messages on WhatsApp: only when the customer ticks it (unchecked by default, Meta's rule).
   const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
   // Cash on delivery or one of the store's prepaid methods.
-  const [payment, setPaymentState] = React.useState(() => defaultPayment(config.payments));
+  // A cart with digital products is paid first: no cash on delivery.
+  const paymentOptions = config.payments && digital ? { ...config.payments, cod: false } : config.payments;
+  const [payment, setPaymentState] = React.useState(() => defaultPayment(paymentOptions));
+  if (digital && payment === "cod" && paymentOptions && paymentOptions.methods.length) setPaymentState(String(paymentOptions.methods[0].id));
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const setPayment = (v: string) => {
     setPaymentState(v);
@@ -114,7 +130,7 @@ export function useCheckout(config: StoreConfig) {
 
   const quote = useCartQuote(cart, { code, governorate: governorate || null, phone, shipping_company_id: companyId });
   const shown: QuoteState = { ...quote, lineErrors: { ...quote.lineErrors, ...lineErrors } };
-  const shippingOn = config.shipping.enabled;
+  const shippingOn = config.shipping.enabled && !allDigital;
 
   // Anti-bot token, the checkout counter and the pixel event, once.
   React.useEffect(() => {
@@ -162,7 +178,7 @@ export function useCheckout(config: StoreConfig) {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           items: cartPayload(cart),
-          customer: { name: values.name, phone: values.phone, governorate: values.governorate, city: values.city || null, address: values.address, notes: values.notes || null, email: values.email || null },
+          customer: { name: values.name, phone: values.phone, governorate: values.governorate || null, city: values.city || null, address: values.address || null, notes: values.notes || null, email: values.email || null },
           code,
           shipping_company_id: shippingOn ? (companyId ?? quote.quote?.shipping_company?.id ?? null) : null,
           form_token: token,
@@ -210,7 +226,10 @@ export function useCheckout(config: StoreConfig) {
 
   return {
     cart,
-    paymentOptions: config.payments,
+    paymentOptions,
+    /** Something physical to ship (the address is asked); digital lines need the email. */
+    needsAddress: !allDigital,
+    emailRequired: digital,
     payment,
     setPayment,
     paymentError,

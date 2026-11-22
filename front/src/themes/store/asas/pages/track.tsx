@@ -83,7 +83,13 @@ function OrderStatus({ order, onAnother }: { order: TrackedOrder; onAnother: () 
             </a>
           ) : null}
         </div>
-      ) : ended ? (
+      ) : null}
+      {order.stage !== "awaiting_payment" && order.products_url ? (
+        <a href={order.products_url} className="as-btn as-base h-11 w-full">
+          {t.products}
+        </a>
+      ) : null}
+      {order.stage === "awaiting_payment" ? null : ended ? (
         <p className="as-base rounded-lg bg-(--as-soft) p-3 text-center font-bold">{t.stages[order.stage]}</p>
       ) : (
         <ol className="grid grid-cols-4 gap-1">

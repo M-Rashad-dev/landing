@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Order;
+use App\Models\OrderDelivery;
 use App\Models\OrderEvent;
 use App\Models\OrderItem;
 use App\Models\OrderPayment;
@@ -56,6 +57,25 @@ final class OrderDetailResource extends OrderResource
                 'discount' => $money((string) $this->shipping_discount),
                 'tracking_number' => $this->tracking_number,
             ],
+            // Digital lines: what was delivered (the codes sent, downloads used, the service's message).
+            'deliveries' => OrderDelivery::query()->where('order_id', $this->id)->with('product.files')->orderBy('id')->get()->map(fn (OrderDelivery $d) => [
+                'id' => $d->id,
+                'order_item_id' => $d->order_item_id,
+                'type' => $d->type->value,
+                'status' => $d->status,
+                'codes' => array_values($d->payload['codes'] ?? []),
+                'link' => $d->payload['link'] ?? null,
+                'subject' => $d->payload['subject'] ?? null,
+                'message' => $d->payload['message'] ?? null,
+                'limit' => $d->limit,
+                'bonus' => $d->bonus,
+                'usage' => (object) ($d->usage ?? []),
+                'files' => ($d->product?->files ?? collect())->map(fn ($f) => ['id' => $f->id, 'name' => $f->name])->values()->all(),
+                'default_subject' => $d->product?->delivery_settings['subject'] ?? null,
+                'default_message' => $d->product?->delivery_settings['message'] ?? null,
+                'delivered_at' => $d->delivered_at?->toIso8601ZuluString(),
+                'emailed_at' => $d->emailed_at?->toIso8601ZuluString(),
+            ])->values()->all(),
             // Prepaid orders: the method chosen, the customer's receipts and where he pays.
             'payment' => $this->isPrepaid() ? [
                 'method_name' => $this->payment_method_name,
@@ -82,6 +102,7 @@ final class OrderDetailResource extends OrderResource
                 'product_name' => $item->product_name,
                 'is_upsell' => $item->upsell_id !== null,
                 'is_gift' => (bool) $item->is_gift,
+                'delivery_type' => $item->delivery_type,
                 'unit_price' => $money($item->unit_price),
                 'quantity' => $item->quantity,
                 'options' => $item->options ?? [],

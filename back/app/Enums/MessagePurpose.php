@@ -18,6 +18,8 @@ enum MessagePurpose: string
     case OrderPaymentDue = 'order_payment_due';
     case OrderPaymentConfirmed = 'order_payment_confirmed';
     case OrderPaymentRejected = 'order_payment_rejected';
+    /** A digital product delivered (files, codes, a link, a done service). */
+    case OrderDigitalDelivery = 'order_digital_delivery';
 
     /** @return list<string> */
     public static function values(): array
