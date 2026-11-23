@@ -20,6 +20,10 @@ enum MessagePurpose: string
     case OrderPaymentRejected = 'order_payment_rejected';
     /** A digital product delivered (files, codes, a link, a done service). */
     case OrderDigitalDelivery = 'order_digital_delivery';
+    /** WhatsApp confirmation of a cash-on-delivery order, its reminder, and the reply to the customer's answer. */
+    case OrderConfirm = 'order_confirm';
+    case OrderConfirmReminder = 'order_confirm_reminder';
+    case OrderConfirmReply = 'order_confirm_reply';
 
     /** @return list<string> */
     public static function values(): array

@@ -234,8 +234,8 @@ done_by, done_at. Orders: `refunded_total`, payment_status gains `partially_refu
 3. «الغي» cancels at once, logged as cancelled by the customer.
 4. Profit: both — expected (in progress) and actual (delivered, all done).
 5. Every feature is added to the copilot.
-Open: the confirmation messages (stage 2) cost the platform per message — free for merchants, or from the same
-message balance? (asked before stage 2).
+6. (2026-11-23) Only cart-recovery WhatsApp messages are paid (packs); everything else stays free — the confirmation
+   included, with no limit.
 
 ## PROGRESS LOG
 - **2026-11-23 — Stage 1 staff accounts, built.** `spatie/laravel-permission` (direct user permissions, guard `web`,
@@ -255,3 +255,19 @@ message balance? (asked before stage 2).
   first allowed page), `useCan()` hides the main buttons (products add / import, orders export / status / ship, the
   confirmation queue), «الإعدادات ← الموظفين» (permission tree with presets) and «سجل النشاط». Tests:
   `tests/Feature/Staff/StaffTest.php`, `front/src/features/settings/staff.test.tsx`.
+- **2026-11-23 — Stage 2 WhatsApp order confirmation, built (free, no limit).** `order_confirmation_settings` (on / off,
+  delay, one reminder, final wait, keep or cancel on timeout) and orders `confirm_state` / `confirm_sent_at` /
+  `confirm_reminded_at` / `confirm_replied_at` (`ConfirmState`). Templates `order_confirm_v1` and
+  `order_confirm_reminder_v1` (utility, 3 QUICK_REPLY buttons whose payload `oc:{action}:{order}:{hmac}` is set at send
+  time); the feature shows as unavailable until Meta approves `order_confirm_v1` (push from «الرسائل» in the admin).
+  `App\Orders\WhatsAppConfirmations`: `CustomerNotices::received` sends the confirmation instead of «received» for COD
+  orders whose customer agreed to WhatsApp (`SendOrderConfirmation`, after the delay; «received» goes if it can't);
+  button presses in the webhook → confirmed (note «اتأكد من العميل على واتساب») / cancelled at once (logged «اتلغى من
+  العميل», no extra «cancelled» template) / needs_call, each with the owner's reply text (free, inside the window); a
+  pressed order already moved → its current state; forged / other-phone payloads ignored; a written message while a
+  confirmation is open (48 h) → needs_call; `orders:confirmations` (every 10 min) reminds once and closes (no_reply or
+  cancel); a failed delivery status → `failed`. Merchant bell `customer_reply` (cancel, call). Confirmation queue: needs
+  call first, waiting answers last and not counted as due, `waiting_whatsapp`, badges; `?confirm=` filter; settings panel
+  on the queue page (permission `orders.auto_confirm` to change). Checkout checkbox «أكّد طلبك وتابعه على واتساب».
+  Copilot: orders `confirm_state`. Tests: `tests/Feature/Orders/WhatsAppConfirmationTest.php`,
+  `front/src/features/orders/whatsapp-confirm.test.tsx`.

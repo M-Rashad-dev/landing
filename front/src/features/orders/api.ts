@@ -23,6 +23,8 @@ export const TAB_STATUSES: Record<OrderTab, OrderStatus[]> = {
   fake: ["fake"],
 };
 
+export type ConfirmState = "sent" | "reminded" | "confirmed" | "cancelled" | "needs_call" | "no_reply" | "failed";
+
 export const ORDER_SORTS = ["latest", "oldest", "total_desc", "total_asc"] as const;
 export type OrderSort = (typeof ORDER_SORTS)[number];
 
@@ -34,6 +36,9 @@ export type OrderRow = {
   /** cod | prepaid; payment_status null for cash on delivery. */
   payment_method?: "cod" | "prepaid";
   payment_status?: "unpaid" | "review" | "paid" | null;
+  /** WhatsApp confirmation: sent / reminded (waiting) / confirmed / cancelled / needs_call / no_reply / failed. */
+  confirm_state?: ConfirmState | null;
+  confirm_state_label?: string | null;
   customer_id: number | null;
   customer_name: string;
   customer_phone: string;
@@ -72,7 +77,7 @@ export type OrderItem = {
   line_total: number;
 };
 
-export type CustomerMessage = { id: number; purpose: "order_received" | "order_shipped" | "order_cancelled" | "order_delivered"; channel: "whatsapp" | "email"; via?: "platform" | "smtp" | null; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
+export type CustomerMessage = { id: number; purpose: keyof typeof import("@/messages/ar/orders").orders.detail.messages.purpose; channel: "whatsapp" | "email"; via?: "platform" | "smtp" | null; status: "pending" | "sent" | "delivered" | "read" | "failed"; error: string | null; created_at: string };
 
 /** A prepaid order's payment (back: OrderDetailResource «payment»). */
 export type OrderPaymentInfo = {

@@ -6,7 +6,11 @@ namespace App\Notifications;
 
 use App\Enums\OrderStatus;
 use App\Jobs\DeliverCustomerNotice;
+use App\Jobs\SendOrderConfirmation;
 use App\Models\Order;
+use App\Models\OrderConfirmationSetting;
+use App\Orders\WhatsAppConfirmations;
+use App\Tenancy\Tenancy;
 
 /**
  * What a customer is told about their order (received, shipped, cancelled, delivered), sent
@@ -32,6 +36,14 @@ final class CustomerNotices
 
     public function received(Order $order): void
     {
+        // Cash on delivery with WhatsApp confirmation on: the confirmation message replaces «received».
+        $confirmations = app(WhatsAppConfirmations::class);
+        $delay = Tenancy::runAs($order->tenant_id, fn (): ?int => $confirmations->eligible($order) ? OrderConfirmationSetting::current()->delay_minutes : null);
+        if ($delay !== null) {
+            SendOrderConfirmation::dispatch($order->tenant_id, $order->id)->delay(now()->addMinutes($delay))->afterCommit();
+
+            return;
+        }
         DeliverCustomerNotice::dispatch($order->tenant_id, $order->id, $order->status === OrderStatus::AwaitingPayment ? self::PAYMENT_DUE : self::RECEIVED)->afterCommit();
     }
 

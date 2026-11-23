@@ -20,6 +20,7 @@ import { ar } from "@/messages/ar";
 import { changeStatus, recordContact, useOrder, useRefreshOrders, whatsappLink, type OrderRow, type OrderStatus } from "./api";
 import { confirmMessage } from "./order-quick-view";
 import { StatusDialog } from "./status-dialog";
+import { WhatsAppConfirmSettings } from "./whatsapp-confirm-settings";
 
 const t = ar.orders.queue;
 const d = ar.orders.detail;
@@ -29,7 +30,7 @@ export function useConfirmQueue() {
     queryKey: ["orders", "queue"],
     queryFn: async () => {
       const page = await apiPage<OrderRow>("/dashboard/orders/confirmation-queue");
-      return { data: page.data, meta: { due: Number(page.meta.due ?? 0), later: Number(page.meta.later ?? 0) } };
+      return { data: page.data, meta: { due: Number(page.meta.due ?? 0), later: Number(page.meta.later ?? 0), waiting: Number(page.meta.waiting_whatsapp ?? 0) } };
     },
   });
 }
@@ -62,6 +63,10 @@ export function ConfirmQueue() {
         }
       />
 
+      <div className="mb-4">
+        <WhatsAppConfirmSettings />
+      </div>
+
       {queue.isPending ? (
         <Skeleton className="h-96 rounded-xl" />
       ) : queue.isError ? (
@@ -83,7 +88,7 @@ export function ConfirmQueue() {
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_20rem]">
           <div className="flex flex-col gap-2">
             <p className="text-sm text-ink-2">
-              {t.due(queue.data.meta.due)} {t.later(queue.data.meta.later)}
+              {t.due(queue.data.meta.due)} {t.later(queue.data.meta.later)} {queue.data.meta.waiting > 0 ? ar.orders.autoConfirm.waiting(queue.data.meta.waiting) : ""}
             </p>
             <QueueCard key={current.id} id={current.id} onNext={() => setIndex((i) => Math.min(i + 1, list.length - 1))} onDone={() => void queue.refetch()} />
             <p className="hidden text-xs text-ink-3 lg:block">{t.keys}</p>
@@ -104,6 +109,11 @@ export function ConfirmQueue() {
                         #{o.order_number} · {formatMoney(o.total)}
                       </span>
                     </span>
+                    {o.confirm_state && o.confirm_state_label ? (
+                      <Badge size="sm" tone={o.confirm_state === "needs_call" ? "attention" : o.confirm_state === "sent" || o.confirm_state === "reminded" ? "info" : "neutral"}>
+                        {o.confirm_state_label}
+                      </Badge>
+                    ) : null}
                     {o.follow_up_at && new Date(o.follow_up_at) > new Date() ? (
                       <Badge size="sm" tone="info">
                         <Clock />

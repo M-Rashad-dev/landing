@@ -86,6 +86,13 @@ return [
         'state' => 'الحالة',
         'action' => 'افتح الطلب',
     ],
+    'customer_reply' => [
+        'cancelled_title' => 'العميل لغى الطلب #:number على واتساب',
+        'cancelled_body' => ':customer ضغط «الغي الطلب» في رسالة التأكيد، والطلب اتلغى.',
+        'call_title' => 'العميل عايز حد يكلمه: الطلب #:number',
+        'call_body' => ':customer طلب حد من المتجر يكلمه بخصوص طلبه.',
+        'action' => 'افتح الطلب',
+    ],
     'payment_receipt' => [
         'title' => 'إيصال دفع للطلب #:number',
         'body' => ':customer بعت إيصال :total عن طريق :method. اتأكد إن الفلوس وصلت وأكّد الطلب.',

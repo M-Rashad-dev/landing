@@ -24,6 +24,8 @@ enum NotificationEvent: string
     case MailboxFailed = 'mailbox_failed';
     /** A customer sent the receipt of a prepaid order. */
     case PaymentReceipt = 'payment_receipt';
+    /** A customer cancelled on WhatsApp or asked for a call. */
+    case CustomerReply = 'customer_reply';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';
@@ -38,7 +40,7 @@ enum NotificationEvent: string
     public function permission(): string
     {
         return match ($this) {
-            self::NewOrder, self::ShipmentProblem => 'orders.view',
+            self::NewOrder, self::ShipmentProblem, self::CustomerReply => 'orders.view',
             self::LowStock => 'products.view',
             self::ImportDone => 'products.import',
             self::PaymentReceipt => 'orders.payments',

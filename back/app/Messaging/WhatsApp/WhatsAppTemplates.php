@@ -27,7 +27,7 @@ final class WhatsAppTemplates
      * Utility templates: key => [name, body with {{n}}, example values, optional URL button, and the
      * approved version it replaces: its name, body, and which of the new values fill its {{1}}, {{2}}…].
      *
-     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}, previous?: array{name: string, body: string, order: list<int>}}>
+     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}, quick_replies?: list<string>, previous?: array{name: string, body: string, order: list<int>}}>
      */
     private const UTILITY = [
         'order_received' => [
@@ -35,6 +35,19 @@ final class WhatsAppTemplates
             'body' => "تم استلام طلبك رقم {{1}} من {{2}} بإجمالي {{3}} جنيه.\nالمتجر هيتواصل معاك لتأكيد الطلب قبل الشحن.",
             'examples' => ['1024', 'متجر حبة', '450'],
             'button' => ['text' => 'تابع طلبك', 'host' => 'platform', 'path' => 't/{{1}}', 'example' => 'k3x9q2'],
+        ],
+        // Order confirmation (merchant essentials, stage 2): three reply buttons, their payloads set at send time.
+        'order_confirm' => [
+            'name' => 'order_confirm_v1',
+            'body' => "طلبك رقم {{1}} من {{2}} بإجمالي {{3}} جنيه: {{4}}.\nأكّد الطلب عشان نبدأ نجهّزه.",
+            'examples' => ['1024', 'متجر حبة', '450', 'تيشيرت قطن × 2'],
+            'quick_replies' => ['أكّد الطلب', 'الغي الطلب', 'عايز أكلم حد'],
+        ],
+        'order_confirm_reminder' => [
+            'name' => 'order_confirm_reminder_v1',
+            'body' => 'لسه مستنيين تأكيدك لطلبك رقم {{1}} من {{2}} بإجمالي {{3}} جنيه. أكّد عشان نبدأ نجهّزه.',
+            'examples' => ['1024', 'متجر حبة', '450'],
+            'quick_replies' => ['أكّد الطلب', 'الغي الطلب', 'عايز أكلم حد'],
         ],
         'order_shipped' => [
             'name' => 'order_shipped_v1',
@@ -185,6 +198,9 @@ final class WhatsAppTemplates
 
         foreach (self::UTILITY as $template) {
             $components = [['type' => 'BODY', 'text' => $template['body'], 'example' => ['body_text' => [$template['examples']]]]];
+            if (isset($template['quick_replies'])) {
+                $components[] = ['type' => 'BUTTONS', 'buttons' => array_map(fn (string $text): array => ['type' => 'QUICK_REPLY', 'text' => $text], $template['quick_replies'])];
+            }
             if (isset($template['button'])) {
                 $base = self::base($template['button']['host']);
                 $components[] = ['type' => 'BUTTONS', 'buttons' => [[
@@ -213,12 +229,14 @@ final class WhatsAppTemplates
     }
 
     /**
-     * Send-time components for a utility template: the body values, and the link button's value.
+     * Send-time components for a utility template: the body values, the link button's value, and the payload each
+     * reply button sends back when pressed.
      *
      * @param  list<string>  $params
+     * @param  list<string>  $payloads
      * @return list<array<string, mixed>>
      */
-    public static function components(string $key, array $params, ?string $button): array
+    public static function components(string $key, array $params, ?string $button, array $payloads = []): array
     {
         $components = [];
         if ($params !== []) {
@@ -226,6 +244,9 @@ final class WhatsAppTemplates
         }
         if ($button !== null && self::hasButton($key)) {
             $components[] = ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $button]]];
+        }
+        foreach (array_values($payloads) as $i => $payload) {
+            $components[] = ['type' => 'button', 'sub_type' => 'quick_reply', 'index' => (string) $i, 'parameters' => [['type' => 'payload', 'payload' => $payload]]];
         }
 
         return $components;

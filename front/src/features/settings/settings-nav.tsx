@@ -23,7 +23,7 @@ const TABS = [
 /** «الإعدادات» sub-pages as tabs (links, so each one has its own address). */
 export function SettingsNav() {
   const pathname = usePathname();
-  const permissions = useSession().user.permissions;
+  const permissions = useSession().user?.permissions;
   return (
     <nav aria-label={ar.settings.title} className="no-scrollbar mb-6 flex gap-1 overflow-x-auto border-b border-border">
       {TABS.filter((tab) => canOpen(permissions, tab.href)).map((tab) => {

@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\V1\Dashboard\InvoiceController;
 use App\Http\Controllers\Api\V1\Dashboard\LeadController;
 use App\Http\Controllers\Api\V1\Dashboard\MediaController;
 use App\Http\Controllers\Api\V1\Dashboard\OfferController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderConfirmationController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderDeliveryController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderPaymentController;
@@ -275,6 +276,9 @@ Route::prefix('dashboard')
         Route::get('orders', [OrderController::class, 'index']);
         Route::get('orders/stats', [OrderController::class, 'stats']);
         Route::get('orders/confirmation-queue', [OrderController::class, 'confirmationQueue']);
+        // WhatsApp confirmation (docs/plans/merchant-essentials.md, stage 2).
+        Route::get('orders/confirmation-settings', [OrderConfirmationController::class, 'show']);
+        Route::put('orders/confirmation-settings', [OrderConfirmationController::class, 'update']);
         Route::get('orders/export', [OrderController::class, 'export'])->middleware('throttle:orders-export');
         Route::post('orders/bulk-status', [OrderController::class, 'bulkStatus']);
         Route::get('orders/{order}', [OrderController::class, 'show']);

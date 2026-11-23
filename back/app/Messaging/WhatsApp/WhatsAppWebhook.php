@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Messaging\WhatsApp;
 
+use App\Enums\ConfirmState;
+use App\Enums\MessagePurpose;
 use App\Enums\MessageStatus;
 use App\Jobs\SendWhatsAppAutoReply;
+use App\Models\Order;
 use App\Models\OutboundMessage;
+use App\Orders\WhatsAppConfirmations;
+use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -86,6 +91,11 @@ final class WhatsAppWebhook
             $changes['error_title'] = mb_substr((string) (is_string($details) && $details !== '' ? $details : ($error['title'] ?? '')), 0, 255) ?: null;
         }
         $message->update($changes);
+        // A confirmation that never reached the customer: the order goes back to the call center.
+        if ($next === MessageStatus::Failed && $message->order_id !== null && in_array($message->purpose, [MessagePurpose::OrderConfirm, MessagePurpose::OrderConfirmReminder], true)) {
+            // Audited bypass: the order this platform message was about.
+            Tenancy::withoutTenant(fn () => Order::query()->whereKey($message->order_id)->whereIn('confirm_state', [ConfirmState::Sent->value, ConfirmState::Reminded->value])->update(['confirm_state' => ConfirmState::Failed->value]));
+        }
     }
 
     /** @param array<string, mixed> $message */
@@ -96,6 +106,17 @@ final class WhatsAppWebhook
             return;
         }
         $phone = '+'.$from;
+
+        // A confirmation button (or a message while one is open) is handled there, not by the auto-reply.
+        $type = (string) ($message['type'] ?? '');
+        $payload = match ($type) {
+            'button' => is_string($message['button']['payload'] ?? null) ? $message['button']['payload'] : null,
+            'interactive' => is_string($message['interactive']['button_reply']['id'] ?? null) ? $message['interactive']['button_reply']['id'] : null,
+            default => null,
+        };
+        if (app(WhatsAppConfirmations::class)->incoming($phone, $payload, $type === 'text')) {
+            return;
+        }
 
         $key = 'whatsapp-auto-reply:'.$phone;
         if (RateLimiter::tooManyAttempts($key, 1)) {

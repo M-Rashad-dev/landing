@@ -8,6 +8,7 @@ use App\Actions\Orders\ChangeOrderStatus;
 use App\Actions\Orders\LinkCustomer;
 use App\Actions\Orders\RecordOrderContact;
 use App\Enums\BlockType;
+use App\Enums\ConfirmState;
 use App\Enums\ContactResult;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
@@ -120,10 +121,15 @@ final class OrderController extends Controller
     {
         $now = now();
         $base = fn () => Order::query()->where('status', OrderStatus::New);
-        $due = fn () => $base()->where(fn ($q) => $q->whereNull('follow_up_at')->orWhere('follow_up_at', '<=', $now));
+        // Orders waiting for the customer's WhatsApp answer aren't due for a call yet.
+        $waiting = [ConfirmState::Sent->value, ConfirmState::Reminded->value];
+        $due = fn () => $base()->where(fn ($q) => $q->whereNull('confirm_state')->orWhereNotIn('confirm_state', $waiting))->where(fn ($q) => $q->whereNull('follow_up_at')->orWhere('follow_up_at', '<=', $now));
 
         $orders = $base()
             ->with(self::LIST_RELATIONS)
+            // «عايز حد يكلمه» first, those still waiting for a WhatsApp answer last.
+            ->orderByRaw("coalesce(confirm_state, '') = ? desc", [ConfirmState::NeedsCall->value])
+            ->orderByRaw("coalesce(confirm_state, '') in (?, ?)", $waiting)
             ->orderByRaw('(follow_up_at is null or follow_up_at <= ?) desc', [$now])
             ->orderByRaw('follow_up_at is not null')
             ->orderBy('follow_up_at')
@@ -135,6 +141,7 @@ final class OrderController extends Controller
         return $this->ok(OrderResource::collection($orders), [
             'due' => $due()->count(),
             'later' => $base()->where('follow_up_at', '>', $now)->count(),
+            'waiting_whatsapp' => $base()->whereIn('confirm_state', $waiting)->count(),
         ]);
     }
 

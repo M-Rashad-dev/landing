@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Enums\ConfirmState;
 use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Order;
@@ -76,6 +77,14 @@ final class OrderFilters
 
         if ($request->boolean('duplicate')) {
             $query->where('is_duplicate_suspect', true);
+        }
+
+        // WhatsApp confirmation state («waiting» = sent or reminded).
+        $confirm = (string) $request->query('confirm', '');
+        if ($confirm === 'waiting') {
+            $query->whereIn('confirm_state', [ConfirmState::Sent->value, ConfirmState::Reminded->value]);
+        } elseif (in_array($confirm, ConfirmState::values(), true)) {
+            $query->where('confirm_state', $confirm);
         }
 
         // «مدفوعات للمراجعة»: prepaid orders by payment state (review = a receipt waits).

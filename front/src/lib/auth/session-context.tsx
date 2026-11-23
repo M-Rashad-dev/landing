@@ -27,7 +27,7 @@ export function usePlanLimit(key: string): number | null {
 
 /** The signed-in person may do this (owner: always; staff: when given). */
 export function useCan(): (key: string) => boolean {
-  const permissions = React.useContext(SessionContext)?.user.permissions;
+  const permissions = React.useContext(SessionContext)?.user?.permissions;
   return React.useCallback((key: string) => can(permissions, key), [permissions]);
 }
 

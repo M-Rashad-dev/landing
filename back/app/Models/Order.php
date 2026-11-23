@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ConfirmState;
 use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Concerns\BelongsToTenant;
@@ -66,6 +67,9 @@ use Illuminate\Support\Str;
  * @property string|null $payment_method_name
  * @property OrderPaymentState|null $payment_status null for cash on delivery
  * @property Carbon|null $paid_at
+ * @property ConfirmState|null $confirm_state the WhatsApp confirmation (null = none sent)
+ * @property Carbon|null $confirm_sent_at
+ * @property Carbon|null $confirm_replied_at
  * @property Carbon $created_at
  */
 class Order extends Model
@@ -111,6 +115,10 @@ class Order extends Model
             'whatsapp_opt_in' => 'boolean',
             'utm' => 'array',
             'payment_status' => OrderPaymentState::class,
+            'confirm_state' => ConfirmState::class,
+            'confirm_sent_at' => 'datetime',
+            'confirm_reminded_at' => 'datetime',
+            'confirm_replied_at' => 'datetime',
             'paid_at' => 'datetime',
         ];
     }

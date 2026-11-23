@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Billing\PlanCatalog;
+use App\Enums\ConfirmState;
 use App\Enums\NotificationEvent;
 use App\Models\Domain;
 use App\Models\Invoice;
@@ -232,6 +233,21 @@ final class StoreNotices
             [['label' => __('notifications.shipment_problem.order'), 'value' => '#'.$order->order_number]],
             __('notifications.shipment_problem.action'),
             dedupeKey: 'shipment_failed:'.$order->id.':'.now()->format('YmdH'),
+        ));
+    }
+
+    /** A customer answered the WhatsApp confirmation by cancelling, or asked for someone to call him. */
+    public function customerReply(Order $order, ConfirmState $state): void
+    {
+        $key = $state === ConfirmState::Cancelled ? 'cancelled' : 'call';
+        $this->center->toStore($order->tenant_id, new Notice(
+            NotificationEvent::CustomerReply,
+            __('notifications.customer_reply.'.$key.'_title', ['number' => $order->order_number]),
+            __('notifications.customer_reply.'.$key.'_body', ['customer' => (string) ($order->customer_name ?: $order->customer_phone)]),
+            '/dashboard/orders/'.$order->id,
+            [['label' => __('notifications.new_order.number'), 'value' => '#'.$order->order_number]],
+            __('notifications.customer_reply.action'),
+            dedupeKey: 'customer_reply:'.$order->id.':'.$key,
         ));
     }
 

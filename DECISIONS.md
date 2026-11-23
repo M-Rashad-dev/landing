@@ -578,3 +578,9 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **One map, fail-closed**: `config/permissions.php` lists every dashboard route's permission; a route missing there is refused to staff and fails the test suite.
 - **Invitation, not a password from the owner (owner)**: the owner adds name / email / phone / permissions, the person gets an email with a 48-hour link to set his own password.
 - **WhatsApp stays on the platform number (owner, 2026-11-23)**: nothing is built for stores sending from their own number.
+
+## 2026-11-23 — WhatsApp order confirmation (merchant essentials, stage 2)
+- **Free, no limit (owner)**: only cart-recovery WhatsApp messages are paid by the store (message packs); confirmations, order updates and codes stay on the platform.
+- **Buttons, not words**: three quick-reply buttons carry a signed payload (order id + HMAC), so a press is tied to its order and phone; any written answer while a confirmation is open goes to the call center (we never guess intent from text).
+- **«الغي» cancels at once (owner)**, logged as cancelled by the customer; the owner's short replies are sent free inside the 24-hour window the press opened.
+- **Consent unchanged**: only customers who ticked the WhatsApp box (now «أكّد طلبك وتابعه على واتساب») or chose WhatsApp in their account get it.

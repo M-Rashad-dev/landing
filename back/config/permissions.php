@@ -81,6 +81,8 @@ return [
         'GET offers/{offer}' => 'offers.view',
         'GET orders' => 'orders.view',
         'GET orders/confirmation-queue' => 'orders.confirm',
+        'GET orders/confirmation-settings' => 'orders.confirm',
+        'PUT orders/confirmation-settings' => 'orders.auto_confirm',
         'GET orders/export' => 'orders.export',
         'GET orders/stats' => 'orders.view',
         'GET orders/{order}' => 'orders.view',

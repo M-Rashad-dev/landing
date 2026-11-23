@@ -27,6 +27,9 @@ class OrderResource extends JsonResource
             // cod | prepaid; payment_status unpaid | review | paid (null for cash on delivery).
             'payment_method' => $this->payment_method,
             'payment_status' => $this->payment_status?->value,
+            // WhatsApp confirmation: sent / reminded (waiting) / confirmed / cancelled / needs_call / no_reply / failed.
+            'confirm_state' => $this->confirm_state?->value,
+            'confirm_state_label' => $this->confirm_state?->label(),
             'customer_id' => $this->customer_id,
             'customer_name' => $this->customer_name,
             'customer_phone' => $this->customer_phone,

@@ -39,8 +39,9 @@ final class WhatsAppMessenger
      * A utility template from WhatsAppTemplates (by its key) with its values. Throws WhatsAppError.
      *
      * @param  list<string>  $params
+     * @param  list<string>  $payloads  what each reply button sends back (confirmation messages)
      */
-    public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId, ?int $orderId = null): OutboundMessage
+    public function sendTemplate(string $phone, string $key, array $params, ?string $button, MessagePurpose $purpose, ?int $tenantId, ?int $orderId = null, array $payloads = []): OutboundMessage
     {
         $name = WhatsAppTemplates::name($key);
         // A new version waiting for Meta (or put under Marketing): the approved old one goes out.
@@ -53,7 +54,7 @@ final class WhatsAppMessenger
             $phone,
             $name,
             WhatsAppTemplates::LANGUAGE,
-            WhatsAppTemplates::components($key, $params, $button),
+            WhatsAppTemplates::components($key, $params, $button, $payloads),
         ), $orderId);
     }
 
@@ -74,9 +75,9 @@ final class WhatsAppMessenger
     }
 
     /** Free text inside the 24-hour window after the person wrote to us. Throws WhatsAppError. */
-    public function sendText(string $phone, string $body, MessagePurpose $purpose, ?int $tenantId): OutboundMessage
+    public function sendText(string $phone, string $body, MessagePurpose $purpose, ?int $tenantId, ?int $orderId = null): OutboundMessage
     {
-        return $this->deliver($phone, $purpose, null, $tenantId, fn (): string => $this->gateway->sendText($phone, $body));
+        return $this->deliver($phone, $purpose, null, $tenantId, fn (): string => $this->gateway->sendText($phone, $body), $orderId);
     }
 
     /** @param callable(): string $send returns Meta's message id */

@@ -7,6 +7,7 @@ namespace App\Ai\Copilot\Resources;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
+use App\Enums\ConfirmState;
 use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
 use App\Models\Order;
@@ -61,6 +62,8 @@ final class OrdersResource extends CopilotResource
             // Prepaid orders: awaiting_payment until the merchant accepts the receipt (he does it himself, never the copilot).
             Field::enum('payment_method', [Order::COD, Order::PREPAID])->label('الدفع')->labels([Order::COD => 'عند الاستلام', Order::PREPAID => 'مقدمًا'])->filterable(),
             Field::text('payment_method_name')->label('طريقة الدفع'),
+            // WhatsApp confirmation (free, automatic when the store turns it on): sent / reminded = waiting for the answer.
+            Field::enum('confirm_state', ConfirmState::class)->label('تأكيد واتساب')->labels(array_combine(ConfirmState::values(), array_map(fn (ConfirmState $s) => $s->label(), ConfirmState::cases())))->filterable(),
             Field::enum('payment_status', OrderPaymentState::class)->label('حالة الدفع')->labels(array_combine(OrderPaymentState::values(), array_map(fn (OrderPaymentState $s) => $s->label(), OrderPaymentState::cases())))->filterable(),
             Field::text('discount_code')->label('كود الخصم')->filterable(),
             Field::text('shipping_company_name')->label('شركة الشحن'),

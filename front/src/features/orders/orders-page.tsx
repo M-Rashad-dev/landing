@@ -237,6 +237,11 @@ export function OrdersPage() {
       cell: (o) => (
         <span className="flex flex-wrap items-center gap-1.5">
           <OrderStatusBadge status={o.status} />
+          {o.confirm_state === "needs_call" && o.confirm_state_label ? (
+            <Badge tone="attention" size="sm">
+              {o.confirm_state_label}
+            </Badge>
+          ) : null}
           {o.payment_status === "review" ? (
             <Badge tone="attention" size="sm">
               {t.receiptToReview}

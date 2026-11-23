@@ -29,7 +29,7 @@ final class PermissionCatalog
         'home' => ['label' => 'الرئيسية', 'group' => 'عام', 'actions' => ['view' => 'عرض']],
         'copilot' => ['label' => 'مساعد مكسب الذكي', 'group' => 'عام', 'actions' => ['use' => 'استخدام']],
         'orders' => ['label' => 'الطلبات', 'group' => 'المبيعات', 'actions' => [
-            'view' => 'عرض', 'update' => 'تعديل بيانات العميل والملاحظات', 'status' => 'تغيير الحالة', 'confirm' => 'طابور التأكيد',
+            'view' => 'عرض', 'update' => 'تعديل بيانات العميل والملاحظات', 'status' => 'تغيير الحالة', 'confirm' => 'طابور التأكيد', 'auto_confirm' => 'إعدادات التأكيد على واتساب',
             'export' => 'تصدير', 'ship' => 'الشحن مع شركات الشحن', 'payments' => 'مراجعة إيصالات الدفع', 'deliveries' => 'تسليم المنتجات الرقمية',
         ]],
         'abandoned' => ['label' => 'الطلبات المتروكة', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'delete' => 'حذف']],

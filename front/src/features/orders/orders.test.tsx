@@ -103,6 +103,7 @@ describe("ConfirmQueue", () => {
     };
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (String(url).includes("confirmation-queue")) return Response.json({ data: [row], meta: { due: 1, later: 0 } });
+      if (String(url).includes("confirmation-settings")) return Response.json({ data: { available: false, enabled: false, delay_minutes: 0, reminder_hours: 6, final_hours: 24, on_timeout: "keep", stats: { sent: 0, reminded: 0, confirmed: 0, cancelled: 0, needs_call: 0, no_reply: 0, failed: 0 } } });
       if (init?.method === "POST") return Response.json({ data: { ...detail, status: "confirmed" } });
       return Response.json({ data: detail });
     });

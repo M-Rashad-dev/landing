@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { BarChart3, Bell, Bot, CalendarClock, CheckCheck, Globe, Headset, MailWarning, PackageMinus, ReceiptText, ShoppingBag, Store, TableProperties, Truck, Undo2, Wallet, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, Bot, CalendarClock, CheckCheck, Globe, Headset, MailWarning, MessageCircle, PackageMinus, ReceiptText, ShoppingBag, Store, TableProperties, Truck, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const ICONS: Record<string, { icon: LucideIcon; tone: string }> = {
   shipment_problem: { icon: Truck, tone: "bg-warning-soft text-warning" },
   mailbox_failed: { icon: MailWarning, tone: "bg-danger-soft text-danger" },
   payment_receipt: { icon: ReceiptText, tone: "bg-accent-soft text-accent-ink" },
+  customer_reply: { icon: MessageCircle, tone: "bg-warning-soft text-warning" },
   receipt_submitted: { icon: ReceiptText, tone: "bg-accent-soft text-accent-ink" },
   refund_requested: { icon: Undo2, tone: "bg-danger-soft text-danger" },
   store_registered: { icon: Store, tone: "bg-brand-soft text-brand-strong" },
