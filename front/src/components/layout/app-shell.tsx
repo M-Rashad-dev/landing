@@ -36,6 +36,7 @@ export function AppShell({
   bellExtraCount = 0,
   headerExtra,
   sidePanel,
+  permissions,
 }: {
   children: React.ReactNode;
   account: ShellAccount;
@@ -51,6 +52,8 @@ export function AppShell({
   headerExtra?: React.ReactNode;
   /** A panel docked beside the page at the end side (the copilot drawer); it draws nothing when closed. */
   sidePanel?: React.ReactNode;
+  /** Staff: the pages / actions they may use (undefined = everything). */
+  permissions?: readonly string[];
 }) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -84,7 +87,7 @@ export function AppShell({
     <TooltipProvider>
       <div className="flex min-h-dvh">
         <aside className={cn("sticky top-0 hidden h-dvh shrink-0 transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]")}>
-          <Sidebar collapsed={collapsed} onToggle={toggle} area={area} badges={badges} />
+          <Sidebar collapsed={collapsed} onToggle={toggle} area={area} badges={badges} permissions={permissions} />
         </aside>
 
         <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -96,7 +99,7 @@ export function AppShell({
             >
               <DialogPrimitive.Title className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Title>
               <DialogPrimitive.Description className="sr-only">{ar.nav.openMenu}</DialogPrimitive.Description>
-              <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} area={area} badges={badges} />
+              <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} area={area} badges={badges} permissions={permissions} />
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
@@ -160,7 +163,7 @@ export function AppShell({
         </div>
         {sidePanel}
       </div>
-      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} area={area} />
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} area={area} permissions={permissions} />
     </TooltipProvider>
     </ShellContext.Provider>
   );

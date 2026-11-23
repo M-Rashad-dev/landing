@@ -81,6 +81,7 @@ return [
         'webhooks' => 10,
         'ab_tests' => 20,
         'store_categories' => 500,
+        'staff_accounts' => 50,
         'store_pages' => 50,
         'category_depth' => 5,
         'upload_max_kb' => 5 * 1024,

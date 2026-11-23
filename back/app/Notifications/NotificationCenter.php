@@ -29,7 +29,9 @@ final class NotificationCenter
     public function toStore(int $tenantId, Notice $notice): void
     {
         $this->safely(function () use ($tenantId, $notice): void {
-            $users = User::query()->where('tenant_id', $tenantId)->where('is_active', true)->get();
+            $users = User::query()->where('tenant_id', $tenantId)->where('is_active', true)->get()
+                // Staff only hear about what their permissions cover.
+                ->filter(fn (User $u) => $u->allows($notice->event->permission()));
             foreach ($users as $user) {
                 $row = $this->bell($user, $tenantId, $notice);
                 if ($row !== null) {

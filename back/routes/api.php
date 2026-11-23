@@ -57,6 +57,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ShipmentController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
+use App\Http\Controllers\Api\V1\Dashboard\StaffController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreDesignController;
@@ -98,6 +99,9 @@ Route::prefix('auth')->group(function (): void {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('password/code', [AuthController::class, 'passwordCode'])->middleware('throttle:password-code');
     Route::post('password/reset', [AuthController::class, 'passwordReset'])->middleware('throttle:password-reset');
+    // A new staff member sets his password from the invitation link.
+    Route::post('invitation/check', [AuthController::class, 'invitation'])->middleware('throttle:password-reset');
+    Route::post('invitation/accept', [AuthController::class, 'acceptInvitation'])->middleware('throttle:password-reset');
 
     Route::middleware(['auth:sanctum', 'tenant.active'])->group(function (): void {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -106,7 +110,7 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::prefix('dashboard')
-    ->middleware(['auth:sanctum', 'tenant.user', 'tenant.active', 'plan.writable', 'throttle:dashboard'])
+    ->middleware(['auth:sanctum', 'tenant.user', 'tenant.active', 'staff.can', 'plan.writable', 'throttle:dashboard'])
     ->group(function (): void {
         // The owner's own account stays editable on an expired plan.
         Route::patch('profile', [AccountController::class, 'updateProfile'])->withoutMiddleware('plan.writable');
@@ -326,6 +330,16 @@ Route::prefix('dashboard')
         Route::put('mail-settings', [StoreMailController::class, 'update'])->middleware('throttle:mail-checks');
         Route::delete('mail-settings/mailbox', [StoreMailController::class, 'forget']);
         Route::post('mail-settings/test', [StoreMailController::class, 'test'])->middleware('throttle:mail-checks');
+
+        // «الموظفين» and «سجل النشاط» (docs/plans/merchant-essentials.md, stage 1).
+        Route::get('staff', [StaffController::class, 'index']);
+        Route::get('staff/permissions', [StaffController::class, 'permissions']);
+        Route::post('staff', [StaffController::class, 'store']);
+        Route::put('staff/{staff}', [StaffController::class, 'update'])->whereNumber('staff');
+        Route::post('staff/{staff}/toggle', [StaffController::class, 'toggle'])->whereNumber('staff');
+        Route::post('staff/{staff}/resend', [StaffController::class, 'resend'])->whereNumber('staff')->middleware('throttle:mail-checks');
+        Route::delete('staff/{staff}', [StaffController::class, 'destroy'])->whereNumber('staff');
+        Route::get('activity', [StaffController::class, 'activity']);
 
         Route::get('pixels', [PixelController::class, 'show']);
         Route::put('pixels', [PixelController::class, 'update']);

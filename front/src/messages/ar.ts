@@ -10,6 +10,7 @@ import { auth } from "./ar/auth";
 import { bidaya } from "./ar/themes/landing/bidaya";
 import { carriers } from "./ar/carriers";
 import { mail } from "./ar/mail";
+import { staff } from "./ar/staff";
 import { catalog } from "./ar/catalog";
 import { common } from "./ar/common";
 import { copilot } from "./ar/copilot";
@@ -38,4 +39,4 @@ import { shabeStore } from "./ar/themes/store/shabe";
 import { sufi } from "./ar/themes/store/sufi";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, carriers, mail, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, shabeStore, notifications, aiDesigner, copilot } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, promotions, shipping, carriers, mail, staff, orders, home, settings, storefront, design, reviews, storePages, analytics, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, shabeStore, notifications, aiDesigner, copilot } as const;

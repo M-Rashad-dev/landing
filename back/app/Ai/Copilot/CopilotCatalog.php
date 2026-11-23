@@ -96,17 +96,35 @@ final class CopilotCatalog
         return $this->items = $items;
     }
 
-    /** @return array<string, CopilotCapability> what this store may use now */
+    /** @return array<string, CopilotCapability> what this store may use now, and the signed-in person may see */
     public function available(CopilotContext $ctx): array
     {
-        return array_filter($this->all(), fn (CopilotCapability $c) => $c->available($ctx));
+        return array_filter($this->all(), fn (CopilotCapability $c) => $c->available($ctx) && self::permits($c->key(), $ctx));
     }
 
     public function find(string $key, CopilotContext $ctx): ?CopilotCapability
     {
         $item = $this->all()[$key] ?? null;
 
-        return $item !== null && $item->available($ctx) ? $item : null;
+        return $item !== null && $item->available($ctx) && self::permits($key, $ctx) ? $item : null;
+    }
+
+    /**
+     * Staff use only what their permissions allow (config/permissions.php «copilot»: [read, create, update]); a
+     * capability missing there is refused to staff. The owner (and contexts without a person) may use everything.
+     *
+     * @param  int  $what  0 read / run, 1 create, 2 update
+     */
+    public static function permits(string $key, CopilotContext $ctx, int $what = 0): bool
+    {
+        $user = $ctx->user;
+        if ($user === null || ! $user->isStaff()) {
+            return true;
+        }
+        $map = (array) config('permissions.copilot.'.$key, []);
+        $permission = $map[$what] ?? $map[0] ?? null;
+
+        return is_string($permission) && $user->allows('copilot.use') && $user->allows($permission);
     }
 
     public function resource(string $key, CopilotContext $ctx): ?CopilotResource

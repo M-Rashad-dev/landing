@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Actions\Auth\LoginUser;
 use App\Actions\Auth\PasswordReset;
 use App\Actions\Auth\RegisterTenant;
+use App\Auth\StaffAccounts;
 use App\Billing\Entitlements;
 use App\Billing\PlanPresenter;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\PasswordCodeRequest;
@@ -78,6 +80,32 @@ final class AuthController extends Controller
         }
 
         return $this->noContent();
+    }
+
+    /** The staff invitation link: whose it is (to greet him), or 410 when it can't be used. */
+    public function invitation(Request $request, StaffAccounts $staff): JsonResponse
+    {
+        $data = $request->validate(['token' => ['required', 'string', 'size:48']]);
+        $row = $staff->invitation((string) $data['token']) ?? throw new ApiException(410, 'invitation_invalid', __('staff.link_invalid'));
+
+        return $this->ok(['name' => $row->user->name, 'email' => $row->user->email, 'store' => $row->user->tenant?->name]);
+    }
+
+    /** He sets his password from the link and is signed in (same answer as a login). */
+    public function acceptInvitation(Request $request, StaffAccounts $staff): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string', 'size:48'],
+            'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
+        ]);
+        $result = $staff->accept((string) $data['token'], (string) $data['password']);
+        $user = $result['user'];
+
+        return $this->ok([
+            'user' => UserResource::make($user)->resolve($request),
+            'tenant' => $user->tenant ? TenantResource::make($user->tenant)->resolve($request) : null,
+            'token' => $result['token'],
+        ]);
     }
 
     public function me(Request $request): JsonResponse

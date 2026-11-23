@@ -1,4 +1,5 @@
 import { BadgeDollarSign, BarChart3, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
+import { canOpen } from "@/lib/auth/permissions";
 import { ar } from "@/messages/ar";
 
 const t = ar.nav;
@@ -107,8 +108,15 @@ export const ADMIN_FOOTER_NAV: NavItem[] = [
 export type NavArea = "dashboard" | "admin";
 
 /** The sidebar of each area (client components pick it by name: icons cannot cross from the server). */
-export function navigationOf(area: NavArea): { groups: NavGroup[]; footer: NavItem[]; home: string } {
-  return area === "admin" ? { groups: ADMIN_NAV, footer: ADMIN_FOOTER_NAV, home: "/admin" } : { groups: DASHBOARD_NAV, footer: DASHBOARD_FOOTER_NAV, home: "/dashboard/components" };
+/** The pages of an area; staff see only those their permissions open (`permissions` undefined = all). */
+export function navigationOf(area: NavArea, permissions?: readonly string[]): { groups: NavGroup[]; footer: NavItem[]; home: string } {
+  if (area === "admin") return { groups: ADMIN_NAV, footer: ADMIN_FOOTER_NAV, home: "/admin" };
+  const open = (item: NavItem) => canOpen(permissions, item.href);
+  return {
+    groups: DASHBOARD_NAV.map((g) => ({ ...g, items: g.items.filter(open) })).filter((g) => g.items.length > 0),
+    footer: DASHBOARD_FOOTER_NAV.filter(open),
+    home: "/dashboard/components",
+  };
 }
 
 export function isActive(pathname: string, item: Pick<NavItem, "href" | "exact">): boolean {

@@ -80,6 +80,9 @@ final class TenantController extends Controller
             'suspended_at' => $model->suspended_at?->toIso8601ZuluString(),
             'suspended_reason' => $model->suspended_reason,
             'domains' => DomainResource::collection($model->domains)->resolve($request),
+            // The store's staff accounts (the plan's staff limit is set in «الباقات»).
+            'staff' => User::query()->where('tenant_id', $model->id)->where('role', UserRole::Staff)->orderBy('id')->get(['id', 'name', 'email', 'phone', 'is_active', 'locked_by_plan', 'accepted_at', 'last_login_at'])
+                ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'phone' => $u->phone, 'state' => $u->locked_by_plan ? 'locked' : (! $u->is_active ? 'stopped' : ($u->accepted_at === null ? 'invited' : 'active')), 'last_login_at' => $u->last_login_at?->toIso8601ZuluString()])->all(),
         ]);
     }
 

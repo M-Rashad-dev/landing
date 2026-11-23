@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { Session } from "@/lib/types/session";
+import { can } from "./permissions";
 
 type ClientSession = Pick<Session, "user" | "tenant" | "plan" | "store_name"> & { storeUrl: string | null };
 
@@ -22,6 +23,12 @@ export function useSession(): ClientSession {
 export function usePlanLimit(key: string): number | null {
   const limit = useSession().plan?.limits[key];
   return !limit || limit.unlimited ? null : limit.limit;
+}
+
+/** The signed-in person may do this (owner: always; staff: when given). */
+export function useCan(): (key: string) => boolean {
+  const permissions = React.useContext(SessionContext)?.user.permissions;
+  return React.useCallback((key: string) => can(permissions, key), [permissions]);
 }
 
 export function usePlanFeature(key: string): boolean {

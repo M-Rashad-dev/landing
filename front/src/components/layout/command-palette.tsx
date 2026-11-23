@@ -14,7 +14,7 @@ export type QuickResult = { id: string; group: string; label: string; hint?: str
  * Ctrl+K / ⌘K from anywhere: jump to a page now; orders by number, customers by phone and
  * products by name join through `extraResults` when those parts are built (server search).
  */
-export function CommandPalette({ open, onOpenChange, extraResults = [], area = "dashboard" }: { open: boolean; onOpenChange: (open: boolean) => void; extraResults?: QuickResult[]; area?: NavArea }) {
+export function CommandPalette({ open, onOpenChange, extraResults = [], area = "dashboard", permissions }: { open: boolean; onOpenChange: (open: boolean) => void; extraResults?: QuickResult[]; area?: NavArea; permissions?: readonly string[] }) {
   const router = useRouter();
 
   React.useEffect(() => {
@@ -28,7 +28,7 @@ export function CommandPalette({ open, onOpenChange, extraResults = [], area = "
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onOpenChange]);
 
-  const nav = navigationOf(area);
+  const nav = navigationOf(area, permissions);
   const pages = [...nav.groups.flatMap((g) => g.items), ...nav.footer];
   const groups = Array.from(new Set(extraResults.map((r) => r.group)));
 

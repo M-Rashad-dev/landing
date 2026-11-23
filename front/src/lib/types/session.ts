@@ -1,6 +1,6 @@
 /** Shapes of /auth/me (dates are ISO 8601 UTC strings). */
 
-export type UserRole = "owner" | "super_admin";
+export type UserRole = "owner" | "staff" | "super_admin";
 
 export type User = {
   id: number;
@@ -8,6 +8,8 @@ export type User = {
   email: string;
   phone: string;
   role: UserRole;
+  /** What he may see and do (App\Auth\PermissionCatalog keys); the owner: ["*"]. */
+  permissions?: string[];
   last_login_at: string | null;
 };
 

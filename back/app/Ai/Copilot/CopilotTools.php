@@ -311,6 +311,9 @@ final class CopilotTools
     private function createRecords(array $args, CopilotContext $ctx): ToolResult
     {
         $resource = $this->catalog->resource((string) ($args['resource'] ?? ''), $ctx);
+        if ($resource !== null && ! CopilotCatalog::permits($resource->key(), $ctx, 1)) {
+            return ToolResult::error('This person may not create '.$resource->key().' (no permission). Tell him to ask the store owner.');
+        }
         if ($resource === null || ! $resource->creatable()) {
             return ToolResult::error('Records can be created for: '.implode(', ', array_keys(array_filter($this->catalog->resources($ctx), fn ($r) => $r->creatable()))).'.');
         }
@@ -323,6 +326,9 @@ final class CopilotTools
     private function updateRecords(array $args, CopilotContext $ctx): ToolResult
     {
         $resource = $this->catalog->resource((string) ($args['resource'] ?? ''), $ctx);
+        if ($resource !== null && ! CopilotCatalog::permits($resource->key(), $ctx, 2)) {
+            return ToolResult::error('This person may not change '.$resource->key().' (no permission). Tell him to ask the store owner.');
+        }
         if ($resource === null || ! $resource->writable()) {
             return ToolResult::error('Records can be changed for: '.implode(', ', array_keys(array_filter($this->catalog->resources($ctx), fn ($r) => $r->writable()))).'.');
         }

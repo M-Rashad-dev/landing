@@ -20,6 +20,8 @@ final class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'role' => $this->role->value,
+            // Staff: what they may see and do (the owner: everything, «*»).
+            'permissions' => $this->isStaff() ? $this->getPermissionNames()->sort()->values()->all() : ['*'],
             'last_login_at' => $this->last_login_at?->toIso8601ZuluString(),
         ];
     }

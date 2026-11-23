@@ -20,6 +20,7 @@ import { labelsUrl, stateTone, useCarriers } from "@/features/shipping/carriers-
 import { errorMessage } from "@/lib/api/errors";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { useUrlState } from "@/lib/use-url-state";
+import { useCan } from "@/lib/auth/session-context";
 import { ar } from "@/messages/ar";
 import {
   exportOrders,
@@ -45,6 +46,7 @@ const t = ar.orders;
 const KEYS = ["tab", "q", "from", "to", "preset", "gov", "source", "company", "dup", "sort", "page"] as const;
 
 export function OrdersPage() {
+  const can = useCan();
   const router = useRouter();
   const [url, setUrl] = useUrlState(KEYS);
   const [search, setSearch] = React.useState(url.q);
@@ -252,16 +254,20 @@ export function OrdersPage() {
         description={t.description}
         actions={
           <>
-            <Button asChild>
-              <Link href="/dashboard/orders/confirm">
-                <PhoneCall />
-                {t.queue.open(queue.data?.meta.due ?? 0)}
-              </Link>
-            </Button>
-            <Button variant="outline" onClick={() => void onExport()} loading={exporting}>
-              <Download />
-              {exporting ? t.exporting : t.export}
-            </Button>
+            {can("orders.confirm") ? (
+              <Button asChild>
+                <Link href="/dashboard/orders/confirm">
+                  <PhoneCall />
+                  {t.queue.open(queue.data?.meta.due ?? 0)}
+                </Link>
+              </Button>
+            ) : null}
+            {can("orders.export") ? (
+              <Button variant="outline" onClick={() => void onExport()} loading={exporting}>
+                <Download />
+                {exporting ? t.exporting : t.export}
+              </Button>
+            ) : null}
           </>
         }
         tabs={
@@ -381,11 +387,13 @@ export function OrdersPage() {
             onSelectedChange={setSelected}
             bulkActions={
               <>
-                <Button size="sm" variant="outline" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
-                  <ArrowLeftRight />
-                  {t.bulk.changeStatus}
-                </Button>
-                {canShip ? (
+                {can("orders.status") ? (
+                  <Button size="sm" variant="outline" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
+                    <ArrowLeftRight />
+                    {t.bulk.changeStatus}
+                  </Button>
+                ) : null}
+                {canShip && can("orders.ship") ? (
                   <>
                     <Button size="sm" variant="outline" disabled={!selectedRows.some((r) => r.status === "confirmed")} onClick={() => setShipOpen(true)}>
                       <Truck />

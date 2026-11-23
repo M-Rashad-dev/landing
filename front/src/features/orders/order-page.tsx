@@ -25,7 +25,7 @@ import { DeliveriesCard } from "./deliveries-card";
 import { PaymentCard } from "./payment-card";
 import { ShippingCard } from "./shipment-card";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
-import { useSession } from "@/lib/auth/session-context";
+import { useSession, useCan } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { zPhone, zRequiredString } from "@/lib/validation";
 import { ar } from "@/messages/ar";
@@ -37,6 +37,7 @@ const t = ar.orders;
 const d = t.detail;
 
 export function OrderPage({ id }: { id: number }) {
+  const can = useCan();
   const session = useSession();
   const query = useOrder(id);
   const refresh = useRefreshOrders();
@@ -91,10 +92,12 @@ export function OrderPage({ id }: { id: number }) {
                 {d.print}
               </Link>
             </Button>
-            <Button onClick={() => setChanging(true)} disabled={order.allowed_transitions.length === 0}>
-              <ArrowLeftRight />
-              {t.status.change}
-            </Button>
+            {can("orders.status") ? (
+              <Button onClick={() => setChanging(true)} disabled={order.allowed_transitions.length === 0}>
+                <ArrowLeftRight />
+                {t.status.change}
+              </Button>
+            ) : null}
           </>
         }
       />

@@ -571,3 +571,10 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **Codes**: encrypted at rest, one entry per unit and never the same entry twice in one purchase, in the merchant's order; uses_left is the stock (the public page shows it like product / variant stock). They never reach webhooks, Sheets, exports or the copilot (the copilot's add-codes change keeps them encrypted and shows a count).
 - **Links**: opened through `/api/public/open/{token}` (counted); once the real URL is open the customer can keep it, so the count limits access through us, not the content (owner told; files are the protected option).
 - **Files**: private, streamed through Next to the buyer only with the delivery token, counted before each download; used up → a readable page; the merchant can grant more per order.
+
+## 2026-11-23 — Staff accounts and permissions (merchant essentials, stage 1)
+- **spatie/laravel-permission (owner's choice)**: permissions given directly to users (a user belongs to one store, so no teams); the catalog lives in code (`App\Auth\PermissionCatalog`) and is synced on deploy.
+- **Everything is a permission (owner)**: every dashboard page and its actions (view / create / update / delete / export / …), domains and billing included; the owner holds all of them and can't be edited; a staff member who manages staff can give only what he holds.
+- **One map, fail-closed**: `config/permissions.php` lists every dashboard route's permission; a route missing there is refused to staff and fails the test suite.
+- **Invitation, not a password from the owner (owner)**: the owner adds name / email / phone / permissions, the person gets an email with a 48-hour link to set his own password.
+- **WhatsApp stays on the platform number (owner, 2026-11-23)**: nothing is built for stores sending from their own number.

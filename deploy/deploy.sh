@@ -52,6 +52,8 @@ wait_healthy back-app 120
 
 step "Migrating and seeding (themes, plans, payment methods, platform pages, your admin account)"
 docker compose exec -T back-app php artisan migrate --force
+# New staff permissions (pages / actions added by the update) for the owner to give.
+docker compose exec -T back-app php artisan permissions:sync
 docker compose exec -T back-app php artisan db:seed --force
 docker compose exec -T back-app php artisan db:seed --class='Database\Seeders\PlatformAdminSeeder' --force
 

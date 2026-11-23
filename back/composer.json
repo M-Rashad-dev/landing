@@ -15,7 +15,8 @@
         "laravel/reverb": "^1.13",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
-        "sabberworm/php-css-parser": "^9.5"
+        "sabberworm/php-css-parser": "^9.5",
+        "spatie/laravel-permission": "^8.5"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

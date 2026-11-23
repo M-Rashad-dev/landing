@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { canOpen } from "@/lib/auth/permissions";
+import { useSession } from "@/lib/auth/session-context";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
@@ -14,14 +16,17 @@ const TABS = [
   { href: "/dashboard/settings/integrations", key: "integrations" },
   { href: "/dashboard/settings/payments", key: "payments" },
   { href: "/dashboard/settings/emails", key: "emails" },
+  { href: "/dashboard/settings/staff", key: "staff" },
+  { href: "/dashboard/settings/activity", key: "activity" },
 ] as const;
 
 /** «الإعدادات» sub-pages as tabs (links, so each one has its own address). */
 export function SettingsNav() {
   const pathname = usePathname();
+  const permissions = useSession().user.permissions;
   return (
     <nav aria-label={ar.settings.title} className="no-scrollbar mb-6 flex gap-1 overflow-x-auto border-b border-border">
-      {TABS.map((tab) => {
+      {TABS.filter((tab) => canOpen(permissions, tab.href)).map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
           <Link

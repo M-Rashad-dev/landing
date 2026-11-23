@@ -34,6 +34,22 @@ enum NotificationEvent: string
     /** The AI paused itself after failures in a row (bell only). */
     case AiPaused = 'ai_paused';
 
+    /** The permission a staff member needs to get it (the owner gets every store event). */
+    public function permission(): string
+    {
+        return match ($this) {
+            self::NewOrder, self::ShipmentProblem => 'orders.view',
+            self::LowStock => 'products.view',
+            self::ImportDone => 'products.import',
+            self::PaymentReceipt => 'orders.payments',
+            self::SupportReply => 'support.use',
+            self::DomainReady => 'domains.view',
+            self::AiLowBalance => 'ai_wallet.view',
+            self::MailboxFailed => 'emails.view',
+            default => 'billing.view',
+        };
+    }
+
     /** @return list<string> */
     public static function values(): array
     {

@@ -15,12 +15,15 @@ import { ar } from "@/messages/ar";
  * The active page gets the orange marker on its start edge.
  */
 export function Sidebar({
+  permissions,
   collapsed,
   onToggle,
   onNavigate,
   area = "dashboard",
   badges = {},
 }: {
+  /** Staff: only the pages these open. */
+  permissions?: readonly string[];
   collapsed: boolean;
   onToggle?: () => void;
   onNavigate?: () => void;
@@ -29,7 +32,7 @@ export function Sidebar({
   badges?: Record<string, number>;
 }) {
   const pathname = usePathname();
-  const nav = navigationOf(area);
+  const nav = navigationOf(area, permissions);
 
   return (
     <nav aria-label={ar.nav.openMenu} className="flex h-full flex-col border-e border-border bg-surface">

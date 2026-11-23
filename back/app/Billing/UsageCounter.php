@@ -7,6 +7,7 @@ namespace App\Billing;
 use App\Enums\AbTestStatus;
 use App\Enums\DomainType;
 use App\Enums\PlanLimit;
+use App\Enums\UserRole;
 use App\Models\AbTest;
 use App\Models\Category;
 use App\Models\DiscountCode;
@@ -16,7 +17,9 @@ use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Product;
 use App\Models\ProductFile;
+use App\Models\User;
 use App\Models\Webhook;
+use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -59,6 +62,8 @@ final class UsageCounter
             PlanLimit::DiscountCodes => DiscountCode::query(),
             PlanLimit::Webhooks => Webhook::query(),
             PlanLimit::AbTests => AbTest::query()->where('status', AbTestStatus::Running),
+            // Users aren't tenant-scoped: filtered to the current store by hand.
+            PlanLimit::StaffAccounts => User::query()->where('tenant_id', Tenancy::id())->where('role', UserRole::Staff),
             PlanLimit::MediaStorageMb => throw new \LogicException('Media storage is a sum, not rows.'),
         };
     }

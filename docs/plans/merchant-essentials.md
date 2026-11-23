@@ -238,3 +238,20 @@ Open: the confirmation messages (stage 2) cost the platform per message — free
 message balance? (asked before stage 2).
 
 ## PROGRESS LOG
+- **2026-11-23 — Stage 1 staff accounts, built.** `spatie/laravel-permission` (direct user permissions, guard `web`,
+  `HasRoles` on User); `UserRole::Staff`; users `invited_by` / `invited_at` / `accepted_at` / `locked_by_plan`;
+  `staff_invitations` (sha256 token, 48 h, once); `activity_logs` (180 days, `activity:prune`). `App\Auth\PermissionCatalog`
+  (28 pages × their actions, Arabic labels, `permissions:sync` — run by the migration and by deploy.sh); every dashboard
+  route mapped in `config/permissions.php` («routes»: 247, @any for shared lookups, @self for the person's own things) and
+  checked by `EnforceStaffPermissions` on the dashboard group (fail-closed; a test fails on any unmapped route); it also
+  writes the activity log for every successful change, sign-ins too. `App\Auth\StaffAccounts`: add (plan limit
+  `staff_accounts`: basic 1 · pro 3 · max 10, admin-editable; downgrades lock the extra staff through PlanLocks), edit,
+  stop (tokens revoked), delete, resend; nobody gives what he doesn't hold or touches the owner. Invitation email →
+  `/invite/{token}` (Next `/api/auth/invitation/check|accept`, the token kept in the cookie like a login). `/auth/me`
+  returns the permissions (owner `["*"]`). Notifications go to people whose permissions cover the event
+  (`NotificationEvent::permission()`). Copilot: capabilities filtered by the person's permissions
+  (`config/permissions.php` «copilot»: read / create / update), report `staff` (staff + latest activity). Admin store page
+  lists the staff. Front: sidebar / quick search / settings tabs filtered, `PermissionGate` («مش مسموح لك», home →
+  first allowed page), `useCan()` hides the main buttons (products add / import, orders export / status / ship, the
+  confirmation queue), «الإعدادات ← الموظفين» (permission tree with presets) and «سجل النشاط». Tests:
+  `tests/Feature/Staff/StaffTest.php`, `front/src/features/settings/staff.test.tsx`.

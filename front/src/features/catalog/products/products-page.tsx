@@ -15,7 +15,7 @@ import { ConfirmDialog, Dialog, DialogBody, DialogContent, DialogFooter, DialogH
 import { Select } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { errorMessage, isApiError } from "@/lib/api/errors";
-import { usePlanLimit, useSession } from "@/lib/auth/session-context";
+import { usePlanLimit, useSession, useCan } from "@/lib/auth/session-context";
 import { useUrlState } from "@/lib/use-url-state";
 import { ar } from "@/messages/ar";
 import { pathOf, useCategories } from "../categories/api";
@@ -26,6 +26,7 @@ import { ProductCard } from "./product-card";
 const t = ar.catalog.products;
 
 export function ProductsPage() {
+  const can = useCan();
   const router = useRouter();
   const session = useSession();
   const limit = usePlanLimit("products");
@@ -106,18 +107,22 @@ export function ProductsPage() {
         description={t.description}
         actions={
           <>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/catalog/products/import">
-                <FileUp />
-                {ar.imports.open}
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/catalog/products/new">
-                <Plus />
-                {t.add}
-              </Link>
-            </Button>
+            {can("products.import") ? (
+              <Button asChild variant="outline">
+                <Link href="/dashboard/catalog/products/import">
+                  <FileUp />
+                  {ar.imports.open}
+                </Link>
+              </Button>
+            ) : null}
+            {can("products.create") ? (
+              <Button asChild>
+                <Link href="/dashboard/catalog/products/new">
+                  <Plus />
+                  {t.add}
+                </Link>
+              </Button>
+            ) : null}
           </>
         }
         tabs={

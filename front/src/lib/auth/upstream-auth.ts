@@ -10,7 +10,7 @@ import { isSecureRequest, setTokenCookie } from "./cookie";
  * forward the JSON body to Laravel, keep the token in an httpOnly cookie,
  * and never expose the token to the browser.
  */
-export async function forwardAuth(request: NextRequest, laravelPath: "/auth/login" | "/auth/register"): Promise<NextResponse> {
+export async function forwardAuth(request: NextRequest, laravelPath: "/auth/login" | "/auth/register" | "/auth/invitation/accept"): Promise<NextResponse> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
 
   const env = serverEnv();
@@ -45,7 +45,7 @@ export async function forwardAuth(request: NextRequest, laravelPath: "/auth/logi
 }
 
 /** "Forgot my password" (signed out, no cookie involved): forwards the JSON body and relays Laravel's answer. */
-export async function forwardPasswordReset(request: NextRequest, laravelPath: "/auth/password/code" | "/auth/password/reset"): Promise<NextResponse> {
+export async function forwardPasswordReset(request: NextRequest, laravelPath: "/auth/password/code" | "/auth/password/reset" | "/auth/invitation/check"): Promise<NextResponse> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
 
   const env = serverEnv();
