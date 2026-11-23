@@ -4,88 +4,82 @@ Owner, 2026-11-23: build 1 (staff accounts), 2 (order confirmation on WhatsApp),
 cart recovery), 7 (refunds). Every stage stops for review. Plus the owner's question: can the WhatsApp messages
 go from the store's own number instead of ours (§0).
 
-## 0. WhatsApp: whose number sends
-**Today**: every message (order updates, merchant alerts) goes from the platform's single number (Mksab WABA, see
-memory «WhatsApp Cloud API setup»). The customer sees «مكسب» as the sender and the store's name in the text.
-
-**The store's own number is possible**, through Meta's **Embedded Signup** (the merchant connects his own WhatsApp
-Business account and number to our Meta app in a popup; we then send on his `phone_number_id`):
-- We must become a Meta **Tech Provider**: our Meta business verified (commercial register / tax papers), the app
-  reviewed for `whatsapp_business_messaging` + `whatsapp_business_management` advanced access, Embedded Signup v4+
-  with session logging. Without verification this path is closed (the reason it was not done so far).
-- **Coexistence**: a number already on the WhatsApp Business **app** can stay on the app and be used by the API at the
-  same time (Business app ≥ 2.24.17, chats synced). Availability per country changes: check Egypt in Meta's docs at
-  build time. Without coexistence the number must leave the app (a new number for the store is the simple case).
-- Each merchant's number has its own **templates** (we create and submit them by API at connection) and its own
-  messaging limits and quality rating.
-- **Billing**: the merchant adds his own card in WhatsApp Manager and Meta charges him per message; the platform pays
-  nothing for his messages.
-- Customers' replies land on **his** number (button presses still reach our webhook through the app subscription).
-
-**Decision proposed**: build the sender as a per-store layer now (like `StoreMailer` for email): `WhatsAppSender` →
-the store's connected number when there is one, else the platform number. Ship everything on the platform number
-first (works today, «مكسب» branding); add «اربط رقم واتساب متجرك» (Embedded Signup) as its own stage once the owner
-has the papers and Meta approves us as Tech Provider. Nothing in stages 2 / 4 changes then.
-
-**Cost on the platform number**: Meta charges per delivered template message (utility for order messages, marketing
-for cart reminders — marketing is several times dearer). Replies inside the 24-hour window after the customer writes
-are free. Who pays is the owner's call (question 1).
+## 0. WhatsApp: whose number sends (owner decided)
+Every WhatsApp message goes from **the platform's number** (Mksab), the store's name in the text; it doubles as
+marketing for Mksab. **Nothing is built for stores sending from their own number** (no sender layer, no Embedded
+Signup). Meta's route exists (Tech Provider + Embedded Signup + coexistence) if it is ever wanted.
 
 ---
 
 ## Stage 1 — Staff accounts and permissions («الموظفين»)
-**Goal**: the owner invites people (call center, warehouse, marketer) who sign in with their own account and see /
-do only what he allows.
+**Goal**: the owner adds people who sign in with their own account and see / do only what they are given — for
+**every** dashboard page and every action on it. Nothing is owner-only by design: the owner (or a staff member who
+has the «الموظفين» permissions) decides.
+
+**Package (owner's choice)**: `spatie/laravel-permission` — permissions given directly to users (a user belongs to
+one store, so no teams). Logged in DECISIONS.md.
 
 **Data**
-- `users`: role `staff` (new `UserRole::Staff`), `permissions` json (list of keys), `invited_by`, `invited_at`,
-  `accepted_at`. Owner stays `owner` (one per store, all permissions implicitly).
-- `staff_invitations`: tenant, name, email, phone, permissions, token (hashed), expires_at (48 h), accepted_at.
-- `activity_logs` (tenant): user_id, action key, subject type/id, summary (Arabic), meta json, ip, created_at.
-- Plan limit `staff_accounts` (admin-editable like the others; proposed: basic 1, pro 3, max 10 — question 2).
+- `users`: role `staff` (new `UserRole::Staff`); `invited_by`, `invited_at`, `accepted_at`. The owner keeps `owner`:
+  every permission implicitly (Gate::before), can't be edited, demoted or removed by anyone.
+- spatie tables (permissions, model_has_permissions…); the permission list lives in code
+  (`App\Auth\PermissionCatalog`: page → actions, Arabic labels) and is synced by `permissions:sync` (run by a
+  migration now and by `deploy.sh` later).
+- `staff_invitations`: user_id, token hash, expires_at (48 h), used_at.
+- `activity_logs` (tenant): user, permission used, method + path, subject id, Arabic summary, ip, at (kept 180 days).
+- Plan limit `staff_accounts` (defaults basic 1 · pro 3 · max 10; the platform owner edits them in the admin plans
+  page like any limit); the admin store page lists the store's staff.
 
-**Permissions (fixed keys, grouped in the screen)**
-| Key | Gives |
+**Permission catalog (page → actions)** — `view` opens the page; the rest are its buttons:
+| Page | Actions |
 |---|---|
-| `orders.confirm` | new orders + the confirmation queue only: call, contact attempts, confirm / cancel / fake, edit customer details |
-| `orders` | all orders: statuses, shipping and shipments, airway bills, receipts (prepaid), deliveries, export |
-| `products` | products, categories, imports, product files / codes, reviews |
-| `customers` | customers, blocked list, abandoned carts |
-| `marketing` | offers, coupons, upsells, landing pages, A/B tests, cart recovery settings |
-| `design` | store design, themes (no buying), store pages |
-| `shipping` | shipping companies, rates, carrier accounts |
-| `analytics` | home KPIs, analytics |
-| `profit` | costs and the profit report (stage 3) — separate so staff never see margins by default |
-| `ai` | the copilot and AI designer (spends the AI balance) |
-Owner only, never given: billing / plan / theme purchases, domains, staff, payment methods, store emails (SMTP
-password), integrations (webhook secrets), account deletion, the AI wallet top-up.
+| الرئيسية | view |
+| مساعد مكسب الذكي | use |
+| الطلبات | view, update (customer details, note, contact attempts), status (change / bulk), confirm (confirmation queue), export, ship (shipments, airway bills, courier), payments (receipts accept / reject), deliveries (digital: resend, more downloads, «تم التنفيذ»), refunds (stage 5) |
+| الطلبات المتروكة | view, update, delete, recovery (stage 4 settings + message packs) |
+| العملاء | view, update, block |
+| التقييمات | view, update |
+| المنتجات | view, create, update, delete, import, digital (files / codes), cost (stage 3) |
+| التصنيفات | view, create, update, delete |
+| الشحن | view, update (fees, companies, offers), carriers (connect / disconnect / pickups) |
+| إعدادات المتجر | view, update |
+| الثيم والرئيسية | view, update (builder), publish, switch (change / buy theme) |
+| الصفحات الثابتة | view, create, update, delete |
+| العروض · الكوبونات · عروض ما بعد الطلب | view, create, update, delete (each page its own) |
+| صفحات الهبوط | view, create, update, delete, publish, ab_tests |
+| التحليلات | view; الأرباح (stage 3): view, expenses |
+| النطاقات | view, manage |
+| الباقة والفواتير | view, pay (checkout, receipts) |
+| رصيد الذكاء الاصطناعي | view, topup |
+| البيكسلات · الربط · الدفع · الإيميلات | view, update (each page its own) |
+| الموظفين | view, create, update, delete |
+| سجل النشاط | view |
+| الدعم | use (support chat) |
+Everyone keeps his own profile / password / notifications.
 
-**Screens**: «الإعدادات ← الموظفين»: list (name, phone, permissions summary, last sign-in, state), «ادعُ موظف» (name,
-email, phone, permissions as checkboxes with presets «كول سنتر» / «مسئول شحن» / «مسئول منتجات» / «مدير»), edit
-permissions, deactivate / reactivate, remove, resend invitation; «سجل النشاط» (filters: person, kind, date).
+**Enforcement**: one map from every dashboard route (method + path) to its permission (`config/permissions.php`),
+checked by a middleware on the dashboard group: the owner passes, staff need the permission, **a route missing from
+the map is refused** (fail-closed) and a test fails when any dashboard route is unmapped. 403 «مش مسموح لك تعمل ده».
 
-**Flows and cases**
-- Invite → email (platform mail, store name) with a link `/invite/{token}` → the person sets his password (and name) →
-  signed in. Email or phone already used by any account → refused with a clear message (accounts are platform-wide).
-- Expired / used / revoked link → a page saying so; the owner can resend.
-- Staff sign in on the same login page; `/auth/me` returns role + permissions; the sidebar, home cards and buttons
-  hide what he can't do; every API route checks the permission (`permission:orders` middleware) → 403 with
-  «مش مسموح لك» (the front already has `errors.forbidden`).
-- Changing permissions or deactivating takes effect at once (the token stays but the check is live; deactivation
-  revokes tokens).
-- Plan downgrade below the staff count: extra staff are deactivated (newest first), the owner is told; reactivating
-  needs a seat.
-- Notifications: the bell / outside copies go only to users whose permissions cover them (new order → `orders` or
-  `orders.confirm`; low stock → `products`; plan / billing → owner only).
-- Copilot: acts as the signed-in user; its resources / actions are filtered by his permissions (orders actions need
-  `orders`, product edits need `products`, profit report needs `profit`).
-- `orders.confirm` staff see order totals but not costs / profit; never see payment method account settings.
-- Activity log: status changes (already in order logs, linked), product price / stock edits, deletions, refunds,
-  receipt approvals, permission changes, sign-ins. Kept 180 days.
-- The owner can't remove or demote himself; staff can't invite.
-- Tenant isolation: staff belong to one store (`tenant_id`); all existing scopes apply unchanged.
-**Tests**: invitation lifecycle, every permission key vs its routes (allowed / 403), owner-only routes, notifications
-routing, copilot filtering, plan limit, isolation.
+**Screens**: «الإعدادات ← الموظفين»: list (name, phone, email, state: invited / active / stopped, last sign-in),
+«ضيف موظف» (name, email, phone + the permissions tree: a checkbox per page with its actions, «كل الصلاحيات»,
+quick presets كول سنتر / شحن / منتجات / تسويق that just tick boxes), edit, stop / resume, delete, resend the link;
+«سجل النشاط» (person, page, date). The front reads the user's permissions from `/auth/me`: the sidebar shows only
+pages he can view, buttons he can't use are hidden, a page opened by link shows «مش مسموح لك».
+
+**Cases**
+- Add staff → account created (no usable password) + email (platform mail, the store's name) with «اعمل كلمة السر»
+  link `/invite/{token}` → sets password → signed in. Expired / used link → message; the owner can resend.
+- Email or phone already used by any account → refused (accounts are platform-wide).
+- A staff member who manages staff can only give permissions he has himself; nobody touches the owner.
+- Permission changes / stopping take effect on the next request; stopping or deleting revokes his sessions.
+- Seats: adding beyond the plan's limit → the usual «رقّي باقتك»; after a downgrade the newest extra staff are
+  stopped and the owner is told.
+- Notifications go only to people whose permissions cover them (new order → orders.view; low stock → products.view;
+  receipts → orders.payments; plan / invoices → billing.view; mailbox → emails.view…).
+- Copilot: works as the signed-in person — only resources / actions his permissions allow (and `copilot.use`).
+- Activity log: every successful change (POST / PUT / PATCH / DELETE) by anyone, plus sign-ins.
+- Tenant isolation unchanged (staff carry the store's tenant_id).
 
 ---
 
@@ -95,8 +89,7 @@ routing, copilot filtering, plan limit, isolation.
 
 **Settings** («الطلبات ← تأكيد الطلبات», permission `orders`): on / off; send right away or after N minutes; one
 reminder after N hours without a reply (on / off, default 6 h); after the final wait (default 24 h) without a reply:
-leave in the queue marked «ماردّش» (default) or cancel; «الغي» from the customer: cancel at once (default) or mark for
-a call.
+leave in the queue marked «ماردّش» (default) or cancel. «الغي» always cancels at once (owner).
 
 **Data**: orders `confirm_state` (null | sent | reminded | confirmed | cancelled | needs_call | no_reply | failed),
 `confirm_sent_at`, `confirm_replied_at`; settings row per store.
@@ -109,8 +102,10 @@ a call.
 1. COD order created (store or landing page), customer agreed to WhatsApp (the checkout checkbox; wording becomes
    «أكّد طلبك وتابعه على واتساب») and the setting is on → `order_confirm` instead of `order_received` (never both).
 2. Webhook gets a `button` message → payload checked → the order (audited `withoutTenant` by id + HMAC) → still
-   `new`? → confirm: `ChangeOrderStatus` → confirmed (note «اتأكد من العميل على واتساب», no user) + a free reply «تمام،
-   طلبك اتأكد»; cancel: → cancelled + reply; call: `needs_call` + merchant bell + reply «المتجر هيكلمك قريب».
+   `new`? → confirm: `ChangeOrderStatus` → confirmed (note «اتأكد من العميل على واتساب») + reply «شكرًا لحضرتك،
+   وجاري تجهيز طلبك»; cancel: → cancelled at once, logged «اتلغى من العميل» (owner) + reply «تم إلغاء طلبك»; call:
+   `needs_call` + merchant bell + reply «تمام، حد من المتجر هيتواصل معاك قريب». (Replies are free: inside the 24-hour
+   window the customer opened.)
 3. Not `new` anymore (merchant already acted, or a second press) → reply with its current state, change nothing.
 4. Customer writes text instead of pressing → while a confirmation is open (48 h) → `needs_call` + bell, reply «المتجر
    هيكلمك» (the general auto-reply stays for everything else).
@@ -140,7 +135,8 @@ a call.
   google / snapchat / other; other: salaries, rent, tools…), amount, note. Ads can be split by UTM source.
 
 **Rules**
-- Realised revenue = delivered orders (owner can switch to «من وقت الشحن»; question 5) minus refunds (stage 5).
+- Two figures (owner): **الربح المتوقع** = orders still in progress (awaiting payment / new / confirmed / shipped),
+  **الربح الفعلي** = delivered orders whose steps are all done; both minus refunds (stage 5).
 - Order profit = items total after discounts − product costs − shipping cost (− the shipping fee paid by the
   customer is revenue) − COD fee − packaging.
 - Returned / damaged orders: lost shipping both ways (cost + return_cost) count as a loss; product cost back to
@@ -165,9 +161,16 @@ partial refunds, re-opened cancelled orders, currency EGP only.
 ## Stage 4 — Abandoned cart recovery («استرجاع السلات المتروكة»)
 **Goal**: an abandoned checkout / landing form gets reminders by itself; the merchant sees what came back.
 
-**Consent first**: WhatsApp reminders need the customer's consent. The checkbox moves next to the phone field
-(store checkout and landing forms) and is sent with the lead capture; leads without it get email only (when an
-email is known: signed-in customer or typed email). Email reminders carry an unsubscribe link.
+**Who gets it (owner)**: every abandoned lead with a phone gets the WhatsApp reminders automatically (no consent
+checkbox); email reminders too when an email is known (with an unsubscribe link). Note: on the platform's shared
+number, people reporting reminders as spam lower the number's quality for every store — the stop rules below and
+«stop» replies keep that low.
+
+**A paid feature with message packs (owner)**: the merchant turns recovery on in «الطلبات المتروكة»; WhatsApp
+reminders use **his message balance** (one reminder = one message). He buys packs there (e.g. 100 / 500 / 1000
+messages, prices set by the platform owner in the admin) → an invoice in «الباقة والفواتير» paid like any invoice
+(manual receipt today, the gateway later) → the balance goes up when the invoice is paid. Balance 0 → WhatsApp
+reminders stop (emails go on), the merchant is told once, and the page shows «اشحن رسائل».
 
 **Settings** («التسويق ← السلات المتروكة», permission `marketing`): on / off per channel; reminder 1 after N minutes
 (default 60), reminder 2 after N hours (default 24, optional) with an optional coupon (an existing code, or «كود
@@ -222,15 +225,16 @@ done_by, done_at. Orders: `refunded_total`, payment_status gains `partially_refu
 ---
 
 ## Order of work
-1 staff → 2 WhatsApp confirmation → 3 profit → 4 cart recovery → 5 refunds. The per-store WhatsApp sender layer (§0)
-is built inside stage 2 so a store number can be added later without touching stages 2 and 4.
+1 staff → 2 WhatsApp confirmation → 3 profit → 4 cart recovery → 5 refunds. Each stage also extends the copilot
+(resources / reports / actions, permission-aware).
 
-## Questions for the owner
-1. WhatsApp messages on our number cost money per message (cart reminders more): included in the plans (a monthly
-   number per plan), charged from the merchant's balance (the AI wallet becomes «رصيد المتجر»), or free for now?
-2. Staff seats per plan (proposed basic 1 · pro 3 · max 10)?
-3. Confirmation: when the customer presses «الغي», cancel at once (proposed) or mark for a call?
-4. Cart reminders: 2 reminders (1 h, 24 h) with an optional coupon on the second (proposed)?
-5. Profit: count an order's revenue when delivered (proposed) or when shipped?
+## Answers (owner, 2026-11-23)
+1. Cart recovery is a feature the merchant turns on; its WhatsApp messages come from packs he buys (invoices).
+2. Staff seats: any defaults, editable in the admin.
+3. «الغي» cancels at once, logged as cancelled by the customer.
+4. Profit: both — expected (in progress) and actual (delivered, all done).
+5. Every feature is added to the copilot.
+Open: the confirmation messages (stage 2) cost the platform per message — free for merchants, or from the same
+message balance? (asked before stage 2).
 
 ## PROGRESS LOG
