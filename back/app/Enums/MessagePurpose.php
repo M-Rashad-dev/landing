@@ -24,6 +24,9 @@ enum MessagePurpose: string
     case OrderConfirm = 'order_confirm';
     case OrderConfirmReminder = 'order_confirm_reminder';
     case OrderConfirmReply = 'order_confirm_reply';
+    /** An abandoned cart reminder (paid from the store's message balance), and the reply to «مش مهتم». */
+    case CartReminder = 'cart_reminder';
+    case CartReminderReply = 'cart_reminder_reply';
 
     /** @return list<string> */
     public static function values(): array

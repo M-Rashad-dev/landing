@@ -27,6 +27,10 @@ final class BillingSettingsRequest extends FormRequest
             'support_whatsapp' => ['sometimes', 'nullable', 'string', 'regex:/^\+?[0-9]{8,15}$/'],
             'support_phone' => ['sometimes', 'nullable', 'string', 'regex:/^\+?[0-9]{8,15}$/'],
             'support_address' => ['sometimes', 'nullable', 'string', 'max:160'],
+            // WhatsApp message packs for cart reminders.
+            'message_packs' => ['sometimes', 'array', 'max:8'],
+            'message_packs.*.messages' => ['required', 'integer', 'between:10,1000000', 'distinct'],
+            'message_packs.*.price' => ['required', 'integer', 'between:1,1000000'],
         ];
     }
 }

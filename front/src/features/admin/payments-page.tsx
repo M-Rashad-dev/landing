@@ -32,6 +32,7 @@ const STATUS_TONE = { pending_review: "attention", approved: "success", rejected
 export function itemOf(p: PaymentRow): string {
   if (!p.invoice) return "—";
   if (p.invoice.type === "ai_credit") return t.aiCredit;
+  if (p.invoice.type === "message_pack") return t.messagePack;
   return p.invoice.type === "theme" ? t.theme(ar.common.themeName(p.invoice.plan_name, p.invoice.theme_kind)) : t.plan(p.invoice.plan_name, p.invoice.period);
 }
 

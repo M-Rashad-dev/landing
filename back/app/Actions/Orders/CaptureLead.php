@@ -9,6 +9,7 @@ use App\Models\AbandonedLead;
 use App\Models\BlockedCustomer;
 use App\Models\LandingPage;
 use App\Models\Order;
+use App\Recovery\CartRecovery;
 use App\Services\Webhooks\WebhookDispatcher;
 
 /**
@@ -82,6 +83,7 @@ final class CaptureLead
 
         $values = array_filter([
             'customer_name' => $details['name'] ?? null,
+            'customer_email' => $details['email'] ?? null,
             'governorate' => $details['governorate'] ?? null,
             'ip_address' => $details['ip'] ?? null,
         ], fn ($value) => $value !== null && $value !== '') + [
@@ -148,6 +150,7 @@ final class CaptureLead
     /** The phone ordered (or its cart did): its open / contacted leads become converted. */
     public function converted(Order $order, ?string $cartToken = null): void
     {
+        CartRecovery::recovered($order, $cartToken);
         AbandonedLead::query()
             ->where(fn ($q) => $q->where('customer_phone', $order->customer_phone)->when($cartToken !== null, fn ($w) => $w->orWhere('cart_token', $cartToken)))
             ->whereIn('status', [LeadStatus::Open, LeadStatus::Contacted])

@@ -125,7 +125,19 @@ const settingsSchema = z.object({
   support_whatsapp: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{8,15}$/, s.phoneInvalid)]),
   support_phone: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{8,15}$/, s.phoneInvalid)]),
   support_address: z.string().max(160, s.addressInvalid),
+  message_packs: z.string().refine((v) => parsePacks(v) !== null, s.messagePacksInvalid),
 });
+
+/** «100:100، 500:450» → [{messages, price}]; null when it can't be read. */
+function parsePacks(text: string): Array<{ messages: number; price: number }> | null {
+  const parts = text.split(/[,،]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return [];
+  if (parts.length > 8) return null;
+  const packs = parts.map((p) => /^(\d{2,7})\s*:\s*(\d{1,7})$/.exec(p)).map((m) => (m ? { messages: Number(m[1]), price: Number(m[2]) } : null));
+  if (packs.some((p) => p === null || p.price < 1)) return null;
+  const list = packs as Array<{ messages: number; price: number }>;
+  return new Set(list.map((p) => p.messages)).size === list.length ? list : null;
+}
 type SettingsValues = z.infer<typeof settingsSchema>;
 
 const toSettings = (v: BillingSettings): SettingsValues => ({
@@ -138,6 +150,7 @@ const toSettings = (v: BillingSettings): SettingsValues => ({
   support_whatsapp: v.support_whatsapp ?? "",
   support_phone: v.support_phone ?? "",
   support_address: v.support_address ?? "",
+  message_packs: (v.message_packs ?? []).map((p) => `${p.messages}:${p.price}`).join("، "),
 });
 
 function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: AdminPlanRow[] }) {
@@ -147,7 +160,14 @@ function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: 
 
   const submit = form.handleSubmit(async (v) => {
     try {
-      const saved = await saveBillingSettings({ ...v, support_email: v.support_email.trim() || null, support_whatsapp: v.support_whatsapp.trim() || null, support_phone: v.support_phone.trim() || null, support_address: v.support_address.trim() || null });
+      const saved = await saveBillingSettings({
+        ...v,
+        support_email: v.support_email.trim() || null,
+        support_whatsapp: v.support_whatsapp.trim() || null,
+        support_phone: v.support_phone.trim() || null,
+        support_address: v.support_address.trim() || null,
+        message_packs: parsePacks(v.message_packs) ?? [],
+      });
       form.reset(toSettings(saved));
       toast.success(s.saved);
       await client.invalidateQueries({ queryKey: ["admin", "plans"] });
@@ -192,6 +212,9 @@ function SettingsPanel({ settings, plans }: { settings: BillingSettings; plans: 
           </Field>
           <Field label={s.supportAddress} htmlFor="support-address" hint={s.supportAddressHint} error={errors.support_address?.message}>
             <Input id="support-address" maxLength={160} {...form.register("support_address")} />
+          </Field>
+          <Field label={s.messagePacks} htmlFor="message-packs" hint={s.messagePacksHint} error={errors.message_packs?.message}>
+            <Input id="message-packs" dir="ltr" className="tabular" {...form.register("message_packs")} />
           </Field>
         </PanelBody>
         <PanelFooter className="flex justify-end">

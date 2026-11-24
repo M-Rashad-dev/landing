@@ -9,6 +9,7 @@ import { formatPhoneLocal, normalizePhone } from "@/lib/phone";
 import { useAccount, type Address } from "@/lib/store/account";
 import { cartPayload, clearCart, useCart } from "@/lib/store/cart";
 import { cartToken, resetCartToken, sendStoreEvent } from "@/lib/store/events";
+import { applyRecovered, fetchRecovered, recoveryToken } from "@/lib/store/recovery";
 import { GOVERNORATES } from "@/lib/store/governorates";
 import { useCartQuote, type QuoteState } from "@/lib/store/quote";
 import type { StoreConfig } from "@/lib/store/types";
@@ -64,6 +65,7 @@ export function useCheckout(config: StoreConfig) {
   const governorate = useWatch({ control, name: "governorate" });
   const phone = normalizePhone(useWatch({ control, name: "phone" }));
   const name = useWatch({ control, name: "name" });
+  const email = useWatch({ control, name: "email" });
 
   const [token, setToken] = React.useState<string | null>(null);
   const [codeInput, setCodeInput] = React.useState("");
@@ -113,6 +115,26 @@ export function useCheckout(config: StoreConfig) {
     fillAddress(address);
   };
 
+  // A cart reminder's link (?r=…): the left cart comes back with the customer's details.
+  React.useEffect(() => {
+    const token = recoveryToken(window.location.search);
+    if (!token) return;
+    let alive = true;
+    void fetchRecovered(token).then((data) => {
+      if (!alive || !data) return;
+      applyRecovered(data);
+      const put = (field: "name" | "phone" | "email", value: string | null) => {
+        if (value && !String(form.getValues(field) ?? "").trim()) form.setValue(field, value, { shouldDirty: true });
+      };
+      put("name", data.customer.name);
+      put("phone", data.customer.phone ? formatPhoneLocal(data.customer.phone) : null);
+      put("email", data.customer.email);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [form]);
+
   // A note written in the cart («ملاحظات للمطبخ») starts the checkout's notes.
   React.useEffect(() => {
     const note = readCartNote();
@@ -161,12 +183,12 @@ export function useCheckout(config: StoreConfig) {
       fetch("/api/public/store/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ items: JSON.parse(items), phone, name: name.trim() || null, governorate: governorate || null, form_token: token, cart_token: cartToken() || null }),
+        body: JSON.stringify({ items: JSON.parse(items), phone, name: name.trim() || null, email: email.trim() || null, governorate: governorate || null, form_token: token, cart_token: cartToken() || null }),
         keepalive: true,
       }).catch(() => undefined);
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [phone, token, items, name, governorate]);
+  }, [phone, token, items, name, email, governorate]);
 
   const submit = handleSubmit(async (values) => {
     setFailure(null);

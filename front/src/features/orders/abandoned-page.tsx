@@ -18,6 +18,7 @@ import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { useUrlState } from "@/lib/use-url-state";
 import { ar } from "@/messages/ar";
 import { whatsappLink } from "./api";
+import { CartRecoveryPanel } from "./cart-recovery-panel";
 
 const t = ar.orders.abandoned;
 
@@ -39,10 +40,15 @@ export type Lead = {
   product: { id: number; name: string } | null;
   source: Kind;
   cart: {
-    items: Array<{ product_id: number; name: string; quantity: number }>;
+    items: Array<{ product_id: number; name: string; quantity: number; options?: Record<string, number> }>;
     total: number;
   } | null;
   order: { id: number; number: number } | null;
+  customer_email?: string | null;
+  /** Cart reminders sent, the last one, and an order after them («رجع بالتذكير»). */
+  reminders_sent?: number;
+  last_reminded_at?: string | null;
+  recovered_at?: string | null;
   contacted_at: string | null;
   last_seen_at: string | null;
   created_at: string;
@@ -137,6 +143,7 @@ export function AbandonedPage() {
         <LockedNotice title={t.lockedTitle} description={t.lockedText} />
       ) : (
         <>
+          <CartRecoveryPanel />
           <p className="mb-3 text-sm text-ink-2">{t.kindHints[kind]}</p>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
             <InputGroup start={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.search} aria-label={t.search} className="sm:w-72" />
@@ -184,6 +191,15 @@ export function AbandonedPage() {
                               </span>
                             ) : null}
                             {!lead.customer_phone ? <Badge size="sm">{t.unknownHint}</Badge> : null}
+                            {lead.recovered_at ? (
+                              <Badge size="sm" tone="success">
+                                {t.recovered}
+                              </Badge>
+                            ) : lead.reminders_sent ? (
+                              <Badge size="sm" tone="info">
+                                {t.reminded(lead.reminders_sent)}
+                              </Badge>
+                            ) : null}
                             {lead.order ? (
                               <Link href={`/dashboard/orders/${lead.order.id}`} className="text-xs text-brand-strong hover:underline">
                                 {t.order(lead.order.number)}

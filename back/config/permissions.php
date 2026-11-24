@@ -78,6 +78,8 @@ return [
         'GET integrations' => 'integrations.view',
         'GET integrations/{webhook}/deliveries' => 'integrations.view',
         'GET leads' => 'abandoned.view',
+        'GET leads/recovery' => 'abandoned.view',
+        'GET leads/recovery/entries' => 'abandoned.view',
         'GET mail-settings' => 'emails.view',
         'GET media' => '@any',
         'GET notifications' => '@self',
@@ -132,6 +134,7 @@ return [
         'GET upsells' => 'upsells.view',
         'PATCH customers/{customer}' => 'customers.update',
         'PATCH leads/{lead}' => 'abandoned.update',
+        'PUT leads/recovery' => 'abandoned.recovery',
         'PATCH media/{media}' => '@any',
         'PATCH orders/{order}' => 'orders.update',
         'PATCH products/{product}/quick' => 'products.update',
@@ -270,6 +273,8 @@ return [
     ],
     // The copilot works as the signed-in person: capability key → [read (or run), create, update] permissions.
     'copilot' => [
+        'abandoned_leads' => ['abandoned.view'],
+        'cart_recovery' => ['abandoned.view'],
         'categories' => ['categories.view', 'categories.create', 'categories.update'],
         'customers' => ['customers.view', 'customers.update', 'customers.update'],
         'discount_codes' => ['coupons.view', 'coupons.create', 'coupons.update'],

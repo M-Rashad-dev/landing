@@ -59,7 +59,8 @@ final class UsageCounter
             PlanLimit::StoreCategories => Category::query(),
             PlanLimit::CustomDomains => Domain::query()->where('type', DomainType::Custom),
             PlanLimit::Offers => Offer::query(),
-            PlanLimit::DiscountCodes => DiscountCode::query(),
+            // One-time codes made for cart reminders don't count.
+            PlanLimit::DiscountCodes => DiscountCode::query()->where('recovery', false),
             PlanLimit::Webhooks => Webhook::query(),
             PlanLimit::AbTests => AbTest::query()->where('status', AbTestStatus::Running),
             // Users aren't tenant-scoped: filtered to the current store by hand.

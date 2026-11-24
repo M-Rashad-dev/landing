@@ -49,6 +49,8 @@ final class PlatformSettings
         'ai_topup_offers' => [],
         'ai_welcome_credit' => 10,
         'ai_low_balance' => 10,
+        // WhatsApp message packs for cart reminders ([{messages, price EGP}]), bought from «الطلبات المتروكة».
+        'message_packs' => [['messages' => 100, 'price' => 100], ['messages' => 500, 'price' => 450], ['messages' => 1000, 'price' => 800]],
     ];
 
     /** @var array<string, mixed>|null */

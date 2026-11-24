@@ -591,3 +591,10 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **Carrier cost not set = the fee the customer was quoted** (before any free-shipping offer), so a free-shipping offer shows as a cost to the store.
 - **Ad spend → ROAS by traffic source**: ad expense kinds map to the same sources as the analytics (Meta = facebook + instagram), revenue counted from delivered orders.
 - **Costs are a permission of their own** (`products.cost`): staff without it never see a cost and their saves / imports keep the stored one.
+
+## 2026-11-24 — Abandoned cart recovery (merchant essentials, stage 4)
+- **No consent, paid by the store (owner)**: reminders go to every abandoned lead with a phone; WhatsApp reminders take one message each from the store's balance (packs bought as billing invoices, prices set in the admin); emails are free.
+- **Protecting the shared number**: at most 2 reminders, 3-day window, quiet 23:00–09:00 Cairo, a «مش مهتم» button that stops this store for that phone, and a stop link in emails (a confirm button, since mail scanners open links).
+- **One-time codes are not coupons**: made per lead (single use, 48 h), flagged `recovery`, kept out of the coupons list and the plan limit.
+- **A failed WhatsApp reminder gives its message back** (Meta doesn't bill undelivered messages).
+- **«رجع بالتذكير»** = an order from that phone (or cart) within 7 days of a reminder.

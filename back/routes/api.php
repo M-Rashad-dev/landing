@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\BillingController;
 use App\Http\Controllers\Api\V1\Dashboard\BlockedCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\CarrierAccountController;
+use App\Http\Controllers\Api\V1\Dashboard\CartRecoveryController;
 use App\Http\Controllers\Api\V1\Dashboard\CategoryController;
 use App\Http\Controllers\Api\V1\Dashboard\CopilotChangeController;
 use App\Http\Controllers\Api\V1\Dashboard\CopilotController;
@@ -76,6 +77,7 @@ use App\Http\Controllers\Api\V1\Public\DeliveryController as PublicDeliveryContr
 use App\Http\Controllers\Api\V1\Public\EventController;
 use App\Http\Controllers\Api\V1\Public\OrderController as PublicOrderController;
 use App\Http\Controllers\Api\V1\Public\PaymentController as PublicPaymentController;
+use App\Http\Controllers\Api\V1\Public\RecoveryController as PublicRecoveryController;
 use App\Http\Controllers\Api\V1\Public\SiteController;
 use App\Http\Controllers\Api\V1\Public\StoreAccountController;
 use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
@@ -328,6 +330,10 @@ Route::prefix('dashboard')
         Route::post('customers/{customer}/block', [CustomerController::class, 'block']);
 
         Route::get('leads', [LeadController::class, 'index']);
+        // Abandoned cart reminders and the WhatsApp message balance (docs/plans/merchant-essentials.md, stage 4).
+        Route::get('leads/recovery', [CartRecoveryController::class, 'show']);
+        Route::put('leads/recovery', [CartRecoveryController::class, 'update']);
+        Route::get('leads/recovery/entries', [CartRecoveryController::class, 'entries']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
 
@@ -417,6 +423,10 @@ Route::prefix('public')
         Route::get('brand', [TrackController::class, 'brand'])->middleware('throttle:public-read');
         Route::post('track', [TrackController::class, 'show'])->middleware('throttle:public-track');
         Route::get('track-link', [TrackController::class, 'link'])->middleware('throttle:public-track');
+        // Cart reminder links: the short link, the refill, and «no more reminders».
+        Route::get('recovery-link', [PublicRecoveryController::class, 'link'])->middleware('throttle:public-track');
+        Route::get('recovery', [PublicRecoveryController::class, 'show'])->middleware('throttle:public-track');
+        Route::post('recovery/unsubscribe', [PublicRecoveryController::class, 'unsubscribe'])->middleware('throttle:public-track');
         Route::post('upsell', [PublicOrderController::class, 'acceptUpsell'])->middleware('throttle:public-order-attempts');
         Route::post('leads', [PublicOrderController::class, 'lead'])->middleware('throttle:public-leads');
         // «حسب الطلب»: an image / file for a product field, before ordering (store and landing pages).

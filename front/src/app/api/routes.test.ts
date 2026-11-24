@@ -177,3 +177,20 @@ describe("/t/[token]", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("/r/[token]", () => {
+  const params = (token: string) => ({ params: Promise.resolve({ token }) });
+
+  it("sends a cart reminder's link on to the store's refilled checkout, or home", async () => {
+    process.env.PLATFORM_DOMAIN = "platform.test";
+    const { GET } = await import("../r/[token]/route");
+    const token = "55ea3ad4789fe59624cba285";
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { url: `https://habba.platform.test/checkout?r=${token}` } }));
+
+    const response = await GET(new Request(`https://platform.test/r/${token}`), params(token));
+    expect(response.headers.get("location")).toBe(`https://habba.platform.test/checkout?r=${token}`);
+    expect(fetchMock.mock.calls[0][0]).toBe(`http://laravel.test/api/v1/public/recovery-link?token=${token}`);
+    expect((await GET(new Request("https://platform.test/r/BAD"), params("BAD"))).headers.get("location")).toBe("https://platform.test/");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

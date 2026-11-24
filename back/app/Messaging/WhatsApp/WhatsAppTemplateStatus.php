@@ -30,6 +30,12 @@ final class WhatsAppTemplateStatus
         return $row !== null && $row['status'] === 'APPROVED' && $row['category'] === 'UTILITY';
     }
 
+    /** Meta approved this template (any category: cart reminders are Marketing). */
+    public function approved(string $name): bool
+    {
+        return (($this->all()[$name] ?? null)['status'] ?? null) === 'APPROVED';
+    }
+
     /** @return array<string, array{status: string, category: string}> */
     private function all(): array
     {

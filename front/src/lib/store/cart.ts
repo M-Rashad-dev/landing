@@ -158,3 +158,9 @@ export function clearCart(): void {
 export function cartPayload(cart: Cart): Array<{ product_id: number; quantity: number; options: Record<string, number>; inputs?: Record<string, string> }> {
   return cart.items.map((item) => ({ product_id: item.product_id, quantity: item.quantity, options: item.options, ...(item.inputs && Object.keys(item.inputs).length ? { inputs: item.inputs } : {}) }));
 }
+
+/** A cart reminder's link: the left cart comes back in place of what is there (an empty list changes nothing). */
+export function replaceCart(items: CartItem[]): void {
+  if (items.length === 0) return;
+  write({ items: items.slice(0, MAX_CART_LINES).map((i) => ({ ...i, quantity: Math.min(MAX_LINE_QUANTITY, Math.max(1, i.quantity)) })) });
+}

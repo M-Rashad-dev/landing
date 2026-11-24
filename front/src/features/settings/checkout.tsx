@@ -27,9 +27,16 @@ export function CheckoutPage() {
   const plan = params.get("plan") ?? "";
   const theme = params.get("theme") ?? "";
   const ai = Number(params.get("ai") ?? 0);
+  const messages = Number(params.get("messages") ?? 0);
   const period: Period = params.get("period") === "yearly" ? "yearly" : "monthly";
-  // ?theme=sufi_store buys a theme, ?ai=250 tops up the AI balance; otherwise ?plan=…&period=… a subscription.
-  const item: CheckoutItem = theme ? { type: "theme", theme_key: theme } : ai > 0 ? { type: "ai_credit", amount: ai } : { type: "subscription", plan_key: plan, period };
+  // ?theme=sufi_store buys a theme, ?ai=250 tops up the AI balance, ?messages=500 a WhatsApp message pack; otherwise ?plan=…&period=… a subscription.
+  const item: CheckoutItem = theme
+    ? { type: "theme", theme_key: theme }
+    : ai > 0
+      ? { type: "ai_credit", amount: ai }
+      : messages > 0
+        ? { type: "message_pack", messages }
+        : { type: "subscription", plan_key: plan, period };
   const query = usePreview(item);
 
   async function done(invoice: Invoice) {
@@ -41,7 +48,13 @@ export function CheckoutPage() {
 
   return (
     <>
-      <PageHeader crumbs={[item.type === "ai_credit" ? { label: ar.settings.aiWallet.title, href: "/dashboard/settings/ai" } : { label: ar.settings.billing.title, href: "/dashboard/settings/billing" }, { label: t.title }]} title={t.title} />
+      <PageHeader
+        crumbs={[
+          item.type === "ai_credit" ? { label: ar.settings.aiWallet.title, href: "/dashboard/settings/ai" } : item.type === "message_pack" ? { label: ar.nav.items.abandoned, href: "/dashboard/abandoned" } : { label: ar.settings.billing.title, href: "/dashboard/settings/billing" },
+          { label: t.title },
+        ]}
+        title={t.title}
+      />
       {query.isPending ? (
         <Skeleton className="h-96 max-w-3xl rounded-xl" />
       ) : query.isError ? (
@@ -78,6 +91,7 @@ export function Summary({ invoice }: { invoice: Invoice }) {
           {bonus > 0 ? <Row label={t.aiBonus} value={`+ ${formatMoney(bonus)}`} /> : null}
         </dl>
         {invoice.ai_credit ? <p className="mt-3 text-xs text-ink-3">{t.aiNote(formatMoney(invoice.ai_credit.amount + bonus))}</p> : null}
+        {invoice.message_pack ? <p className="mt-3 text-xs text-ink-3">{t.messagePackNote(invoice.message_pack.messages)}</p> : null}
       </PanelBody>
     </Panel>
   );

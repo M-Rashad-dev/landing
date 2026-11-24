@@ -20,6 +20,7 @@ use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
 use App\Models\Invoice;
 use App\Models\Tenant;
+use App\Recovery\MessageWallets;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
@@ -41,6 +42,7 @@ final class Invoices
         private readonly Entitlements $entitlements,
         private readonly AiSettings $ai,
         private readonly AiWallets $wallets,
+        private readonly MessageWallets $messages,
     ) {}
 
     /**
@@ -131,6 +133,65 @@ final class Invoices
         }));
 
         return $invoice->refresh();
+    }
+
+    /** A pack of WhatsApp messages for cart reminders (one of the platform's packs; added when paid). */
+    public function forMessagePack(Tenant $tenant, int $messages): Invoice
+    {
+        $attributes = $this->messagePackAttributes($tenant, $messages);
+
+        $invoice = Tenancy::runAs($tenant->id, fn (): Invoice => DB::transaction(function () use ($attributes): Invoice {
+            $same = Invoice::query()->where('type', 'message_pack')->lockForUpdate();
+            if ((clone $same)->where('status', InvoiceStatus::PendingReview)->exists()) {
+                throw new ApiException(422, 'invoice_pending_review', __('payments.invoice_pending_review'));
+            }
+            (clone $same)->where('status', InvoiceStatus::Open)->get()
+                ->each(fn (Invoice $old) => $old->forceFill(['status' => InvoiceStatus::Cancelled])->save());
+
+            $invoice = Invoice::query()->create($attributes);
+            $invoice->forceFill(['number' => sprintf('INV-%06d', $invoice->id)])->save();
+
+            return $invoice;
+        }));
+
+        return $invoice->refresh();
+    }
+
+    /** What a message pack invoice would be, nothing saved (see draftPlan). */
+    public function draftMessagePack(Tenant $tenant, int $messages): Invoice
+    {
+        $attributes = $this->messagePackAttributes($tenant, $messages);
+        $this->ensureNoReceiptUnderReview($tenant, 'message_pack');
+
+        return $this->draft($attributes);
+    }
+
+    /** @return array<string, mixed> */
+    private function messagePackAttributes(Tenant $tenant, int $messages): array
+    {
+        Entitlements::forget($tenant->id);
+        if (! $this->entitlements->for($tenant)->allows(PlanFeature::AbandonedLeads)) {
+            throw ApiException::planFeatureLocked(PlanFeature::AbandonedLeads, $this->catalog->cheapestWithFeature(PlanFeature::AbandonedLeads));
+        }
+        $pack = $this->messages->pack($messages);
+        if ($pack === null) {
+            throw new ApiException(422, 'validation_failed', __('recovery.pack_unknown'), ['messages' => [__('recovery.pack_unknown')]]);
+        }
+        $cents = $pack['price'] * 100;
+
+        return [
+            'tenant_id' => $tenant->id,
+            'type' => 'message_pack',
+            'starts_now' => true,
+            'status' => InvoiceStatus::Open,
+            'subtotal' => Money::toDecimal($cents),
+            'discount' => Money::toDecimal(0),
+            'credit' => Money::toDecimal(0),
+            'total' => Money::toDecimal($cents),
+            'currency' => (string) config('landing.billing.currency'),
+            'snapshot' => ['message_pack' => ['messages' => $pack['messages'], 'price' => $pack['price']]],
+            'expires_at' => CarbonImmutable::now()->addHours($this->settings->invoiceHours()),
+        ];
     }
 
     /** What a top-up invoice would be, nothing saved (see draftPlan). */
@@ -305,6 +366,13 @@ final class Invoices
             $credit = (array) ($activated->snapshot['ai_credit'] ?? []);
             $this->wallets->credit($tenant, $activated->totalCents(), 'topup', __('ai.wallet.topup', ['number' => $activated->number]), $activated->id);
             $this->wallets->credit($tenant, (int) ($credit['bonus'] ?? 0) * 100, 'bonus', __('ai.wallet.bonus', ['number' => $activated->number]), $activated->id);
+
+            return $activated->refresh();
+        }
+
+        if ($activated->type === 'message_pack') {
+            $messages = (int) ($activated->snapshot['message_pack']['messages'] ?? 0);
+            $this->messages->credit($tenant->id, $messages, 'topup', __('recovery.topup', ['number' => $activated->number]), $activated->id);
 
             return $activated->refresh();
         }

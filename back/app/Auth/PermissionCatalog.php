@@ -32,7 +32,7 @@ final class PermissionCatalog
             'view' => 'عرض', 'update' => 'تعديل بيانات العميل والملاحظات', 'status' => 'تغيير الحالة', 'confirm' => 'طابور التأكيد', 'auto_confirm' => 'إعدادات التأكيد على واتساب',
             'export' => 'تصدير', 'ship' => 'الشحن مع شركات الشحن', 'payments' => 'مراجعة إيصالات الدفع', 'deliveries' => 'تسليم المنتجات الرقمية',
         ]],
-        'abandoned' => ['label' => 'الطلبات المتروكة', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'delete' => 'حذف']],
+        'abandoned' => ['label' => 'الطلبات المتروكة', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'delete' => 'حذف', 'recovery' => 'تذكيرات السلات ورصيد الرسائل']],
         'customers' => ['label' => 'العملاء', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'block' => 'الحظر']],
         'reviews' => ['label' => 'التقييمات', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'إخفاء وإظهار']],
         'products' => ['label' => 'المنتجات', 'group' => 'المتجر', 'actions' => [

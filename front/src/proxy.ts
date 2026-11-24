@@ -30,6 +30,8 @@ export async function proxy(request: NextRequest) {
   if (kind === "platform") {
     // Order messages' short link: resolved to the order's store tracking page (app/t/[token]).
     if (/^\/t\/[a-z0-9]{12}$/.test(pathname)) return NextResponse.next();
+    // Cart reminders: the link that refills the cart (app/r/[token]) and «no more reminders» (app/u/[token]).
+    if (/^\/[ru]\/[a-f0-9]{24}$/.test(pathname)) return NextResponse.next();
     const page = pathname === "/" ? "" : platformPageSlug(pathname);
     if (page !== null) {
       const url = request.nextUrl.clone();

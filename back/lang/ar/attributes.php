@@ -299,4 +299,9 @@ return [
     'call_phone' => 'رقم زرار الاتصال',
     'whatsapp_number' => 'رقم زرار الواتساب',
     'logo_dark_media_id' => 'لوجو الوضع الداكن',
+    'discount_code_id' => 'كود الخصم',
+    'coupon_value' => 'قيمة الخصم',
+    'first_minutes' => 'وقت التذكير الأول',
+    'second_hours' => 'وقت التذكير التاني',
+    'messages' => 'باقة الرسائل',
 ];

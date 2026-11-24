@@ -36,6 +36,7 @@ use Illuminate\Support\Carbon;
  * @property int $used_count
  * @property bool $stackable_with_offers
  * @property bool $is_active
+ * @property bool $recovery a one-time code made for a cart reminder
  */
 class DiscountCode extends Model
 {
@@ -44,7 +45,7 @@ class DiscountCode extends Model
 
     protected $fillable = [
         'code', 'type', 'applies_to', 'value', 'max_discount', 'min_order_total', 'min_quantity', 'starts_at', 'ends_at',
-        'usage_limit', 'usage_limit_per_phone', 'first_order_only', 'stackable_with_offers', 'is_active',
+        'usage_limit', 'usage_limit_per_phone', 'first_order_only', 'stackable_with_offers', 'is_active', 'recovery',
     ];
 
     protected function casts(): array
@@ -54,6 +55,7 @@ class DiscountCode extends Model
             'applies_to' => PromotionTarget::class,
             'min_quantity' => 'integer',
             'first_order_only' => 'boolean',
+            'recovery' => 'boolean',
             'value' => 'decimal:2',
             'max_discount' => 'decimal:2',
             'min_order_total' => 'decimal:2',

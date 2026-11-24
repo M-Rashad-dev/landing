@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Buying a plan period, a paid theme or AI balance. Opening the pay page is only a look (a draft, nothing
+ * Buying a plan period, a paid theme, AI balance or a WhatsApp message pack. Opening the pay page is only a look (a draft, nothing
  * saved); the invoice is created together with the merchant's receipt, so the invoices list
  * only holds what was really paid for. A plan fully covered by the credit has nothing to
  * transfer: confirming creates and activates it at once.
@@ -24,17 +24,18 @@ final class Checkout
         private readonly ManualPayments $payments,
     ) {}
 
-    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null} $item */
+    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null, messages?: int|null} $item */
     public function preview(Tenant $tenant, array $item): Invoice
     {
         return match ($item['type']) {
             'theme' => $this->invoices->draftTheme($tenant, (string) $item['theme_key']),
             'ai_credit' => $this->invoices->draftAiCredit($tenant, (int) ($item['amount'] ?? 0)),
+            'message_pack' => $this->invoices->draftMessagePack($tenant, (int) ($item['messages'] ?? 0)),
             default => $this->invoices->draftPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period'])),
         };
     }
 
-    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null} $item */
+    /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null, messages?: int|null} $item */
     public function place(Tenant $tenant, array $item, ?string $method, ?string $senderRef, ?UploadedFile $receipt): Invoice
     {
         $draft = $this->preview($tenant, $item);
@@ -55,6 +56,7 @@ final class Checkout
             $invoice = match ($item['type']) {
                 'theme' => $this->invoices->forTheme($tenant, (string) $item['theme_key']),
                 'ai_credit' => $this->invoices->forAiCredit($tenant, (int) ($item['amount'] ?? 0)),
+                'message_pack' => $this->invoices->forMessagePack($tenant, (int) ($item['messages'] ?? 0)),
                 default => $this->invoices->forPlan($tenant, (string) $item['plan_key'], BillingPeriod::from((string) $item['period'])),
             };
 

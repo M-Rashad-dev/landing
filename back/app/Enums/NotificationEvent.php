@@ -26,6 +26,8 @@ enum NotificationEvent: string
     case PaymentReceipt = 'payment_receipt';
     /** A customer cancelled on WhatsApp or asked for a call. */
     case CustomerReply = 'customer_reply';
+    /** Cart reminders stopped: the WhatsApp message balance ran out. */
+    case RecoveryBalanceEmpty = 'recovery_balance_empty';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';
@@ -48,6 +50,7 @@ enum NotificationEvent: string
             self::DomainReady => 'domains.view',
             self::AiLowBalance => 'ai_wallet.view',
             self::MailboxFailed => 'emails.view',
+            self::RecoveryBalanceEmpty => 'abandoned.recovery',
             default => 'billing.view',
         };
     }

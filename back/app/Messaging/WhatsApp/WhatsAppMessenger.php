@@ -60,7 +60,7 @@ final class WhatsAppMessenger
 
     /** An order email that went out (logged next to the WhatsApp ones, on its order). */
     /** @param  string|null  $via  the mailbox it left from (StoreMailMode: platform | smtp) */
-    public function logEmail(string $email, MessagePurpose $purpose, int $tenantId, int $orderId, ?string $via = null): OutboundMessage
+    public function logEmail(string $email, MessagePurpose $purpose, int $tenantId, ?int $orderId, ?string $via = null): OutboundMessage
     {
         return OutboundMessage::query()->create([
             'tenant_id' => $tenantId,

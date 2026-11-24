@@ -24,10 +24,11 @@ final class WhatsAppTemplates
     public const CODE_MINUTES = 5;
 
     /**
-     * Utility templates: key => [name, body with {{n}}, example values, optional URL button, and the
-     * approved version it replaces: its name, body, and which of the new values fill its {{1}}, {{2}}…].
+     * Templates: key => [name, body with {{n}}, example values, optional URL button, optional reply buttons, the
+     * approved version it replaces (its name, body, and which of the new values fill its {{1}}, {{2}}…), and the
+     * category (Utility unless said: cart reminders are Marketing, paid from the store's message balance)].
      *
-     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}, quick_replies?: list<string>, previous?: array{name: string, body: string, order: list<int>}}>
+     * @var array<string, array{name: string, body: string, examples: list<string>, button?: array{text: string, host: 'platform'|'app', path: string, example: string}, quick_replies?: list<string>, previous?: array{name: string, body: string, order: list<int>}, category?: 'MARKETING'}>
      */
     private const UTILITY = [
         'order_received' => [
@@ -48,6 +49,23 @@ final class WhatsAppTemplates
             'body' => 'لسه مستنيين تأكيدك لطلبك رقم {{1}} من {{2}} بإجمالي {{3}} جنيه. أكّد عشان نبدأ نجهّزه.',
             'examples' => ['1024', 'متجر حبة', '450'],
             'quick_replies' => ['أكّد الطلب', 'الغي الطلب', 'عايز أكلم حد'],
+        ],
+        // Abandoned cart reminders (merchant essentials, stage 4): Marketing, a link to restore the cart and «مش مهتم».
+        'cart_reminder' => [
+            'name' => 'cart_reminder_v1',
+            'category' => 'MARKETING',
+            'body' => "أهلاً {{1}}، نسيت طلبك في {{2}}؟\n{{3}} لسه مستنيك، وتقدر تكمّل طلبك في دقيقة من الزرار تحت.",
+            'examples' => ['سارة', 'متجر حبة', 'تيشيرت قطن × 2'],
+            'button' => ['text' => 'كمّل طلبك', 'host' => 'platform', 'path' => 'r/{{1}}', 'example' => 'k3x9q2m7p1a8b4c6d2e5f7g9'],
+            'quick_replies' => ['مش مهتم'],
+        ],
+        'cart_reminder_coupon' => [
+            'name' => 'cart_reminder_coupon_v1',
+            'category' => 'MARKETING',
+            'body' => "أهلاً {{1}}، طلبك في {{2}} لسه مستنيك: {{3}}.\nاستخدم الكود {{4}} وخد خصم {{5}}، والكود شغال لحد {{6}} بس.",
+            'examples' => ['سارة', 'متجر حبة', 'تيشيرت قطن × 2', 'BACK10', '10%', '25 نوفمبر'],
+            'button' => ['text' => 'كمّل طلبك', 'host' => 'platform', 'path' => 'r/{{1}}', 'example' => 'k3x9q2m7p1a8b4c6d2e5f7g9'],
+            'quick_replies' => ['مش مهتم'],
         ],
         'order_shipped' => [
             'name' => 'order_shipped_v1',
@@ -198,19 +216,24 @@ final class WhatsAppTemplates
 
         foreach (self::UTILITY as $template) {
             $components = [['type' => 'BODY', 'text' => $template['body'], 'example' => ['body_text' => [$template['examples']]]]];
-            if (isset($template['quick_replies'])) {
-                $components[] = ['type' => 'BUTTONS', 'buttons' => array_map(fn (string $text): array => ['type' => 'QUICK_REPLY', 'text' => $text], $template['quick_replies'])];
-            }
+            // One buttons block: the link first (index 0), then the reply buttons.
+            $buttons = [];
             if (isset($template['button'])) {
                 $base = self::base($template['button']['host']);
-                $components[] = ['type' => 'BUTTONS', 'buttons' => [[
+                $buttons[] = [
                     'type' => 'URL',
                     'text' => $template['button']['text'],
                     'url' => $base.$template['button']['path'],
                     'example' => [$base.str_replace('{{1}}', $template['button']['example'], $template['button']['path'])],
-                ]]];
+                ];
             }
-            $definitions[] = ['name' => $template['name'], 'language' => self::LANGUAGE, 'category' => 'UTILITY', 'components' => $components];
+            foreach ($template['quick_replies'] ?? [] as $text) {
+                $buttons[] = ['type' => 'QUICK_REPLY', 'text' => $text];
+            }
+            if ($buttons !== []) {
+                $components[] = ['type' => 'BUTTONS', 'buttons' => $buttons];
+            }
+            $definitions[] = ['name' => $template['name'], 'language' => self::LANGUAGE, 'category' => $template['category'] ?? 'UTILITY', 'components' => $components];
 
             if (isset($template['previous'])) {
                 $old = $template['previous'];
@@ -245,8 +268,10 @@ final class WhatsAppTemplates
         if ($button !== null && self::hasButton($key)) {
             $components[] = ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $button]]];
         }
+        // Reply buttons come after the link button.
+        $offset = self::hasButton($key) ? 1 : 0;
         foreach (array_values($payloads) as $i => $payload) {
-            $components[] = ['type' => 'button', 'sub_type' => 'quick_reply', 'index' => (string) $i, 'parameters' => [['type' => 'payload', 'payload' => $payload]]];
+            $components[] = ['type' => 'button', 'sub_type' => 'quick_reply', 'index' => (string) ($i + $offset), 'parameters' => [['type' => 'payload', 'payload' => $payload]]];
         }
 
         return $components;

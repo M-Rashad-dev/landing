@@ -291,3 +291,25 @@ done_by, done_at. Orders: `refunded_total`, payment_status gains `partially_refu
   ROAS, expenses with drawer, packaging), product form cost + margin hint + cost per combination, margin on product
   cards, shipping company costs (+ per governorate), import mapping `cost`, order page «ربح الطلب». Not built: profit
   per landing page (sources only). Tests: `tests/Feature/Profit/ProfitTest.php`, `front/src/features/profit/profit.test.tsx`.
+- **2026-11-24 — Stage 4 abandoned cart recovery, built.** Migration `2026_12_12_100001_create_cart_recovery`:
+  `cart_recovery_settings` (on / off, WhatsApp, email, first reminder after N minutes, second after N hours or none,
+  coupon none / an existing code / a one-time code made per lead), `message_wallets` + `message_wallet_entries`
+  (WhatsApp message balance: topup / charge / refund / adjust), `lead_reminders` (step, channel, the outbound message,
+  charged), `recovery_opt_outs` (phone / email per store), leads `customer_email` / `reminders_sent` /
+  `last_reminded_at` / `recovered_at` / `recovery_token`, `discount_codes.recovery` (one-time codes: out of the coupons
+  list and the plan's code limit). Packs (`message_packs` in PlatformSettings, admin «الباقات» settings) are bought as
+  billing invoices of type `message_pack` (`?messages=N` on the pay page; the receipt flow of every invoice), credited
+  when paid. `App\Recovery\CartRecovery` (`leads:remind` every 5 min): sends without consent (owner) to open leads with
+  a phone, up to 2 reminders, never 23:00–09:00 Cairo; stops when the phone ordered since the lead, the lead was
+  handled, blocked, opted out or is 3 days old. WhatsApp = Marketing templates `cart_reminder_v1` /
+  `cart_reminder_coupon_v1` (link button `https://{platform}/r/{token}` + «مش مهتم» reply, one BUTTONS block), one
+  message from the balance each (given back if Meta reports a failure); balance 0 → WhatsApp stops, emails go on, the
+  merchant's bell once (`recovery_balance_empty`). Email through StoreMailer with a `/u/{token}` stop link (a page with a
+  confirm button). The link: Laravel `public/recovery-link` → the store's `/checkout?r=` (or the landing page `?r=`),
+  `public/recovery` refills the cart lines with their options (store host only) and the name / phone / email; the
+  landing form fills too. An order within 7 days of a reminder → `recovered_at` («رجع بالتذكير»); stats on the panel.
+  Dashboard: `GET|PUT /dashboard/leads/recovery`, `GET /dashboard/leads/recovery/entries`; panel on «الطلبات المتروكة»
+  (permission `abandoned.recovery` to change, `billing.pay` to buy), badges on the leads. Checkout leads now carry the
+  email and each line's options. Copilot: resource `abandoned_leads` (read; names / phones hidden), report
+  `cart_recovery`. Templates need pushing from the admin «الرسائل» for Meta's review before WhatsApp reminders go.
+  Tests: `tests/Feature/Recovery/CartRecoveryTest.php`, `front/src/features/orders/cart-recovery.test.tsx`, `/r/` route.

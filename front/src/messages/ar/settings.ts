@@ -205,6 +205,8 @@ export const settings = {
     aiCredit: "شحن رصيد الذكاء الاصطناعي",
     aiBonus: "هدية العرض (مجانًا)",
     aiNote: (total: string) => `بعد ما الإيصال يتقبل هيتضاف لرصيدك ${total}.`,
+    messagePack: (n: number) => `باقة ${n} رسالة واتساب لتذكير السلات`,
+    messagePackNote: (n: number) => `بعد ما الإيصال يتقبل هيتضاف لرصيد رسائلك ${n} رسالة.`,
     subtotal: "السعر",
     discount: "خصم",
     credit: "رصيد من باقتك الحالية",

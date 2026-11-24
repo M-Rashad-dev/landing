@@ -28,6 +28,7 @@ final class InvoiceResource extends JsonResource
             'period' => $this->period?->value,
             'days' => $snapshot['days'] ?? null,
             'ai_credit' => $snapshot['ai_credit'] ?? null,
+            'message_pack' => $snapshot['message_pack'] ?? null,
             'starts_now' => $this->starts_now,
             'subtotal' => Money::toFloat(Money::toCents((string) $this->subtotal)),
             'discount' => Money::toFloat(Money::toCents((string) $this->discount)),

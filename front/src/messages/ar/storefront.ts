@@ -1,5 +1,16 @@
 /** What customers read on a store («أساس» and the themes after it). */
 export const storefront = {
+  /** «مش عايز تذكيرات تاني» from a cart reminder email. */
+  unsubscribe: {
+    title: "إيقاف تذكيرات الطلبات",
+    text: "مش هيوصلك تاني تذكير بطلب سيبته من المتجر ده.",
+    confirm: "وقّف التذكيرات",
+    doneTitle: "تمام، وقفناها",
+    doneText: "مش هيوصلك تذكيرات تاني من المتجر ده.",
+    invalid: "اللينك ده مش شغال.",
+  },
+  /** A cart reminder's link refilled the cart. */
+  restored: "رجّعنالك طلبك، كمّل من هنا.",
   search: "ابحث عن منتج...",
   cart: "السلة",
   menu: "القائمة",

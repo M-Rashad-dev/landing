@@ -270,6 +270,20 @@ final class StoreNotices
         ));
     }
 
+    /** Cart reminders on WhatsApp stopped: no messages left (once until the next top-up). */
+    public function recoveryBalanceEmpty(int $tenantId): void
+    {
+        $this->center->toStore($tenantId, new Notice(
+            NotificationEvent::RecoveryBalanceEmpty,
+            __('notifications.recovery_balance_empty.title'),
+            __('notifications.recovery_balance_empty.body'),
+            '/dashboard/abandoned',
+            [],
+            __('notifications.recovery_balance_empty.action'),
+            dedupeKey: 'recovery_balance_empty:'.now()->format('YmdH'),
+        ));
+    }
+
     /** The store's own mailbox refused: its emails go from the platform's address until it is fixed (once a day). */
     public function mailboxFailed(int $tenantId, string $reason): void
     {

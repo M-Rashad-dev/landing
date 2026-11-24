@@ -44,6 +44,8 @@ export type BillingSettings = {
   support_whatsapp: string | null;
   support_phone: string | null;
   support_address: string | null;
+  /** WhatsApp message packs for cart reminders: messages and price (EGP). */
+  message_packs?: Array<{ messages: number; price: number }>;
 };
 
 type PlansResponse = { data: AdminPlanRow[]; meta: { entitlements: Entitlement[]; settings: BillingSettings } };

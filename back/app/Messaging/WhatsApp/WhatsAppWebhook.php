@@ -11,6 +11,7 @@ use App\Jobs\SendWhatsAppAutoReply;
 use App\Models\Order;
 use App\Models\OutboundMessage;
 use App\Orders\WhatsAppConfirmations;
+use App\Recovery\CartRecovery;
 use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\RateLimiter;
@@ -91,6 +92,10 @@ final class WhatsAppWebhook
             $changes['error_title'] = mb_substr((string) (is_string($details) && $details !== '' ? $details : ($error['title'] ?? '')), 0, 255) ?: null;
         }
         $message->update($changes);
+        // A cart reminder that never arrived gives its message back to the store's balance.
+        if ($next === MessageStatus::Failed && $message->purpose === MessagePurpose::CartReminder) {
+            app(CartRecovery::class)->failed($message->id);
+        }
         // A confirmation that never reached the customer: the order goes back to the call center.
         if ($next === MessageStatus::Failed && $message->order_id !== null && in_array($message->purpose, [MessagePurpose::OrderConfirm, MessagePurpose::OrderConfirmReminder], true)) {
             // Audited bypass: the order this platform message was about.
@@ -114,6 +119,9 @@ final class WhatsAppWebhook
             'interactive' => is_string($message['interactive']['button_reply']['id'] ?? null) ? $message['interactive']['button_reply']['id'] : null,
             default => null,
         };
+        if (app(CartRecovery::class)->incoming($phone, $payload)) {
+            return;
+        }
         if (app(WhatsAppConfirmations::class)->incoming($phone, $payload, $type === 'text')) {
             return;
         }

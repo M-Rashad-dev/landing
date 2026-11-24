@@ -143,6 +143,7 @@ final class StoreController extends Controller
         $data = $request->validate($this->cartRules() + [
             'phone' => ['required', 'string', 'max:30'],
             'name' => ['nullable', 'string', 'max:80'],
+            'email' => ['nullable', 'string', 'max:191'],
             'governorate' => ['nullable', 'string', 'max:60'],
             'form_token' => ['required', 'string', 'max:100'],
             'cart_token' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{16,64}$/'],
@@ -154,8 +155,9 @@ final class StoreController extends Controller
             if ($phone !== null && $tokens->isValid($data['form_token'], self::formSubject($store)) && $entitlements->allows(PlanFeature::AbandonedLeads)) {
                 try {
                     $quote = $calculator->quoteCart($orders->lines($data['items']), now());
-                    $leads->captureCart($phone, ['name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'governorate' => $data['governorate'] ?? null, 'ip' => $data['ip'] ?? null], [
-                        'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity], $quote->lines),
+                    $email = isset($data['email']) && filter_var($data['email'], FILTER_VALIDATE_EMAIL) ? mb_strtolower(trim($data['email'])) : null;
+                    $leads->captureCart($phone, ['name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'email' => $email, 'governorate' => $data['governorate'] ?? null, 'ip' => $data['ip'] ?? null], [
+                        'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity, 'options' => self::optionMap($l->selected)], $quote->lines),
                         'total' => round($quote->total / 100, 2),
                     ], $data['cart_token'] ?? null);
                 } catch (ValidationException) {
@@ -192,7 +194,7 @@ final class StoreController extends Controller
                 try {
                     $lines = $data['items'] === [] ? [] : $calculator->quoteCart($orders->lines($data['items']), now())->lines;
                     $leads->abandonedCart($data['cart_token'], $details, [
-                        'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity], $lines),
+                        'items' => array_map(fn ($l) => ['product_id' => $l->product->id, 'name' => $l->product->name, 'quantity' => $l->quantity, 'options' => self::optionMap($l->selected)], $lines),
                         'total' => round(array_sum(array_map(fn ($l) => $l->afterOffer, $lines)) / 100, 2),
                     ]);
                 } catch (ValidationException) {
@@ -241,6 +243,22 @@ final class StoreController extends Controller
             'items.*.inputs' => ['nullable', 'array', 'max:'.ProductInput::MAX],
             'items.*.inputs.*' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    /**
+     * A line's choices as the storefront cart keeps them (option id → value id).
+     *
+     * @param  list<array{option_id: int, value_id: int}>  $selected
+     * @return array<string, int>
+     */
+    private static function optionMap(array $selected): array
+    {
+        $map = [];
+        foreach ($selected as $s) {
+            $map[(string) $s['option_id']] = (int) $s['value_id'];
+        }
+
+        return $map;
     }
 
     /** The signed form token of a store checkout is bound to the store (pages use their id). */

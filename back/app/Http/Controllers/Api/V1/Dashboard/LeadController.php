@@ -101,6 +101,11 @@ final class LeadController extends Controller
             'cart' => $lead->cart,
             'customer_id' => $lead->customer_phone === null ? null : ($this->customerIds[$lead->customer_phone] ?? null),
             'order' => $lead->order ? ['id' => $lead->order->id, 'number' => $lead->order->order_number] : null,
+            'customer_email' => $lead->customer_email,
+            // Cart reminders: how many went, the last one, and whether an order came after them.
+            'reminders_sent' => $lead->reminders_sent,
+            'last_reminded_at' => $lead->last_reminded_at?->toIso8601ZuluString(),
+            'recovered_at' => $lead->recovered_at?->toIso8601ZuluString(),
             'contacted_at' => $lead->contacted_at?->toIso8601ZuluString(),
             'last_seen_at' => $lead->last_seen_at?->toIso8601ZuluString(),
             'created_at' => $lead->created_at->toIso8601ZuluString(),

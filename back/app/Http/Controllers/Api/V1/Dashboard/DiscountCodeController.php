@@ -29,6 +29,8 @@ final class DiscountCodeController extends Controller
         $search = DiscountCode::normalizeCode((string) $request->query('q', ''));
         $query = DiscountCode::query()
             ->with(self::WITH)
+            // One-time codes made for cart reminders live on their reminders, not in this list.
+            ->where('recovery', false)
             ->when($search !== '', fn ($q) => $q->where('code', 'like', '%'.addcslashes($search, '%_\\').'%'))
             ->latest('id');
         $this->filterStatus($query, $request->query('status'));

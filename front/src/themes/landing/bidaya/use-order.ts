@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { abTestId } from "@/lib/ab/cookie";
-import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { formatPhoneLocal, isValidPhone, normalizePhone } from "@/lib/phone";
 import { activeOffers, offerQuantity } from "@/lib/store/offers";
+import { applyRecovered, fetchRecovered, recoveryToken } from "@/lib/store/recovery";
 import { saveUpsell, type UpsellOfferData } from "@/lib/store/upsell";
 import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
@@ -107,6 +108,28 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   const offers = activeOffers(data.offers);
   const picker = props.offer_picker && offers.length > 0;
   const setQuantity = React.useCallback((n: number) => setQuantityState(Math.max(1, Math.min(20, Math.round(n) || 1))), []);
+
+  // A cart reminder's link (?r=…): the form comes back filled (name, phone, email, quantity).
+  React.useEffect(() => {
+    if (!live) return;
+    const token = recoveryToken(window.location.search);
+    if (!token) return;
+    let alive = true;
+    void fetchRecovered(token).then((data) => {
+      if (!alive || !data) return;
+      applyRecovered(data);
+      setValues((v) => ({
+        ...v,
+        ...(data.customer.name && !v.name ? { name: data.customer.name } : {}),
+        ...(data.customer.phone && !v.phone ? { phone: formatPhoneLocal(data.customer.phone) } : {}),
+        ...(data.customer.email && !v.email ? { email: data.customer.email } : {}),
+      }));
+      if (data.quantity > 1) setQuantity(data.quantity);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [live, setQuantity]);
 
   // Anti-bot token, fetched by the browser (never baked into the cached page).
   React.useEffect(() => {
