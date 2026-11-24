@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**New session taking over? Read [docs/HANDOFF.md](docs/HANDOFF.md) first: where the work stopped, the owner's rules, what to do next.**
+
 Multi-tenant landing-page SaaS. Full spec: [PLAN.MD](PLAN.MD). Status: [PROGRESS.md](PROGRESS.md). Small decisions not in the plan: [DECISIONS.md](DECISIONS.md).
 
 The rebuilt front end (once `front-v2/`) is now `front/`; the old one is deleted. **Read [docs/PROJECT.md](docs/PROJECT.md) first**: the whole project, the owner's way of working, conventions and the agreed roadmap. Deploy guide: [deploy/DEPLOY.md](deploy/DEPLOY.md).
