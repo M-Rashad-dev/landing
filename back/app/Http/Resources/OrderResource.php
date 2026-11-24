@@ -27,6 +27,9 @@ class OrderResource extends JsonResource
             // cod | prepaid; payment_status unpaid | review | paid (null for cash on delivery).
             'payment_method' => $this->payment_method,
             'payment_status' => $this->payment_status?->value,
+            // Money sent back (stage 5 refunds): null | partial | full.
+            'refund_state' => $this->refund_state?->value,
+            'refunded_total' => Money::toFloat(Money::toCents((string) $this->refunded_total)),
             // WhatsApp confirmation: sent / reminded (waiting) / confirmed / cancelled / needs_call / no_reply / failed.
             'confirm_state' => $this->confirm_state?->value,
             'confirm_state_label' => $this->confirm_state?->label(),

@@ -28,7 +28,7 @@ final class ProfitSummaryReport extends CopilotReport
 
     public function summary(): string
     {
-        return 'Profit of a period: actual (delivered orders, minus returns / damaged as losses), expected (orders still new / confirmed / shipped), product cost, real shipping cost, COD fee, packaging, expenses by kind (ads, salaries…), net profit and margin, most profitable products, ROAS per ad source, orders missing a product cost. Same numbers as the dashboard «الأرباح» page.';
+        return 'Profit of a period: actual (delivered orders, minus returns / damaged as losses), expected (orders still new / confirmed / shipped), product cost, real shipping cost, COD fee, packaging, expenses by kind (ads, salaries…), net profit and margin, most profitable products, ROAS per ad source, orders missing a product cost, refunds (money sent back to customers). Same numbers as the dashboard «الأرباح» page.';
     }
 
     public function params(): array
@@ -52,7 +52,8 @@ final class ProfitSummaryReport extends CopilotReport
                 'margin_percent' => $r['margin'],
                 'missing_cost_orders' => $r['missing_cost_orders'],
                 'sources' => $r['sources'],
-                'rules' => 'Money in EGP. Actual profit = delivered revenue − product cost − real shipping − COD fee − packaging − losses (returned: shipping both ways + packaging; damaged: also the goods). Net = actual profit − expenses. Orders by the day placed, expenses by the day spent. Costs are snapshotted when an order is placed; a product without a cost counts as 0 (see missing_cost_orders).',
+                'refunds_done_in_period' => $r['refunds'],
+                'rules' => 'Money in EGP. Actual profit = delivered revenue − refunds − product cost (units refunded back to stock no longer count) − real shipping − COD fee − packaging − losses (returned: shipping both ways + packaging; damaged: also the goods). Net = actual profit − expenses. Orders by the day placed, expenses by the day spent. Costs are snapshotted when an order is placed; a product without a cost counts as 0 (see missing_cost_orders).',
             ],
             title: 'أرباح المنتجات ('.$period->from->toDateString().' ← '.$period->to->toDateString().')',
             columns: [

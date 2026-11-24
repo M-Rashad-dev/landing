@@ -23,6 +23,7 @@ export const profit = {
     title: "الفلوس راحت فين",
     hint: "للطلبات اللي اتسلّمت أو رجعت في الفترة.",
     revenue: "المبيعات",
+    refunds: "فلوس اترجّعت للعملاء",
     productCost: "تكلفة المنتجات",
     shipping: "الشحن الفعلي",
     cod: "عمولة التحصيل",
@@ -74,6 +75,7 @@ export const profit = {
   order: {
     title: "ربح الطلب",
     revenue: "إجمالي الطلب",
+    refunds: "اللي اترجّع للعميل",
     productCost: "تكلفة المنتجات",
     shipping: "الشحن الفعلي",
     cod: "عمولة التحصيل",

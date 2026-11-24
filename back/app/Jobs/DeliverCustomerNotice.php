@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\MessagePurpose;
+use App\Enums\RefundStatus;
 use App\Mail\CustomerOrderMail;
 use App\Mail\Store\StoreMailer;
 use App\Messaging\WhatsApp\WhatsAppError;
@@ -14,9 +15,11 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderPayment;
+use App\Models\OrderRefund;
 use App\Models\StorePaymentSetting;
 use App\Models\Tenant;
 use App\Notifications\CustomerNotices;
+use App\Orders\Refunds;
 use App\Services\PublicSite;
 use App\Store\Payments\StorePayments;
 use App\Support\Money;
@@ -38,7 +41,8 @@ final class DeliverCustomerNotice implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public readonly int $tenantId, public readonly int $orderId, public readonly string $event) {}
+    /** @param int|null $refundId the refund told about (event «refunded») */
+    public function __construct(public readonly int $tenantId, public readonly int $orderId, public readonly string $event, public readonly ?int $refundId = null) {}
 
     public function handle(WhatsAppMessenger $messenger, StoreMailer $mailer): void
     {
@@ -94,16 +98,19 @@ final class DeliverCustomerNotice implements ShouldQueue
     {
         $store = $this->store();
         $key = 'customer_notices.'.$this->event;
-        $rows = $order->items->map(fn (OrderItem $item): array => [
+        $rows = $this->event === CustomerNotices::REFUNDED ? $this->refundRows($order) : $order->items->map(fn (OrderItem $item): array => [
             'label' => $item->product_name.($item->quantity > 1 ? ' × '.$item->quantity : ''),
             'value' => $this->money(Money::toCents((string) $item->line_total)),
         ])->values()->all();
+        if ($rows === null) {
+            return;
+        }
         $rows[] = ['label' => __('customer_notices.total'), 'value' => $this->money(Money::toCents((string) $order->total))];
         if ($this->event === CustomerNotices::SHIPPED && $order->tracking_number) {
             $rows[] = ['label' => __('customer_notices.tracking_number'), 'value' => (string) $order->tracking_number];
         }
         // Payment messages lead to the pay page (the receipt goes there).
-        $payment = in_array($this->event, [CustomerNotices::PAYMENT_DUE, CustomerNotices::PAYMENT_REJECTED], true);
+        $payment = in_array($this->event, [CustomerNotices::PAYMENT_DUE, CustomerNotices::PAYMENT_REJECTED], true) || ($this->event === CustomerNotices::REFUNDED && $order->isPrepaid());
         if ($payment && $order->payment_method_name) {
             $rows[] = ['label' => __('customer_notices.payment_method'), 'value' => (string) $order->payment_method_name];
         }
@@ -116,7 +123,7 @@ final class DeliverCustomerNotice implements ShouldQueue
                 __($key.'.subject', ['number' => $order->order_number, 'store' => $store]),
                 __($key.'.intro', ['store' => $store, 'company' => $order->shipping_company_name ?: __('customer_notices.shipping_company'), 'reason' => $reason, 'days' => StorePaymentSetting::current()->cancel_after_days]),
                 $rows,
-                __($payment ? 'customer_notices.pay' : 'customer_notices.track'),
+                __($payment && $this->event !== CustomerNotices::REFUNDED ? 'customer_notices.pay' : 'customer_notices.track'),
                 $payment ? StorePayments::payUrl($order) : ($order->track_token === null ? null : rtrim(PublicSite::url((string) config('landing.platform_domain')), '/').'/t/'.$order->track_token),
                 __('customer_notices.footer', ['store' => $store]),
             ));
@@ -124,6 +131,29 @@ final class DeliverCustomerNotice implements ShouldQueue
         } catch (Throwable $e) {
             report($e);
         }
+    }
+
+    /**
+     * The refund's lines (amount, how, reference, the order's refunded total); null when it isn't done (nothing sent).
+     *
+     * @return list<array{label: string, value: string}>|null
+     */
+    private function refundRows(Order $order): ?array
+    {
+        $refund = $this->refundId === null ? null : OrderRefund::query()->where('order_id', $order->id)->find($this->refundId);
+        if ($refund === null || $refund->status !== RefundStatus::Done) {
+            return null;
+        }
+        $rows = [
+            ['label' => (string) __('customer_notices.refund_amount'), 'value' => $this->money(Money::toCents((string) $refund->amount))],
+            ['label' => (string) __('customer_notices.refund_method'), 'value' => app(Refunds::class)->methodLabel($refund, $order).($refund->destination ? ' ('.$refund->destination.')' : '')],
+        ];
+        if ($refund->reference) {
+            $rows[] = ['label' => (string) __('customer_notices.refund_reference'), 'value' => (string) $refund->reference];
+        }
+        $rows[] = ['label' => (string) __('customer_notices.refund_total'), 'value' => $this->money(Money::toCents((string) $order->refunded_total))];
+
+        return $rows;
     }
 
     private function purpose(): MessagePurpose

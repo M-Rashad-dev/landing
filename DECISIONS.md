@@ -598,3 +598,13 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **One-time codes are not coupons**: made per lead (single use, 48 h), flagged `recovery`, kept out of the coupons list and the plan limit.
 - **A failed WhatsApp reminder gives its message back** (Meta doesn't bill undelivered messages).
 - **«رجع بالتذكير»** = an order from that phone (or cart) within 7 days of a reminder.
+
+## 2026-11-24 — Refunds (merchant essentials, stage 5)
+- **Recorded, not sent by us**: the merchant sends the money himself (wallet, InstaPay, bank, cash); the platform records it, tells the customer and fixes the reports. The copilot reads refunds only (owner: money stays with the merchant).
+- **Own columns, not payment_status**: orders get `refunded_total` + `refund_state` (partial / full) instead of new `payment_status` values, because cash-on-delivery orders have no payment status and every «paid» check (digital deliveries, receipts, expected profit) keeps working unchanged.
+- **Collected money only**: a paid prepaid order, or a cash order once delivered (also when it is returned / damaged after the delivery). Limit = collected − refunds asked or done; a cancelled one frees its amount.
+- **Asked, then done**: a refund starts «مطلوب» and its effects (refunded total, stock, stopping downloads, the customer's email, the webhook) happen when it is marked «اترجّع»; the merchant can record one as already sent in one step.
+- **Status changes ask, never force**: cancelling / returning / marking damaged an order with money in asks «هترجّع الفلوس؟»; the status changes first, then a pending refund is made (a failed refund never undoes the status).
+- **Stock per line, once**: returned units go back only for the chosen lines and never beyond what the order still holds, so returning the whole order later doesn't count them twice.
+- **Profit**: done refunds come off the order's profit and the cost of units refunded into stock is no longer a cost; returned / damaged orders already count no revenue, so their refunds change nothing there. Refunds of the period are listed by the day the money went back.
+- **Customer told by email only** (no WhatsApp template for refunds yet), and on the pay page.

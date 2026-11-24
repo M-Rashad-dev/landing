@@ -9,6 +9,7 @@ use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
 use App\Enums\ConfirmState;
 use App\Enums\OrderPaymentState;
+use App\Enums\OrderRefundState;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Support\OrderFilters;
@@ -65,6 +66,8 @@ final class OrdersResource extends CopilotResource
             // WhatsApp confirmation (free, automatic when the store turns it on): sent / reminded = waiting for the answer.
             Field::enum('confirm_state', ConfirmState::class)->label('تأكيد واتساب')->labels(array_combine(ConfirmState::values(), array_map(fn (ConfirmState $s) => $s->label(), ConfirmState::cases())))->filterable(),
             Field::enum('payment_status', OrderPaymentState::class)->label('حالة الدفع')->labels(array_combine(OrderPaymentState::values(), array_map(fn (OrderPaymentState $s) => $s->label(), OrderPaymentState::cases())))->filterable(),
+            Field::money('refunded_total')->label('اللي اترجّع')->filterable()->sortable(),
+            Field::enum('refund_state', OrderRefundState::class)->label('الاسترجاع')->filterable(),
             Field::text('discount_code')->label('كود الخصم')->filterable(),
             Field::text('shipping_company_name')->label('شركة الشحن'),
             Field::text('source')->label('المصدر')->using(fn (Model $o) => $o->getAttribute('source') === 'store' ? 'المتجر' : 'صفحة هبوط'),

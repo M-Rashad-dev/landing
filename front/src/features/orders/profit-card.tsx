@@ -15,6 +15,7 @@ export function ProfitCard({ order }: { order: OrderDetail }) {
   if (!p) return null;
   const rows = [
     { label: t.revenue, value: p.revenue },
+    { label: t.refunds, value: -(p.refunds ?? 0) },
     { label: t.productCost, value: -p.product_cost },
     { label: t.shipping, value: -p.shipping_cost },
     { label: t.cod, value: -p.cod_fee },

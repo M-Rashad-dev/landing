@@ -100,6 +100,18 @@ final class DigitalDeliveries
         return $delivery;
     }
 
+    /**
+     * A refund stops these lines: no more downloads or link opens, and a codes line still waiting gets none. Codes
+     * already sent can't be taken back. Returns how many deliveries were stopped.
+     *
+     * @param  list<int>  $itemIds
+     */
+    public function revoke(Order $order, array $itemIds): int
+    {
+        return OrderDelivery::query()->where('order_id', $order->id)->whereIn('order_item_id', $itemIds)
+            ->where('status', '!=', OrderDelivery::REVOKED)->update(['status' => OrderDelivery::REVOKED, 'updated_at' => now()]);
+    }
+
     /** «ابعت تاني»: the same delivery emailed again (never new codes). */
     public function resend(OrderDelivery $delivery): void
     {
@@ -126,7 +138,7 @@ final class DigitalDeliveries
         return DB::transaction(function () use ($delivery, $fileId): ?array {
             $locked = OrderDelivery::query()->whereKey($delivery->id)->lockForUpdate()->firstOrFail();
             $file = ProductFile::query()->where('product_id', $locked->product_id)->find($fileId);
-            if ($file === null) {
+            if ($file === null || $locked->status === OrderDelivery::REVOKED) {
                 return null;
             }
             $left = $locked->left((string) $file->id);
@@ -150,7 +162,7 @@ final class DigitalDeliveries
             $locked = OrderDelivery::query()->whereKey($delivery->id)->lockForUpdate()->firstOrFail();
             $link = $locked->payload['link'] ?? null;
             $left = $locked->left('link');
-            if (! is_string($link) || ($left !== null && $left <= 0)) {
+            if (! is_string($link) || $locked->status === OrderDelivery::REVOKED || ($left !== null && $left <= 0)) {
                 return null;
             }
             $usage = $locked->usage ?? [];
@@ -195,7 +207,7 @@ final class DigitalDeliveries
         if ($order->status !== OrderStatus::Confirmed || $order->items->contains(fn (OrderItem $i) => $i->delivery_type === null)) {
             return;
         }
-        $pending = OrderDelivery::query()->where('order_id', $order->id)->where('status', OrderDelivery::DELIVERED)->count() < $order->items->count();
+        $pending = OrderDelivery::query()->where('order_id', $order->id)->whereIn('status', [OrderDelivery::DELIVERED, OrderDelivery::REVOKED])->count() < $order->items->count();
         if (! $pending) {
             app(ChangeOrderStatus::class)->handle($order, OrderStatus::Delivered, (string) __('digital.delivered_note'), null, ['notify' => false]);
         }

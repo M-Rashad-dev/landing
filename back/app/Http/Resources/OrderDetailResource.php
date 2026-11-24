@@ -13,6 +13,7 @@ use App\Models\OrderItem;
 use App\Models\OrderPayment;
 use App\Models\OrderStatusLog;
 use App\Models\OutboundMessage;
+use App\Orders\Refunds;
 use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -97,6 +98,8 @@ final class OrderDetailResource extends OrderResource
                     'created_at' => $p->created_at->toIso8601ZuluString(),
                 ])->values()->all(),
             ] : null,
+            // Money sent back to the customer: what can still go back, and every refund.
+            'refunds' => app(Refunds::class)->orderView($this->resource),
             'shipment' => $this->whenLoaded('shipment', fn () => $this->shipment === null ? null : ShipmentResource::make($this->shipment)->resolve()),
             // What it cost and earns (only for whoever sees «الأرباح»).
             'profit' => $this->when(PermissionCatalog::allows($request->user(), 'profit.view'), fn () => $this->profitView()),
@@ -145,7 +148,7 @@ final class OrderDetailResource extends OrderResource
     {
         $p = app(OrderCosts::class)->profit($this->resource);
         $out = ['cost_known' => $p['cost_known'], 'loss' => $p['loss'] > 0];
-        foreach (['revenue', 'product_cost', 'shipping_cost', 'cod_fee', 'packaging', 'profit'] as $key) {
+        foreach (['revenue', 'refunds', 'product_cost', 'shipping_cost', 'cod_fee', 'packaging', 'profit'] as $key) {
             $out[$key] = Money::toFloat($p[$key]);
         }
 

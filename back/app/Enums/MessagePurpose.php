@@ -18,6 +18,8 @@ enum MessagePurpose: string
     case OrderPaymentDue = 'order_payment_due';
     case OrderPaymentConfirmed = 'order_payment_confirmed';
     case OrderPaymentRejected = 'order_payment_rejected';
+    /** Money sent back to the customer (a refund marked done). */
+    case OrderRefunded = 'order_refunded';
     /** A digital product delivered (files, codes, a link, a done service). */
     case OrderDigitalDelivery = 'order_digital_delivery';
     /** WhatsApp confirmation of a cash-on-delivery order, its reminder, and the reply to the customer's answer. */

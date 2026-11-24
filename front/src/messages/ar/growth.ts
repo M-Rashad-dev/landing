@@ -34,7 +34,7 @@ export const growth = {
     urlRequired: "اكتب الرابط",
     events: "يتبعت لما",
     eventsRequired: "اختار حاجة واحدة على الأقل",
-    eventNames: { "order.created": "طلب جديد", "order.status_changed": "حالة الطلب تتغير", "order.updated": "الطلب يتعدّل", "lead.created": "طلب متروك" } as Record<string, string>,
+    eventNames: { "order.created": "طلب جديد", "order.status_changed": "حالة الطلب تتغير", "order.updated": "الطلب يتعدّل", "order.refunded": "فلوس اترجّعت للعميل", "lead.created": "طلب متروك" } as Record<string, string>,
     active: "شغال",
     paused: "متوقف",
     failures: (n: number) => `فشل ${formatNumber(n)} مرة ورا بعض`,

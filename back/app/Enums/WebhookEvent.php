@@ -10,6 +10,8 @@ enum WebhookEvent: string
     case OrderStatusChanged = 'order.status_changed';
     /** Customer details edited, or the post-order offer added. */
     case OrderUpdated = 'order.updated';
+    /** Money sent back to the customer (a refund marked done). */
+    case OrderRefunded = 'order.refunded';
     case LeadCreated = 'lead.created';
     /** Sent only by the "send test" button. */
     case Test = 'test';
@@ -17,6 +19,6 @@ enum WebhookEvent: string
     /** @return list<string> events a merchant can subscribe to */
     public static function subscribable(): array
     {
-        return [self::OrderCreated->value, self::OrderStatusChanged->value, self::OrderUpdated->value, self::LeadCreated->value];
+        return [self::OrderCreated->value, self::OrderStatusChanged->value, self::OrderUpdated->value, self::OrderRefunded->value, self::LeadCreated->value];
     }
 }

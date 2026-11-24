@@ -313,3 +313,32 @@ done_by, done_at. Orders: `refunded_total`, payment_status gains `partially_refu
   email and each line's options. Copilot: resource `abandoned_leads` (read; names / phones hidden), report
   `cart_recovery`. Templates need pushing from the admin «الرسائل» for Meta's review before WhatsApp reminders go.
   Tests: `tests/Feature/Recovery/CartRecoveryTest.php`, `front/src/features/orders/cart-recovery.test.tsx`, `/r/` route.
+- **2026-11-24 — Stage 5 refunds, built.** Migration `2026_12_13_100001_create_order_refunds`: `order_refunds` (amount,
+  optional lines `[{order_item_id, quantity}]`, reason, method `RefundMethod` original / wallet / InstaPay / bank / cash,
+  destination — default the approved receipt's «حوّل من», else the customer's phone —, reference, private proof image /
+  PDF, status `RefundStatus` pending → done | cancelled, restock / revoke_digital flags, created_by / done_by /
+  cancelled_by) and orders `refunded_total` (sum of the done ones) + `refund_state` (`OrderRefundState` partial / full;
+  `payment_status` untouched). `App\Orders\Refunds`: collected = a paid prepaid order's total, or a cash order's total
+  once delivered (still counted when it is returned / damaged after a delivery); never more than collected minus the
+  refunds asked or done, lines never above what is left of them (both checked under the order's lock). Done → refunded
+  total + state, the chosen lines back in stock once (`Stock::restockItems`, matched to the order's own stock movements,
+  never more than the order still holds, so a later «مسترجع» gives back only the rest), digital lines revoked (delivery
+  `revoked`: downloads / opens refused with a message, a codes line still waiting gets none; codes already sent stay),
+  the customer's email (`CustomerNotices::refunded`, purpose `order_refunded`, email only) and webhook `order.refunded`
+  (+ `refunded` on every order payload; Sheets script gets a «المسترجع» column). Endpoints `GET /dashboard/refunds`
+  (status filter, pending count / total), `POST /dashboard/orders/{order}/refunds` (JSON or multipart; `done` records it
+  as sent at once), `POST /dashboard/refunds/{refund}/complete|cancel`, `GET /dashboard/refunds/{refund}/proof`;
+  permission `orders.refunds` (the proof: `orders.view`); the activity log records them. Order detail `refunds` block;
+  list rows `refund_state` / `refunded_total`; pay page and tracking API list the refunds. Profit: an order's profit
+  takes off its done refunds and gives back the cost of the units refunded into stock; the report adds `actual.refunds`,
+  sources' revenue net of refunds, products' units / revenue without the refunded units, the margin on net revenue and
+  `refunds` done in the period (by the day the money went back); analytics KPIs / chart sales net of refunds. Copilot:
+  resource `refunds` (read only, destination hidden), orders `refunded_total` / `refund_state`, profit report mentions
+  refunds. Front: order page «المبالغ المسترجعة» card (collected / refunded / can go back, «رد مبلغ» dialog: all / lines
+  with suggested amount / amount only, method, destination, reason, restock, stop downloads, «أنا بعت الفلوس خلاص» with
+  reference + proof; each refund «اترجّع» / «الغي»), the status dialog asks «هترجّع الفلوس؟» (كلها / جزء / لا) when
+  cancelling / returning / marking damaged an order with money in, page `/dashboard/orders/refunds` (tabs, pending
+  summary; button on the orders page when some are pending), profit card and profit page refunds rows, pay page refunds
+  and revoked lines, deliveries card «اتوقف». Not built: the refunds list on the themes' tracking pages (the API sends
+  it; the email and the pay page tell the customer). Tests: `tests/Feature/Refunds/RefundsTest.php`,
+  `front/src/features/orders/refunds.test.tsx`.

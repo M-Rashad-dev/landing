@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductFileController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ProfitController;
+use App\Http\Controllers\Api\V1\Dashboard\RefundController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
 use App\Http\Controllers\Api\V1\Dashboard\ShipmentController;
@@ -310,6 +311,12 @@ Route::prefix('dashboard')
         Route::get('orders/{order}/payments/{payment}/receipt', [OrderPaymentController::class, 'receipt'])->whereNumber('payment');
         Route::post('orders/{order}/payments/{payment}/approve', [OrderPaymentController::class, 'approve'])->whereNumber('payment');
         Route::post('orders/{order}/payments/{payment}/reject', [OrderPaymentController::class, 'reject'])->whereNumber('payment');
+        // Refunds (docs/plans/merchant-essentials.md, stage 5).
+        Route::get('refunds', [RefundController::class, 'index']);
+        Route::post('orders/{order}/refunds', [RefundController::class, 'store']);
+        Route::post('refunds/{refund}/complete', [RefundController::class, 'complete'])->whereNumber('refund');
+        Route::post('refunds/{refund}/cancel', [RefundController::class, 'cancel'])->whereNumber('refund');
+        Route::get('refunds/{refund}/proof', [RefundController::class, 'proof'])->whereNumber('refund');
         // Digital lines: send again, more downloads / opens, «تم التنفيذ» (docs/plans/digital-products.md, stage 4).
         Route::post('orders/{order}/deliveries/{delivery}/resend', [OrderDeliveryController::class, 'resend'])->whereNumber('delivery')->middleware('throttle:mail-checks');
         Route::post('orders/{order}/deliveries/{delivery}/grant', [OrderDeliveryController::class, 'grant'])->whereNumber('delivery');

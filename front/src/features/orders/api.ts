@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Shipment, ShipmentState } from "@/features/shipping/carriers-api";
 import type { OrderStatus } from "@/components/domain/order-status";
-import { api, apiPage, apiRaw } from "@/lib/api/client";
+import { api, apiPage, apiRaw, type Paginated } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 
 export type { OrderStatus };
@@ -36,6 +36,9 @@ export type OrderRow = {
   /** cod | prepaid; payment_status null for cash on delivery. */
   payment_method?: "cod" | "prepaid";
   payment_status?: "unpaid" | "review" | "paid" | null;
+  /** Money sent back (refunds): null | partial | full. */
+  refund_state?: "partial" | "full" | null;
+  refunded_total?: number;
   /** WhatsApp confirmation: sent / reminded (waiting) / confirmed / cancelled / needs_call / no_reply / failed. */
   confirm_state?: ConfirmState | null;
   confirm_state_label?: string | null;
@@ -93,7 +96,8 @@ export type OrderDelivery = {
   id: number;
   order_item_id: number;
   type: "files" | "codes" | "links" | "services";
-  status: "pending" | "delivered";
+  /** revoked: refunded with «وقف التحميل». */
+  status: "pending" | "delivered" | "revoked";
   codes: string[];
   link: string | null;
   subject: string | null;
@@ -108,9 +112,51 @@ export type OrderDelivery = {
   emailed_at: string | null;
 };
 
+export type RefundMethod = "original" | "wallet" | "instapay" | "bank" | "cash";
+export const REFUND_METHODS: RefundMethod[] = ["original", "wallet", "instapay", "bank", "cash"];
+
+/** One refund (back: App\Orders\Refunds::view). */
+export type Refund = {
+  id: number;
+  order_id: number;
+  order_number: number;
+  customer_name: string;
+  amount: number;
+  items: Array<{ order_item_id: number; product_name: string | null; quantity: number }>;
+  reason: string | null;
+  method: RefundMethod;
+  method_label: string;
+  destination: string | null;
+  reference: string | null;
+  has_proof: boolean;
+  proof_is_pdf: boolean;
+  status: "pending" | "done" | "cancelled";
+  restock: boolean;
+  restocked: boolean;
+  revoke_digital: boolean;
+  created_by: string | null;
+  done_by: string | null;
+  done_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+};
+
+/** The order page's refunds box (back: Refunds::orderView). */
+export type OrderRefunds = {
+  collected: number;
+  refundable: number;
+  refunded: number;
+  state: "partial" | "full" | null;
+  method_name: string;
+  default_destination: string | null;
+  items_left: Record<string, number>;
+  list: Refund[];
+};
+
 export type OrderDetail = Omit<OrderRow, "shipment"> & {
   shipment: Shipment | null;
   payment: OrderPaymentInfo | null;
+  refunds: OrderRefunds;
   deliveries?: OrderDelivery[];
   customer_phone2: string | null;
   customer_email: string | null;
@@ -127,7 +173,7 @@ export type OrderDetail = Omit<OrderRow, "shipment"> & {
   code: { id: number | null; code: string; discount: number } | null;
   shipping_fee: number;
   /** Only for whoever sees «الأرباح» (costs as they were when the order was placed). */
-  profit?: { revenue: number; product_cost: number; shipping_cost: number; cod_fee: number; packaging: number; profit: number; loss: boolean; cost_known: boolean };
+  profit?: { revenue: number; refunds?: number; product_cost: number; shipping_cost: number; cod_fee: number; packaging: number; profit: number; loss: boolean; cost_known: boolean };
   shipping: {
     company: { id: number | null; name: string } | null;
     offer: string | null;
@@ -307,4 +353,62 @@ export const NEXT: Record<OrderStatus, OrderStatus[]> = {
 /** wa.me link for an Egyptian E.164 phone with a prefilled message. */
 export function whatsappLink(phone: string, text: string): string {
   return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+}
+
+export type RefundInput = {
+  amount: string;
+  method: RefundMethod;
+  items?: Array<{ order_item_id: number; quantity: number }>;
+  reason?: string;
+  destination?: string;
+  restock?: boolean;
+  revoke_digital?: boolean;
+  done?: boolean;
+  reference?: string;
+  proof?: File | null;
+};
+
+/** «رد مبلغ»: JSON, or multipart when a proof is attached. */
+export function createRefund(orderId: number, input: RefundInput) {
+  const { proof, ...rest } = input;
+  if (!proof) return api<Refund>(`/dashboard/orders/${orderId}/refunds`, { method: "POST", body: rest });
+  return api<Refund>(`/dashboard/orders/${orderId}/refunds`, { method: "POST", body: refundForm(rest, proof) });
+}
+
+export function completeRefund(id: number, reference: string, proof: File | null) {
+  return api<Refund>(`/dashboard/refunds/${id}/complete`, { method: "POST", body: refundForm({ reference }, proof) });
+}
+
+export const cancelRefund = (id: number) => api<Refund>(`/dashboard/refunds/${id}/cancel`, { method: "POST" });
+
+export const refundProofUrl = (id: number) => `/api/bff/dashboard/refunds/${id}/proof`;
+
+export type RefundTab = "pending" | "done" | "cancelled" | "all";
+
+export function useRefunds(status: RefundTab, page: number, enabled = true) {
+  return useQuery({
+    enabled,
+    queryKey: ["orders", "refunds", status, page] as const,
+    queryFn: () => apiPage<Refund>("/dashboard/refunds", { query: { status, page, per_page: 25 } }) as Promise<Paginated<Refund> & { meta: Paginated<Refund>["meta"] & { pending_count: number; pending_total: number } }>,
+    placeholderData: keepPreviousData,
+  });
+}
+
+function refundForm(values: Record<string, unknown>, proof: File | null): FormData {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined || value === null || value === "") continue;
+    if (key === "items" && Array.isArray(value)) {
+      value.forEach((line: { order_item_id: number; quantity: number }, i) => {
+        form.append(`items[${i}][order_item_id]`, String(line.order_item_id));
+        form.append(`items[${i}][quantity]`, String(line.quantity));
+      });
+    } else if (typeof value === "boolean") {
+      form.append(key, value ? "1" : "0");
+    } else {
+      form.append(key, String(value));
+    }
+  }
+  if (proof) form.append("proof", proof);
+  return form;
 }

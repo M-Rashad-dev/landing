@@ -26,12 +26,17 @@ export type PayInfo = {
   track_url: string;
   /** Digital products bought (once paid): downloads, codes, the link, a service's state. */
   deliveries?: Delivery[];
+  /** Money the store sent back (or is sending back). */
+  refunds?: PayRefund[];
 };
+
+export type PayRefund = { amount: number; status: "pending" | "done"; method: string; done_at: string | null };
 
 export type Delivery = {
   product: string | null;
   type: "files" | "codes" | "links" | "services";
-  status: "pending" | "delivered";
+  /** revoked: refunded, downloads stopped. */
+  status: "pending" | "delivered" | "revoked";
   message: string | null;
   files: Array<{ id: number; name: string; size: number; left: number | null; url: string }>;
   codes: string[];
@@ -134,12 +139,33 @@ function Pay({ info, token, onChange }: { info: PayInfo; token: string; onChange
 
       {info.can_send ? <PayForm info={info} token={token} onSent={onChange} /> : null}
 
+      {info.refunds && info.refunds.length > 0 ? <Refunds refunds={info.refunds} /> : null}
+
       {info.deliveries && info.deliveries.length > 0 ? <Deliveries deliveries={info.deliveries} /> : null}
 
       <a href={info.track_url} className="text-center text-sm font-semibold text-neutral-600 underline-offset-4 hover:underline">
         {t.track}
       </a>
     </Shell>
+  );
+}
+
+/** Money the store sent back to the customer (done), or is sending back (asked). */
+function Refunds({ refunds }: { refunds: PayRefund[] }) {
+  const r = ar.refunds.public;
+  return (
+    <section className="flex flex-col gap-2 rounded-2xl bg-white p-5 shadow-sm">
+      <h2 className="font-extrabold">{r.title}</h2>
+      {refunds.map((x, i) => (
+        <p key={i} className={cn("flex items-center gap-2 rounded-lg p-3 text-sm", x.status === "done" ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900")}>
+          {x.status === "done" ? <CheckCircle2 className="size-4 shrink-0" aria-hidden /> : <Clock className="size-4 shrink-0" aria-hidden />}
+          <span>
+            {x.status === "done" ? r.done(formatMoney(x.amount), x.method) : r.pending(formatMoney(x.amount))}
+            {x.done_at ? <span className="ms-1 text-xs opacity-75">({formatDateTime(x.done_at)})</span> : null}
+          </span>
+        </p>
+      ))}
+    </section>
   );
 }
 
@@ -151,7 +177,12 @@ function Deliveries({ deliveries }: { deliveries: Delivery[] }) {
       {deliveries.map((d, i) => (
         <div key={i} className="flex flex-col gap-2 border-t border-neutral-100 pt-3 first:border-0 first:pt-0">
           <p className="font-bold">{d.product}</p>
-          {d.status === "pending" ? (
+          {d.status === "revoked" ? (
+            <p className="flex items-center gap-2 rounded-lg bg-neutral-100 p-3 text-sm text-neutral-700">
+              <XCircle className="size-4 shrink-0" aria-hidden />
+              {ar.refunds.public.revoked}
+            </p>
+          ) : d.status === "pending" ? (
             <p className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
               <Clock className="size-4 shrink-0" aria-hidden />
               {d.type === "services" ? t.serviceWaiting : t.codesWaiting}

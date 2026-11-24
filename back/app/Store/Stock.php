@@ -144,6 +144,53 @@ final class Stock
         }
     }
 
+    /**
+     * Gives back some units of some lines (a refund with returned items), never more than the order still holds for
+     * that product / combination. Returns the units given back.
+     *
+     * @param  array<int, int>  $quantities  order item id => units
+     */
+    public function restockItems(Order $order, array $quantities): int
+    {
+        // Each line's stock movement (taken in the lines' order): it tells the combination the line took.
+        $items = $order->items()->orderBy('id')->get(['id', 'product_id', 'quantity']);
+        $variantOf = [];
+        $taken = StockMovement::query()->where('order_id', $order->id)->where('reason', 'order')->orderBy('id')->get(['product_id', 'variant_id', 'change']);
+        foreach ($taken as $movement) {
+            foreach ($items as $item) {
+                if (! array_key_exists($item->id, $variantOf) && (int) $item->product_id === (int) $movement->product_id && (int) $item->quantity === -(int) $movement->change) {
+                    $variantOf[$item->id] = $movement->variant_id;
+
+                    break;
+                }
+            }
+        }
+
+        $given = 0;
+        foreach ($items as $item) {
+            if (! isset($quantities[$item->id]) || ! array_key_exists($item->id, $variantOf)) {
+                continue;
+            }
+            $variantId = $variantOf[$item->id];
+            $held = -(int) StockMovement::query()->where('order_id', $order->id)->where('product_id', $item->product_id)
+                ->when($variantId === null, fn ($q) => $q->whereNull('variant_id'), fn ($q) => $q->where('variant_id', $variantId))
+                ->sum('change');
+            $units = min($held, max(0, $quantities[$item->id] ?? 0));
+            if ($units <= 0) {
+                continue;
+            }
+            if ($variantId !== null) {
+                ProductVariant::query()->whereKey($variantId)->toBase()->increment('stock', $units);
+            } else {
+                Product::query()->withTrashed()->whereKey($item->product_id)->toBase()->increment('stock', $units);
+            }
+            $this->log($order, (int) $item->product_id, $variantId === null ? null : (int) $variantId, $units, 'restock');
+            $given += $units;
+        }
+
+        return $given;
+    }
+
     /** Merchant edits in the dashboard are logged too (difference only). */
     public function logManual(int $productId, ?int $variantId, int $change): void
     {

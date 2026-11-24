@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\StorePaymentMethod;
 use App\Models\StorePaymentSetting;
+use App\Orders\Refunds;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
 use App\Store\Digital\DigitalDeliveries;
@@ -104,6 +105,8 @@ final class PaymentController extends Controller
             // Digital products bought: downloads, codes, the link, a service's message.
             'deliveries' => $this->deliveries->customerView($order, $this->site->primaryHost($order->tenant_id) ?? $host),
             'track_url' => rtrim(PublicSite::url((string) config('landing.platform_domain')), '/').'/t/'.$order->track_token,
+            // Money the store sent back (or is sending back).
+            'refunds' => app(Refunds::class)->customerView($order),
         ];
     }
 }

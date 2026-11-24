@@ -59,7 +59,7 @@ it('creates, edits, toggles, rotates and deletes integrations', function () {
     $rotated = $this->postJson("/api/v1/dashboard/integrations/{$created['id']}/rotate-secret")->assertOk()->json('data.secret');
     expect($rotated)->not->toBe($created['secret']);
 
-    $this->getJson('/api/v1/dashboard/integrations')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.events', ['order.created', 'order.status_changed', 'order.updated', 'lead.created']);
+    $this->getJson('/api/v1/dashboard/integrations')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.events', ['order.created', 'order.status_changed', 'order.updated', 'order.refunded', 'lead.created']);
     $this->deleteJson("/api/v1/dashboard/integrations/{$created['id']}")->assertNoContent();
 });
 

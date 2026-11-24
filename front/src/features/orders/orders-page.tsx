@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, Printer, ShoppingBag, Truck } from "lucide-react";
+import { ArrowLeftRight, Copy, Download, ExternalLink, Phone, PhoneCall, Printer, ShoppingBag, Truck, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -31,6 +31,7 @@ import {
   useOrders,
   useOrderStats,
   useRefreshOrders,
+  useRefunds,
   type OrderFilters,
   type OrderRow,
   type OrderSort,
@@ -65,6 +66,7 @@ export function OrdersPage() {
   const query = useOrders(filters);
   const stats = useOrderStats(filters);
   const queue = useConfirmQueue();
+  const refunds = useRefunds("pending", 1, can("orders.refunds"));
   const shipping = useShipping();
   const refresh = useRefreshOrders();
   const [selected, setSelected] = React.useState<Array<string | number>>([]);
@@ -264,6 +266,14 @@ export function OrdersPage() {
                 <Link href="/dashboard/orders/confirm">
                   <PhoneCall />
                   {t.queue.open(queue.data?.meta.due ?? 0)}
+                </Link>
+              </Button>
+            ) : null}
+            {can("orders.refunds") && (refunds.data?.meta.pending_count ?? 0) > 0 ? (
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/orders/refunds">
+                  <Undo2 />
+                  {ar.refunds.page.tabs.pending} ({refunds.data?.meta.pending_count})
                 </Link>
               </Button>
             ) : null}

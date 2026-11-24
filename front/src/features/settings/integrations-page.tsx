@@ -237,7 +237,7 @@ function HookForm({ hook, events, onClose }: { hook: Hook | null; events: string
   const client = useQueryClient();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { kind: hook?.kind ?? "google_sheets", name: hook?.name ?? t.kinds.google_sheets, url: hook?.url ?? "", events: hook?.events ?? ["order.created", "order.status_changed"] },
+    defaultValues: { kind: hook?.kind ?? "google_sheets", name: hook?.name ?? t.kinds.google_sheets, url: hook?.url ?? "", events: hook?.events ?? ["order.created", "order.status_changed", "order.refunded"] },
   });
   const { errors, isSubmitting } = form.formState;
   const kind = useWatch({ control: form.control, name: "kind" });

@@ -4,9 +4,9 @@
  * Runs entirely in the merchant's Google account: no API key on our side.
  */
 export const APPS_SCRIPT_CODE = `// طلبات متجرك وصفحات الهبوط ← Google Sheets
-// كل طلب جديد بيتضاف كسطر، وتغيير الحالة بيحدّث نفس السطر.
+// كل طلب جديد بيتضاف كسطر، وتغيير الحالة أو المبلغ المسترجع بيحدّث نفس السطر.
 var SHEET_NAME = 'الطلبات';
-var HEADERS = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'موبايل تاني', 'المحافظة', 'المدينة', 'العنوان', 'المنتجات', 'الكمية', 'الخصم', 'الشحن', 'الإجمالي', 'ملاحظات', 'الصفحة', 'المصدر', 'من'];
+var HEADERS = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الموبايل', 'موبايل تاني', 'المحافظة', 'المدينة', 'العنوان', 'المنتجات', 'الكمية', 'الخصم', 'الشحن', 'الإجمالي', 'ملاحظات', 'الصفحة', 'المصدر', 'من', 'المسترجع'];
 
 function doPost(e) {
   var body = JSON.parse(e.postData.contents);
@@ -45,6 +45,7 @@ function doPost(e) {
     order.page ? order.page.title : '',
     (order.utm && order.utm.source) || '',
     order.source === 'store' ? 'المتجر' : 'صفحة هبوط',
+    order.refunded || 0,
   ];
 
   var lock = LockService.getScriptLock();

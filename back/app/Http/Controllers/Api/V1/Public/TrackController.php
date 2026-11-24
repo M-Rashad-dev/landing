@@ -13,6 +13,7 @@ use App\Models\Identity;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ShipmentEvent;
+use App\Orders\Refunds;
 use App\Services\PhoneNormalizer;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
@@ -79,11 +80,11 @@ final class TrackController extends Controller
         $domain = $this->site->activeDomainOrFail($data['host']);
 
         if (isset($data['token'])) {
-            $order = Tenancy::runAs($domain->tenant_id, fn () => Order::query()->with(['items', 'logs', 'shipment.events'])->where('track_token', $data['token'])->first());
+            $order = Tenancy::runAs($domain->tenant_id, fn () => Order::query()->with(['items', 'logs', 'shipment.events', 'refunds'])->where('track_token', $data['token'])->first());
         } else {
             $phone = $phones->normalize((string) $data['phone']);
             $order = $phone === null ? null : Tenancy::runAs($domain->tenant_id, fn () => Order::query()
-                ->with(['items', 'logs', 'shipment.events'])
+                ->with(['items', 'logs', 'shipment.events', 'refunds'])
                 ->where('order_number', (int) $data['order_number'])
                 ->where(fn ($q) => $q->where('customer_phone', $phone)->orWhere('customer_phone2', $phone))
                 ->first());
@@ -108,6 +109,8 @@ final class TrackController extends Controller
             'shipping_company' => $order->shipping_company_name,
             'tracking_number' => $order->tracking_number,
             'history' => CustomerOrders::history($order),
+            // Money the store sent back (or is sending back).
+            'refunds' => app(Refunds::class)->customerView($order),
             // A prepaid order waiting for its payment: the pay page.
             'pay_url' => $order->status === OrderStatus::AwaitingPayment ? StorePayments::payUrl($order) : null,
             // Digital products: the order page with the downloads / codes.

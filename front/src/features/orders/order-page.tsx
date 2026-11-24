@@ -24,6 +24,7 @@ import { useShipping } from "@/features/shipping/api";
 import { DeliveriesCard } from "./deliveries-card";
 import { PaymentCard } from "./payment-card";
 import { ProfitCard } from "./profit-card";
+import { RefundsCard } from "./refunds-card";
 import { ShippingCard } from "./shipment-card";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useSession, useCan } from "@/lib/auth/session-context";
@@ -117,6 +118,7 @@ export function OrderPage({ id }: { id: number }) {
 
         <div className="flex flex-col gap-4">
           <PaymentCard order={order} onSaved={refresh} />
+          <RefundsCard order={order} onSaved={refresh} />
           <DeliveriesCard order={order} onSaved={refresh} />
           <ProfitCard order={order} />
           <CustomerCard order={order} onEdit={() => setEditing(true)} />
@@ -126,7 +128,7 @@ export function OrderPage({ id }: { id: number }) {
         </div>
       </div>
 
-      <StatusDialog open={changing} onOpenChange={setChanging} targets={order.allowed_transitions.map((x) => x.status)} ids={[order.id]} onDone={() => refresh()} />
+      <StatusDialog open={changing} onOpenChange={setChanging} targets={order.allowed_transitions.map((x) => x.status)} ids={[order.id]} refundable={can("orders.refunds") ? order.refunds.refundable : 0} onDone={() => refresh()} />
       <CustomerDialog order={order} open={editing} onOpenChange={setEditing} onSaved={refresh} />
     </>
   );

@@ -9,6 +9,7 @@ export const ALL = "*";
 const PAGES: Array<[string, string]> = [
   ["/dashboard/copilot", "copilot.use"],
   ["/dashboard/orders/confirm", "orders.confirm"],
+  ["/dashboard/orders/refunds", "orders.refunds"],
   ["/dashboard/orders", "orders.view"],
   ["/dashboard/abandoned", "abandoned.view"],
   ["/dashboard/customers", "customers.view"],

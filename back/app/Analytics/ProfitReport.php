@@ -6,9 +6,11 @@ namespace App\Analytics;
 
 use App\Enums\ExpenseKind;
 use App\Enums\OrderStatus;
+use App\Enums\RefundStatus;
 use App\Models\Expense;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderRefund;
 use App\Support\Money;
 use App\Support\TrafficSource;
 use Carbon\CarbonImmutable;
@@ -42,7 +44,7 @@ final class ProfitReport
         $missing = 0;
 
         $statuses = array_map(fn (OrderStatus $s) => $s->value, [...self::ACTUAL, ...self::EXPECTED]);
-        $this->figures->between($from, $to)->whereIn('status', $statuses)->with('items')->lazyById(200)->each(
+        $this->figures->between($from, $to)->whereIn('status', $statuses)->with(['items', 'refunds'])->lazyById(200)->each(
             function (Order $order) use (&$actual, &$expected, &$days, &$products, &$sources, &$missing, $tz): void {
                 $p = $this->costs->profit($order);
                 $missing += $p['cost_known'] ? 0 : 1;
@@ -62,22 +64,26 @@ final class ProfitReport
                 $source = TrafficSource::classify($utm['source'] ?? null, $utm['referrer'] ?? null);
                 $sources[$source] ??= ['orders' => 0, 'revenue' => 0, 'profit' => 0];
                 $sources[$source]['orders'] += $order->status === OrderStatus::Delivered ? 1 : 0;
-                $sources[$source]['revenue'] += $p['revenue'];
+                $sources[$source]['revenue'] += $p['revenue'] - $p['refunds'];
                 $sources[$source]['profit'] += $p['profit'];
 
                 if ($order->status !== OrderStatus::Delivered) {
                     return;
                 }
+                $refunded = self::refundedUnits($order);
                 foreach ($order->items as $item) {
                     /** @var OrderItem $item */
                     $key = $item->product_id ?? 'x'.$item->product_name;
                     $products[$key] ??= ['product_id' => $item->product_id, 'name' => $item->product_name, 'units' => 0, 'revenue' => 0, 'cost' => 0, 'cost_known' => true];
-                    $products[$key]['units'] += $item->quantity;
-                    $products[$key]['revenue'] += Money::toCents((string) $item->line_total);
+                    // Units refunded with their line are no longer sold (their share of the line comes off).
+                    $back = min($item->quantity, $refunded[$item->id] ?? 0);
+                    $kept = $item->quantity - $back;
+                    $products[$key]['units'] += $kept;
+                    $products[$key]['revenue'] += Money::mulDivRound(Money::toCents((string) $item->line_total), $kept, max(1, $item->quantity));
                     if ($item->unit_cost === null) {
                         $products[$key]['cost_known'] = false;
                     } else {
-                        $products[$key]['cost'] += Money::toCents((string) $item->unit_cost) * $item->quantity;
+                        $products[$key]['cost'] += Money::toCents((string) $item->unit_cost) * $kept;
                     }
                 }
             },
@@ -98,6 +104,9 @@ final class ProfitReport
             });
 
         $net = $actual['profit'] - $expenses;
+        $netRevenue = $actual['revenue'] - $actual['refunds'];
+        // Refunds done in the period (by the day the money went back), whatever day the order was placed.
+        $refunds = OrderRefund::query()->where('status', RefundStatus::Done)->where('done_at', '>=', $from->utc())->where('done_at', '<', $to->addDay()->utc());
 
         return [
             'from' => $from->format('Y-m-d'),
@@ -109,7 +118,8 @@ final class ProfitReport
                 'by_kind' => array_values(array_map(fn (ExpenseKind $k) => ['kind' => $k->value, 'label' => $k->label(), 'amount' => Money::toFloat($byKind[$k->value] ?? 0)], array_filter(ExpenseKind::cases(), fn (ExpenseKind $k) => isset($byKind[$k->value])))),
             ],
             'net_profit' => Money::toFloat($net),
-            'margin' => $actual['revenue'] === 0 ? null : round($net * 100 / $actual['revenue'], 1),
+            'margin' => $netRevenue <= 0 ? null : round($net * 100 / $netRevenue, 1),
+            'refunds' => ['count' => (clone $refunds)->count(), 'total' => Money::toFloat(Money::toCents((string) (clone $refunds)->sum('amount')))],
             // Orders with a product that has no cost: their profit is overstated until the cost is set.
             'missing_cost_orders' => $missing,
             'chart' => array_map(fn (string $date, array $v) => ['date' => $date, 'profit' => Money::toFloat($v['profit']), 'expenses' => Money::toFloat($v['expenses']), 'net' => Money::toFloat($v['profit'] - $v['expenses'])], array_keys($days), array_values($days)),
@@ -118,10 +128,30 @@ final class ProfitReport
         ];
     }
 
-    /** @return array{orders: int, revenue: int, product_cost: int, shipping_cost: int, cod_fee: int, packaging: int, losses: int, profit: int} */
+    /** Units of each line in refunds done. @return array<int, int> */
+    private static function refundedUnits(Order $order): array
+    {
+        if (Money::toCents((string) $order->refunded_total) === 0) {
+            return [];
+        }
+        $units = [];
+        foreach ($order->refunds as $refund) {
+            /** @var OrderRefund $refund */
+            if ($refund->status !== RefundStatus::Done) {
+                continue;
+            }
+            foreach ($refund->quantities() as $itemId => $qty) {
+                $units[$itemId] = ($units[$itemId] ?? 0) + $qty;
+            }
+        }
+
+        return $units;
+    }
+
+    /** @return array{orders: int, revenue: int, refunds: int, product_cost: int, shipping_cost: int, cod_fee: int, packaging: int, losses: int, profit: int} */
     private static function emptyTotals(): array
     {
-        return ['orders' => 0, 'revenue' => 0, 'product_cost' => 0, 'shipping_cost' => 0, 'cod_fee' => 0, 'packaging' => 0, 'losses' => 0, 'profit' => 0];
+        return ['orders' => 0, 'revenue' => 0, 'refunds' => 0, 'product_cost' => 0, 'shipping_cost' => 0, 'cod_fee' => 0, 'packaging' => 0, 'losses' => 0, 'profit' => 0];
     }
 
     /**
@@ -132,6 +162,7 @@ final class ProfitReport
     {
         $totals['orders']++;
         $totals['revenue'] += (int) $p['revenue'];
+        $totals['refunds'] += (int) $p['refunds'];
         $totals['product_cost'] += (int) $p['product_cost'];
         $totals['shipping_cost'] += (int) $p['shipping_cost'];
         $totals['cod_fee'] += (int) $p['cod_fee'];
@@ -147,7 +178,7 @@ final class ProfitReport
     private static function totalsOut(array $totals): array
     {
         $out = ['orders' => $totals['orders']];
-        foreach (['revenue', 'product_cost', 'shipping_cost', 'cod_fee', 'packaging', 'losses', 'profit'] as $key) {
+        foreach (['revenue', 'refunds', 'product_cost', 'shipping_cost', 'cod_fee', 'packaging', 'losses', 'profit'] as $key) {
             $out[$key] = Money::toFloat($totals[$key]);
         }
 

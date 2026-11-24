@@ -9,6 +9,7 @@ use App\Jobs\DeliverCustomerNotice;
 use App\Jobs\SendOrderConfirmation;
 use App\Models\Order;
 use App\Models\OrderConfirmationSetting;
+use App\Models\OrderRefund;
 use App\Orders\WhatsAppConfirmations;
 use App\Tenancy\Tenancy;
 
@@ -34,6 +35,9 @@ final class CustomerNotices
 
     public const PAYMENT_REJECTED = 'payment_rejected';
 
+    /** Money sent back (email only, no WhatsApp template). */
+    public const REFUNDED = 'refunded';
+
     public function received(Order $order): void
     {
         // Cash on delivery with WhatsApp confirmation on: the confirmation message replaces «received».
@@ -50,6 +54,11 @@ final class CustomerNotices
     public function paymentRejected(Order $order): void
     {
         DeliverCustomerNotice::dispatch($order->tenant_id, $order->id, self::PAYMENT_REJECTED)->afterCommit();
+    }
+
+    public function refunded(Order $order, OrderRefund $refund): void
+    {
+        DeliverCustomerNotice::dispatch($order->tenant_id, $order->id, self::REFUNDED, $refund->id)->afterCommit();
     }
 
     public function statusChanged(Order $order, OrderStatus $to): void

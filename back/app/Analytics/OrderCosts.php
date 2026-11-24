@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Analytics;
 
 use App\Enums\OrderStatus;
+use App\Enums\RefundStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderRefund;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProfitSetting;
@@ -76,9 +78,10 @@ final class OrderCosts
 
     /**
      * One order's money (cents): what came in, what it cost, and the profit; a returned / damaged order is a loss.
-     * cost_known false when a line has no unit cost (its cost counts as 0 then).
+     * cost_known false when a line has no unit cost (its cost counts as 0 then). Refunds done (stage 5) come off the
+     * profit, and the goods they put back in stock are no longer a cost.
      *
-     * @return array{revenue: int, product_cost: int, shipping_cost: int, cod_fee: int, packaging: int, loss: int, profit: int, cost_known: bool}
+     * @return array{revenue: int, refunds: int, product_cost: int, shipping_cost: int, cod_fee: int, packaging: int, loss: int, profit: int, cost_known: bool}
      */
     public function profit(Order $order): array
     {
@@ -103,23 +106,47 @@ final class OrderCosts
             $return = $order->return_cost === null ? $shipping : Money::toCents((string) $order->return_cost);
             $loss = $shipping + $return + $packaging + ($order->status === OrderStatus::Damaged ? $productCost : 0);
 
-            return ['revenue' => 0, 'product_cost' => $order->status === OrderStatus::Damaged ? $productCost : 0, 'shipping_cost' => $shipping + $return, 'cod_fee' => 0, 'packaging' => $packaging, 'loss' => $loss, 'profit' => -$loss, 'cost_known' => $known];
+            return ['revenue' => 0, 'refunds' => 0, 'product_cost' => $order->status === OrderStatus::Damaged ? $productCost : 0, 'shipping_cost' => $shipping + $return, 'cod_fee' => 0, 'packaging' => $packaging, 'loss' => $loss, 'profit' => -$loss, 'cost_known' => $known];
         }
         if ($order->status->isDismissed()) {
-            return ['revenue' => 0, 'product_cost' => 0, 'shipping_cost' => 0, 'cod_fee' => 0, 'packaging' => 0, 'loss' => 0, 'profit' => 0, 'cost_known' => true];
+            return ['revenue' => 0, 'refunds' => 0, 'product_cost' => 0, 'shipping_cost' => 0, 'cod_fee' => 0, 'packaging' => 0, 'loss' => 0, 'profit' => 0, 'cost_known' => true];
         }
 
         $revenue = Money::toCents((string) $order->total);
+        $refunds = Money::toCents((string) $order->refunded_total);
+        if ($refunds > 0) {
+            $productCost = max(0, $productCost - $this->restockedCost($order));
+        }
 
         return [
             'revenue' => $revenue,
+            'refunds' => $refunds,
             'product_cost' => $productCost,
             'shipping_cost' => $shipping,
             'cod_fee' => $cod,
             'packaging' => $packaging,
             'loss' => 0,
-            'profit' => $revenue - $productCost - $shipping - $cod - $packaging,
+            'profit' => $revenue - $refunds - $productCost - $shipping - $cod - $packaging,
             'cost_known' => $known,
         ];
+    }
+
+    /** The cost of the units done refunds put back in stock (cents). */
+    private function restockedCost(Order $order): int
+    {
+        $order->loadMissing('refunds');
+        $cost = 0;
+        foreach ($order->refunds as $refund) {
+            /** @var OrderRefund $refund */
+            if ($refund->status !== RefundStatus::Done || $refund->restocked_at === null) {
+                continue;
+            }
+            foreach ($refund->quantities() as $itemId => $qty) {
+                $unit = $order->items->firstWhere('id', $itemId)?->unit_cost;
+                $cost += $unit === null ? 0 : Money::toCents((string) $unit) * $qty;
+            }
+        }
+
+        return $cost;
     }
 }

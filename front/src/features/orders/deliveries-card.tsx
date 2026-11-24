@@ -47,14 +47,15 @@ export function DeliveriesCard({ order, onSaved }: { order: OrderDetail; onSaved
         <PanelBody className="flex flex-col gap-3">
           {deliveries.map((x) => {
             const done = x.status === "delivered";
+            const revoked = x.status === "revoked";
             const limit = x.limit === null ? null : x.limit + x.bonus;
             return (
               <div key={x.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-semibold">{nameOf(x)}</span>
-                  <Badge tone={done ? "success" : "warning"} size="sm">
-                    {done ? <CheckCircle2 /> : <Clock />}
-                    {done ? d.delivered : x.type === "services" ? d.serviceWaiting : d.codesWaiting}
+                  <Badge tone={revoked ? "danger" : done ? "success" : "warning"} size="sm">
+                    {done ? <CheckCircle2 /> : revoked ? null : <Clock />}
+                    {revoked ? d.revoked : done ? d.delivered : x.type === "services" ? d.serviceWaiting : d.codesWaiting}
                   </Badge>
                 </div>
                 <p className="text-xs text-ink-3">
@@ -81,7 +82,7 @@ export function DeliveriesCard({ order, onSaved }: { order: OrderDetail; onSaved
                 {x.type === "links" ? <p className="text-xs text-ink-3">{d.opened(x.usage.link ?? 0, limit)}</p> : null}
                 {x.type === "services" && done && x.message ? <p className="whitespace-pre-line rounded bg-surface-2 p-2 text-xs">{x.message}</p> : null}
                 <div className="flex flex-wrap gap-2">
-                  {x.type === "services" && !done ? (
+                  {x.type === "services" && !done && !revoked ? (
                     <Button size="sm" onClick={() => setService(x)}>
                       <CheckCircle2 />
                       {d.complete}

@@ -98,7 +98,7 @@ describe("IntegrationsPage", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: ar.growth.integrations.eventNames["lead.created"] }));
     await userEvent.click(screen.getByRole("button", { name: ar.common.save }));
     await waitFor(() => expect(sent("/dashboard/integrations", "POST")).toBeTruthy());
-    expect(bodyOf(sent("/dashboard/integrations", "POST"))).toEqual({ kind: "google_sheets", name: "Google Sheets", url: "https://script.google.com/macros/s/x/exec", events: ["order.created", "order.status_changed", "lead.created"] });
+    expect(bodyOf(sent("/dashboard/integrations", "POST"))).toEqual({ kind: "google_sheets", name: "Google Sheets", url: "https://script.google.com/macros/s/x/exec", events: ["order.created", "order.status_changed", "order.refunded", "lead.created"] });
   });
 });
 

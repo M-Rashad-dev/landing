@@ -19,7 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int $order_item_id
  * @property int|null $product_id
  * @property DeliveryType $type
- * @property string $status pending | delivered
+ * @property string $status pending | delivered | revoked (refunded: downloads / the link stopped)
  * @property string $token
  * @property array{codes?: list<string>, link?: string, subject?: string, message?: string}|null $payload
  * @property array<string, int>|null $usage file id (or "link") => times used
@@ -35,6 +35,9 @@ class OrderDelivery extends Model
     public const PENDING = 'pending';
 
     public const DELIVERED = 'delivered';
+
+    /** Refunded with «وقف التحميل»: no more downloads, opens or codes. */
+    public const REVOKED = 'revoked';
 
     protected $fillable = ['order_id', 'order_item_id', 'product_id', 'type', 'status', 'token', 'payload', 'usage', 'limit', 'bonus', 'delivered_at', 'emailed_at'];
 
@@ -56,6 +59,10 @@ class OrderDelivery extends Model
     /** Times this file (or the link) can still be used; null = unlimited. */
     public function left(string $key): ?int
     {
+        if ($this->status === self::REVOKED) {
+            return 0;
+        }
+
         return $this->limit === null ? null : max(0, $this->limit + $this->bonus - (int) (($this->usage ?? [])[$key] ?? 0));
     }
 

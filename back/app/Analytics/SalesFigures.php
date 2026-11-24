@@ -37,8 +37,10 @@ final class SalesFigures
         $counts = $this->between($from, $to)->selectRaw('status, count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
         $n = fn (OrderStatus ...$statuses): int => array_sum(array_map(fn (OrderStatus $s) => (int) ($counts[$s->value] ?? 0), $statuses));
 
-        $sales = $this->between($from, $to)->whereNotIn('status', self::notSales())->sum('total');
-        $delivered = $this->between($from, $to)->where('status', OrderStatus::Delivered)->sum('total');
+        // Net of the money sent back (refunds, stage 5).
+        $net = fn ($q): string => Money::toDecimal(Money::toCents((string) ((clone $q)->sum('total') ?: '0')) - Money::toCents((string) ((clone $q)->sum('refunded_total') ?: '0')));
+        $sales = $net($this->between($from, $to)->whereNotIn('status', self::notSales()));
+        $delivered = $net($this->between($from, $to)->where('status', OrderStatus::Delivered));
         $all = (int) $counts->sum();
         $real = $all - $n(...self::NOT_SALES);
         $decided = $all - $n(OrderStatus::New);
@@ -66,14 +68,14 @@ final class SalesFigures
             $days[$d->format('Y-m-d')] = ['orders' => 0, 'sales' => 0];
         }
         // Grouped in PHP on the Cairo day (portable across MySQL / MariaDB).
-        $this->between($from, $to)->get(['created_at', 'total', 'status'])->each(function (Order $o) use (&$days, $tz): void {
+        $this->between($from, $to)->get(['created_at', 'total', 'refunded_total', 'status'])->each(function (Order $o) use (&$days, $tz): void {
             $day = $o->created_at->setTimezone($tz)->format('Y-m-d');
             if (! isset($days[$day])) {
                 return;
             }
             $days[$day]['orders']++;
             if (! in_array($o->status, self::NOT_SALES, true)) {
-                $days[$day]['sales'] += Money::toCents((string) $o->total);
+                $days[$day]['sales'] += Money::toCents((string) $o->total) - Money::toCents((string) $o->refunded_total);
             }
         });
 

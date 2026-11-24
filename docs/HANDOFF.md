@@ -25,20 +25,13 @@ Plan `docs/plans/merchant-essentials.md`. The owner chose features **1, 2, 3, 5,
 | 2 | WhatsApp order confirmation (free, buttons) | done — `231bd338` |
 | 3 | Cost and profit («الأرباح») | done — `fc53d46a` |
 | 4 | Abandoned cart recovery (WhatsApp + email reminders, message packs) | done — `9b2228e7` |
-| **5** | **Refunds («المرتجعات والمبالغ المسترجعة»)** | **next — not started** |
+| 5 | Refunds («المرتجعات والمبالغ المسترجعة») | done — see the plan's PROGRESS LOG |
 
-**State: Stage 4 is finished, committed and pushed (v4 + main), all gates green (back 1164/1164, front
-373 + lint + typecheck + build). We are waiting for the owner's review of Stage 4.**
+**State: all five stages are finished, committed and pushed (v4 + main). Stage 5 (refunds) is waiting for
+the owner's review. The merchant-essentials plan is complete.**
 
-**What to do:** when the owner says «كمل» / «ابدأ مرحلة 5» (or similar), start Stage 5 right away from
-the plan's «Stage 5 — Refunds» section, without asking questions or re-explaining. If he gives notes on
-Stage 4 first, fix them first.
-
-After Stage 5 the merchant-essentials plan is complete; report and ask what's next.
-
-Owner decisions that apply to Stage 5 (already in the plan / DECISIONS): every feature is added to the
-copilot; money in cents; refunds apply to paid prepaid orders and delivered COD orders; profit reports
-(stage 3) must subtract refunds («both minus refunds (stage 5)» in the stage 3 rules).
+**What to do:** fix the owner's notes on Stage 5 first (if any), then ask him what's next (docs/PROJECT.md
+roadmap). Don't start anything new without his choice.
 
 ---
 
@@ -145,7 +138,9 @@ Gates before committing:
   (`App\Billing\Payments\Invoices` + `Checkout` + `CheckoutRequest`; pay page `?messages=N`).
 - Profit: `App\Analytics\OrderCosts` (snapshot on order creation; `profit(order)`) and
   `App\Analytics\ProfitReport` (dashboard `GET /dashboard/profit` + copilot `profit_summary`).
-  **Stage 5 must make refunds reduce revenue/profit there.**
+  Refunds (stage 5) already come off both.
+- Refunds: `App\Orders\Refunds` (collected / refundable / request / complete / cancel, views for the screens,
+  the customer and the webhook); `Stock::restockItems`; delivery status `revoked`.
 - Order status changes: `App\Actions\Orders\ChangeOrderStatus`; prepaid payments:
   `App\Store\Payments\StorePayments`, `OrderPayment`; digital deliveries: `App\Store\Digital\DigitalDeliveries`;
   stock: `App\Store\Stock`; webhooks out: `App\Services\Webhooks\WebhookDispatcher` (+ payloads).

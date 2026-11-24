@@ -5,7 +5,7 @@ import { api, apiPage } from "@/lib/api/client";
 
 export type ExpenseKind = "ads_facebook" | "ads_tiktok" | "ads_google" | "ads_snapchat" | "ads_other" | "salaries" | "rent" | "tools" | "other";
 
-type Totals = { orders: number; revenue: number; product_cost: number; shipping_cost: number; cod_fee: number; packaging: number; losses: number; profit: number };
+type Totals = { orders: number; revenue: number; refunds?: number; product_cost: number; shipping_cost: number; cod_fee: number; packaging: number; losses: number; profit: number };
 
 /** back end: App\Analytics\ProfitReport */
 export type ProfitData = {
@@ -16,6 +16,8 @@ export type ProfitData = {
   expenses: { total: number; by_kind: Array<{ kind: ExpenseKind; label: string; amount: number }> };
   net_profit: number;
   margin: number | null;
+  /** Refunds done in the period (by the day the money went back). */
+  refunds?: { count: number; total: number };
   missing_cost_orders: number;
   chart: Array<{ date: string; profit: number; expenses: number; net: number }>;
   products: Array<{ product_id: number | null; name: string; units: number; revenue: number; cost: number; profit: number; margin: number | null; cost_known: boolean }>;

@@ -57,8 +57,12 @@ final class DeliveryController extends Controller
         $domain = $this->site->activeDomainOrFail((string) $request->input('host', $request->query('host')));
 
         return Tenancy::runAs($domain->tenant_id, function () use ($token, $type, $then) {
-            $delivery = OrderDelivery::query()->where('token', $token)->where('type', $type)->where('status', OrderDelivery::DELIVERED)->first()
+            $delivery = OrderDelivery::query()->where('token', $token)->where('type', $type)->whereIn('status', [OrderDelivery::DELIVERED, OrderDelivery::REVOKED])->first()
                 ?? throw new ApiException(404, 'not_found', __('landing.not_found'));
+            // Refunded: the store stopped this purchase.
+            if ($delivery->status === OrderDelivery::REVOKED) {
+                throw new ApiException(410, 'delivery_revoked', __('digital.revoked'));
+            }
 
             return $then($delivery);
         });

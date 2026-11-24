@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\ConfirmState;
 use App\Enums\OrderPaymentState;
+use App\Enums\OrderRefundState;
 use App\Enums\OrderStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\Money;
@@ -67,6 +68,8 @@ use Illuminate\Support\Str;
  * @property string|null $payment_method_name
  * @property OrderPaymentState|null $payment_status null for cash on delivery
  * @property Carbon|null $paid_at
+ * @property string $refunded_total sum of the done refunds (App\Orders\Refunds)
+ * @property OrderRefundState|null $refund_state
  * @property ConfirmState|null $confirm_state the WhatsApp confirmation (null = none sent)
  * @property Carbon|null $confirm_sent_at
  * @property Carbon|null $confirm_replied_at
@@ -124,6 +127,8 @@ class Order extends Model
             'confirm_reminded_at' => 'datetime',
             'confirm_replied_at' => 'datetime',
             'paid_at' => 'datetime',
+            'refunded_total' => 'decimal:2',
+            'refund_state' => OrderRefundState::class,
         ];
     }
 
@@ -163,6 +168,12 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(OrderPayment::class)->orderBy('id');
+    }
+
+    /** Money sent back to the customer (stage 5 of merchant-essentials), oldest first. @return HasMany<OrderRefund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(OrderRefund::class)->orderBy('id');
     }
 
     /** @return HasMany<OrderStatusLog, $this> */

@@ -115,6 +115,7 @@ function Breakdown({ data }: { data: ProfitData }) {
   const a = data.actual;
   const rows: Array<{ label: string; value: number; minus?: boolean; strong?: boolean }> = [
     { label: b.revenue, value: a.revenue },
+    ...((a.refunds ?? 0) > 0 ? [{ label: b.refunds, value: a.refunds ?? 0, minus: true }] : []),
     { label: b.productCost, value: a.product_cost, minus: true },
     { label: b.shipping, value: a.shipping_cost, minus: true },
     { label: b.cod, value: a.cod_fee, minus: true },
