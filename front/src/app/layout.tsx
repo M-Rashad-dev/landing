@@ -21,7 +21,8 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
+    // The marketing pages add «mk-js» to <html> before hydration (motion allowed): only this tag's attributes are exempt.
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster />
