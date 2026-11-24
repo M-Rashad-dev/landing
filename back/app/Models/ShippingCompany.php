@@ -20,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $delivery_days_min
  * @property int|null $delivery_days_max
  * @property string $default_fee
+ * @property string|null $default_cost what the carrier charges the store (null = the fee)
+ * @property string|null $return_cost a returned parcel (null = the delivery cost)
+ * @property string|null $cod_fee_percent the carrier's cut of the cash it collects
  * @property bool $is_active
  * @property int $position
  */
@@ -27,12 +30,15 @@ class ShippingCompany extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['name', 'media_id', 'carrier_account_id', 'delivery_days_min', 'delivery_days_max', 'default_fee', 'is_active', 'position'];
+    protected $fillable = ['name', 'media_id', 'carrier_account_id', 'delivery_days_min', 'delivery_days_max', 'default_fee', 'default_cost', 'return_cost', 'cod_fee_percent', 'is_active', 'position'];
 
     protected function casts(): array
     {
         return [
             'default_fee' => 'decimal:2',
+            'default_cost' => 'decimal:2',
+            'return_cost' => 'decimal:2',
+            'cod_fee_percent' => 'decimal:2',
             'is_active' => 'boolean',
             'position' => 'integer',
             'delivery_days_min' => 'integer',

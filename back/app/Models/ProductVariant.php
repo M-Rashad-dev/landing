@@ -18,16 +18,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $combination_key
  * @property string|null $sku
  * @property int $stock
+ * @property string|null $cost this combination's own unit cost (null = the product's)
  */
 class ProductVariant extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['product_id', 'combination_key', 'sku', 'stock'];
+    protected $fillable = ['product_id', 'combination_key', 'sku', 'stock', 'cost'];
 
     protected function casts(): array
     {
-        return ['stock' => 'integer'];
+        return [
+            'cost' => 'decimal:2', 'stock' => 'integer'];
     }
 
     /** @param list<int> $valueIds */

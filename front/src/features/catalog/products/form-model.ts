@@ -43,6 +43,7 @@ export const productSchema = z
     description: z.string().max(10000),
     price: z.string().refine((s) => money().test(s) && Number(s) > 0, v.required),
     compare_at_price: z.string().refine((s) => s === "" || money().test(s), v.required),
+    cost: z.string().refine((s) => s === "" || money().test(s), v.required),
     sku: z.string().max(60),
     media: z.array(z.custom<MediaItem>()).max(10),
     category_ids: z.array(z.number()).max(20),
@@ -61,6 +62,7 @@ export const productSchema = z
     stock: z.string(),
     low_stock_threshold: z.string().refine((s) => s === "" || /^\d{1,7}$/.test(s), v.required),
     variant_stock: z.record(z.string(), z.string()),
+    variant_cost: z.record(z.string(), z.string()),
     is_active: z.boolean(),
     in_store: z.boolean(),
     is_featured: z.boolean(),
@@ -91,6 +93,7 @@ export const EMPTY: ProductValues = {
   description: "",
   price: "",
   compare_at_price: "",
+  cost: "",
   sku: "",
   media: [],
   category_ids: [],
@@ -108,6 +111,7 @@ export const EMPTY: ProductValues = {
   stock: "",
   low_stock_threshold: "",
   variant_stock: {},
+  variant_cost: {},
   is_active: true,
   in_store: true,
   is_featured: false,
@@ -146,9 +150,12 @@ export function fromDetail(p: ProductDetail): ProductValues {
   const labelOf = new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, x.label] as const)));
   const required = p.options.filter((o) => o.is_required);
   const variant_stock: Record<string, string> = {};
+  const variant_cost: Record<string, string> = {};
   for (const variant of p.variants) {
     const labels = required.map((o) => o.values.find((x) => variant.value_ids.includes(x.id))?.id).map((id) => (id ? labelOf.get(id) : undefined));
-    if (labels.every(Boolean)) variant_stock[labels.join(SEP)] = String(variant.stock);
+    if (!labels.every(Boolean)) continue;
+    variant_stock[labels.join(SEP)] = String(variant.stock);
+    if (variant.cost !== undefined && variant.cost !== null) variant_cost[labels.join(SEP)] = String(variant.cost);
   }
 
   return {
@@ -157,6 +164,7 @@ export function fromDetail(p: ProductDetail): ProductValues {
     description: p.description ?? "",
     price: String(p.price),
     compare_at_price: p.compare_at_price ? String(p.compare_at_price) : "",
+    cost: p.cost === undefined || p.cost === null ? "" : String(p.cost),
     sku: p.sku ?? "",
     media: p.media,
     category_ids: p.category_ids,
@@ -174,6 +182,7 @@ export function fromDetail(p: ProductDetail): ProductValues {
     stock: p.stock_mode === "product" ? String(p.stock ?? 0) : "",
     low_stock_threshold: p.low_stock_threshold === null ? "" : String(p.low_stock_threshold),
     variant_stock,
+    variant_cost,
     is_active: p.is_active,
     in_store: p.in_store,
     is_featured: p.is_featured,
@@ -182,10 +191,11 @@ export function fromDetail(p: ProductDetail): ProductValues {
   };
 }
 
-/** Request body for POST / PUT /dashboard/products. */
-export function toPayload(v: ProductValues) {
+/** Request body for POST / PUT /dashboard/products (costs only for whoever may see them: «تكلفة المنتجات»). */
+export function toPayload(v: ProductValues, withCost = false) {
   const mode: StockMode = v.stock_mode;
   return {
+    ...(withCost ? { cost: v.cost || null } : {}),
     name: v.name.trim(),
     short_description: v.short_description.trim() || null,
     description: v.description.trim() || null,
@@ -241,6 +251,7 @@ export function toPayload(v: ProductValues) {
           variants: combinations(v.options).map((c) => ({
             values: Object.fromEntries(stockOptions(v.options).map((d, i) => [d.name, c.labels[i]])),
             stock: Number(v.variant_stock[c.key] || 0),
+            ...(withCost ? { cost: v.variant_cost[c.key] || null } : {}),
           })),
         }
       : {}),

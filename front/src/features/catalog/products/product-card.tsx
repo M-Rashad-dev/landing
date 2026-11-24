@@ -229,6 +229,9 @@ function InlinePrice({ product, onSave }: { product: Product; onSave: (v: string
             {product.discount_percent ? <Badge tone="danger" size="sm">-{product.discount_percent}%</Badge> : null}
           </>
         ) : null}
+        {product.cost !== undefined && product.cost !== null && product.price > 0 ? (
+          <span className="tabular text-xs text-ink-3">{t.margin(formatMoney(product.price - product.cost), Math.round(((product.price - product.cost) * 100) / product.price))}</span>
+        ) : null}
         <Pencil className="size-3.5 self-center text-ink-3 opacity-0 transition-opacity group-hover/edit:opacity-100 group-focus-visible/edit:opacity-100" aria-hidden />
       </button>
     );

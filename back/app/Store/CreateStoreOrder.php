@@ -9,6 +9,7 @@ use App\Actions\Orders\CaptureLead;
 use App\Actions\Orders\CreateOrder;
 use App\Actions\Orders\LinkCustomer;
 use App\Actions\Orders\PostOrderUpsell;
+use App\Analytics\OrderCosts;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
@@ -59,6 +60,7 @@ final class CreateStoreOrder
         private readonly CustomerNotices $customerNotices,
         private readonly CustomerUploads $uploads,
         private readonly StorePayments $payments,
+        private readonly OrderCosts $costs,
     ) {}
 
     /**
@@ -163,6 +165,7 @@ final class CreateStoreOrder
                     'offer_discount' => Money::toDecimal($line->offerDiscount),
                     'line_total' => Money::toDecimal($line->afterOffer),
                     'delivery_type' => $line->product->isDigital() ? $line->product->delivery_type?->value : null,
+                    'unit_cost' => $this->costs->unitCostDecimal($line->product, $line->selected),
                 ]);
                 // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
                 $claimed = $this->uploads->claim($item, $options, "items.{$i}.inputs");
@@ -172,11 +175,12 @@ final class CreateStoreOrder
                 $take[] = ['product' => $line->product, 'selected' => $line->selected, 'quantity' => $line->quantity, 'field' => "items.{$i}.quantity"];
 
                 if ($line->gift !== null && ($gift = Product::query()->find($line->gift['product_id'])) !== null) {
-                    $order->items()->create(['product_id' => $gift->id, 'product_name' => $gift->name, 'unit_price' => '0.00', 'quantity' => 1, 'options' => null, 'line_total' => '0.00', 'is_gift' => true]);
+                    $order->items()->create(['product_id' => $gift->id, 'product_name' => $gift->name, 'unit_price' => '0.00', 'quantity' => 1, 'options' => null, 'line_total' => '0.00', 'is_gift' => true, 'unit_cost' => $this->costs->unitCostDecimal($gift)]);
                     $take[] = ['product' => $gift, 'selected' => [], 'quantity' => 1, 'field' => "items.{$i}.quantity"];
                 }
             }
             $low = $this->stock->take($order, $take);
+            $this->costs->snapshot($order);
 
             $order->logs()->create(['from_status' => null, 'to_status' => $order->status]);
             $this->customers->handle($order);

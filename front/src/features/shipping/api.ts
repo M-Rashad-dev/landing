@@ -4,7 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type { MediaUrls } from "@/features/media/api";
 
-export type Rate = { governorate: string; fee: number | null; is_available: boolean };
+/** cost: what the carrier really charges the store there (null = the company's cost). */
+export type Rate = { governorate: string; fee: number | null; cost: number | null; is_available: boolean };
 
 export type Company = {
   id: number;
@@ -16,6 +17,12 @@ export type Company = {
   delivery_days_min: number | null;
   delivery_days_max: number | null;
   default_fee: number;
+  /** What the carrier really charges the store (profit); null = the fee the customer pays. */
+  default_cost: number | null;
+  /** A returned parcel (null = the delivery cost). */
+  return_cost: number | null;
+  /** The carrier's cut of the cash it collects, in %. */
+  cod_fee_percent: number | null;
   is_active: boolean;
   position: number;
   served_count: number;
@@ -32,8 +39,11 @@ export type CompanyInput = {
   delivery_days_min: number | null;
   delivery_days_max: number | null;
   default_fee: string;
+  default_cost: string | null;
+  return_cost: string | null;
+  cod_fee_percent: string | null;
   is_active: boolean;
-  rates: Array<{ governorate: string; fee: string | null; is_available: boolean }>;
+  rates: Array<{ governorate: string; fee: string | null; cost: string | null; is_available: boolean }>;
 };
 
 export const shippingKeys = { all: ["shipping"] as const };

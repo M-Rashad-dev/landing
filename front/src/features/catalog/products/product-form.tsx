@@ -19,7 +19,7 @@ import { Panel } from "@/components/ui/panel";
 import { JumpBar } from "@/components/ui/tabs";
 import { ImageGallery } from "@/features/media/image-fields";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
-import { useSession } from "@/lib/auth/session-context";
+import { useCan, useSession } from "@/lib/auth/session-context";
 import { formatMoney } from "@/lib/format";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
@@ -37,12 +37,21 @@ import { StockEditor } from "./stock-editor";
 
 const t = ar.catalog.form;
 const SECTIONS = ["basics", "images", "pricing", "categories", "digital", "options", "inputs", "stock", "visibility", "seo"] as const;
-const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "sku", "category_ids", "primary_category_id", "kind", "delivery_type", "options", "inputs", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
+const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "cost", "sku", "category_ids", "primary_category_id", "kind", "delivery_type", "options", "inputs", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
 
 /** New product or full edit: every field in titled sections, a live preview beside them. */
+/** «ربحك في القطعة»: the price minus the cost, and the margin (before shipping and ads). */
+function costHint(price: string, cost: string): string {
+  const p = Number(price);
+  const c = Number(cost);
+  if (cost === "" || !Number.isFinite(c) || !(p > 0)) return t.costHint;
+  return t.margin(formatMoney(p - c), Math.round(((p - c) * 100) / p));
+}
+
 export function ProductForm({ product }: { product: ProductDetail | null }) {
   const router = useRouter();
   const session = useSession();
+  const canCost = useCan()("products.cost");
   const refresh = useRefreshProducts();
   const categories = useCategories();
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -60,7 +69,7 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
   async function onSubmit(v: ProductValues) {
     setFormError(null);
     try {
-      const saved = await saveProduct(product?.id ?? null, toPayload(v));
+      const saved = await saveProduct(product?.id ?? null, toPayload(v, canCost));
       toast.success(product ? t.saved : t.created);
       await refresh();
       if (product) form.reset(fromDetail(saved));
@@ -75,7 +84,7 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
   const submit = form.handleSubmit(onSubmit, () => toast.error(ar.common.errorTitle));
   const sectionError = {
     basics: !!(errors.name || errors.short_description || errors.description),
-    pricing: !!(errors.price || errors.compare_at_price || errors.sku),
+    pricing: !!(errors.price || errors.compare_at_price || errors.cost || errors.sku),
     options: !!errors.options,
     inputs: !!errors.inputs,
     digital: !!(errors.delivery_type || errors.link || errors.downloads || errors.opens || errors.subject || errors.message),
@@ -130,6 +139,11 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
                   <Controller control={form.control} name="compare_at_price" render={({ field }) => <MoneyInput id="compare_at_price" value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria-invalid={!!errors.compare_at_price} />} />
                 </Field>
               </div>
+              {canCost ? (
+                <Field label={t.cost} htmlFor="cost" hint={costHint(values.price, values.cost)} error={errors.cost?.message}>
+                  <Controller control={form.control} name="cost" render={({ field }) => <MoneyInput id="cost" value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria-invalid={!!errors.cost} className="sm:w-60" />} />
+                </Field>
+              ) : null}
               <Field label={t.sku} htmlFor="sku" hint={t.skuHint} error={errors.sku?.message}>
                 <Input id="sku" dir="ltr" className="text-start sm:w-60" {...form.register("sku")} />
               </Field>

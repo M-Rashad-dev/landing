@@ -9,6 +9,7 @@ use App\Actions\Products\SaveProduct;
 use App\Ai\Copilot\Contracts\CopilotResource;
 use App\Ai\Copilot\Contracts\Field;
 use App\Ai\Copilot\CopilotContext;
+use App\Auth\PermissionCatalog;
 use App\Enums\PlanLimit;
 use App\Http\Requests\Dashboard\ProductRequest;
 use App\Models\Category;
@@ -50,6 +51,8 @@ final class ProductsResource extends CopilotResource
             Field::text('sku')->label('SKU')->filterable(),
             Field::money('price')->label('السعر')->filterable()->sortable()->bulk()->rules(['required', 'numeric', 'gt:0', 'max:9999999.99']),
             Field::money('compare_at_price')->label('السعر قبل الخصم')->filterable()->nullable()->bulk()->rules(['nullable', 'numeric', 'max:9999999.99']),
+            // The unit cost (profit), only for whoever has «تكلفة المنتجات» (the copilot runs as that user).
+            ...(PermissionCatalog::allows(auth()->user(), 'products.cost') ? [Field::money('cost')->label('التكلفة')->filterable()->nullable()->bulk()->rules(['nullable', 'numeric', 'min:0', 'max:9999999.99'])] : []),
             Field::bool('is_active')->label('شغال')->filterable()->bulk(),
             Field::enum('stock_mode', [Product::STOCK_UNLIMITED, Product::STOCK_PRODUCT, Product::STOCK_VARIANT])->label('نوع المخزون')
                 ->labels([Product::STOCK_UNLIMITED => 'غير محدود', Product::STOCK_PRODUCT => 'للمنتج', Product::STOCK_VARIANT => 'لكل اختيار'])->filterable(),

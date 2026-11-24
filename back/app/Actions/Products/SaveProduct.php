@@ -48,6 +48,9 @@ final class SaveProduct
                 'sku' => $data['sku'] ?? null,
                 'is_active' => (bool) ($data['is_active'] ?? $product->is_active ?? true),
             ]);
+            if (array_key_exists('cost', $data)) {
+                $product->cost = $data['cost'] === null ? null : Money::toDecimal(Money::toCents((string) $data['cost']));
+            }
             $this->fillStoreFields($product, $data);
             $product->save();
             if ($product->slug === null) {
@@ -158,7 +161,11 @@ final class SaveProduct
             $key = ProductVariant::keyFor($ids);
             $row = ProductVariant::query()->firstOrNew(['product_id' => $product->id, 'combination_key' => $key]);
             $before = $row->exists ? $row->stock : 0;
-            $row->fill(['stock' => (int) $variant['stock'], 'sku' => $variant['sku'] ?? null])->save();
+            $row->fill(['stock' => (int) $variant['stock'], 'sku' => $variant['sku'] ?? null]);
+            if (array_key_exists('cost', $variant)) {
+                $row->cost = $variant['cost'] === null ? null : Money::toDecimal(Money::toCents((string) $variant['cost']));
+            }
+            $row->save();
             app(Stock::class)->logManual($product->id, $row->id, $row->stock - $before);
             $kept[] = $row->id;
         }

@@ -28,8 +28,11 @@ const schema = z
     delivery_days_min: z.string(),
     delivery_days_max: z.string(),
     default_fee: z.string(),
+    default_cost: z.string(),
+    return_cost: z.string(),
+    cod_fee_percent: z.string(),
     is_active: z.boolean(),
-    rates: z.array(z.object({ governorate: z.string(), fee: z.string(), is_available: z.boolean() })),
+    rates: z.array(z.object({ governorate: z.string(), fee: z.string(), cost: z.string(), is_available: z.boolean() })),
   })
   .superRefine((v, ctx) => {
     checkInt(ctx, "delivery_days_min", v.delivery_days_min, 0, 60, false);
@@ -38,11 +41,19 @@ const schema = z
     const max = num(v.delivery_days_max);
     if (min !== null && max !== null && max < min) ctx.addIssue({ code: "custom", path: ["delivery_days_max"], message: ar.validation.between(min, 60) });
     checkMoney(ctx, "default_fee", v.default_fee, { allowZero: true });
-    v.rates.forEach((r, i) => r.is_available && checkMoney(ctx, `rates.${i}.fee`, r.fee, { required: false, allowZero: true }));
+    checkMoney(ctx, "default_cost", v.default_cost, { required: false, allowZero: true });
+    checkMoney(ctx, "return_cost", v.return_cost, { required: false, allowZero: true });
+    const cod = num(v.cod_fee_percent);
+    if (v.cod_fee_percent.trim() !== "" && (cod === null || cod < 0 || cod > 100)) ctx.addIssue({ code: "custom", path: ["cod_fee_percent"], message: ar.validation.between(0, 100) });
+    v.rates.forEach((r, i) => {
+      if (!r.is_available) return;
+      checkMoney(ctx, `rates.${i}.fee`, r.fee, { required: false, allowZero: true });
+      checkMoney(ctx, `rates.${i}.cost`, r.cost, { required: false, allowZero: true });
+    });
   });
 
 type Values = z.infer<typeof schema>;
-const FIELDS = ["name", "media_id", "delivery_days_min", "delivery_days_max", "default_fee", "is_active", "rates"] as const;
+const FIELDS = ["name", "media_id", "delivery_days_min", "delivery_days_max", "default_fee", "default_cost", "return_cost", "cod_fee_percent", "is_active", "rates"] as const;
 
 export type CompanyDrawerState = { mode: "create" } | { mode: "edit"; company: Company } | null;
 
@@ -69,17 +80,21 @@ function CompanyForm({ company, governorates, onDone }: { company: Company | nul
       delivery_days_min: str(company?.delivery_days_min),
       delivery_days_max: str(company?.delivery_days_max),
       default_fee: str(company?.default_fee),
+      default_cost: str(company?.default_cost),
+      return_cost: str(company?.return_cost),
+      cod_fee_percent: str(company?.cod_fee_percent),
       is_active: company?.is_active ?? true,
-      rates: governorates.map((g) => ({ governorate: g, fee: str(saved.get(g)?.fee), is_available: saved.get(g)?.is_available ?? true })),
+      rates: governorates.map((g) => ({ governorate: g, fee: str(saved.get(g)?.fee), cost: str(saved.get(g)?.cost), is_available: saved.get(g)?.is_available ?? true })),
     },
   });
   const { errors, isSubmitting } = form.formState;
   const rates = useFieldArray({ control: form.control, name: "rates" });
   const watchedRates = useWatch({ control: form.control, name: "rates" });
   const defaultFee = useWatch({ control: form.control, name: "default_fee" });
+  const defaultCost = useWatch({ control: form.control, name: "default_cost" });
   const served = watchedRates.filter((r) => r.is_available).length;
 
-  function setAll(patch: Partial<{ fee: string; is_available: boolean }>) {
+  function setAll(patch: Partial<{ fee: string; cost: string; is_available: boolean }>) {
     form.setValue(
       "rates",
       watchedRates.map((r) => ({ ...r, ...patch })),
@@ -95,8 +110,16 @@ function CompanyForm({ company, governorates, onDone }: { company: Company | nul
       delivery_days_min: num(values.delivery_days_min),
       delivery_days_max: num(values.delivery_days_max),
       default_fee: values.default_fee,
+      default_cost: values.default_cost.trim() === "" ? null : values.default_cost,
+      return_cost: values.return_cost.trim() === "" ? null : values.return_cost,
+      cod_fee_percent: values.cod_fee_percent.trim() === "" ? null : values.cod_fee_percent,
       is_active: values.is_active,
-      rates: values.rates.map((r) => ({ governorate: r.governorate, fee: r.is_available && r.fee.trim() !== "" ? r.fee : null, is_available: r.is_available })),
+      rates: values.rates.map((r) => ({
+        governorate: r.governorate,
+        fee: r.is_available && r.fee.trim() !== "" ? r.fee : null,
+        cost: r.is_available && r.cost.trim() !== "" ? r.cost : null,
+        is_available: r.is_available,
+      })),
     };
     try {
       await saveCompany(body, company?.id);
@@ -133,6 +156,20 @@ function CompanyForm({ company, governorates, onDone }: { company: Company | nul
         </Field>
       </div>
 
+      <FormSection title={t.costs} description={t.costsHint}>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label={t.defaultCost} htmlFor="company-cost" error={errors.default_cost?.message}>
+            <Controller control={form.control} name="default_cost" render={({ field }) => <MoneyInput id="company-cost" value={field.value} onChange={field.onChange} placeholder={defaultFee} aria-invalid={!!errors.default_cost} />} />
+          </Field>
+          <Field label={t.returnCost} htmlFor="company-return" hint={t.returnCostHint} error={errors.return_cost?.message}>
+            <Controller control={form.control} name="return_cost" render={({ field }) => <MoneyInput id="company-return" value={field.value} onChange={field.onChange} aria-invalid={!!errors.return_cost} />} />
+          </Field>
+          <Field label={t.codFee} htmlFor="company-cod" hint={t.codFeeHint} error={errors.cod_fee_percent?.message}>
+            <Input id="company-cod" inputMode="decimal" dir="ltr" placeholder="0" aria-invalid={!!errors.cod_fee_percent} {...form.register("cod_fee_percent")} />
+          </Field>
+        </div>
+      </FormSection>
+
       <FormSection title={`${t.governorates} (${ar.shipping.served(served, governorates.length)})`} description={t.governoratesHint}>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <InputGroup start={<Search />} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t.searchGovernorate} aria-label={t.searchGovernorate} className="sm:w-56" />
@@ -143,24 +180,26 @@ function CompanyForm({ company, governorates, onDone }: { company: Company | nul
             <Button type="button" size="sm" variant="secondary" onClick={() => setAll({ is_available: false })}>
               {t.closeAll}
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAll({ fee: "" })}>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAll({ fee: "", cost: "" })}>
               {t.resetFees}
             </Button>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg border border-border">
-          <div className="grid grid-cols-[1fr_auto_8.5rem] items-center gap-3 border-b border-border bg-surface-2 px-3 py-2 text-xs font-medium text-ink-3">
+          <div className="grid grid-cols-[1fr_auto_6.5rem_6.5rem] items-center gap-2 border-b border-border bg-surface-2 px-3 py-2 text-xs font-medium text-ink-3">
             <span>{t.governorate}</span>
             <span>{t.serves}</span>
             <span>{t.fee}</span>
+            <span>{t.cost}</span>
           </div>
           <ul className="max-h-[26rem] divide-y divide-border overflow-y-auto">
             {rates.fields.map((row, i) => {
               const current = watchedRates[i];
               if (query && !row.governorate.includes(query)) return null;
               const error = errors.rates?.[i]?.fee?.message;
+              const costError = errors.rates?.[i]?.cost?.message;
               return (
-                <li key={row.id} className="grid grid-cols-[1fr_auto_8.5rem] items-center gap-3 px-3 py-1.5">
+                <li key={row.id} className="grid grid-cols-[1fr_auto_6.5rem_6.5rem] items-center gap-2 px-3 py-1.5">
                   <span className={current?.is_available ? "text-sm" : "text-sm text-ink-3 line-through"}>{row.governorate}</span>
                   <Controller control={form.control} name={`rates.${i}.is_available`} render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} aria-label={`${t.serves}: ${row.governorate}`} />} />
                   {current?.is_available ? (
@@ -171,6 +210,15 @@ function CompanyForm({ company, governorates, onDone }: { company: Company | nul
                     />
                   ) : (
                     <span className="text-xs text-ink-3">{t.notServed}</span>
+                  )}
+                  {current?.is_available ? (
+                    <Controller
+                      control={form.control}
+                      name={`rates.${i}.cost`}
+                      render={({ field }) => <MoneyInput value={field.value} onChange={field.onChange} placeholder={defaultCost || t.costPlaceholder} aria-label={`${t.cost}: ${row.governorate}`} aria-invalid={!!costError} title={costError} className="h-8" />}
+                    />
+                  ) : (
+                    <span />
                   )}
                 </li>
               );

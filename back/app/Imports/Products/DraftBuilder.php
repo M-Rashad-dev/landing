@@ -155,6 +155,15 @@ final class DraftBuilder
             'sku' => $sku ?? $existing?->sku,
             'is_active' => $visible,
         ];
+        // The unit cost (profit), only from a mapped column with a readable amount (an empty cell keeps the old one).
+        if (isset($mapping['cost'])) {
+            $cost = CellParser::money($get($cells, 'cost'));
+            if ($cost === false) {
+                $errors[] = __('imports.price_invalid', ['value' => mb_substr($get($cells, 'cost'), 0, 30)]);
+            } elseif ($cost !== null && (float) $cost >= 0 && (float) $cost <= self::MAX_PRICE) {
+                $payload['cost'] = $cost;
+            }
+        }
         if ($short !== '') {
             $payload['short_description'] = $short;
         }

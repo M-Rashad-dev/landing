@@ -26,6 +26,7 @@ export const nav = {
     upsells: "عروض ما بعد الطلب",
     landings: "صفحات الهبوط",
     analytics: "التحليلات",
+    profit: "الأرباح",
     settings: "الإعدادات",
     components: "المكونات",
   },

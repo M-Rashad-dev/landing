@@ -271,3 +271,23 @@ done_by, done_at. Orders: `refunded_total`, payment_status gains `partially_refu
   on the queue page (permission `orders.auto_confirm` to change). Checkout checkbox «أكّد طلبك وتابعه على واتساب».
   Copilot: orders `confirm_state`. Tests: `tests/Feature/Orders/WhatsAppConfirmationTest.php`,
   `front/src/features/orders/whatsapp-confirm.test.tsx`.
+- **2026-11-24 — Stage 3 cost and profit, built.** Migration `2026_12_11_100001_create_costs_and_profit`: products /
+  product_variants `cost`, shipping companies `default_cost` / `return_cost` / `cod_fee_percent` and rates `cost`,
+  order_items `unit_cost`, orders `shipping_cost` / `return_cost` / `cod_fee` / `packaging_cost`, `profit_settings`
+  (packaging per order) and `expenses` (`ExpenseKind`: ads per platform, salaries, rent, tools, other).
+  `App\Analytics\OrderCosts` snapshots everything when an order is placed (store checkout, landing pages, gifts,
+  one-click upsell): the combination's cost first, then the product's; carrier cost = governorate cost → company cost →
+  the fee quoted before any shipping offer; return = return_cost → delivery cost; COD cut on unpaid orders only.
+  `profit(order)`: delivered / in progress = total − goods − shipping − COD − packaging; returned = shipping both ways +
+  packaging lost; damaged = also the goods; cancelled / fake = 0; a line without cost → `cost_known` false (flagged).
+  `App\Analytics\ProfitReport` (dashboard + copilot): actual (delivered + returned / damaged), expected (new / confirmed /
+  shipped; unpaid online orders left out), expenses by kind, net, margin, per day, top 20 products, sources with ad spend
+  and ROAS (ad kinds mapped to `TrafficSource`), orders missing a cost. Endpoints `GET /dashboard/profit`,
+  `GET|POST|PUT|DELETE /dashboard/profit/expenses`, `GET|PUT /dashboard/profit/settings`. Permissions: `profit.view`,
+  `profit.expenses`, `products.cost` (costs hidden from the product resource and dropped from saves / imports for staff
+  without it); order detail `profit` block only with `profit.view`. Import: `cost` column (Arabic / Shopify headers).
+  Copilot: report `profit_summary`, resource `expenses` (read / create / edit / delete), products `cost` field for whoever
+  has `products.cost`. Front: «التحليلات ← الأرباح» (`/dashboard/profit`: KPIs, chart, where the money went, products,
+  ROAS, expenses with drawer, packaging), product form cost + margin hint + cost per combination, margin on product
+  cards, shipping company costs (+ per governorate), import mapping `cost`, order page «ربح الطلب». Not built: profit
+  per landing page (sources only). Tests: `tests/Feature/Profit/ProfitTest.php`, `front/src/features/profit/profit.test.tsx`.

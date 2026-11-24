@@ -27,6 +27,7 @@ const PAGES: Array<[string, string]> = [
   ["/dashboard/marketing/landings", "landings.view"],
   ["/dashboard/landings", "landings.update"],
   ["/dashboard/analytics", "analytics.view"],
+  ["/dashboard/profit", "profit.view"],
   ["/dashboard/settings/domains", "domains.view"],
   ["/dashboard/settings/billing", "billing.view"],
   ["/dashboard/settings/ai", "ai_wallet.view"],

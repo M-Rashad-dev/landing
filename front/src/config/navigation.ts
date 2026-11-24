@@ -1,4 +1,4 @@
-import { BadgeDollarSign, BarChart3, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, BarChart3, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, TrendingUp, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
 import { canOpen } from "@/lib/auth/permissions";
 import { ar } from "@/messages/ar";
 
@@ -54,7 +54,13 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/marketing/landings", label: t.items.landings, icon: Megaphone, status: "ready" },
     ],
   },
-  { label: t.groups.insights, items: [{ href: "/dashboard/analytics", label: t.items.analytics, icon: BarChart3, status: "ready" }] },
+  {
+    label: t.groups.insights,
+    items: [
+      { href: "/dashboard/analytics", label: t.items.analytics, icon: BarChart3, status: "ready" },
+      { href: "/dashboard/profit", label: t.items.profit, icon: TrendingUp, status: "ready" },
+    ],
+  },
 ];
 
 /** Pinned at the bottom of the sidebar. */

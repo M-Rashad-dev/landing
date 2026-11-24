@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Orders;
 
 use App\Actions\Analytics\RecordPageEvent;
+use App\Analytics\OrderCosts;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Exceptions\ApiException;
@@ -59,6 +60,7 @@ final class CreateOrder
         private readonly CustomerNotices $customerNotices,
         private readonly CustomerUploads $uploads,
         private readonly StorePayments $payments,
+        private readonly OrderCosts $costs,
     ) {}
 
     /**
@@ -190,6 +192,7 @@ final class CreateOrder
                 'options' => $lineOptions,
                 'line_total' => Money::toDecimal($quote->baseSubtotal),
                 'delivery_type' => $product->isDigital() ? $product->delivery_type?->value : null,
+                'unit_cost' => $this->costs->unitCostDecimal($product, $quote->selectedValues),
             ]);
             // «حسب الطلب» uploads now belong to this line (the file's name replaces its token).
             $claimed = $this->uploads->claim($item, $lineOptions, 'inputs');
@@ -213,9 +216,11 @@ final class CreateOrder
                     'options' => null,
                     'line_total' => '0.00',
                     'is_gift' => true,
+                    'unit_cost' => isset($giftProduct) ? $this->costs->unitCostDecimal($giftProduct) : null,
                 ]);
             }
 
+            $this->costs->snapshot($order);
             $order->logs()->create(['from_status' => null, 'to_status' => $order->status]);
             $this->customers->handle($order);
 

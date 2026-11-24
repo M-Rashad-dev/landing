@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Dashboard;
 
+use App\Auth\PermissionCatalog;
 use App\Enums\DeliveryType;
 use App\Enums\OptionDisplayType;
 use App\Enums\ProductInputKind;
@@ -37,8 +38,10 @@ final class ProductRequest extends ApiRequest
             $merge['description'] = $value === '' ? null : $value;
         }
 
-        if ($this->input('compare_at_price') === '') {
-            $merge['compare_at_price'] = null;
+        foreach (['compare_at_price', 'cost'] as $key) {
+            if ($this->input($key) === '') {
+                $merge[$key] = null;
+            }
         }
 
         $options = $this->input('options');
@@ -85,6 +88,25 @@ final class ProductRequest extends ApiRequest
         $this->merge($merge);
     }
 
+    /**
+     * Costs are dropped for staff without «تكلفة المنتجات» (what they never saw stays as it was).
+     *
+     * @param  array-key|null  $key
+     */
+    public function validated($key = null, $default = null): mixed
+    {
+        $data = parent::validated($key, $default);
+        if ($key !== null || ! is_array($data) || PermissionCatalog::allows($this->user(), 'products.cost')) {
+            return $data;
+        }
+        unset($data['cost']);
+        foreach (($data['variants'] ?? []) as $i => $variant) {
+            unset($data['variants'][$i]['cost']);
+        }
+
+        return $data;
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
@@ -95,6 +117,8 @@ final class ProductRequest extends ApiRequest
             'description' => ['nullable', 'string', 'max:10000'],
             'price' => ['required', ...$money, 'gt:0', 'max:9999999.99'],
             'compare_at_price' => ['nullable', ...$money, 'max:9999999.99'],
+            // What a unit costs the store (profit reports); only for whoever has «تكلفة المنتجات».
+            'cost' => ['sometimes', 'nullable', ...$money, 'min:0', 'max:9999999.99'],
             'sku' => ['nullable', 'string', 'max:60'],
             'is_active' => ['sometimes', 'boolean'],
 
@@ -132,6 +156,7 @@ final class ProductRequest extends ApiRequest
             'variants.*.values.*' => ['string', 'max:40'],
             'variants.*.stock' => ['required', 'integer', 'between:0,1000000'],
             'variants.*.sku' => ['nullable', 'string', 'max:60'],
+            'variants.*.cost' => ['sometimes', 'nullable', ...$money, 'min:0', 'max:9999999.99'],
 
             'media_ids' => ['sometimes', 'array', 'max:10'],
             'media_ids.*' => ['integer', 'distinct', TenantExists::table('media')],

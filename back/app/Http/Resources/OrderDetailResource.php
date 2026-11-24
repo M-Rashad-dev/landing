@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Analytics\OrderCosts;
+use App\Auth\PermissionCatalog;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\OrderEvent;
@@ -96,6 +98,8 @@ final class OrderDetailResource extends OrderResource
                 ])->values()->all(),
             ] : null,
             'shipment' => $this->whenLoaded('shipment', fn () => $this->shipment === null ? null : ShipmentResource::make($this->shipment)->resolve()),
+            // What it cost and earns (only for whoever sees «الأرباح»).
+            'profit' => $this->when(PermissionCatalog::allows($request->user(), 'profit.view'), fn () => $this->profitView()),
             'items' => $this->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
@@ -134,5 +138,17 @@ final class OrderDetailResource extends OrderResource
             'user_agent' => $this->user_agent,
             'utm' => $this->utm,
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function profitView(): array
+    {
+        $p = app(OrderCosts::class)->profit($this->resource);
+        $out = ['cost_known' => $p['cost_known'], 'loss' => $p['loss'] > 0];
+        foreach (['revenue', 'product_cost', 'shipping_cost', 'cod_fee', 'packaging', 'profit'] as $key) {
+            $out[$key] = Money::toFloat($p[$key]);
+        }
+
+        return $out;
     }
 }

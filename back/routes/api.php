@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ProductCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductFileController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
+use App\Http\Controllers\Api\V1\Dashboard\ProfitController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
 use App\Http\Controllers\Api\V1\Dashboard\ShipmentController;
@@ -267,6 +268,14 @@ Route::prefix('dashboard')
         Route::get('home', HomeController::class);
         Route::post('home/setup/{step}/skip', SetupSkipController::class);
         Route::get('analytics', AnalyticsController::class);
+        // «الأرباح» (docs/plans/merchant-essentials.md, stage 3).
+        Route::get('profit', [ProfitController::class, 'report']);
+        Route::get('profit/settings', [ProfitController::class, 'settings']);
+        Route::put('profit/settings', [ProfitController::class, 'updateSettings']);
+        Route::get('profit/expenses', [ProfitController::class, 'expenses']);
+        Route::post('profit/expenses', [ProfitController::class, 'storeExpense']);
+        Route::put('profit/expenses/{expense}', [ProfitController::class, 'updateExpense'])->whereNumber('expense');
+        Route::delete('profit/expenses/{expense}', [ProfitController::class, 'destroyExpense'])->whereNumber('expense');
 
         Route::get('ab-tests', [AbTestController::class, 'index']);
         Route::post('ab-tests', [AbTestController::class, 'store']);

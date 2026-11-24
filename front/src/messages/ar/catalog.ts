@@ -73,6 +73,7 @@ export const catalog = {
       select: (name: string) => `تحديد ${name}`,
       editName: "تعديل الاسم",
       editPrice: "تعديل السعر",
+      margin: (profit: string, percent: number) => `ربح ${profit} (${percent}%)`,
       editCategories: "تعديل التصنيفات",
       editStock: "تعديل الكمية",
       noCategory: "من غير تصنيف",
@@ -141,6 +142,9 @@ export const catalog = {
     compareAtLower: "السعر قبل الخصم لازم يبقى أعلى من السعر",
     sku: "كود المنتج (SKU)",
     skuHint: "اختياري: للمخزن والطلبات.",
+    cost: "تكلفة القطعة عليك",
+    costHint: "اختياري: بنحسب بيها أرباحك. العميل مش بيشوفها.",
+    margin: (profit: string, percent: number) => `ربحك في القطعة ${profit} (${percent}%) قبل الشحن والإعلانات.`,
     categoriesHint: "المنتج ممكن يبقى في أكتر من تصنيف. النجمة = التصنيف الأساسي.",
     pickCategories: "اختار التصنيفات",
     noCategories: "مفيش تصنيفات لسه.",
@@ -247,6 +251,8 @@ export const catalog = {
     },
     stock: {
       mode: "طريقة المخزون",
+      cost: "التكلفة",
+      costPlaceholder: "زي المنتج",
       modes: {
         unlimited: { title: "غير محدود", description: "مش بنعدّ القطع، المنتج دايمًا متاح." },
         product: { title: "عدد للمنتج كله", description: "رقم واحد بيقل مع كل طلب." },

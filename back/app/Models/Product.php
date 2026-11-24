@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $description
  * @property string $price decimal string
  * @property string|null $compare_at_price decimal string
+ * @property string|null $cost what one unit costs the store (null = not set)
  * @property string|null $sku
  * @property bool $is_active
  * @property string|null $slug
@@ -56,7 +57,7 @@ class Product extends Model
     protected $fillable = [
         'name', 'slug', 'description', 'short_description', 'price', 'compare_at_price', 'sku', 'is_active',
         'in_store', 'is_featured', 'stock_mode', 'stock', 'low_stock_threshold', 'seo',
-        'kind', 'delivery_type', 'delivery_settings',
+        'kind', 'delivery_type', 'delivery_settings', 'cost',
     ];
 
     protected $hidden = ['delivery_settings'];
@@ -66,6 +67,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'compare_at_price' => 'decimal:2',
+            'cost' => 'decimal:2',
             'is_active' => 'boolean',
             'in_store' => 'boolean',
             'is_featured' => 'boolean',

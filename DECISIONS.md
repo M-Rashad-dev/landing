@@ -584,3 +584,10 @@ The original specs (docs/features) were removed on 2026-11-14; everything built 
 - **Buttons, not words**: three quick-reply buttons carry a signed payload (order id + HMAC), so a press is tied to its order and phone; any written answer while a confirmation is open goes to the call center (we never guess intent from text).
 - **«الغي» cancels at once (owner)**, logged as cancelled by the customer; the owner's short replies are sent free inside the 24-hour window the press opened.
 - **Consent unchanged**: only customers who ticked the WhatsApp box (now «أكّد طلبك وتابعه على واتساب») or chose WhatsApp in their account get it.
+
+## 2026-11-24 — Cost and profit (merchant essentials, stage 3)
+- **Snapshot at order time**: line unit costs, the carrier's cost, return cost, COD cut and packaging are written on the order when it is placed, so editing a cost never rewrites past profit; orders from before have no cost and are flagged («طلبات من غير تكلفة»), not guessed.
+- **Expected profit leaves out unpaid online orders** (awaiting payment): many are never paid; they join once paid.
+- **Carrier cost not set = the fee the customer was quoted** (before any free-shipping offer), so a free-shipping offer shows as a cost to the store.
+- **Ad spend → ROAS by traffic source**: ad expense kinds map to the same sources as the analytics (Meta = facebook + instagram), revenue counted from delivered orders.
+- **Costs are a permission of their own** (`products.cost`): staff without it never see a cost and their saves / imports keep the stored one.

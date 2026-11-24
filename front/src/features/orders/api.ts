@@ -126,6 +126,8 @@ export type OrderDetail = Omit<OrderRow, "shipment"> & {
   offer: { id: number | null; name: string; discount: number } | null;
   code: { id: number | null; code: string; discount: number } | null;
   shipping_fee: number;
+  /** Only for whoever sees «الأرباح» (costs as they were when the order was placed). */
+  profit?: { revenue: number; product_cost: number; shipping_cost: number; cod_fee: number; packaging: number; profit: number; loss: boolean; cost_known: boolean };
   shipping: {
     company: { id: number | null; name: string } | null;
     offer: string | null;

@@ -23,6 +23,7 @@ import { Select } from "@/components/ui/select";
 import { useShipping } from "@/features/shipping/api";
 import { DeliveriesCard } from "./deliveries-card";
 import { PaymentCard } from "./payment-card";
+import { ProfitCard } from "./profit-card";
 import { ShippingCard } from "./shipment-card";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useSession, useCan } from "@/lib/auth/session-context";
@@ -117,6 +118,7 @@ export function OrderPage({ id }: { id: number }) {
         <div className="flex flex-col gap-4">
           <PaymentCard order={order} onSaved={refresh} />
           <DeliveriesCard order={order} onSaved={refresh} />
+          <ProfitCard order={order} />
           <CustomerCard order={order} onEdit={() => setEditing(true)} />
           <ShippingCard order={order} onSaved={refresh} />
           <InternalNote order={order} onSaved={refresh} />

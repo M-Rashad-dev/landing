@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Orders;
 
+use App\Analytics\OrderCosts;
 use App\Billing\Entitlements;
 use App\Enums\OrderStatus;
 use App\Enums\PlanFeature;
@@ -84,6 +85,7 @@ final class PostOrderUpsell
                 'quantity' => 1,
                 'options' => null,
                 'line_total' => Money::toDecimal($price),
+                'unit_cost' => app(OrderCosts::class)->unitCostDecimal($upsell->offerProduct),
             ]);
             $locked->forceFill(['total' => Money::toDecimal(Money::toCents((string) $locked->total) + $price)])->save();
 

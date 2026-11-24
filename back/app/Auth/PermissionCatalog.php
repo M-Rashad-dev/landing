@@ -36,7 +36,7 @@ final class PermissionCatalog
         'customers' => ['label' => 'العملاء', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'block' => 'الحظر']],
         'reviews' => ['label' => 'التقييمات', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'إخفاء وإظهار']],
         'products' => ['label' => 'المنتجات', 'group' => 'المتجر', 'actions' => [
-            'view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف', 'import' => 'استيراد', 'digital' => 'ملفات وأكواد المنتجات الرقمية',
+            'view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف', 'import' => 'استيراد', 'digital' => 'ملفات وأكواد المنتجات الرقمية', 'cost' => 'تكلفة المنتجات (عرض وتعديل)',
         ]],
         'categories' => ['label' => 'التصنيفات', 'group' => 'المتجر', 'actions' => ['view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف']],
         'media' => ['label' => 'مكتبة الصور', 'group' => 'المتجر', 'actions' => ['delete' => 'حذف صور']],
@@ -49,6 +49,7 @@ final class PermissionCatalog
         'upsells' => ['label' => 'عروض ما بعد الطلب', 'group' => 'التسويق', 'actions' => ['view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف']],
         'landings' => ['label' => 'صفحات الهبوط', 'group' => 'التسويق', 'actions' => ['view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف', 'publish' => 'نشر وإيقاف', 'ab_tests' => 'اختبارات A/B']],
         'analytics' => ['label' => 'التحليلات', 'group' => 'التحليلات', 'actions' => ['view' => 'عرض']],
+        'profit' => ['label' => 'الأرباح', 'group' => 'التحليلات', 'actions' => ['view' => 'عرض', 'expenses' => 'المصروفات وتكلفة التغليف']],
         'domains' => ['label' => 'النطاقات', 'group' => 'الإعدادات', 'actions' => ['view' => 'عرض', 'manage' => 'إضافة وتعديل وحذف']],
         'billing' => ['label' => 'الباقة والفواتير', 'group' => 'الإعدادات', 'actions' => ['view' => 'عرض', 'pay' => 'الاشتراك والدفع']],
         'ai_wallet' => ['label' => 'رصيد الذكاء الاصطناعي', 'group' => 'الإعدادات', 'actions' => ['view' => 'عرض']],

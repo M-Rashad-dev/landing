@@ -5,6 +5,7 @@ import { RadioCards } from "@/components/ui/choice";
 import { Alert } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useCan } from "@/lib/auth/session-context";
 import { ar } from "@/messages/ar";
 import { combinations, stockOptions, type ProductValues } from "./form-model";
 
@@ -16,7 +17,8 @@ const digits = (v: string) => /^\d{0,7}$/.test(v);
 /** Unlimited, one number, or one number per option combination (table built from the options). */
 export function StockEditor() {
   const { control, register, formState, setValue } = useFormContext<ProductValues>();
-  const [mode, options, stocks] = useWatch({ control, name: ["stock_mode", "options", "variant_stock"] });
+  const [mode, options, stocks, costs] = useWatch({ control, name: ["stock_mode", "options", "variant_stock", "variant_cost"] });
+  const canCost = useCan()("products.cost");
   const combos = mode === "variant" ? combinations(options) : [];
   const dims = stockOptions(options);
   const total = combos.reduce((sum, c) => sum + Number(stocks[c.key] || 0), 0);
@@ -55,6 +57,7 @@ export function StockEditor() {
                 <tr>
                   <th className="px-3 py-2 text-start font-semibold">{t.combination}</th>
                   <th className="w-36 px-3 py-2 text-start font-semibold">{t.quantity}</th>
+                  {canCost ? <th className="w-36 px-3 py-2 text-start font-semibold">{t.cost}</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -72,12 +75,25 @@ export function StockEditor() {
                         onChange={(e) => digits(e.target.value) && setValue("variant_stock", { ...stocks, [c.key]: e.target.value }, { shouldDirty: true })}
                       />
                     </td>
+                    {canCost ? (
+                      <td className="px-3 py-1.5">
+                        <Input
+                          dir="ltr"
+                          inputMode="decimal"
+                          className="tabular h-8"
+                          aria-label={`${t.cost}: ${c.labels.join(" / ")}`}
+                          value={costs[c.key] ?? ""}
+                          placeholder={t.costPlaceholder}
+                          onChange={(e) => /^\d{0,7}(\.\d{0,2})?$/.test(e.target.value) && setValue("variant_cost", { ...costs, [c.key]: e.target.value }, { shouldDirty: true })}
+                        />
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
               <tfoot className="bg-surface-2/60 text-xs font-semibold">
                 <tr>
-                  <td className="px-3 py-2" colSpan={2}>
+                  <td className="px-3 py-2" colSpan={canCost ? 3 : 2}>
                     {t.total(total)}
                   </td>
                 </tr>

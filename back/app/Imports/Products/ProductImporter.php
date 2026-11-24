@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Imports\Products;
 
 use App\Actions\Products\SaveProduct;
+use App\Auth\PermissionCatalog;
 use App\Billing\Entitlements;
 use App\Enums\ImportStatus;
 use App\Enums\PlanFeature;
@@ -16,6 +17,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImport;
 use App\Models\ProductImportFailure;
+use App\Models\User;
 use App\Notifications\StoreNotices;
 use App\Store\Categories;
 use Illuminate\Support\Facades\DB;
@@ -182,6 +184,10 @@ final class ProductImporter
             $payload = $draft->payload;
             if (isset($payload['slug']) && Product::query()->withTrashed()->where('slug', $payload['slug'])->when($existing, fn ($q) => $q->whereKeyNot($existing->id))->exists()) {
                 unset($payload['slug']);
+            }
+            // Costs only from someone allowed to see them («تكلفة المنتجات»).
+            if (isset($payload['cost']) && ! PermissionCatalog::allows($import->user_id === null ? null : User::query()->find($import->user_id), 'products.cost')) {
+                unset($payload['cost']);
             }
             $categoryIds = $this->categoryIds($draft->categories);
             if ($categoryIds !== []) {

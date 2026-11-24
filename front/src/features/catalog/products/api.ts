@@ -13,6 +13,8 @@ export type ProductCard = {
   name: string;
   price: number;
   compare_at_price: number | null;
+  /** Only for whoever has «تكلفة المنتجات». */
+  cost?: number | null;
   discount_percent: number | null;
   sku: string | null;
   is_active: boolean;
@@ -52,7 +54,9 @@ export type ProductDetail = ProductCard & {
   delivery_type?: DeliveryType | null;
   delivery_settings?: DeliverySettings | null;
   files?: ProductFileRow[];
-  variants: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null }>;
+  /** What a unit costs the store; only sent to whoever has «تكلفة المنتجات». */
+  cost?: number | null;
+  variants: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null; cost?: number | null }>;
 };
 
 export const STATUSES = ["all", "active", "inactive", "out", "low"] as const;

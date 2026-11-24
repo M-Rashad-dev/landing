@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Auth\PermissionCatalog;
 use App\Models\Product;
 use App\Models\ProductFile;
 use App\Models\ProductInput;
@@ -22,6 +23,7 @@ final class ProductResource extends JsonResource
     {
         $price = $this->priceCents();
         $compare = $this->compareAtCents();
+        $seesCost = PermissionCatalog::allows($request->user(), 'products.cost');
 
         return [
             'id' => $this->id,
@@ -29,6 +31,8 @@ final class ProductResource extends JsonResource
             'description' => $this->description,
             'price' => Money::toFloat($price),
             'compare_at_price' => $compare === null ? null : Money::toFloat($compare),
+            // Hidden from staff without «تكلفة المنتجات».
+            'cost' => $this->when($seesCost, fn () => $this->cost === null ? null : Money::toFloat(Money::toCents((string) $this->cost))),
             'discount_percent' => $compare !== null && $compare > $price ? (int) round(($compare - $price) * 100 / $compare) : null,
             'sku' => $this->sku,
             'is_active' => $this->is_active,
@@ -45,7 +49,7 @@ final class ProductResource extends JsonResource
             'primary_category_id' => $this->primary_category_id,
             // Units left: null = not tracked (unlimited); variant mode = the sum of every combination.
             'stock_total' => $this->stockTotal(),
-            'variants' => $this->whenLoaded('variants', fn () => $this->variants->map(fn ($v) => ['id' => $v->id, 'value_ids' => $v->valueIds(), 'stock' => $v->stock, 'sku' => $v->sku])->all()),
+            'variants' => $this->whenLoaded('variants', fn () => $this->variants->map(fn ($v) => ['id' => $v->id, 'value_ids' => $v->valueIds(), 'stock' => $v->stock, 'sku' => $v->sku] + ($seesCost ? ['cost' => $v->cost === null ? null : Money::toFloat(Money::toCents((string) $v->cost))] : []))->all()),
             'locked_by_plan' => (bool) $this->locked_by_plan,
             'main_image' => $this->whenLoaded('media', fn () => $this->media->first() ? MediaResource::make($this->media->first())->resolve($request) : null),
             'media' => $this->whenLoaded('media', fn () => MediaResource::collection($this->media)->resolve($request)),

@@ -54,6 +54,7 @@ export const imports = {
     price: { label: "السعر", hint: "سعر البيع" },
     sale_price: { label: "السعر بعد الخصم", hint: "لو موجود، بيبقى هو سعر البيع والسعر العادي يبقى «قبل الخصم»" },
     compare_at_price: { label: "السعر قبل الخصم", hint: "بيظهر مشطوب" },
+    cost: { label: "التكلفة", hint: "تكلفة القطعة عليك (للأرباح)" },
     sku: { label: "SKU / كود المنتج", hint: "بيه بنعرف المنتج الموجود عشان نحدّثه" },
     stock: { label: "الكمية", hint: "فاضي = من غير حد" },
     description: { label: "الوصف", hint: "HTML بيتحوّل لنص مرتب" },

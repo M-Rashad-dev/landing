@@ -19,7 +19,7 @@ final class SaveShippingCompany
 
     /**
      * @param  array<string, mixed>  $data
-     * @param  list<array{governorate: string, fee: string|null, is_available: bool}>  $rates  only the ones that differ
+     * @param  list<array{governorate: string, fee: string|null, cost?: string|null, is_available: bool}>  $rates  only the ones that differ
      */
     public function handle(array $data, array $rates, ?ShippingCompany $company = null): ShippingCompany
     {

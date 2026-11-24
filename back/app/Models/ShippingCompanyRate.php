@@ -15,16 +15,17 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $shipping_company_id
  * @property string $governorate
  * @property string|null $fee
+ * @property string|null $cost what the carrier charges the store there (null = the company's)
  * @property bool $is_available
  */
 class ShippingCompanyRate extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['shipping_company_id', 'governorate', 'fee', 'is_available'];
+    protected $fillable = ['shipping_company_id', 'governorate', 'fee', 'cost', 'is_available'];
 
     protected function casts(): array
     {
-        return ['fee' => 'decimal:2', 'is_available' => 'boolean'];
+        return ['fee' => 'decimal:2', 'cost' => 'decimal:2', 'is_available' => 'boolean'];
     }
 }

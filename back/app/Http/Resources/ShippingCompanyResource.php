@@ -26,6 +26,7 @@ final class ShippingCompanyResource extends JsonResource
             return [
                 'governorate' => $governorate,
                 'fee' => $rate?->fee === null ? null : Money::toFloat(Money::toCents((string) $rate->fee)),
+                'cost' => $rate?->cost === null ? null : Money::toFloat(Money::toCents((string) $rate->cost)),
                 'is_available' => $rate === null ? true : $rate->is_available,
             ];
         }, array_values((array) config('landing.governorates')));
@@ -40,6 +41,9 @@ final class ShippingCompanyResource extends JsonResource
             'delivery_days_min' => $this->delivery_days_min,
             'delivery_days_max' => $this->delivery_days_max,
             'default_fee' => Money::toFloat($this->defaultFeeCents()),
+            'default_cost' => $this->default_cost === null ? null : Money::toFloat(Money::toCents((string) $this->default_cost)),
+            'return_cost' => $this->return_cost === null ? null : Money::toFloat(Money::toCents((string) $this->return_cost)),
+            'cod_fee_percent' => $this->cod_fee_percent === null ? null : (float) $this->cod_fee_percent,
             'is_active' => $this->is_active,
             'position' => $this->position,
             'served_count' => count(array_filter($rows, fn (array $r) => $r['is_available'])),

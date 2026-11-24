@@ -19,7 +19,7 @@ final class ShippingCompanyRequest extends ApiRequest
         if (is_string($this->input('name'))) {
             $merge['name'] = trim(strip_tags($this->input('name')));
         }
-        foreach (['media_id', 'delivery_days_min', 'delivery_days_max'] as $key) {
+        foreach (['media_id', 'delivery_days_min', 'delivery_days_max', 'default_cost', 'return_cost', 'cod_fee_percent'] as $key) {
             if ($this->input($key) === '') {
                 $merge[$key] = null;
             }
@@ -39,9 +39,14 @@ final class ShippingCompanyRequest extends ApiRequest
             'delivery_days_max' => ['nullable', 'integer', 'between:0,60'],
             'default_fee' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:100000'],
             'is_active' => ['sometimes', 'boolean'],
+            // What the carrier really charges the store (profit); empty = the fee the customer pays.
+            'default_cost' => ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100000'],
+            'return_cost' => ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100000'],
+            'cod_fee_percent' => ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
             'rates' => ['present', 'array', 'max:'.count($governorates)],
             'rates.*.governorate' => ['required', 'string', 'distinct', Rule::in($governorates)],
             'rates.*.fee' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100000'],
+            'rates.*.cost' => ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100000'],
             'rates.*.is_available' => ['required', 'boolean'],
         ];
     }
@@ -67,24 +72,39 @@ final class ShippingCompanyRequest extends ApiRequest
             'delivery_days_max' => $this->validated('delivery_days_max'),
             'default_fee' => Money::toDecimal(Money::toCents((string) $this->validated('default_fee'))),
             'is_active' => (bool) $this->validated('is_active', true),
-        ];
+        ] + $this->costs();
+    }
+
+    /** @return array<string, string|null> the cost fields sent (left out = kept as they are) */
+    private function costs(): array
+    {
+        $out = [];
+        $validated = $this->validated();
+        foreach (['default_cost', 'return_cost', 'cod_fee_percent'] as $key) {
+            if (array_key_exists($key, $validated)) {
+                $out[$key] = $validated[$key] === null ? null : Money::toDecimal(Money::toCents((string) $validated[$key]));
+            }
+        }
+
+        return $out;
     }
 
     /**
-     * Only governorates that differ from the default (another fee, or not served).
+     * Only governorates that differ from the default (another fee or cost, or not served).
      *
-     * @return list<array{governorate: string, fee: string|null, is_available: bool}>
+     * @return list<array{governorate: string, fee: string|null, cost: string|null, is_available: bool}>
      */
     public function rates(): array
     {
         $out = [];
         foreach ((array) $this->validated('rates') as $rate) {
             $fee = $rate['fee'] === null ? null : Money::toDecimal(Money::toCents((string) $rate['fee']));
+            $cost = ($rate['cost'] ?? null) === null ? null : Money::toDecimal(Money::toCents((string) $rate['cost']));
             $available = (bool) $rate['is_available'];
-            if ($fee === null && $available) {
+            if ($fee === null && $cost === null && $available) {
                 continue;
             }
-            $out[] = ['governorate' => (string) $rate['governorate'], 'fee' => $available ? $fee : null, 'is_available' => $available];
+            $out[] = ['governorate' => (string) $rate['governorate'], 'fee' => $available ? $fee : null, 'cost' => $available ? $cost : null, 'is_available' => $available];
         }
 
         return $out;

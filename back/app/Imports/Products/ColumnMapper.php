@@ -14,7 +14,7 @@ final class ColumnMapper
 {
     /** Fields, in the order the mapping screen shows them. `images` may take several columns. */
     public const FIELDS = [
-        'name', 'price', 'sale_price', 'compare_at_price', 'sku', 'stock', 'description', 'short_description', 'category', 'images',
+        'name', 'price', 'sale_price', 'compare_at_price', 'cost', 'sku', 'stock', 'description', 'short_description', 'category', 'images',
         'group', 'external_id', 'parent', 'option1_name', 'option1_value', 'option2_name', 'option2_value', 'option3_name', 'option3_value',
         'variant_image', 'status', 'slug', 'seo_title', 'seo_description',
     ];
@@ -32,6 +32,7 @@ final class ColumnMapper
         'price' => ['السعر', 'سعر المنتج', 'سعر البيع', 'السعر الاساسي', 'price', 'variant price', 'regular price', 'selling price', 'unit price', 'السعر الأصلي'],
         'sale_price' => ['السعر بعد الخصم', 'السعر المخفض', 'سعر الخصم', 'سعر العرض', 'sale price', 'discount price', 'special price', 'offer price', 'price after discount'],
         'compare_at_price' => ['السعر قبل الخصم', 'السعر القديم', 'سعر المقارنه', 'compare at price', 'compare-at price', 'variant compare at price', 'old price', 'original price', 'list price', 'msrp'],
+        'cost' => ['التكلفه', 'تكلفه المنتج', 'سعر التكلفه', 'سعر الشراء', 'تكلفه القطعه', 'cost', 'cost per item', 'unit cost', 'purchase price', 'cost price', 'wholesale price'],
         'sku' => ['sku', 'variant sku', 'رمز المنتج', 'رمز المنتج sku', 'كود المنتج', 'الكود', 'رقم المنتج sku', 'product code', 'item code', 'كود', 'الباركود', 'barcode', 'barcodes', 'variant barcode'],
         'stock' => ['الكميه', 'الكمية المتوفره', 'الكمية المتاحه', 'المخزون', 'الكميه المتاحه', 'quantity', 'qty', 'stock', 'stock quantity', 'inventory', 'inventory quantity', 'variant inventory qty', 'in stock qty'],
         'description' => ['الوصف', 'وصف المنتج', 'التفاصيل', 'description', 'body html', 'body (html)', 'body', 'product description', 'description ar', 'description_ar', 'long description', 'الوصف بالعربي'],
@@ -56,7 +57,7 @@ final class ColumnMapper
 
     /** Names only matched exactly (too generic to match as part of a longer header). */
     private const EXACT_ONLY = [
-        'id', 'رقم', 'type', 'body', 'name', 'title', 'image', 'كود', 'اسم', 'product', 'active', 'visible', 'group', 'parent', 'price',
+        'id', 'رقم', 'type', 'body', 'cost', 'التكلفه', 'name', 'title', 'image', 'كود', 'اسم', 'product', 'active', 'visible', 'group', 'parent', 'price',
         'المنتج', 'الاسم', 'السعر', 'stock', 'الوصف', 'description', 'الصوره', 'الكود', 'الحاله', 'status', 'category', 'التصنيف',
     ];
 
