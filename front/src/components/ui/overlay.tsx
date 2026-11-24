@@ -24,6 +24,8 @@ export function DialogContent({ className, children, size = "md", ...props }: Re
         dir="rtl"
         className={cn(
           "fixed start-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] -translate-y-1/2 translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-lg focus-visible:outline-none",
+          // A <form> around header / body / footer keeps the same layout: the body scrolls, the footer always shows.
+          "[&>form]:flex [&>form]:min-h-0 [&>form]:flex-1 [&>form]:flex-col",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98] data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           sizes[size],
           className,
@@ -49,7 +51,7 @@ export function DialogHeader({ title, description }: { title: React.ReactNode; d
 }
 
 export function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex-1 overflow-y-auto px-5 py-4", className)} {...props} />;
+  return <div className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-4", className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {

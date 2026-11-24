@@ -56,6 +56,21 @@ describe("«الدفع» settings", () => {
     expect(await screen.findByText(/01012345678/)).toBeInTheDocument();
     expect(screen.getByRole("switch")).not.toBeDisabled();
   });
+
+  it("saves a wallet even after a bad InstaPay link was typed before switching kind", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ data: empty }));
+    wrap(<PaymentsPage />);
+    fireEvent.click((await screen.findAllByRole("button", { name: new RegExp(t.add) }))[0]);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(new RegExp(t.instapayLink)), { target: { value: "شسيبشسيب" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: new RegExp(t.kinds.wallet) }));
+    fireEvent.change(within(dialog).getByLabelText(new RegExp(t.account.wallet)), { target: { value: "01094062024" } });
+
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { ...empty, methods: [{ id: 4, kind: "wallet", name: t.kinds.wallet, account: "01094062024", link: null, instructions: null, is_active: true }] } }, { status: 201 }));
+    fireEvent.click(within(dialog).getByRole("button", { name: ar.common.save }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(body(1)).toMatchObject({ kind: "wallet", account: "01094062024", link: null });
+  });
 });
 
 const order = {

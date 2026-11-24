@@ -175,7 +175,9 @@ const schema = z
     instructions: z.string().trim().max(500, ar.validation.max(500)),
   })
   .superRefine((d, ctx) => {
-    if (d.link && !/^https:\/\/\S+$/.test(d.link)) ctx.addIssue({ code: "custom", path: ["link"], message: t.linkHttps });
+    // Only the fields this kind shows are checked (a value typed before switching kind never blocks saving).
+    const usesLink = d.kind === "instapay" || d.kind === "link";
+    if (usesLink && d.link && !/^https:\/\/\S+$/.test(d.link)) ctx.addIssue({ code: "custom", path: ["link"], message: t.linkHttps });
     if (d.kind === "link" && !d.link) ctx.addIssue({ code: "custom", path: ["link"], message: t.linkRequired });
     if (d.kind !== "link" && !d.account && !(d.kind === "instapay" && d.link)) ctx.addIssue({ code: "custom", path: ["account"], message: t.accountRequired });
   });
