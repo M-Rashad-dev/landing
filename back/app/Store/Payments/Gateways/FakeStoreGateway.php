@@ -68,6 +68,21 @@ final class FakeStoreGateway implements StoreGateway
         return $this->results[$payment->reference] ?? new GatewayResult(GatewayResult::OPEN);
     }
 
+    /** @var list<array{reference: string, amount: int}> */
+    public array $refunded = [];
+
+    public ?string $refundFail = null;
+
+    public function refund(StoreGatewayAccount $account, StoreOnlinePayment $payment, int $amountCents, ?string $reason): GatewayRefund
+    {
+        if ($this->refundFail !== null) {
+            throw new GatewayError($this->refundFail);
+        }
+        $this->refunded[] = ['reference' => $payment->reference, 'amount' => $amountCents];
+
+        return new GatewayRefund(GatewayRefund::DONE, 'refund_'.count($this->refunded));
+    }
+
     public function webhook(StoreGatewayAccount $account, string $raw, array $headers, array $query): ?array
     {
         if (! hash_equals(self::sign($raw, $account->credential('webhook_secret')), (string) ($headers['x-fake-signature'] ?? ''))) {

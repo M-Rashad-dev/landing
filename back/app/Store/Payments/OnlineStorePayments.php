@@ -17,6 +17,7 @@ use App\Models\Tenant;
 use App\Services\PublicSite;
 use App\Store\Payments\Gateways\GatewayCheckout;
 use App\Store\Payments\Gateways\GatewayError;
+use App\Store\Payments\Gateways\GatewayRefund;
 use App\Store\Payments\Gateways\GatewayResult;
 use App\Store\Payments\Gateways\StoreGateways;
 use App\Support\Money;
@@ -240,6 +241,37 @@ final class OnlineStorePayments
 
             return true;
         });
+    }
+
+    /** The gateway an order was paid through online (its key and name), or null (inside the store's tenant). @return array{key: string, label: string}|null */
+    public function paidVia(Order $order): ?array
+    {
+        $paid = $this->paidPayment($order);
+
+        return $paid === null || ! $this->gateways->has($paid->gateway) ? null : ['key' => $paid->gateway, 'label' => $this->gateways->get($paid->gateway)->label()];
+    }
+
+    /**
+     * Sends part or all of an order's online payment back through its gateway (the stage 5 refund «رجوع تلقائي»). The
+     * gateway's own refusal comes back as a 422 in its words.
+     */
+    public function refund(Order $order, int $amountCents, ?string $reason): GatewayRefund
+    {
+        $paid = $this->paidPayment($order) ?? throw new ApiException(422, 'not_paid_online', __('payments.gateways.not_paid_online'));
+        $account = StoreGatewayAccount::query()->where('gateway', $paid->gateway)->first()
+            ?? throw new ApiException(422, 'gateway_disconnected', __('payments.gateways.disconnected_refund', ['gateway' => $this->gateways->get($paid->gateway)->label()]));
+        try {
+            return $this->gateways->get($paid->gateway)->refund($account, $paid, $amountCents, $reason);
+        } catch (GatewayError $e) {
+            Log::warning('store_gateway.refund_failed', ['gateway' => $paid->gateway, 'order' => $order->id, 'detail' => $e->detail]);
+
+            throw new ApiException(422, 'gateway_refund_failed', $e->getMessage());
+        }
+    }
+
+    private function paidPayment(Order $order): ?StoreOnlinePayment
+    {
+        return StoreOnlinePayment::query()->where('order_id', $order->id)->where('status', StoreOnlinePayment::PAID)->latest('id')->first();
     }
 
     /** What the pay page shows of an order's online checkouts. @return array<string, mixed>|null */

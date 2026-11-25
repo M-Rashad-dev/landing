@@ -305,3 +305,14 @@ it('lets the copilot read refunds but never make one', function () {
     $create = $run('create_record', ['resource' => 'refunds', 'values' => ['amount' => 10]]);
     expect($create->failed)->toBeTrue();
 });
+
+it('shows the customer the money sent back on the tracking page', function () {
+    $order = rfStoreOrder();
+    rfDeliver($order);
+    $this->postJson("/api/v1/dashboard/orders/{$order->id}/refunds", ['amount' => 120, 'method' => 'wallet', 'done' => true])->assertCreated();
+    $this->postJson("/api/v1/dashboard/orders/{$order->id}/refunds", ['amount' => 30, 'method' => 'cash'])->assertCreated();
+
+    $this->postJson('/api/v1/public/track', ['host' => RF_HOST, 'token' => $order->fresh()->track_token], internalHeaders())->assertOk()
+        ->assertJsonPath('data.refunds.0.amount', 120)->assertJsonPath('data.refunds.0.status', 'done')->assertJsonPath('data.refunds.0.method', 'محفظة')
+        ->assertJsonPath('data.refunds.1.status', 'pending')->assertJsonCount(2, 'data.refunds');
+});

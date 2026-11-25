@@ -94,6 +94,20 @@ describe("refunds", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
+  it("sends the money back through the gateway the order was paid with, right away", async () => {
+    fetchMock.mockResolvedValue(Response.json({ data: { ...pending, method: "gateway", status: "done" } }, { status: 201 }));
+    wrap(<RefundsCard order={order({ gateway: { key: "paymob", label: "Paymob" } })} onSaved={async () => undefined} />);
+    await userEvent.click(screen.getByRole("button", { name: r.card.add }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(r.dialog.gatewayHint("Paymob"))).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(new RegExp(r.dialog.destination))).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(r.dialog.alreadySent)).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: r.dialog.submitGateway }));
+
+    await waitFor(() => expect(sent("/dashboard/orders/5/refunds")).toBeTruthy());
+    expect(JSON.parse(String((sent("/dashboard/orders/5/refunds")![1] as RequestInit).body))).toMatchObject({ amount: "700", method: "gateway", done: true });
+  });
+
   it("refuses an amount above what can go back", async () => {
     wrap(<RefundsCard order={order({ refundable: 100 })} onSaved={async () => undefined} />);
     await userEvent.click(screen.getByRole("button", { name: r.card.add }));

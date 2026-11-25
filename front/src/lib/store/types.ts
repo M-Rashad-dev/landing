@@ -170,4 +170,9 @@ export type TrackedOrder = {
   products_url?: string | null;
   /** The carrier's timeline when the store ships through a connected carrier. */
   shipment?: { tracking_number: string; state: string; state_label: string; events: Array<{ state: string; label: string; at: string }> } | null;
+  /** Money the store sent back (or is sending back). */
+  refunds?: OrderRefundNote[];
 };
+
+/** A refund as the customer sees it (back: App\Orders\Refunds::customerView). */
+export type OrderRefundNote = { amount: number; status: "pending" | "done"; method: string; done_at: string | null };

@@ -112,6 +112,26 @@ final class KashierGateway extends HttpGateway
         return new GatewayResult($state, $amount, is_string($ref) && $ref !== 'NA' ? $ref : null, isset($data['method']) ? (string) $data['method'] : null, $account->mode === 'live', (string) ($data['currency'] ?? 'EGP'));
     }
 
+    public function refund(StoreGatewayAccount $account, StoreOnlinePayment $payment, int $amountCents, ?string $reason): GatewayRefund
+    {
+        // Kashier's own order id (read back with the session's payment).
+        if ($payment->payment_ref === null || $payment->payment_ref === '') {
+            throw new GatewayError((string) __('payments.gateways.refund_unavailable', ['gateway' => $this->label()]));
+        }
+        $answer = $this->send(fn () => $this->http($account->mode === 'live' ? self::LIVE : self::TEST)->withHeaders(['Authorization' => $account->credential('secret_key')])
+            ->put('/v3/payment/refund/'.rawurlencode($payment->payment_ref), [
+                'apiOperation' => 'REFUND',
+                'reason' => mb_substr($reason ?: 'Refund', 0, 200),
+                'transaction' => ['amount' => (float) Money::toDecimal($amountCents)],
+            ]));
+        $status = strtoupper((string) ($answer['status'] ?? ($answer['response']['status'] ?? '')));
+        if ($status === 'FAILURE' || $status === 'FAILED' || $status === '') {
+            throw new GatewayError((string) __('payments.gateways.refund_refused', ['gateway' => $this->label(), 'reason' => (string) ($answer['messages']['ar'] ?? $answer['messages']['en'] ?? '—')]));
+        }
+
+        return new GatewayRefund($status === 'PENDING' ? GatewayRefund::PENDING : GatewayRefund::DONE, isset($answer['transactionId']) ? (string) $answer['transactionId'] : null);
+    }
+
     public function webhook(StoreGatewayAccount $account, string $raw, array $headers, array $query): ?array
     {
         $body = json_decode($raw, true);

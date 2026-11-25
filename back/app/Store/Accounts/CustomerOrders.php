@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusLog;
 use App\Models\ProductReview;
+use App\Orders\Refunds;
 use App\Support\Money;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -88,6 +89,8 @@ final class CustomerOrders
             'address' => $order->address,
             'shipping_company' => $order->shipping_company_name,
             'tracking_number' => $order->tracking_number,
+            // Money the store sent back (or is sending back).
+            'refunds' => app(Refunds::class)->customerView($order),
         ];
     }
 

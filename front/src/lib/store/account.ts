@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ApiError, type ApiErrorBody } from "@/lib/api/errors";
-import type { TrackStage } from "./types";
+import type { OrderRefundNote, TrackStage } from "./types";
 
 /* ---------- Types (back end: StoreAccountController, CustomerOrders, ProductReview) ---------- */
 
@@ -34,6 +34,8 @@ export type OrderDetail = OrderRow & {
   address: string | null;
   shipping_company: string | null;
   tracking_number: string | null;
+  /** Money the store sent back (or is sending back). */
+  refunds?: OrderRefundNote[];
 };
 
 export type Review = { id: number; name: string; rating: number; text: string | null; verified: boolean; created_at: string };

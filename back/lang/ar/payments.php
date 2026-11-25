@@ -38,6 +38,16 @@ return [
         'method_hint' => 'هتتحوّل لصفحة دفع آمنة من :gateway، وأول ما الدفع يتم طلبك بيتأكد لوحده.',
         'item' => 'طلب رقم :number من :store',
         'paid_note' => 'اتدفع أونلاين (:gateway)',
+        'not_paid_online' => 'الطلب ده مااتدفعش أونلاين من خلال بوابة دفع، فمينفعش يترجّع تلقائي. اختار طريقة تانية.',
+        'disconnected_refund' => ':gateway مفصولة دلوقتي. اربطها تاني أو رجّع الفلوس بطريقة تانية.',
+        'refund_unavailable' => ':gateway مش بيسمح يرجّع الدفعة دي تلقائي (زي الدفع في منفذ). رجّعها بطريقة تانية.',
+        'refund_refused' => ':gateway رفض الترجيع: :reason',
+        'stripe' => [
+            'keys' => 'المفتاح السري لازم يبدأ بـ sk_test_ أو sk_live_ (أو مفتاح مقيّد rk_).',
+            'fields' => [
+                'secret_key' => ['label' => 'Secret key', 'hint' => 'من لوحة Stripe: Developers ← API keys ← Secret key (بيبدأ بـ sk_). لينك الإشعارات بيتسجّل لوحده.'],
+            ],
+        ],
         'paymob' => [
             'keys' => 'المفتاح السري لازم يبدأ بـ sk_test_ أو sk_live_، والعام بـ pk_test_ أو pk_live_، والاتنين من نفس الوضع (تجربة أو حقيقي).',
             'integrations' => 'اكتب رقم Integration ID واحد على الأقل (الكارت، المحفظة…) مفصولين بفاصلة.',

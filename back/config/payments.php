@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Store\Payments\Gateways\KashierGateway;
 use App\Store\Payments\Gateways\PaymobGateway;
+use App\Store\Payments\Gateways\StripeGateway;
 use App\Store\Payments\Gateways\XPayStoreGateway;
 
 /*
@@ -18,6 +19,7 @@ return [
         'paymob' => PaymobGateway::class,
         'kashier' => KashierGateway::class,
         'xpay' => XPayStoreGateway::class,
+        'stripe' => StripeGateway::class,
     ],
 
     'timeout' => (int) env('STORE_GATEWAYS_TIMEOUT', 20),

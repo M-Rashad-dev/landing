@@ -110,7 +110,7 @@ final class TrackController extends Controller
             'tracking_number' => $order->tracking_number,
             'history' => CustomerOrders::history($order),
             // Money the store sent back (or is sending back).
-            'refunds' => app(Refunds::class)->customerView($order),
+            'refunds' => Tenancy::runAs($order->tenant_id, fn () => app(Refunds::class)->customerView($order)),
             // A prepaid order waiting for its payment: the pay page.
             'pay_url' => $order->status === OrderStatus::AwaitingPayment ? StorePayments::payUrl($order) : null,
             // Digital products: the order page with the downloads / codes.

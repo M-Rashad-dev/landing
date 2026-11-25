@@ -112,7 +112,8 @@ export type OrderDelivery = {
   emailed_at: string | null;
 };
 
-export type RefundMethod = "original" | "wallet" | "instapay" | "bank" | "cash";
+export type RefundMethod = "original" | "wallet" | "instapay" | "bank" | "cash" | "gateway";
+/** By hand; "gateway" (back through the store's gateway) only shows for orders paid online. */
 export const REFUND_METHODS: RefundMethod[] = ["original", "wallet", "instapay", "bank", "cash"];
 
 /** One refund (back: App\Orders\Refunds::view). */
@@ -148,6 +149,8 @@ export type OrderRefunds = {
   refunded: number;
   state: "partial" | "full" | null;
   method_name: string;
+  /** Paid online with the store's gateway: the money can go back through it by itself. */
+  gateway?: { key: string; label: string } | null;
   default_destination: string | null;
   items_left: Record<string, number>;
   list: Refund[];

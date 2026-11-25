@@ -93,12 +93,12 @@ function sgHook(string $raw, ?string $signature = null, string $gateway = 'paymo
 it('connects a gateway with the merchant\'s own keys and shows its method at checkout', function () {
     $this->getJson('/api/v1/dashboard/payments')->assertOk()
         ->assertJsonPath('data.gateways.0.key', 'paymob')->assertJsonPath('data.gateways.0.connected', false)
-        ->assertJsonPath('data.gateways.1.key', 'kashier')->assertJsonPath('data.gateways.2.key', 'xpay')
+        ->assertJsonPath('data.gateways.1.key', 'kashier')->assertJsonPath('data.gateways.2.key', 'xpay')->assertJsonPath('data.gateways.3.key', 'stripe')
         ->assertJsonPath('data.gateways.2.fields.0.key', 'secret_key');
 
     sgConnect('paymob', ['secret_key' => 'wrong'])->assertStatus(422)->assertJsonValidationErrors('credentials');
     $this->putJson('/api/v1/dashboard/payments/gateways/paymob', ['credentials' => ['secret_key' => 'x']])->assertStatus(422)->assertJsonValidationErrors('credentials.public_key');
-    $this->putJson('/api/v1/dashboard/payments/gateways/stripe', ['credentials' => ['secret_key' => 'x']])->assertNotFound();
+    $this->putJson('/api/v1/dashboard/payments/gateways/paypal', ['credentials' => ['secret_key' => 'x']])->assertNotFound();
 
     $data = sgConnect()->assertOk()->json('data');
     expect(collect($data['gateways'])->firstWhere('key', 'paymob'))->toMatchArray(['connected' => true, 'mode' => 'test', 'status' => 'active'])
@@ -226,4 +226,37 @@ it('needs the payments permission and keeps accounts per store', function () {
     Sanctum::actingAs($other->fresh(['tenant']));
     $this->getJson('/api/v1/dashboard/payments')->assertJsonPath('data.gateways.0.connected', false);
     $this->deleteJson('/api/v1/dashboard/payments/gateways/paymob')->assertNotFound();
+});
+
+it('sends a refund back through the gateway the order was paid with, once', function () {
+    sgConnect();
+    $order = sgOrder();
+    sgPay($order)->assertOk();
+    $ref = sgReference($order);
+    sgFake()->results[$ref] = new GatewayResult(GatewayResult::PAID, $order->totalCents(), 'TX-1', 'card');
+    sgHook(json_encode(['reference' => $ref]))->assertOk();
+
+    $this->getJson("/api/v1/dashboard/orders/{$order->id}")->assertJsonPath('data.refunds.gateway.key', 'paymob')->assertJsonPath('data.refunds.collected', 200);
+
+    // The gateway refuses: the refund stays asked, the merchant reads why.
+    sgFake()->refundFail = 'Paymob رفض الترجيع: الرصيد مش كفاية';
+    $refund = $this->postJson("/api/v1/dashboard/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'gateway'])->assertCreated()->json('data');
+    $this->postJson("/api/v1/dashboard/refunds/{$refund['id']}/complete")->assertStatus(422)->assertJsonPath('code', 'gateway_refund_failed')->assertJsonPath('message', 'Paymob رفض الترجيع: الرصيد مش كفاية');
+    expect(sgFake()->refunded)->toBe([]);
+
+    sgFake()->refundFail = null;
+    $this->postJson("/api/v1/dashboard/refunds/{$refund['id']}/complete")->assertOk()->assertJsonPath('data.status', 'done')->assertJsonPath('data.reference', 'refund_1');
+    $this->postJson("/api/v1/dashboard/refunds/{$refund['id']}/complete")->assertStatus(409);
+    expect(sgFake()->refunded)->toBe([['reference' => $ref, 'amount' => 5000]])
+        ->and((string) $order->fresh()->refunded_total)->toBe('50.00');
+
+    // Sent through the gateway in one step.
+    $this->postJson("/api/v1/dashboard/orders/{$order->id}/refunds", ['amount' => 150, 'method' => 'gateway', 'done' => true])->assertCreated()->assertJsonPath('data.status', 'done');
+    expect(sgFake()->refunded)->toHaveCount(2)->and($order->fresh()->refund_state?->value)->toBe('full');
+});
+
+it('offers the gateway refund only for orders paid online', function () {
+    $order = asTenant($this->tenant, fn () => Order::factory()->create(['status' => OrderStatus::Delivered, 'total' => '300.00']));
+    $this->getJson("/api/v1/dashboard/orders/{$order->id}")->assertJsonPath('data.refunds.gateway', null);
+    $this->postJson("/api/v1/dashboard/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'gateway'])->assertStatus(422)->assertJsonValidationErrors('method');
 });

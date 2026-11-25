@@ -80,7 +80,23 @@ function Figure({ label, value }: { label: string; value: number }) {
 export function RefundRow({ refund, manage, onSaved }: { refund: Refund; manage: boolean; onSaved: () => Promise<unknown> }) {
   const [completing, setCompleting] = React.useState(false);
   const [cancelling, setCancelling] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+
+  // Back through the gateway: nothing to type, the gateway sends it (a confirm first).
+  const sendViaGateway = async () => {
+    setBusy(true);
+    try {
+      await completeRefund(refund.id, "", null);
+      toast.success(ar.refunds.complete.done);
+      setSending(false);
+      await onSaved();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const cancel = async () => {
     setBusy(true);
@@ -121,7 +137,7 @@ export function RefundRow({ refund, manage, onSaved }: { refund: Refund; manage:
       ) : null}
       {manage && refund.status === "pending" ? (
         <div className="flex gap-2 pt-1">
-          <Button size="sm" onClick={() => setCompleting(true)}>
+          <Button size="sm" onClick={() => (refund.method === "gateway" ? setSending(true) : setCompleting(true))}>
             {t.complete}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setCancelling(true)}>
@@ -130,6 +146,7 @@ export function RefundRow({ refund, manage, onSaved }: { refund: Refund; manage:
         </div>
       ) : null}
       <CompleteRefundDialog refund={refund} open={completing} onOpenChange={setCompleting} onSaved={onSaved} />
+      <ConfirmDialog open={sending} onOpenChange={setSending} title={t.sendGatewayTitle(formatMoney(refund.amount))} description={t.sendGatewayText} confirmLabel={ar.refunds.dialog.submitGateway} loading={busy} onConfirm={() => void sendViaGateway()} />
       <ConfirmDialog open={cancelling} onOpenChange={setCancelling} title={t.cancelConfirm} confirmLabel={t.cancel} destructive loading={busy} onConfirm={() => void cancel()} />
     </div>
   );

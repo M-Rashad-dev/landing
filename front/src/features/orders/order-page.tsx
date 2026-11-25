@@ -128,7 +128,7 @@ export function OrderPage({ id }: { id: number }) {
         </div>
       </div>
 
-      <StatusDialog open={changing} onOpenChange={setChanging} targets={order.allowed_transitions.map((x) => x.status)} ids={[order.id]} refundable={can("orders.refunds") ? order.refunds.refundable : 0} onDone={() => refresh()} />
+      <StatusDialog open={changing} onOpenChange={setChanging} targets={order.allowed_transitions.map((x) => x.status)} ids={[order.id]} refundable={can("orders.refunds") ? order.refunds.refundable : 0} refundGateway={Boolean(order.refunds.gateway)} onDone={() => refresh()} />
       <CustomerDialog order={order} open={editing} onOpenChange={setEditing} onSaved={refresh} />
     </>
   );

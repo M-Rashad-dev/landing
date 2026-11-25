@@ -8,6 +8,7 @@ import { useTrackOrder } from "@/themes/store/shared/use-track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { Breadcrumb, Container, FormField, inputClass } from "../parts";
+import { RefundNotes } from "../refund-notes";
 
 const t = ar.storefront.track;
 const STEPS: TrackStage[] = ["received", "confirmed", "shipped", "delivered"];
@@ -160,6 +161,8 @@ function OrderStatus({ order, onAnother }: { order: TrackedOrder; onAnother: () 
           <span>{formatMoney(order.total)}</span>
         </p>
       </div>
+
+      <RefundNotes refunds={order.refunds} />
 
       <button type="button" onClick={onAnother} className="as-sm self-center font-semibold as-primary hover:underline">
         {t.another}

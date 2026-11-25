@@ -10,6 +10,7 @@ import type { TrackStage } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { StoreLink } from "@/themes/store/shared/context";
+import { RefundNotes } from "../refund-notes";
 import { useAddressForm, useProfileForm, useRefreshAccount, useRemoveAddress, useSignedIn, useSignIn, useSignOut } from "@/themes/store/shared/use-account";
 import { Breadcrumb, ConfirmDialog, Container, Empty, FormField, inputClass, Stars } from "../parts";
 import { pick } from "@/themes/shared/design";
@@ -443,6 +444,7 @@ export function MyOrderView({ number }: { number: number }) {
             <dd>{formatMoney(o.total)}</dd>
           </div>
         </dl>
+        <RefundNotes refunds={o.refunds} />
       </div>
     </Container>
   );

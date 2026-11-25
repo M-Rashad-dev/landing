@@ -18,7 +18,7 @@ use Illuminate\Http\Response;
 final class StorePaymentWebhookController extends Controller
 {
     /** Signature headers the gateways send (lower-case). */
-    private const HEADERS = ['xpay-signature', 'x-kashier-signature', 'x-fake-signature'];
+    private const HEADERS = ['xpay-signature', 'stripe-signature', 'x-kashier-signature', 'x-fake-signature'];
 
     public function receive(Request $request, string $gateway, string $token, OnlineStorePayments $online): Response
     {

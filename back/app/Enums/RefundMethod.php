@@ -13,6 +13,8 @@ enum RefundMethod: string
     case Instapay = 'instapay';
     case Bank = 'bank';
     case Cash = 'cash';
+    /** Sent back by the gateway itself to the same card / wallet (orders paid online with the store's gateway). */
+    case Gateway = 'gateway';
 
     public function label(): string
     {
@@ -22,6 +24,7 @@ enum RefundMethod: string
             self::Instapay => 'إنستاباي',
             self::Bank => 'تحويل بنكي',
             self::Cash => 'كاش',
+            self::Gateway => 'رجوع تلقائي على نفس الكارت أو المحفظة',
         };
     }
 

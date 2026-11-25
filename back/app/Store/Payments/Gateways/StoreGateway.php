@@ -47,6 +47,13 @@ interface StoreGateway
     public function status(StoreGatewayAccount $account, StoreOnlinePayment $payment): GatewayResult;
 
     /**
+     * Sends money of a paid checkout back to the customer's card / wallet (partial allowed, never above what was paid).
+     *
+     * @throws GatewayError the gateway refused (its words for the merchant) or can't refund this payment
+     */
+    public function refund(StoreGatewayAccount $account, StoreOnlinePayment $payment, int $amountCents, ?string $reason): GatewayRefund;
+
+    /**
      * An authentic webhook call → which checkout it is about (our reference and / or the gateway's id); null when the
      * signature is wrong.
      *

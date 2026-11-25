@@ -9,6 +9,7 @@ use App\Store\Payments\Gateways\GatewayError;
 use App\Store\Payments\Gateways\GatewayResult;
 use App\Store\Payments\Gateways\KashierGateway;
 use App\Store\Payments\Gateways\PaymobGateway;
+use App\Store\Payments\Gateways\StripeGateway;
 use App\Store\Payments\Gateways\XPayStoreGateway;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
@@ -130,4 +131,62 @@ it('connects XPay by registering our webhook on the merchant\'s account', functi
     $t = (string) time();
     expect($xpay->webhook($account, $raw, ['xpay-signature' => 't='.$t.',v1='.hash_hmac('sha256', $t.'.'.$raw, 'whsec_abc')], []))->toBe(['external_id' => 'cs_test_Abc123'])
         ->and($xpay->webhook($account, $raw, ['xpay-signature' => 't='.$t.',v1=bad'], []))->toBeNull();
+});
+
+// --- Stripe -----------------------------------------------------------------------------
+
+it('connects Stripe by registering our webhook, opens a Checkout Session in EGP and refunds through it', function () {
+    Http::fake([
+        'api.stripe.com/v1/webhook_endpoints' => Http::response(['id' => 'we_1', 'secret' => 'whsec_s']),
+        'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_S1', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_S1']),
+        'api.stripe.com/v1/checkout/sessions/cs_test_S1' => Http::response(['id' => 'cs_test_S1', 'status' => 'complete', 'payment_status' => 'paid', 'amount_subtotal' => 55000, 'currency' => 'egp', 'payment_intent' => 'pi_1', 'livemode' => false]),
+        'api.stripe.com/v1/refunds' => Http::response(['id' => 're_1', 'status' => 'succeeded']),
+    ]);
+    $stripe = app(StripeGateway::class);
+    expect(fn () => $stripe->connect(['secret_key' => 'pk_test_x'], 'https://hook'))->toThrow(GatewayError::class);
+
+    $c = $stripe->connect(['secret_key' => 'sk_test_abc'], 'https://hook');
+    expect($c->credentials)->toMatchArray(['webhook_secret' => 'whsec_s', 'webhook_id' => 'we_1'])->and($c->mode)->toBe('test');
+    Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/v1/webhook_endpoints') && $r->hasHeader('Authorization', 'Bearer sk_test_abc') && $r->isForm());
+
+    $account = drvAccount('stripe', $c->credentials);
+    expect($stripe->checkout($account, drvCheckout())->url)->toBe('https://checkout.stripe.com/c/pay/cs_test_S1');
+    Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/v1/checkout/sessions') && $r['mode'] === 'payment' && $r['line_items'][0]['price_data']['currency'] === 'egp'
+        && (int) $r['line_items'][0]['price_data']['unit_amount'] === 55000 && $r['client_reference_id'] === 'MK1O1001XABCDEF');
+
+    $payment = drvPayment(external: 'cs_test_S1');
+    $result = $stripe->status($account, $payment);
+    expect($result->state)->toBe(GatewayResult::PAID)->and($result->paymentRef)->toBe('pi_1')->and($result->currency)->toBe('EGP');
+
+    $payment->payment_ref = 'pi_1';
+    expect($stripe->refund($account, $payment, 10000, 'مقاس غلط')->reference)->toBe('re_1');
+    Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/v1/refunds') && $r['payment_intent'] === 'pi_1' && (int) $r['amount'] === 10000);
+
+    $raw = '{"type":"checkout.session.completed","data":{"object":{"id":"cs_test_S1"}}}';
+    $t = (string) time();
+    expect($stripe->webhook($account, $raw, ['stripe-signature' => 't='.$t.',v1='.hash_hmac('sha256', $t.'.'.$raw, 'whsec_s')], []))->toBe(['external_id' => 'cs_test_S1']);
+});
+
+it('refunds through Paymob, Kashier and XPay with their own calls', function () {
+    Http::fake([
+        'accept.paymob.com/api/acceptance/void_refund/refund' => Http::response(['id' => 777, 'success' => true, 'pending' => false]),
+        'test-api.kashier.io/v3/payment/refund/K-ORDER-1' => Http::response(['status' => 'SUCCESS', 'transactionId' => 'TX-R1']),
+        'api.xpay.app/refunds' => Http::response(['id' => 'rf_1', 'status' => 'PENDING']),
+    ]);
+    $p = drvPayment();
+
+    $p->payment_ref = '99';
+    expect(app(PaymobGateway::class)->refund(drvAccount('paymob', ['secret_key' => 'egy_sk_test_a']), $p, 5000, null)->reference)->toBe('777');
+    Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/void_refund/refund') && $r['transaction_id'] === 99 && $r['amount_cents'] === 5000 && $r->hasHeader('Authorization', 'Token egy_sk_test_a'));
+
+    $p->payment_ref = 'K-ORDER-1';
+    expect(app(KashierGateway::class)->refund(drvAccount('kashier', ['secret_key' => 'ksk_test_k']), $p, 5000, 'x')->reference)->toBe('TX-R1');
+    Http::assertSent(fn (HttpRequest $r) => $r->method() === 'PUT' && str_ends_with($r->url(), '/v3/payment/refund/K-ORDER-1') && $r['apiOperation'] === 'REFUND' && (float) $r['transaction']['amount'] === 50.0);
+
+    $p->payment_ref = 'pi_x';
+    expect(app(XPayStoreGateway::class)->refund(drvAccount('xpay', ['secret_key' => 'sk_test_x']), $p, 5000, null)->state)->toBe('pending');
+
+    // A kiosk payment has no transaction to refund through the API.
+    $p->payment_ref = null;
+    expect(fn () => app(PaymobGateway::class)->refund(drvAccount('paymob', []), $p, 5000, null))->toThrow(GatewayError::class);
 });

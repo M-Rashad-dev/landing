@@ -31,6 +31,8 @@ type Props = {
   initial?: OrderStatus;
   /** One order whose money came in (and the user may refund): what can still go back. */
   refundable?: number;
+  /** Paid online with the store's gateway: the refund asked goes back through it. */
+  refundGateway?: boolean;
   onDone: (order?: OrderDetail) => void | Promise<unknown>;
 };
 
@@ -43,7 +45,7 @@ export function StatusDialog(props: Props) {
   );
 }
 
-function StatusForm({ onOpenChange, targets, ids, initial, refundable = 0, onDone }: Props) {
+function StatusForm({ onOpenChange, targets, ids, initial, refundable = 0, refundGateway = false, onDone }: Props) {
   const [to, setTo] = React.useState<OrderStatus | "">(initial ?? targets[0] ?? "");
   const [note, setNote] = React.useState("");
   const [tracking, setTracking] = React.useState("");
@@ -81,7 +83,7 @@ function StatusForm({ onOpenChange, targets, ids, initial, refundable = 0, onDon
         if (asksRefund && refund !== "no") {
           // The status already changed: a failed refund is told, never blocks the dialog (it can be made from the order page).
           try {
-            await createRefund(ids[0], { amount: refund === "all" ? String(refundable) : part, method: "original", reason: ar.domain.orderStatus[to] });
+            await createRefund(ids[0], { amount: refund === "all" ? String(refundable) : part, method: refundGateway ? "gateway" : "original", reason: ar.domain.orderStatus[to] });
             toast.success(q.created);
           } catch (e) {
             toast.error(errorMessage(e));

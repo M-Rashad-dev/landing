@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 /** One payment event; anything bigger is not a gateway. */
 const MAX_BODY_BYTES = 512 * 1024;
 /** Signature headers the gateways send (Paymob signs in the query string instead). */
-const SIGNATURES = ["xpay-signature", "x-kashier-signature"];
+const SIGNATURES = ["xpay-signature", "stripe-signature", "x-kashier-signature"];
 
 /**
- * A store's own gateway webhook (https://{APP_HOST}/api/webhooks/payments/{gateway}/{token}: Paymob, Kashier, XPay).
+ * A store's own gateway webhook (https://{APP_HOST}/api/webhooks/payments/{gateway}/{token}: Paymob, Kashier, XPay, Stripe).
  * Laravel isn't on the internet, so this relays it with the internal key: the raw body, the query string and the
  * signature headers untouched (Laravel checks each gateway's signature on those exact bytes).
  */

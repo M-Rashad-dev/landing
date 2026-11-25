@@ -106,6 +106,22 @@ final class XPayStoreGateway extends HttpGateway
         return new GatewayResult($state, isset($s['amountSubtotal']) ? (int) $s['amountSubtotal'] : (isset($s['amountTotal']) ? (int) $s['amountTotal'] : null), is_string($ref) ? $ref : null, null, (bool) ($s['livemode'] ?? false), (string) ($s['currency'] ?? 'EGP'));
     }
 
+    public function refund(StoreGatewayAccount $account, StoreOnlinePayment $payment, int $amountCents, ?string $reason): GatewayRefund
+    {
+        if ($payment->payment_ref === null || $payment->payment_ref === '') {
+            throw new GatewayError((string) __('payments.gateways.refund_unavailable', ['gateway' => $this->label()]));
+        }
+        $refund = $this->send(fn () => $this->http(self::BASE)->withToken($account->credential('secret_key'))
+            ->withHeaders(['Idempotency-Key' => 'refund-'.$payment->reference.'-'.Str::lower(Str::random(8))])
+            ->post('/refunds', ['paymentIntentId' => $payment->payment_ref, 'amount' => $amountCents, 'reason' => 'requested_by_customer', 'description' => mb_substr((string) $reason, 0, 200)]));
+        $result = GatewayRefund::from((string) ($refund['status'] ?? ''), isset($refund['id']) ? (string) $refund['id'] : null, ['succeeded'], ['pending', 'requires_action']);
+        if ($result->state === GatewayRefund::FAILED) {
+            throw new GatewayError((string) __('payments.gateways.refund_refused', ['gateway' => $this->label(), 'reason' => (string) ($refund['failureMessage'] ?? '—')]));
+        }
+
+        return $result;
+    }
+
     public function webhook(StoreGatewayAccount $account, string $raw, array $headers, array $query): ?array
     {
         if (! HttpXPayClient::verify($raw, (string) ($headers['xpay-signature'] ?? ''), $account->credential('webhook_secret'))) {

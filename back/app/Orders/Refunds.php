@@ -19,11 +19,13 @@ use App\Models\User;
 use App\Notifications\CustomerNotices;
 use App\Services\Webhooks\WebhookDispatcher;
 use App\Store\Digital\DigitalDeliveries;
+use App\Store\Payments\OnlineStorePayments;
 use App\Store\Payments\StorePayments;
 use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -46,6 +48,7 @@ final class Refunds
         private readonly DigitalDeliveries $deliveries,
         private readonly CustomerNotices $customerNotices,
         private readonly WebhookDispatcher $webhooks,
+        private readonly OnlineStorePayments $online,
     ) {}
 
     /** What the store collected for this order (cents): a paid prepaid order, or cash once delivered. */
@@ -104,6 +107,9 @@ final class Refunds
                 throw ValidationException::withMessages(['amount' => [__('refunds.amount_max', ['max' => self::plain($left)])]]);
             }
             $items = $this->checkItems($locked, $data['items'] ?? []);
+            if ($data['method'] === RefundMethod::Gateway && $this->online->paidVia($locked) === null) {
+                throw ValidationException::withMessages(['method' => [__('payments.gateways.not_paid_online')]]);
+            }
 
             return $locked->refunds()->create([
                 'amount' => Money::toDecimal($data['amount']),
@@ -125,15 +131,18 @@ final class Refunds
     /** «اترجّع»: the money went back (reference / proof optional). The customer is told; stock / downloads follow. */
     public function complete(OrderRefund $refund, ?string $reference, ?UploadedFile $proof, User $by): OrderRefund
     {
-        $path = $proof === null ? null : $proof->storeAs('order-refunds/'.$refund->tenant_id.'/'.$refund->order_id, Str::lower(Str::random(32)).'.'.StorePayments::RECEIPT_MIMES[(string) $proof->getMimeType()], self::DISK);
-
-        try {
-            $done = $this->markDone($refund, $reference, $proof, $path, $by);
-        } catch (Throwable $e) {
-            if ($path !== null) {
-                Storage::disk(self::DISK)->delete($path);
+        if ($refund->method === RefundMethod::Gateway) {
+            $done = $this->viaGateway($refund, $by);
+        } else {
+            $path = $proof === null ? null : $proof->storeAs('order-refunds/'.$refund->tenant_id.'/'.$refund->order_id, Str::lower(Str::random(32)).'.'.StorePayments::RECEIPT_MIMES[(string) $proof->getMimeType()], self::DISK);
+            try {
+                $done = $this->markDone($refund, $reference, $proof, $path, $by);
+            } catch (Throwable $e) {
+                if ($path !== null) {
+                    Storage::disk(self::DISK)->delete($path);
+                }
+                throw $e;
             }
-            throw $e;
         }
 
         $order = Order::query()->with('items')->findOrFail($done->order_id);
@@ -141,6 +150,30 @@ final class Refunds
         $this->webhooks->order(WebhookEvent::OrderRefunded, $order, ['refund' => $this->hookView($done, $order)]);
 
         return $done;
+    }
+
+    /**
+     * The money goes back through the store's gateway, then the refund is done with the gateway's reference. One at a
+     * time per refund (a double press never refunds twice); the gateway's refusal leaves it asked.
+     */
+    private function viaGateway(OrderRefund $refund, User $by): OrderRefund
+    {
+        $lock = Cache::lock('order-refund:'.$refund->id, 60);
+        if (! $lock->get()) {
+            throw new ApiException(409, 'refund_in_progress', __('refunds.in_progress'));
+        }
+        try {
+            $fresh = OrderRefund::query()->findOrFail($refund->id);
+            if ($fresh->status !== RefundStatus::Pending) {
+                throw new ApiException(409, 'refund_not_pending', __('refunds.not_pending'));
+            }
+            $order = Order::query()->findOrFail($fresh->order_id);
+            $sent = $this->online->refund($order, Money::toCents((string) $fresh->amount), $fresh->reason);
+
+            return $this->markDone($fresh, $sent->reference, null, null, $by);
+        } finally {
+            $lock->release();
+        }
     }
 
     private function markDone(OrderRefund $refund, ?string $reference, ?UploadedFile $proof, ?string $path, User $by): OrderRefund
@@ -210,6 +243,8 @@ final class Refunds
             'refunded' => Money::toFloat(Money::toCents((string) $order->refunded_total)),
             'state' => $order->refund_state?->value,
             'method_name' => $this->originalMethod($order),
+            // Paid online with the store's gateway: the money can go back through it by itself.
+            'gateway' => $this->online->paidVia($order),
             'default_destination' => $this->defaultDestination($order),
             'items_left' => (object) $this->itemsLeft($order),
             'list' => $refunds->map(fn (OrderRefund $r) => $this->view($r, $order))->values()->all(),
@@ -285,7 +320,11 @@ final class Refunds
 
     public function methodLabel(OrderRefund $refund, Order $order): string
     {
-        return $refund->method === RefundMethod::Original ? $this->originalMethod($order) : $refund->method->label();
+        return match ($refund->method) {
+            RefundMethod::Original => $this->originalMethod($order),
+            RefundMethod::Gateway => (string) __('refunds.via_gateway', ['gateway' => $this->online->paidVia($order)['label'] ?? '—']),
+            default => $refund->method->label(),
+        };
     }
 
     private function originalMethod(Order $order): string

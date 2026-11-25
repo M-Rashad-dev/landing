@@ -110,6 +110,21 @@ final class PaymobGateway extends HttpGateway
         return self::result($tx);
     }
 
+    public function refund(StoreGatewayAccount $account, StoreOnlinePayment $payment, int $amountCents, ?string $reason): GatewayRefund
+    {
+        if ($payment->payment_ref === null || ! ctype_digit($payment->payment_ref)) {
+            throw new GatewayError((string) __('payments.gateways.refund_unavailable', ['gateway' => $this->label()]));
+        }
+        $tx = $this->send(fn () => $this->http(self::BASE)->withHeaders(['Authorization' => 'Token '.$account->credential('secret_key')])
+            ->post('/api/acceptance/void_refund/refund', ['transaction_id' => (int) $payment->payment_ref, 'amount_cents' => $amountCents]));
+        $pending = ($tx['pending'] ?? false) === true;
+        if (($tx['success'] ?? false) !== true && ! $pending) {
+            throw new GatewayError((string) __('payments.gateways.refund_refused', ['gateway' => $this->label(), 'reason' => (string) ($tx['data']['message'] ?? $tx['detail'] ?? '—')]));
+        }
+
+        return new GatewayRefund($pending ? GatewayRefund::PENDING : GatewayRefund::DONE, isset($tx['id']) ? (string) $tx['id'] : null);
+    }
+
     public function webhook(StoreGatewayAccount $account, string $raw, array $headers, array $query): ?array
     {
         $body = json_decode($raw, true);
