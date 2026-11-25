@@ -70,6 +70,12 @@ class Invoice extends Model
         ];
     }
 
+    /** Checkout sessions opened to pay it online, newest first. @return HasMany<OnlinePayment, $this> */
+    public function onlinePayments(): HasMany
+    {
+        return $this->hasMany(OnlinePayment::class)->orderByDesc('id');
+    }
+
     /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {

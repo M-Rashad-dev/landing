@@ -79,6 +79,8 @@ export type Invoice = {
   paid_at: string | null;
   created_at: string | null;
   payments: Payment[];
+  /** The latest online attempt (XPay): open, waiting (Fawry not paid yet), paid, failed, expired. */
+  online?: "open" | "waiting" | "paid" | "failed" | "expired" | null;
   pay_with?: PayMethod[];
   /** An online method was chosen: where to pay now. */
   redirect_url?: string;
@@ -87,11 +89,14 @@ export type Invoice = {
 };
 
 /** What the merchant reads: a bill is under review, accepted, rejected (with the reason) or refunded. */
-export type ShownStatus = "pending_review" | "paid" | "rejected" | "refunded" | "expired";
-export function shownStatus(invoice: Pick<Invoice, "status" | "payments">): ShownStatus {
+export type ShownStatus = "pending_review" | "paid" | "rejected" | "refunded" | "expired" | "waiting" | "unpaid";
+export function shownStatus(invoice: Pick<Invoice, "status" | "payments" | "online">): ShownStatus {
   if (invoice.status === "paid") return "paid";
   if (invoice.status === "refunded") return "refunded";
   if (invoice.status === "pending_review") return "pending_review";
+  // Paid with a Fawry reference: the money isn't in yet.
+  if (invoice.online === "waiting") return "waiting";
+  if (invoice.status === "open" && invoice.payments.length === 0) return "unpaid";
   const last = invoice.payments[0];
   if (last?.status === "rejected") return "rejected";
   return "expired";

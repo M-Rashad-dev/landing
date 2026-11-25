@@ -49,7 +49,7 @@ export function InvoicePage({ id }: { id: number }) {
       <div className="grid max-w-4xl items-start gap-4 lg:grid-cols-[1fr_18rem]">
         <div className="flex flex-col gap-4">
           {online === "checking" ? <Alert tone="info">{t.online.checking}</Alert> : null}
-          {online === "waiting" ? <Alert tone="info">{t.online.waiting}</Alert> : null}
+          {online === "waiting" || (online === null && status === "waiting") ? <Alert tone="info">{t.online.waiting}</Alert> : null}
           {online === "not_paid" && status !== "paid" ? <Alert tone="warning">{t.online.notPaid}</Alert> : null}
           {online === "paid" ? <Alert tone="success">{t.online.paid}</Alert> : null}
           {status === "pending_review" ? <Alert tone="info">{t.pendingNote}</Alert> : null}

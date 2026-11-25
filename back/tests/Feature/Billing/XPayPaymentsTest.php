@@ -114,6 +114,16 @@ it('activates the invoice once when XPay confirms the payment, from XPay itself'
     $this->getJson("/api/v1/dashboard/billing/invoices/{$id}")->assertJsonPath('data.payments.0.has_receipt', false)->assertJsonPath('data.payments.0.method.key', 'xpay');
 });
 
+it('lists an invoice started online, and one waiting for its Fawry payment', function () {
+    $id = xpBuy()->json('data.id');
+    $this->getJson('/api/v1/dashboard/billing/invoices')->assertOk()->assertJsonPath('data.0.id', $id)->assertJsonPath('data.0.online', 'open');
+
+    xpFake()->pay(xpSession($id), later: true);
+    xpHook(xpSession($id))->assertOk();
+    $this->getJson('/api/v1/dashboard/billing/invoices')->assertJsonPath('data.0.online', 'waiting');
+    $this->getJson("/api/v1/dashboard/billing/invoices/{$id}")->assertJsonPath('data.online', 'waiting');
+});
+
 it('refuses webhooks XPay did not sign, or old ones', function () {
     $id = xpBuy()->json('data.id');
     $session = xpSession($id);

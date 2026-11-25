@@ -43,10 +43,10 @@ final class InvoiceController extends Controller
 
     public function index(Request $request, Refunds $refunds): JsonResponse
     {
-        // A bill exists for the merchant once a receipt was sent (or it was paid / refunded).
+        // A bill exists for the merchant once a receipt was sent, it was paid online or started online, or paid / refunded.
         $page = Invoice::query()
-            ->where(fn ($q) => $q->whereHas('payments')->orWhereIn('status', [InvoiceStatus::Paid->value, InvoiceStatus::Refunded->value]))
-            ->with('payments.method:key,name')
+            ->where(fn ($q) => $q->whereHas('payments')->orWhereHas('onlinePayments')->orWhereIn('status', [InvoiceStatus::Paid->value, InvoiceStatus::Refunded->value]))
+            ->with(['payments.method:key,name', 'onlinePayments:id,invoice_id,status'])
             ->orderByDesc('id')
             ->paginate($this->perPage($request));
 
@@ -132,7 +132,7 @@ final class InvoiceController extends Controller
     private function detail(Invoice $invoice, int $status = 200, ?string $redirect = null, ?string $online = null): JsonResponse
     {
         if ($invoice->exists) {
-            $invoice->load('payments.method:key,name');
+            $invoice->load(['payments.method:key,name', 'onlinePayments:id,invoice_id,status']);
         }
         $data = InvoiceResource::make($invoice)->resolve(request()) + ['pay_with' => $this->gateways->options($invoice)]
             + ($redirect === null ? [] : ['redirect_url' => $redirect])

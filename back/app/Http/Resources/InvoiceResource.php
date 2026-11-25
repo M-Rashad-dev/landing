@@ -42,6 +42,8 @@ final class InvoiceResource extends JsonResource
             'refund_requested_at' => $this->refund_requested_at?->toIso8601ZuluString(),
             'refund_reason' => $this->refund_reason,
             'refunded_at' => $this->refunded_at?->toIso8601ZuluString(),
+            // The latest online attempt: open (not finished), waiting (Fawry reference not paid yet), paid, failed, expired.
+            'online' => $this->whenLoaded('onlinePayments', fn () => $this->onlinePayments->first()?->status),
             'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn (Payment $p) => [
                 'id' => $p->id,
                 'method' => ['key' => $p->method_key, 'name' => $p->method->name ?? $p->method_key],

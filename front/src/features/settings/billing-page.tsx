@@ -17,7 +17,7 @@ import { ar } from "@/messages/ar";
 import { invoiceItem, shownStatus, useInvoices, usePlans, useUsage, type Period, type ShownStatus } from "./billing-api";
 
 const t = ar.settings.billing;
-export const INVOICE_TONES: Record<ShownStatus, Tone> = { pending_review: "attention", paid: "success", rejected: "danger", refunded: "info", expired: "neutral" };
+export const INVOICE_TONES: Record<ShownStatus, Tone> = { pending_review: "attention", paid: "success", rejected: "danger", refunded: "info", expired: "neutral", waiting: "attention", unpaid: "neutral" };
 const FEATURES = ["store", "upsells", "abandoned_leads", "advanced_analytics", "remove_branding", "buy_themes", "ai"] as const;
 const LIMITS = ["products", "landing_pages", "offers", "discount_codes", "custom_domains", "media_storage_mb"] as const;
 

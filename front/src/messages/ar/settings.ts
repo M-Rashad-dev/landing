@@ -194,7 +194,7 @@ export const settings = {
     invoices: "الفواتير",
     invoicesHint: "الفاتورة بتتسجل لما تبعت إيصال الدفع.",
     noInvoices: "مفيش فواتير لسه",
-    invoiceStatus: { pending_review: "قيد المراجعة", paid: "مقبولة", rejected: "مرفوضة", refunded: "مسترجعة", expired: "انتهت المهلة" },
+    invoiceStatus: { pending_review: "قيد المراجعة", paid: "مقبولة", rejected: "مرفوضة", refunded: "مسترجعة", expired: "انتهت المهلة", waiting: "مستنية دفع فوري", unpaid: "مستنية الدفع" },
     view: "التفاصيل",
   },
 
