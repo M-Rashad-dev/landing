@@ -29,6 +29,7 @@ use App\Shipping\Carriers\Carriers;
 use App\Store\Accounts\CodeSender;
 use App\Store\Accounts\ScreenCodeSender;
 use App\Store\Accounts\WhatsAppCodeSender;
+use App\Store\Payments\Gateways\StoreGateways;
 use App\Support\ArabicValidator;
 use App\Tenancy\Tenancy;
 use App\Tenancy\TenantContext;
@@ -58,6 +59,8 @@ class AppServiceProvider extends ServiceProvider
         // Shipping carriers (config/shipping.php): one registry, so a test reads what the fake carrier was asked.
         $this->app->singleton(Carriers::class);
         // The merchant's own mailbox (config mail.store_mailbox): the fake is one instance, so a test reads what it sent.
+        // A store's online gateways (Paymob, Kashier, XPay): one registry, so tests reach the same fakes.
+        $this->app->singleton(StoreGateways::class);
         // XPay (online payment of invoices): the fake in tests and e2e, never the network.
         $this->app->singleton(XPayClient::class, fn ($app): XPayClient => config('services.xpay.driver') === 'fake' ? new FakeXPayClient : $app->make(HttpXPayClient::class));
         $this->app->singleton(Mailbox::class, fn ($app): Mailbox => config('mail.store_mailbox') === 'fake' ? new FakeMailbox : $app->make(SmtpMailbox::class));

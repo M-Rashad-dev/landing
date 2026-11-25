@@ -35,6 +35,32 @@ const info: PayInfo = {
 };
 
 describe("the pay page", () => {
+  it("pays online on the store's gateway: no receipt, straight to its page", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, search: "", pathname: "/pay/abcdefabcdef", assign });
+    const online = { ...info, chosen_method_id: 3, methods: [{ id: 3, kind: "online" as const, gateway: "paymob", name: "ادفع أونلاين", account: null, link: null, instructions: null }, ...info.methods] };
+    fetchMock.mockResolvedValueOnce(Response.json({ data: online })).mockResolvedValueOnce(Response.json({ data: { url: "https://eg.checkout.paymob.com/?publicKey=x&clientSecret=y" } }));
+    render(<PayView token="abcdefabcdef" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: t.payOnlineNow("350 ج.م") }));
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://eg.checkout.paymob.com/?publicKey=x&clientSecret=y"));
+    expect(String(fetchMock.mock.calls[1][0])).toBe("/api/public/payments/online");
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({ token: "abcdefabcdef", method_id: 3 });
+  });
+
+  it("asks the server to settle the checkout when back from the gateway", async () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal("location", { ...window.location, search: "?ref=MK1O1042XABCDEF", pathname: "/pay/abcdefabcdef" });
+    vi.stubGlobal("history", { ...window.history, replaceState });
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { ...info, status: "paid", payment_status: "paid", methods: [], can_send: false } }));
+    render(<PayView token="abcdefabcdef" />);
+
+    expect(await screen.findByText(t.paidTitle)).toBeInTheDocument();
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({ token: "abcdefabcdef", ref: "MK1O1042XABCDEF" });
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/pay/abcdefabcdef");
+  });
+
   it("shows the total and the chosen way to pay, and sends the receipt", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ data: info }));
     render(<PayView token="abcdefabcdef" />);

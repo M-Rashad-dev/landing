@@ -7,9 +7,9 @@ import { ar } from "@/messages/ar";
 const t = ar.storefront.payment;
 
 /** How a checkout can be paid (back: StorePayments::options). */
-export type PaymentOptions = { cod: boolean; methods: Array<{ id: number; kind: "instapay" | "wallet" | "bank" | "link"; name: string }> };
+export type PaymentOptions = { cod: boolean; methods: Array<{ id: number; kind: "instapay" | "wallet" | "bank" | "link" | "online"; name: string }> };
 
-const ICONS = { instapay: Wallet, wallet: Smartphone, bank: Landmark, link: Link2 } as const;
+const ICONS = { instapay: Wallet, wallet: Smartphone, bank: Landmark, link: Link2, online: CreditCard } as const;
 
 /** The first choice offered: cash on delivery when it is on, else the first prepaid method. */
 export function defaultPayment(options: PaymentOptions | undefined): string {
@@ -27,7 +27,7 @@ export function hasPaymentChoice(options: PaymentOptions | undefined): options i
  * choice says the customer pays first and sends the receipt on the next page.
  */
 export function PaymentChoice({ options, value, onChange, error, className }: { options: PaymentOptions; value: string; onChange: (v: string) => void; error?: string | null; className?: string }) {
-  const rows = [...(options.cod ? [{ value: "cod", title: t.cod, hint: t.codHint, icon: Banknote }] : []), ...options.methods.map((m) => ({ value: String(m.id), title: m.name, hint: t.prepaidHint, icon: ICONS[m.kind] ?? CreditCard }))];
+  const rows = [...(options.cod ? [{ value: "cod", title: t.cod, hint: t.codHint, icon: Banknote }] : []), ...options.methods.map((m) => ({ value: String(m.id), title: m.name, hint: m.kind === "online" ? t.onlineHint : t.prepaidHint, icon: ICONS[m.kind] ?? CreditCard }))];
   return (
     <fieldset className={cn("flex flex-col gap-2", className)} data-field="payment_method">
       <legend className="as-sm mb-1 font-bold">{t.title}</legend>

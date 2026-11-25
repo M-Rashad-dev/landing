@@ -28,7 +28,8 @@ final class StorePaymentMethodRequest extends ApiRequest
     public function rules(): array
     {
         return [
-            'kind' => ['required', Rule::enum(StorePaymentKind::class)],
+            // Online methods come from connecting a gateway, never typed by hand.
+            'kind' => ['required', Rule::enum(StorePaymentKind::class)->only(StorePaymentKind::manual())],
             'name' => ['required', 'string', 'max:60'],
             'account' => ['nullable', 'string', 'max:120'],
             'link' => ['nullable', 'string', 'max:500', 'url:https'],

@@ -85,6 +85,7 @@ use App\Http\Controllers\Api\V1\Public\StoreController as PublicStoreController;
 use App\Http\Controllers\Api\V1\Public\TrackController;
 use App\Http\Controllers\Api\V1\Public\UploadController as PublicUploadController;
 use App\Http\Controllers\Api\V1\Webhooks\ShippingWebhookController;
+use App\Http\Controllers\Api\V1\Webhooks\StorePaymentWebhookController;
 use App\Http\Controllers\Api\V1\Webhooks\WhatsAppWebhookController;
 use App\Http\Controllers\Api\V1\Webhooks\XPayWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -353,6 +354,9 @@ Route::prefix('dashboard')
         Route::post('payments/methods', [StorePaymentController::class, 'store']);
         Route::put('payments/methods/{method}', [StorePaymentController::class, 'update']);
         Route::delete('payments/methods/{method}', [StorePaymentController::class, 'destroy']);
+        // Online payment with the store's own gateway account.
+        Route::put('payments/gateways/{gateway}', [StorePaymentController::class, 'connect'])->where('gateway', '[a-z0-9_]{2,20}')->middleware('throttle:carrier-calls');
+        Route::delete('payments/gateways/{gateway}', [StorePaymentController::class, 'disconnect'])->where('gateway', '[a-z0-9_]{2,20}');
 
         // «الإيميلات»: the store's customer emails (docs/plans/digital-products.md, stage 1).
         Route::get('mail-settings', [StoreMailController::class, 'show']);
@@ -417,6 +421,8 @@ Route::prefix('webhooks')
         Route::get('whatsapp', [WhatsAppWebhookController::class, 'verify']);
         Route::post('whatsapp', [WhatsAppWebhookController::class, 'receive']);
         Route::post('xpay', [XPayWebhookController::class, 'receive']);
+        // A store's own gateway (Paymob, Kashier, XPay), one address per store account.
+        Route::post('payments/{gateway}/{token}', [StorePaymentWebhookController::class, 'receive'])->where(['gateway' => '[a-z0-9_]{2,20}', 'token' => '[a-z0-9]{40}']);
         Route::post('shipping/{carrier}/{token}', [ShippingWebhookController::class, 'receive'])->where(['carrier' => '[a-z0-9_]{2,30}', 'token' => '[a-z0-9]{40}']);
     });
 
@@ -445,6 +451,7 @@ Route::prefix('public')
         // The pay page of a prepaid order (its private token): where to pay, and the receipt.
         Route::post('payments/lookup', [PublicPaymentController::class, 'show'])->middleware('throttle:public-track');
         Route::post('payments', [PublicPaymentController::class, 'store'])->middleware('throttle:public-uploads');
+        Route::post('payments/online', [PublicPaymentController::class, 'online'])->middleware('throttle:public-track');
         // A buyer's downloads and link (the delivery's private token).
         Route::get('deliveries/{token}/files/{file}', [PublicDeliveryController::class, 'download'])->whereNumber('file')->middleware('throttle:public-downloads');
         Route::post('deliveries/{token}/open', [PublicDeliveryController::class, 'open'])->middleware('throttle:public-downloads');

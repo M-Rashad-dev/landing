@@ -13,6 +13,8 @@ enum StorePaymentKind: string
     case Bank = 'bank';
     /** The merchant's own payment page (Paymob link, Fawry, PayPal…). */
     case Link = 'link';
+    /** Paid on the merchant's connected gateway (Paymob, Kashier, XPay): no receipt, the order confirms itself. */
+    case Online = 'online';
 
     public function label(): string
     {
@@ -21,7 +23,14 @@ enum StorePaymentKind: string
             self::Wallet => 'محفظة موبايل',
             self::Bank => 'تحويل بنكي',
             self::Link => 'لينك دفع',
+            self::Online => 'دفع أونلاين',
         };
+    }
+
+    /** The kinds a merchant adds by hand (an online method comes from connecting a gateway). @return list<self> */
+    public static function manual(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $k) => $k !== self::Online));
     }
 
     /** @return list<string> */

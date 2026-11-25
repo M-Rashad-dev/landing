@@ -40,6 +40,7 @@
         <env name="SHIPPING_CARRIERS_DRIVER" value="fake"/>
         <env name="STORE_MAILBOX_DRIVER" value="fake"/>
         <env name="XPAY_DRIVER" value="fake"/>
+        <env name="STORE_GATEWAYS_DRIVER" value="fake"/>
         <env name="XPAY_SECRET_KEY" value=""/>
         <env name="XPAY_WEBHOOK_SECRET" value="whsec_test_secret"/>
         <env name="OPENROUTER_API_KEY" value=""/>

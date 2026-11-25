@@ -18,13 +18,16 @@ import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { ar } from "@/messages/ar";
+import { GatewaysPanel, type Gateway } from "./gateways-panel";
 
 const t = ar.settings.payments;
 const KEY = ["store-payments"] as const;
 
 export type PaymentKind = "instapay" | "wallet" | "bank" | "link";
-export type StorePaymentMethod = { id: number; kind: PaymentKind; name: string; account: string | null; link: string | null; instructions: string | null; is_active: boolean };
-export type StorePayments = { cod_enabled: boolean; cancel_after_days: number; methods: StorePaymentMethod[] };
+export type StorePaymentMethod = { id: number; kind: PaymentKind | "online"; gateway?: string | null; name: string; account: string | null; link: string | null; instructions: string | null; is_active: boolean };
+/** A method the merchant adds by hand (an online one comes from a gateway). */
+export type ManualMethod = StorePaymentMethod & { kind: PaymentKind };
+export type StorePayments = { cod_enabled: boolean; cancel_after_days: number; methods: StorePaymentMethod[]; gateways?: Gateway[] };
 
 const ICONS = { instapay: Wallet, wallet: Smartphone, bank: Landmark, link: Link2 } as const;
 const KINDS: PaymentKind[] = ["instapay", "wallet", "bank", "link"];
@@ -39,7 +42,7 @@ export function PaymentsPage() {
 
 function Payments({ state }: { state: StorePayments }) {
   const client = useQueryClient();
-  const [editing, setEditing] = React.useState<StorePaymentMethod | "new" | null>(null);
+  const [editing, setEditing] = React.useState<ManualMethod | "new" | null>(null);
   const [deleting, setDeleting] = React.useState<StorePaymentMethod | null>(null);
   const [busy, setBusy] = React.useState(false);
   const keep = (next: StorePayments) => client.setQueryData(KEY, next);
@@ -78,6 +81,8 @@ function Payments({ state }: { state: StorePayments }) {
   };
 
   const activeOnline = state.methods.some((m) => m.is_active);
+  // Online methods follow their gateway (connect / disconnect below), never edited here.
+  const manual = state.methods.filter((m): m is ManualMethod => m.kind !== "online");
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -95,7 +100,7 @@ function Payments({ state }: { state: StorePayments }) {
           title={t.prepaid}
           description={t.prepaidHint}
           actions={
-            state.methods.length < 10 ? (
+            manual.length < 10 ? (
               <Button size="sm" onClick={() => setEditing("new")}>
                 <Plus />
                 {t.add}
@@ -103,13 +108,13 @@ function Payments({ state }: { state: StorePayments }) {
             ) : undefined
           }
         />
-        {state.methods.length === 0 ? (
+        {manual.length === 0 ? (
           <PanelBody>
             <EmptyState compact icon={Wallet} title={t.emptyTitle} description={t.emptyText} action={<Button size="sm" variant="outline" onClick={() => setEditing("new")}><Plus />{t.add}</Button>} />
           </PanelBody>
         ) : (
           <ul className="divide-y divide-border">
-            {state.methods.map((m) => {
+            {manual.map((m) => {
               const Icon = ICONS[m.kind];
               return (
                 <li key={m.id} className="flex items-center gap-3 px-5 py-3">
@@ -151,6 +156,8 @@ function Payments({ state }: { state: StorePayments }) {
         )}
       </Panel>
 
+      {state.gateways ? <GatewaysPanel gateways={state.gateways} onChange={keep} /> : null}
+
       <Panel>
         <PanelHeader title={t.unpaid} description={t.unpaidHint} />
         <PanelBody>
@@ -183,7 +190,7 @@ const schema = z
   });
 type Values = z.infer<typeof schema>;
 
-function MethodDialog({ method, onClose, onSaved }: { method: StorePaymentMethod | "new" | null; onClose: () => void; onSaved: (next: StorePayments) => void }) {
+function MethodDialog({ method, onClose, onSaved }: { method: ManualMethod | "new" | null; onClose: () => void; onSaved: (next: StorePayments) => void }) {
   const editing = method !== null && method !== "new" ? method : null;
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { kind: "instapay", name: "", account: "", link: "", instructions: "" } });
   const kind = useWatch({ control: form.control, name: "kind" });

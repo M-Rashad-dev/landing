@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property int $tenant_id
  * @property StorePaymentKind $kind
+ * @property string|null $gateway the connected gateway of an online method (paymob, kashier, xpay)
  * @property string $name
  * @property string|null $account number / address / IBAN the customer pays to
  * @property string|null $link https only (an InstaPay link or the store's payment page)
@@ -28,7 +29,7 @@ class StorePaymentMethod extends Model
 
     public const MAX = 10;
 
-    protected $fillable = ['kind', 'name', 'account', 'link', 'instructions', 'is_active', 'position'];
+    protected $fillable = ['kind', 'gateway', 'name', 'account', 'link', 'instructions', 'is_active', 'position'];
 
     protected function casts(): array
     {
@@ -41,6 +42,7 @@ class StorePaymentMethod extends Model
         return [
             'id' => $this->id,
             'kind' => $this->kind->value,
+            'gateway' => $this->gateway,
             'name' => $this->name,
             'account' => $this->account,
             'link' => $this->link,

@@ -7,9 +7,11 @@ namespace App\Store\Payments;
 use App\Actions\Orders\ChangeOrderStatus;
 use App\Enums\OrderPaymentState;
 use App\Enums\OrderStatus;
+use App\Enums\StorePaymentKind;
 use App\Exceptions\ApiException;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\StoreGatewayAccount;
 use App\Models\StorePaymentMethod;
 use App\Models\StorePaymentSetting;
 use App\Models\User;
@@ -18,6 +20,7 @@ use App\Notifications\StoreNotices;
 use App\Services\PublicSite;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -45,13 +48,27 @@ final class StorePayments
     /** Digital products can be sold (they need a prepaid method). */
     public function prepaidReady(): bool
     {
-        return StorePaymentMethod::query()->where('is_active', true)->exists();
+        return $this->usableMethods()->isNotEmpty();
+    }
+
+    /**
+     * The active methods a customer can pay with now: an online one only while its gateway account is connected and
+     * working (OnlineStorePayments).
+     *
+     * @return Collection<int, StorePaymentMethod>
+     */
+    public function usableMethods(): Collection
+    {
+        $gateways = StoreGatewayAccount::query()->where('status', StoreGatewayAccount::ACTIVE)->whereIn('gateway', array_keys((array) config('payments.gateways')))->pluck('gateway')->all();
+
+        return StorePaymentMethod::query()->where('is_active', true)->orderBy('position')->orderBy('id')->get()
+            ->filter(fn (StorePaymentMethod $m) => $m->kind !== StorePaymentKind::Online || in_array($m->gateway, $gateways, true))->values();
     }
 
     /** What a checkout offers: cash on delivery (when on) and the active methods. @return array{cod: bool, methods: list<array<string, mixed>>} */
     public function options(): array
     {
-        $methods = StorePaymentMethod::query()->where('is_active', true)->orderBy('position')->orderBy('id')->get();
+        $methods = $this->usableMethods();
 
         return [
             // With no other way left, cash on delivery always works (an order is never impossible).
@@ -80,7 +97,7 @@ final class StorePayments
 
             return null;
         }
-        $method = ctype_digit($raw) ? StorePaymentMethod::query()->where('is_active', true)->find((int) $raw) : null;
+        $method = ctype_digit($raw) ? $this->usableMethods()->firstWhere('id', (int) $raw) : null;
 
         return $method ?? throw ValidationException::withMessages(['payment_method' => [__('payments.unavailable')]]);
     }

@@ -11,7 +11,7 @@ import { pick, type MediaUrls } from "./design";
 const t = ar.storefront.pay;
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export type PayMethod = { id: number; kind: "instapay" | "wallet" | "bank" | "link"; name: string; account: string | null; link: string | null; instructions: string | null };
+export type PayMethod = { id: number; kind: "instapay" | "wallet" | "bank" | "link" | "online"; gateway?: string | null; name: string; account: string | null; link: string | null; instructions: string | null };
 export type PayInfo = {
   order_number: number;
   total: number;
@@ -28,6 +28,8 @@ export type PayInfo = {
   deliveries?: Delivery[];
   /** Money the store sent back (or is sending back). */
   refunds?: PayRefund[];
+  /** The latest online checkout at the store's gateway (paid, waiting = kiosk reference not paid yet, open / failed / expired). */
+  online?: { status: "open" | "waiting" | "paid" | "failed" | "expired"; gateway: string } | null;
 };
 
 export type PayRefund = { amount: number; status: "pending" | "done"; method: string; done_at: string | null };
@@ -54,11 +56,14 @@ export function PayView({ token }: { token: string }) {
 
   React.useEffect(() => {
     let cancelled = false;
-    fetch("/api/public/payments/lookup", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ token }) })
+    // Back from the store's gateway (?ref=…): the server settles that checkout from the gateway first.
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    fetch("/api/public/payments/lookup", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(ref ? { token, ref } : { token }) })
       .then(async (r) => ({ ok: r.ok, status: r.status, json: (await r.json().catch(() => ({}))) as { data?: PayInfo } }))
       .then(({ ok, status, json }) => {
         if (cancelled) return;
         setLoad(ok && json.data ? { kind: "ready", info: json.data } : { kind: "error", message: status === 404 ? t.notFound : t.failed });
+        if (ref) window.history.replaceState(null, "", window.location.pathname);
       })
       .catch(() => !cancelled && setLoad({ kind: "error", message: ar.storefront.checkout.errors.network }));
     return () => {
@@ -312,6 +317,25 @@ function PayForm({ info, token, onSent }: { info: PayInfo; token: string; onSent
   };
 
   const chosen = info.methods.find((m) => m.id === method);
+  const online = chosen?.kind === "online";
+
+  const payOnline = async () => {
+    setSending(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/public/payments/online", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ token, method_id: method }) });
+      const json = (await response.json().catch(() => ({}))) as { data?: { url?: string }; message?: string };
+      if (response.ok && json.data?.url) {
+        window.location.assign(json.data.url);
+        return;
+      }
+      setError(json.message ?? t.onlineError);
+      setSending(false);
+    } catch {
+      setError(ar.storefront.checkout.errors.network);
+      setSending(false);
+    }
+  };
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm">
@@ -338,6 +362,23 @@ function PayForm({ info, token, onSent }: { info: PayInfo; token: string; onSent
         })}
       </div>
 
+      {online ? (
+        <>
+          {info.online?.status === "waiting" ? <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t.onlineWaiting}</p> : null}
+          {info.online && info.online.status !== "waiting" && info.online.status !== "paid" ? <p className="rounded-lg bg-neutral-100 p-3 text-sm text-neutral-700">{t.onlineFailed}</p> : null}
+          <p className="text-sm text-neutral-600">{chosen?.instructions || t.onlineHint}</p>
+          {error ? (
+            <p className="text-sm font-semibold text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <button type="button" onClick={() => void payOnline()} disabled={sending} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-(--pay) font-bold text-(--on-pay) disabled:opacity-60">
+            {sending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : null}
+            {t.payOnlineNow(formatMoney(info.total))}
+          </button>
+        </>
+      ) : (
+        <>
       {chosen ? <MethodDetails method={chosen} total={info.total} /> : null}
 
       <h2 className="mt-1 font-extrabold">{t.step2}</h2>
@@ -382,6 +423,8 @@ function PayForm({ info, token, onSent }: { info: PayInfo; token: string; onSent
         {sending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : null}
         {t.send}
       </button>
+        </>
+      )}
     </section>
   );
 }

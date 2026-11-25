@@ -36,7 +36,12 @@ final class HttpXPayClient implements XPayClient
 
     public function signatureValid(string $rawBody, string $header): bool
     {
-        $secret = (string) config('services.xpay.webhook_secret');
+        return self::verify($rawBody, $header, (string) config('services.xpay.webhook_secret'));
+    }
+
+    /** XPay-Signature "t=…,v1=…": HMAC-SHA256 of "{t}.{raw body}" with the endpoint's secret, at most 5 minutes old. */
+    public static function verify(string $rawBody, string $header, string $secret): bool
+    {
         if ($secret === '' || $rawBody === '' || $header === '') {
             return false;
         }

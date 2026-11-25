@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Enums\OrderStatus;
+use App\Enums\StorePaymentKind;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
@@ -17,6 +18,8 @@ use App\Orders\Refunds;
 use App\Services\PublicPageData;
 use App\Services\PublicSite;
 use App\Store\Digital\DigitalDeliveries;
+use App\Store\Payments\Gateways\GatewayError;
+use App\Store\Payments\OnlineStorePayments;
 use App\Store\Payments\StorePayments;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
@@ -34,11 +37,34 @@ final class PaymentController extends Controller
 
     public function __construct(private readonly PublicSite $site, private readonly StorePayments $payments, private readonly PublicPageData $data, private readonly DigitalDeliveries $deliveries) {}
 
-    public function show(Request $request): JsonResponse
+    /** The pay page; ?ref= (back from the gateway) settles that online checkout first, from the gateway itself. */
+    public function show(Request $request, OnlineStorePayments $online): JsonResponse
     {
-        $data = $request->validate(['host' => ['required', 'string', 'max:253'], 'token' => ['required', 'string', 'regex:/^[a-z0-9]{12}$/']]);
+        $data = $request->validate([
+            'host' => ['required', 'string', 'max:253'],
+            'token' => ['required', 'string', 'regex:/^[a-z0-9]{12}$/'],
+            'ref' => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9]+$/'],
+        ]);
 
-        return $this->inOrder($data, fn (Order $order) => $this->ok($this->view($order, (string) $data['host'])));
+        return $this->inOrder($data, function (Order $order) use ($data, $online): JsonResponse {
+            if (isset($data['ref'])) {
+                try {
+                    $online->settle((string) $data['ref'], $order);
+                } catch (GatewayError $e) {
+                    report($e);
+                }
+            }
+
+            return $this->ok($this->view($order->refresh(), (string) $data['host']));
+        });
+    }
+
+    /** «ادفع أونلاين»: a checkout at the store's gateway for the order total; answers where to send the customer. */
+    public function online(Request $request, OnlineStorePayments $online): JsonResponse
+    {
+        $data = $request->validate(['host' => ['required', 'string', 'max:253'], 'token' => ['required', 'string', 'regex:/^[a-z0-9]{12}$/'], 'method_id' => ['nullable', 'integer', 'min:1']]);
+
+        return $this->inOrder($data, fn (Order $order) => $this->ok(['url' => $online->begin($order, isset($data['method_id']) ? (int) $data['method_id'] : null)]));
     }
 
     public function store(Request $request): JsonResponse
@@ -53,7 +79,8 @@ final class PaymentController extends Controller
         ]);
 
         return $this->inOrder($data, function (Order $order) use ($request, $data): JsonResponse {
-            $method = StorePaymentMethod::query()->where('is_active', true)->find((int) $data['method_id'])
+            // A receipt is for a transfer method; an online one is paid on its gateway.
+            $method = StorePaymentMethod::query()->where('is_active', true)->where('kind', '!=', StorePaymentKind::Online->value)->find((int) $data['method_id'])
                 ?? throw ValidationException::withMessages(['method_id' => [__('payments.unavailable')]]);
             $file = $request->file('receipt');
             $problem = StorePayments::receiptProblem($file);
@@ -92,7 +119,9 @@ final class PaymentController extends Controller
             'status' => $waiting ? 'awaiting' : ($order->status->isDismissed() ? 'cancelled' : 'paid'),
             'payment_status' => $order->payment_status?->value,
             'chosen_method_id' => $order->store_payment_method_id,
-            'methods' => $waiting ? StorePaymentMethod::query()->where('is_active', true)->orderBy('position')->orderBy('id')->get()->map(fn (StorePaymentMethod $m) => $m->publicView())->values()->all() : [],
+            'methods' => $waiting ? $this->payments->usableMethods()->map(fn (StorePaymentMethod $m) => $m->publicView())->values()->all() : [],
+            // The latest online checkout (paid, waiting = kiosk reference not paid yet, open / failed / expired).
+            'online' => app(OnlineStorePayments::class)->customerView($order),
             'receipts' => $receipts->map(fn (OrderPayment $p) => [
                 'status' => $p->status,
                 'method' => $p->method_name,
