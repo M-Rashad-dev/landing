@@ -8,13 +8,22 @@ use App\Models\Invoice;
 use App\Models\PaymentMethod;
 
 /**
- * One way of paying an invoice. Manual transfers today; an online gateway (Paymob) later adds
- * an implementation of this same contract, and invoices / activation stay unchanged.
+ * One way of paying an invoice: a manual transfer (receipt reviewed by the admin) or an online gateway (XPay). Each is
+ * an implementation of this contract, registered in PaymentGateways; invoices and activation never change for a new one.
  */
 interface PaymentGateway
 {
     /** The method kind this gateway serves (payment_methods.kind). */
     public function kind(): string;
+
+    /** It can take payments now (an online gateway needs its keys). */
+    public function available(): bool;
+
+    /** Paid on the gateway's own page (no receipt to upload); the invoice is activated when the gateway confirms. */
+    public function online(): bool;
+
+    /** The method needs the platform's account to show (an InstaPay address, a wallet number). */
+    public function needsAccount(): bool;
 
     /**
      * How to pay this invoice with this method: for a transfer, the account and the

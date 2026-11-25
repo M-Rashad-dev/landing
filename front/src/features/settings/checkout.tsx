@@ -106,7 +106,10 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Choose how to pay, see where to transfer, attach the receipt (compressed in the browser) and send. */
+/**
+ * Choose how to pay: an online method sends the merchant to the gateway's page (the invoice activates when it confirms);
+ * a transfer shows where to send the money, then the receipt (compressed in the browser) is attached and sent.
+ */
 export function ReceiptForm({
   methods,
   total,
@@ -118,13 +121,14 @@ export function ReceiptForm({
   submit: (fields: Record<string, string>, receipt: File | null) => Promise<Invoice>;
   onDone: (invoice: Invoice) => void | Promise<void>;
 }) {
-  const manual = methods.filter((m) => m.kind === "manual");
-  const [method, setMethod] = React.useState(manual[0]?.key ?? "");
+  const usable = methods.filter((m) => m.type === "online" || m.kind === "manual");
+  const [method, setMethod] = React.useState(usable[0]?.key ?? "");
   const [file, setFile] = React.useState<File | null>(null);
   const [ref, setRef] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const chosen = manual.find((m) => m.key === method);
+  const chosen = usable.find((m) => m.key === method);
+  const online = chosen?.type === "online";
   const free = total <= 0;
 
   async function copy(text: string) {
@@ -140,6 +144,12 @@ export function ReceiptForm({
     setBusy(true);
     setError(null);
     try {
+      if (online) {
+        const invoice = await submit({ method }, null);
+        // The gateway's page takes it from here; the invoice page settles it on the way back.
+        if (invoice.redirect_url) window.location.assign(invoice.redirect_url);
+        return;
+      }
       const receipt = free || !file ? null : await prepareImage(file);
       const fields: Record<string, string> = free ? {} : { method, ...(ref.trim() ? { sender_ref: ref.trim() } : {}) };
       await onDone(await submit(fields, receipt));
@@ -170,12 +180,20 @@ export function ReceiptForm({
       <PanelHeader title={t.method} />
       <PanelBody className="flex flex-col gap-4">
         {error ? <Alert tone="danger">{error}</Alert> : null}
-        {manual.length === 0 ? (
+        {usable.length === 0 ? (
           <Alert tone="warning">{t.noMethods}</Alert>
         ) : (
           <>
-            <RadioCards value={method} onValueChange={setMethod} options={manual.map((m) => ({ value: m.key, title: m.name }))} />
-            {chosen ? (
+            <RadioCards value={method} onValueChange={setMethod} options={usable.map((m) => ({ value: m.key, title: m.name }))} />
+            {online && chosen ? (
+              <div className="flex flex-col gap-3">
+                <p className="rounded-lg bg-surface-2 p-3 text-sm text-ink-2">{chosen.instructions || t.onlineHint}</p>
+                <Button className="self-start" loading={busy} onClick={() => void send()}>
+                  {t.payOnline(formatMoney(chosen.amount))}
+                </Button>
+              </div>
+            ) : null}
+            {chosen && !online ? (
               <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-3 text-sm">
                 {chosen.account_value ? (
                   <p className="flex flex-wrap items-center gap-2">
@@ -205,15 +223,19 @@ export function ReceiptForm({
                 {chosen.instructions ? <p className="text-ink-2">{chosen.instructions}</p> : null}
               </div>
             ) : null}
-            <Field label={t.receipt} hint={t.receiptHint} required>
-              <FileDrop accept={IMAGE_ACCEPT} file={file} onFile={setFile} />
-            </Field>
-            <Field label={t.senderRef} htmlFor="pay-ref" hint={t.senderRefHint} optional>
-              <Input id="pay-ref" dir="ltr" maxLength={120} value={ref} onChange={(e) => setRef(e.target.value)} />
-            </Field>
-            <Button className="self-start" loading={busy} disabled={!file || !method} onClick={() => void send()}>
-              {t.send}
-            </Button>
+            {online ? null : (
+              <>
+                <Field label={t.receipt} hint={t.receiptHint} required>
+                  <FileDrop accept={IMAGE_ACCEPT} file={file} onFile={setFile} />
+                </Field>
+                <Field label={t.senderRef} htmlFor="pay-ref" hint={t.senderRefHint} optional>
+                  <Input id="pay-ref" dir="ltr" maxLength={120} value={ref} onChange={(e) => setRef(e.target.value)} />
+                </Field>
+                <Button className="self-start" loading={busy} disabled={!file || !method} onClick={() => void send()}>
+                  {t.send}
+                </Button>
+              </>
+            )}
           </>
         )}
       </PanelBody>

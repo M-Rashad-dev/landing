@@ -11,6 +11,9 @@ use App\Ai\Images\PexelsStockPhotos;
 use App\Ai\Images\StockPhotos;
 use App\Ai\OpenRouterClient;
 use App\Billing\Entitlements;
+use App\Billing\Payments\XPay\FakeXPayClient;
+use App\Billing\Payments\XPay\HttpXPayClient;
+use App\Billing\Payments\XPay\XPayClient;
 use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Billing\Themes\ThemeAccess;
@@ -55,6 +58,8 @@ class AppServiceProvider extends ServiceProvider
         // Shipping carriers (config/shipping.php): one registry, so a test reads what the fake carrier was asked.
         $this->app->singleton(Carriers::class);
         // The merchant's own mailbox (config mail.store_mailbox): the fake is one instance, so a test reads what it sent.
+        // XPay (online payment of invoices): the fake in tests and e2e, never the network.
+        $this->app->singleton(XPayClient::class, fn ($app): XPayClient => config('services.xpay.driver') === 'fake' ? new FakeXPayClient : $app->make(HttpXPayClient::class));
         $this->app->singleton(Mailbox::class, fn ($app): Mailbox => config('mail.store_mailbox') === 'fake' ? new FakeMailbox : $app->make(SmtpMailbox::class));
         // Customer sign-in codes: WhatsApp once its keys are set, else on screen (refused in production).
         $this->app->bind(CodeSender::class, fn ($app): CodeSender => $app->make(WhatsAppGateway::class)->configured()

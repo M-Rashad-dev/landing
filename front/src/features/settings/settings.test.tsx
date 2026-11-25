@@ -65,6 +65,29 @@ describe("ReceiptForm", () => {
     expect(fields).toEqual({ method: "instapay", sender_ref: "TX-1" });
     expect(receipt.name).toBe("receipt.webp");
   });
+
+  it("pays online first: no receipt, straight to XPay's page", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    const submit = vi.fn(async () => ({ id: 9, redirect_url: "https://checkout.xpay.app/c/cs_test_X" }) as never);
+    const onDone = vi.fn();
+    wrap(
+      <ReceiptForm
+        methods={[
+          { key: "xpay", name: "ادفع أونلاين", kind: "xpay", type: "online", amount: 100, account_label: null, account_value: null, instructions: null, reference: null },
+          { key: "instapay", name: "إنستاباي", kind: "manual", type: "transfer", amount: 100, account_label: "رقم انستاباي", account_value: "01000000000", instructions: null, reference: "ST-00025" },
+        ]}
+        total={100}
+        submit={submit}
+        onDone={onDone}
+      />,
+    );
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: ar.settings.checkout.payOnline("100 ج.م") }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.xpay.app/c/cs_test_X"));
+    expect(submit).toHaveBeenCalledWith({ method: "xpay" }, null);
+    expect(onDone).not.toHaveBeenCalled();
+  });
 });
 
 describe("StorePage", () => {

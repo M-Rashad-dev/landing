@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Actions\Admin\ManageTenant;
 use App\Billing\Payments\ManualGateway;
 use App\Billing\Payments\ManualPayments;
+use App\Billing\Payments\PaymentGateways;
 use App\Billing\Payments\ReceiptStore;
 use App\Billing\Payments\Refunds;
 use App\Enums\InvoiceStatus;
@@ -173,13 +174,13 @@ final class PaymentController extends Controller
         return $this->ok(PaymentMethod::query()->orderBy('sort_order')->orderBy('key')->get()->map(fn (PaymentMethod $m) => $this->methodRow($m))->all());
     }
 
-    public function updateMethod(Request $request, string $key, ManageTenant $audit): JsonResponse
+    public function updateMethod(Request $request, string $key, ManageTenant $audit, PaymentGateways $gateways): JsonResponse
     {
         $method = PaymentMethod::query()->findOrFail($key);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:60'],
             'account_label' => ['nullable', 'string', 'max:60'],
-            'account_value' => ['nullable', 'string', 'max:120', 'required_if:is_active,true'],
+            'account_value' => ['nullable', 'string', 'max:120', Rule::requiredIf(fn () => $request->boolean('is_active') && ($gateways->for($method->kind)?->needsAccount() ?? true))],
             'instructions' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'between:0,1000'],
@@ -240,6 +241,10 @@ final class PaymentController extends Controller
         return [
             'key' => $m->key, 'name' => $m->name, 'kind' => $m->kind, 'account_label' => $m->account_label,
             'account_value' => $m->account_value, 'instructions' => $m->instructions, 'is_active' => $m->is_active, 'sort_order' => $m->sort_order,
+            // Online methods: no account; ready only while the gateway's keys are set (mode: test / live keys).
+            'needs_account' => app(PaymentGateways::class)->for($m->kind)?->needsAccount() ?? true,
+            'available' => app(PaymentGateways::class)->for($m->kind)?->available() ?? false,
+            'test_mode' => $m->kind === 'xpay' ? str_starts_with((string) config('services.xpay.secret_key'), 'sk_test_') : null,
         ];
     }
 }

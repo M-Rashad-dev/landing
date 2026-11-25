@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/choice";
-import { EmptyState, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
+import { Alert, EmptyState, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "@/components/ui/panel";
@@ -53,7 +53,6 @@ const schema = z
     is_active: z.boolean(),
     sort_order: z.number().int().min(0).max(1000),
   })
-  .refine((v) => !v.is_active || v.account_value.trim() !== "", { path: ["account_value"], message: t.accountRequired });
 type Values = z.infer<typeof schema>;
 
 const toValues = (m: PaymentMethod): Values => ({
@@ -66,11 +65,14 @@ const toValues = (m: PaymentMethod): Values => ({
 });
 
 function MethodCard({ method, onSaved }: { method: PaymentMethod; onSaved: () => void }) {
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(method) });
+  const needsAccount = method.needs_account !== false;
+  // Only a transfer method needs the platform's account to take payments.
+  const rules = React.useMemo(() => schema.refine((v) => !needsAccount || !v.is_active || v.account_value.trim() !== "", { path: ["account_value"], message: t.accountRequired }), [needsAccount]);
+  const form = useForm<Values>({ resolver: zodResolver(rules), defaultValues: toValues(method) });
   const { errors, isSubmitting, isDirty } = form.formState;
   const active = useWatch({ control: form.control, name: "is_active" });
   const id = (field: string) => `${method.key}-${field}`;
-  const ready = method.is_active && Boolean(method.account_value);
+  const ready = method.is_active && (needsAccount ? Boolean(method.account_value) : method.available !== false);
 
   const submit = form.handleSubmit(async (v) => {
     try {
@@ -117,12 +119,20 @@ function MethodCard({ method, onSaved }: { method: PaymentMethod; onSaved: () =>
           <Field label={t.order} htmlFor={id("order")}>
             <Input id={id("order")} type="number" inputMode="numeric" min={0} max={1000} dir="ltr" className="tabular sm:max-w-28" {...form.register("sort_order", { valueAsNumber: true })} />
           </Field>
-          <Field label={t.accountLabel} htmlFor={id("label")} hint={t.accountLabelHint}>
-            <Input id={id("label")} {...form.register("account_label")} />
-          </Field>
-          <Field label={t.accountValue} htmlFor={id("value")} hint={t.accountValueHint} error={errors.account_value?.message} required={active}>
-            <Input id={id("value")} dir="ltr" className="tabular" aria-invalid={Boolean(errors.account_value)} {...form.register("account_value")} />
-          </Field>
+          {needsAccount ? (
+            <>
+              <Field label={t.accountLabel} htmlFor={id("label")} hint={t.accountLabelHint}>
+                <Input id={id("label")} {...form.register("account_label")} />
+              </Field>
+              <Field label={t.accountValue} htmlFor={id("value")} hint={t.accountValueHint} error={errors.account_value?.message} required={active}>
+                <Input id={id("value")} dir="ltr" className="tabular" aria-invalid={Boolean(errors.account_value)} {...form.register("account_value")} />
+              </Field>
+            </>
+          ) : (
+            <Alert tone={method.available === false ? "warning" : method.test_mode ? "info" : "success"} className="sm:col-span-2">
+              {method.available === false ? t.gatewayMissing : method.test_mode ? t.testMode : t.liveMode}
+            </Alert>
+          )}
           <Field label={t.instructions} htmlFor={id("instructions")} hint={t.instructionsHint} className="sm:col-span-2">
             <Textarea id={id("instructions")} rows={3} {...form.register("instructions")} />
           </Field>

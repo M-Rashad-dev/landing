@@ -59,6 +59,9 @@ x-back-env: &back-env
   WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
   # AI (OpenRouter). Empty key = the AI is off (support goes to people).
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  # XPay (online payment of invoices). sk_test_* = test mode; empty = the online method stays hidden.
+  XPAY_SECRET_KEY: ${XPAY_SECRET_KEY:-}
+  XPAY_WEBHOOK_SECRET: ${XPAY_WEBHOOK_SECRET:-}
   # Email (admin alerts...). Empty MAIL_MAILER = log only (nothing is sent).
   MAIL_MAILER: ${MAIL_MAILER:-log}
   MAIL_SCHEME: ${MAIL_SCHEME:-}

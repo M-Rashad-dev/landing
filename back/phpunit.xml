@@ -39,6 +39,9 @@
         <env name="AI_DRIVER" value="fake"/>
         <env name="SHIPPING_CARRIERS_DRIVER" value="fake"/>
         <env name="STORE_MAILBOX_DRIVER" value="fake"/>
+        <env name="XPAY_DRIVER" value="fake"/>
+        <env name="XPAY_SECRET_KEY" value=""/>
+        <env name="XPAY_WEBHOOK_SECRET" value="whsec_test_secret"/>
         <env name="OPENROUTER_API_KEY" value=""/>
         <env name="AI_VECTORS_CACHE" value="array"/>
         <env name="AI_MODEL_SUPPORT" value="qwen/qwen4-max"/>

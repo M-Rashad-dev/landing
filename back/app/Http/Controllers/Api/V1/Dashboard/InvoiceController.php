@@ -7,9 +7,11 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Billing\Payments\Checkout;
 use App\Billing\Payments\Invoices;
 use App\Billing\Payments\ManualPayments;
+use App\Billing\Payments\OnlinePayments;
 use App\Billing\Payments\PaymentGateways;
 use App\Billing\Payments\ReceiptStore;
 use App\Billing\Payments\Refunds;
+use App\Billing\Payments\XPay\XPayError;
 use App\Billing\PlatformSettings;
 use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Concerns\RespondsWithJson;
@@ -59,12 +61,17 @@ final class InvoiceController extends Controller
         return $this->detail($checkout->preview($this->tenant($request), $request->item()));
     }
 
-    /** Sending the receipt: the invoice is created with it (or activated when nothing is due). */
-    public function checkout(CheckoutRequest $request, Checkout $checkout): JsonResponse
+    /**
+     * Sending the receipt: the invoice is created with it (or activated when nothing is due). An online method creates
+     * the invoice and answers where to pay it (redirect_url).
+     */
+    public function checkout(CheckoutRequest $request, Checkout $checkout, OnlinePayments $online): JsonResponse
     {
-        $invoice = $checkout->place($this->tenant($request), $request->item(), $request->validated('method'), $request->senderRef(), $request->file('receipt'));
+        $method = $request->validated('method');
+        $invoice = $checkout->place($this->tenant($request), $request->item(), $method, $request->senderRef(), $request->file('receipt'));
+        $url = $online->isOnline($method) && $invoice->isPayable() && $invoice->totalCents() > 0 ? $online->begin($invoice, $online->method((string) $method)) : null;
 
-        return $this->detail($invoice, 201);
+        return $this->detail($invoice, 201, $url);
     }
 
     public function show(Invoice $invoice): JsonResponse
@@ -77,11 +84,32 @@ final class InvoiceController extends Controller
         return $this->detail($this->invoices->cancel($invoice));
     }
 
-    public function pay(PayInvoiceRequest $request, Invoice $invoice, ManualPayments $payments): JsonResponse
+    public function pay(PayInvoiceRequest $request, Invoice $invoice, ManualPayments $payments, OnlinePayments $online): JsonResponse
     {
-        $payments->submit($invoice, (string) $request->validated('method'), $request->senderRef(), $request->file('receipt'));
+        $method = (string) $request->validated('method');
+        if ($request->online()) {
+            return $this->detail($invoice, 200, $online->begin($invoice, $online->method($method)));
+        }
+        $payments->submit($invoice, $method, $request->senderRef(), $request->file('receipt'));
 
         return $this->detail($invoice->refresh(), 201);
+    }
+
+    /**
+     * Back from the gateway's page (?session=…): the session is settled from the gateway itself (the webhook usually
+     * did it already), so the page shows the invoice paid, waiting for a pay-later method, or still open.
+     */
+    public function online(Request $request, Invoice $invoice, OnlinePayments $online): JsonResponse
+    {
+        $data = $request->validate(['session' => ['required', 'string', 'max:100', 'regex:/^cs_(test|live)_[A-Za-z0-9]+$/']]);
+        try {
+            $row = $online->settle((string) $data['session'], $invoice);
+        } catch (XPayError $e) {
+            report($e);
+            $row = null;
+        }
+
+        return $this->detail($invoice->refresh(), 200, null, $row?->status ?? 'unknown');
     }
 
     /** The merchant's own receipt (tenant-scoped bindings: other stores' ids are 404). */
@@ -101,12 +129,14 @@ final class InvoiceController extends Controller
     }
 
     /** The invoice with its payments, how it can be paid now, and the support contact. */
-    private function detail(Invoice $invoice, int $status = 200): JsonResponse
+    private function detail(Invoice $invoice, int $status = 200, ?string $redirect = null, ?string $online = null): JsonResponse
     {
         if ($invoice->exists) {
             $invoice->load('payments.method:key,name');
         }
-        $data = InvoiceResource::make($invoice)->resolve(request()) + ['pay_with' => $this->gateways->options($invoice)];
+        $data = InvoiceResource::make($invoice)->resolve(request()) + ['pay_with' => $this->gateways->options($invoice)]
+            + ($redirect === null ? [] : ['redirect_url' => $redirect])
+            + ($online === null ? [] : ['online_status' => $online]);
 
         return $this->ok($data, ['support' => $this->settings->support()], $status);
     }

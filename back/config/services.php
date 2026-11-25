@@ -48,6 +48,16 @@ return [
         ],
     ],
 
+    // XPay (online payment of the platform's invoices: cards, wallets, Fawry, valU, Apple Pay). sk_test_* keys run in
+    // XPay's test mode, sk_live_* take real money. driver "fake" swaps the API for FakeXPayClient (tests, e2e).
+    'xpay' => [
+        'driver' => env('XPAY_DRIVER', 'live'),
+        'secret_key' => env('XPAY_SECRET_KEY'),
+        'webhook_secret' => env('XPAY_WEBHOOK_SECRET'),
+        'base_url' => env('XPAY_BASE_URL', 'https://api.xpay.app'),
+        'timeout' => (int) env('XPAY_TIMEOUT', 20),
+    ],
+
     // Pexels API v1 for stock photos in the AI designer (free; omitted from prompts when not configured).
     'pexels' => [
         'key' => env('PEXELS_API_KEY'),

@@ -16,6 +16,21 @@ final class ManualGateway implements PaymentGateway
         return 'manual';
     }
 
+    public function available(): bool
+    {
+        return true;
+    }
+
+    public function online(): bool
+    {
+        return false;
+    }
+
+    public function needsAccount(): bool
+    {
+        return true;
+    }
+
     /** @return array<string, mixed> */
     public function start(Invoice $invoice, PaymentMethod $method): array
     {

@@ -86,6 +86,7 @@ use App\Http\Controllers\Api\V1\Public\TrackController;
 use App\Http\Controllers\Api\V1\Public\UploadController as PublicUploadController;
 use App\Http\Controllers\Api\V1\Webhooks\ShippingWebhookController;
 use App\Http\Controllers\Api\V1\Webhooks\WhatsAppWebhookController;
+use App\Http\Controllers\Api\V1\Webhooks\XPayWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -142,6 +143,8 @@ Route::prefix('dashboard')
             Route::get('billing/invoices/{invoice}', [InvoiceController::class, 'show']);
             Route::post('billing/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
             Route::post('billing/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->middleware('throttle:receipt-upload');
+            // Back from XPay's page: the session settled from XPay (docs: docs/plans or DECISIONS «XPay»).
+            Route::post('billing/invoices/{invoice}/online', [InvoiceController::class, 'online'])->middleware('throttle:receipt-upload');
             Route::get('billing/invoices/{invoice}/payments/{payment}/receipt', [InvoiceController::class, 'receipt']);
             Route::post('billing/refund', [InvoiceController::class, 'refund']);
         });
@@ -413,6 +416,7 @@ Route::prefix('webhooks')
     ->group(function (): void {
         Route::get('whatsapp', [WhatsAppWebhookController::class, 'verify']);
         Route::post('whatsapp', [WhatsAppWebhookController::class, 'receive']);
+        Route::post('xpay', [XPayWebhookController::class, 'receive']);
         Route::post('shipping/{carrier}/{token}', [ShippingWebhookController::class, 'receive'])->where(['carrier' => '[a-z0-9_]{2,30}', 'token' => '[a-z0-9]{40}']);
     });
 

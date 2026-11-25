@@ -49,6 +49,8 @@ final class InvoiceResource extends JsonResource
                 'sender_ref' => $p->sender_ref,
                 'status' => $p->status->value,
                 'reject_reason' => $p->reject_reason,
+                // Paid online: no receipt image.
+                'has_receipt' => $p->receipt_path !== null,
                 'created_at' => $p->created_at?->toIso8601ZuluString(),
                 'reviewed_at' => $p->reviewed_at?->toIso8601ZuluString(),
             ])->all()),

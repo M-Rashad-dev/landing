@@ -135,6 +135,23 @@ final class StoreNotices
         ));
     }
 
+    /** An invoice paid online (XPay): it is already active, no review needed. */
+    public function invoicePaidOnline(Invoice $invoice): void
+    {
+        $this->center->toStore($invoice->tenant_id, new Notice(
+            NotificationEvent::ReceiptApproved,
+            __('notifications.online_paid.title'),
+            __('notifications.online_paid.body', ['invoice' => $invoice->number]),
+            '/dashboard/settings/billing',
+            [
+                ['label' => __('notifications.receipt_approved.invoice'), 'value' => (string) $invoice->number],
+                ['label' => __('notifications.receipt_approved.amount'), 'value' => $this->money(Money::toCents((string) $invoice->total))],
+            ],
+            __('notifications.online_paid.action'),
+            dedupeKey: 'online_paid:'.$invoice->id,
+        ));
+    }
+
     public function receiptRejected(Invoice $invoice, string $reason): void
     {
         $this->center->toStore($invoice->tenant_id, new Notice(

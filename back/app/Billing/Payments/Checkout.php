@@ -22,6 +22,7 @@ final class Checkout
     public function __construct(
         private readonly Invoices $invoices,
         private readonly ManualPayments $payments,
+        private readonly OnlinePayments $online,
     ) {}
 
     /** @param array{type: string, plan_key?: string|null, period?: string|null, theme_key?: string|null, amount?: int|null, messages?: int|null} $item */
@@ -39,8 +40,12 @@ final class Checkout
     public function place(Tenant $tenant, array $item, ?string $method, ?string $senderRef, ?UploadedFile $receipt): Invoice
     {
         $draft = $this->preview($tenant, $item);
+        $online = $this->online->isOnline($method);
 
-        if ($draft->totalCents() > 0) {
+        if ($draft->totalCents() > 0 && $online) {
+            // Paid on the gateway's page right after (InvoiceController opens the session): only a usable method.
+            $this->online->method((string) $method);
+        } elseif ($draft->totalCents() > 0) {
             $missing = array_filter([
                 'method' => $method === null || $method === '' ? [__('validation.required', ['attribute' => __('attributes.method')])] : null,
                 'sender_ref' => $senderRef === null || mb_strlen($senderRef) < 3 ? [__('validation.required', ['attribute' => __('attributes.sender_ref')])] : null,

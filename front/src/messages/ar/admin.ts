@@ -471,7 +471,10 @@ export const admin = {
     order: "الترتيب",
     nameRequired: "اكتب الاسم",
     saved: "وسيلة الدفع اتحفظت",
-    kind: { manual: "تحويل يدوي بإيصال", gateway: "بوابة دفع" } as Record<string, string>,
+    kind: { manual: "تحويل يدوي بإيصال", gateway: "بوابة دفع", xpay: "دفع أونلاين عن طريق X-Pay (كارت، محفظة، فوري، valU، Apple Pay)" } as Record<string, string>,
+    gatewayMissing: "مفاتيح X-Pay مش متحطة على السيرفر، فالوسيلة دي مش هتظهر للتجار.",
+    testMode: "وضع الاختبار: مفيش فلوس حقيقية بتتدفع لحد ما تتحط مفاتيح live.",
+    liveMode: "شغالة بفلوس حقيقية.",
     notReady: "مقفولة لحد ما تكتب رقم الحساب",
   },
 

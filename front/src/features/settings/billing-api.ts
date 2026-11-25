@@ -34,7 +34,8 @@ export type PayMethod = {
   key: string;
   name: string;
   kind: string;
-  type: string;
+  /** transfer: send money then upload the receipt; online: pay on the gateway's page (XPay). */
+  type: "transfer" | "online" | string;
   amount: number;
   account_label: string | null;
   account_value: string | null;
@@ -49,6 +50,8 @@ export type Payment = {
   sender_ref: string | null;
   status: "pending_review" | "approved" | "rejected";
   reject_reason: string | null;
+  /** Paid online: there's no receipt image. */
+  has_receipt?: boolean;
   created_at: string | null;
   reviewed_at: string | null;
 };
@@ -77,6 +80,10 @@ export type Invoice = {
   created_at: string | null;
   payments: Payment[];
   pay_with?: PayMethod[];
+  /** An online method was chosen: where to pay now. */
+  redirect_url?: string;
+  /** Back from the gateway: how the payment ended (paid, waiting = Fawry not paid yet, open / expired / failed). */
+  online_status?: "open" | "waiting" | "paid" | "failed" | "expired" | "unknown";
 };
 
 /** What the merchant reads: a bill is under review, accepted, rejected (with the reason) or refunded. */
@@ -127,3 +134,6 @@ export async function sendReceipt(path: string, fields: Record<string, string>, 
     throw new ApiError(0, {});
   }
 }
+
+/** Back from XPay (?session=…): the server asks XPay how the session ended and returns the invoice. */
+export const settleOnline = (invoiceId: number, session: string) => api<Invoice>(`/dashboard/billing/invoices/${invoiceId}/online`, { method: "POST", body: { session } });

@@ -139,6 +139,8 @@ Gates before committing:
 - Profit: `App\Analytics\OrderCosts` (snapshot on order creation; `profit(order)`) and
   `App\Analytics\ProfitReport` (dashboard `GET /dashboard/profit` + copilot `profit_summary`).
   Refunds (stage 5) already come off both.
+- Online payment of invoices: `App\Billing\Payments\OnlinePayments` (XPay hosted checkout; `XPayClient` + fake; webhook
+  `POST /api/webhooks/xpay` relayed by Next). DECISIONS «XPay».
 - Refunds: `App\Orders\Refunds` (collected / refundable / request / complete / cancel, views for the screens,
   the customer and the webhook); `Stock::restockItems`; delivery status `revoked`.
 - Order status changes: `App\Actions\Orders\ChangeOrderStatus`; prepaid payments:

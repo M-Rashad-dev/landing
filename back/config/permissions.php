@@ -165,6 +165,7 @@ return [
         'POST billing/checkout' => 'billing.pay',
         'POST billing/checkout/preview' => 'billing.pay',
         'POST billing/invoices/{invoice}/cancel' => 'billing.pay',
+        'POST billing/invoices/{invoice}/online' => 'billing.pay',
         'POST billing/invoices/{invoice}/payments' => 'billing.pay',
         'POST billing/refund' => 'billing.pay',
         'POST blocked-customers' => 'customers.block',

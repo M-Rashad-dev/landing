@@ -74,7 +74,13 @@ export type PaymentMethod = {
   instructions: string | null;
   is_active: boolean;
   sort_order: number;
+  /** A transfer method shows the platform's account; an online gateway (XPay) needs none. */
+  needs_account?: boolean;
+  /** The gateway can take payments (an online one: its keys are set on the server). */
+  available?: boolean;
+  /** XPay: running on test keys (no real money). */
+  test_mode?: boolean | null;
 };
 
 export const usePaymentMethods = () => useQuery({ queryKey: ["admin", "payment-methods"], queryFn: () => api<PaymentMethod[]>("/admin/payment-methods") });
-export const savePaymentMethod = (key: string, body: Omit<PaymentMethod, "key" | "kind">) => api<PaymentMethod>(`/admin/payment-methods/${key}`, { method: "PUT", body });
+export const savePaymentMethod = (key: string, body: Omit<PaymentMethod, "key" | "kind" | "needs_account" | "available" | "test_mode">) => api<PaymentMethod>(`/admin/payment-methods/${key}`, { method: "PUT", body });
