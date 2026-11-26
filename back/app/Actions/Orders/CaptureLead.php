@@ -41,7 +41,8 @@ final class CaptureLead
 
         $lead = AbandonedLead::query()->where('customer_phone', $phone)->where('landing_page_id', $page->id)->where('status', LeadStatus::Open)->first();
         if ($lead !== null) {
-            $lead->fill($values + ['last_seen_at' => now()])->save();
+            $changed = isset($values['quantity']) && (int) $values['quantity'] !== $lead->quantity;
+            $lead->fill($values + ['last_seen_at' => now()] + ($changed ? ['opted_out_at' => null] : []))->save();
 
             return;
         }
@@ -89,7 +90,7 @@ final class CaptureLead
         // An open checkout of this phone (not one already waiting on an order's payment).
         $lead = AbandonedLead::query()->where('customer_phone', $phone)->where('source', 'store')->where('status', LeadStatus::Open)->whereNull('order_id')->first();
         if ($lead !== null) {
-            $lead->fill($values)->save();
+            $lead->fill($values + (self::sameCart($lead->cart, $cart) ? [] : ['opted_out_at' => null]))->save();
 
             return;
         }
@@ -131,7 +132,7 @@ final class CaptureLead
         ];
 
         if ($open !== null) {
-            $open->fill($values)->save();
+            $open->fill($values + (self::sameCart($open->cart, $cart) ? [] : ['opted_out_at' => null]))->save();
 
             return;
         }
@@ -168,6 +169,21 @@ final class CaptureLead
         if ($waiting === 0) {
             AbandonedLead::query()->create($this->fromOrder($order, $source));
         }
+    }
+
+    /**
+     * The same products, options and quantities: a «مش مهتم» stays. A changed cart is a new decision, so its
+     * reminders may go again (owner).
+     *
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>  $after
+     */
+    private static function sameCart(?array $before, array $after): bool
+    {
+        $key = fn (?array $cart): array => collect((array) ($cart['items'] ?? []))
+            ->map(fn ($i) => (int) ($i['product_id'] ?? 0).'x'.(int) ($i['quantity'] ?? 0).':'.json_encode($i['options'] ?? []))->sort()->values()->all();
+
+        return $key($before) === $key($after);
     }
 
     /** The prepaid order's money arrived (receipt accepted, or paid online): its waiting checkout is converted. */

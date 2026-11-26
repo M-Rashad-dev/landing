@@ -52,7 +52,7 @@ final class RecoveryController extends Controller
         return $this->ok($this->recovery->restore($lead))->header('Cache-Control', 'no-store, private');
     }
 
-    /** «مش عايز تذكيرات تاني» from an email: this store sends this phone / email no more reminders. */
+    /** «مش عايز تذكيرات تاني» from an email: no more reminders about this cart. */
     public function unsubscribe(Request $request): JsonResponse
     {
         $lead = $this->lead($request, any: true);

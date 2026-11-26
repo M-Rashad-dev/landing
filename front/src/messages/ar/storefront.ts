@@ -2,11 +2,11 @@
 export const storefront = {
   /** «مش عايز تذكيرات تاني» from a cart reminder email. */
   unsubscribe: {
-    title: "إيقاف تذكيرات الطلبات",
-    text: "مش هيوصلك تاني تذكير بطلب سيبته من المتجر ده.",
+    title: "إيقاف تذكيرات الطلب ده",
+    text: "مش هيوصلك تاني تذكير بالطلب ده من المتجر.",
     confirm: "وقّف التذكيرات",
     doneTitle: "تمام، وقفناها",
-    doneText: "مش هيوصلك تذكيرات تاني من المتجر ده.",
+    doneText: "مش هيوصلك تذكيرات تاني عن الطلب ده.",
     invalid: "اللينك ده مش شغال.",
   },
   /** A cart reminder's link refilled the cart. */

@@ -106,6 +106,8 @@ final class LeadController extends Controller
             'reminders_sent' => $lead->reminders_sent,
             'last_reminded_at' => $lead->last_reminded_at?->toIso8601ZuluString(),
             'recovered_at' => $lead->recovered_at?->toIso8601ZuluString(),
+            // «مش مهتم» on this cart's reminder (cleared when the customer changes the cart).
+            'opted_out_at' => $lead->opted_out_at?->toIso8601ZuluString(),
             'contacted_at' => $lead->contacted_at?->toIso8601ZuluString(),
             'last_seen_at' => $lead->last_seen_at?->toIso8601ZuluString(),
             'created_at' => $lead->created_at->toIso8601ZuluString(),

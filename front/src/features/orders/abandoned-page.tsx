@@ -51,6 +51,8 @@ export type Lead = {
   reminders_sent?: number;
   last_reminded_at?: string | null;
   recovered_at?: string | null;
+  /** «مش مهتم» on this cart's reminder (cleared when the customer changes the cart). */
+  opted_out_at?: string | null;
   contacted_at: string | null;
   last_seen_at: string | null;
   created_at: string;
@@ -66,7 +68,7 @@ type LeadPage = Paginated<Lead> & {
 /** A manual reminder reaches it: waiting or contacted, with a phone, not an unpaid order, up to 14 days old. */
 const REMIND_DAYS = 14;
 function remindable(lead: Lead): boolean {
-  return (lead.status === "open" || lead.status === "contacted") && Boolean(lead.customer_phone) && !lead.order && Date.now() - new Date(lead.created_at).getTime() <= REMIND_DAYS * 86_400_000;
+  return (lead.status === "open" || lead.status === "contacted") && Boolean(lead.customer_phone) && !lead.order && !lead.opted_out_at && Date.now() - new Date(lead.created_at).getTime() <= REMIND_DAYS * 86_400_000;
 }
 
 /** "تيشيرت + 2 منتج" from a cart, or the page's product. */
@@ -258,6 +260,11 @@ export function AbandonedPage() {
                               </span>
                             ) : null}
                             {!lead.customer_phone ? <Badge size="sm">{t.unknownHint}</Badge> : null}
+                            {lead.opted_out_at ? (
+                              <Badge size="sm" tone="danger">
+                                {t.optedOut}
+                              </Badge>
+                            ) : null}
                             {lead.recovered_at ? (
                               <Badge size="sm" tone="success">
                                 {t.recovered}

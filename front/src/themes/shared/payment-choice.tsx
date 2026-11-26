@@ -30,14 +30,14 @@ export function hasPaymentChoice(options: PaymentOptions | undefined): options i
 export function PaymentChoice({ options, value, onChange, error, className, detail, legend = true }: { options: PaymentOptions; value: string; onChange: (v: string) => void; error?: string | null; className?: string; detail?: React.ReactNode; legend?: boolean }) {
   const rows = [...(options.cod ? [{ value: "cod", title: t.cod, hint: t.codHint, icon: Banknote }] : []), ...options.methods.map((m) => ({ value: String(m.id), title: m.name, hint: m.kind === "online" ? t.onlineHint : detail !== undefined ? t.prepaidHereHint : t.prepaidHint, icon: ICONS[m.kind] ?? CreditCard }))];
   return (
-    <fieldset className={cn("flex flex-col gap-2", className)} data-field="payment_method">
+    <fieldset className={cn("flex min-w-0 flex-col gap-2", className)} data-field="payment_method">
       {legend ? <legend className="as-sm mb-1 font-bold">{t.title}</legend> : null}
       <div className="flex flex-col gap-2" role="radiogroup" aria-label={t.title}>
         {rows.map((row) => {
           const on = row.value === value;
           const Icon = row.icon;
           return (
-            <div key={row.value} className="flex flex-col gap-2">
+            <div key={row.value} className="flex min-w-0 flex-col gap-2">
             <button
               type="button"
               role="radio"

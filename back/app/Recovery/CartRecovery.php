@@ -22,7 +22,6 @@ use App\Models\LeadReminder;
 use App\Models\MessageWallet;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\RecoveryOptOut;
 use App\Models\Tenant;
 use App\Notifications\StoreNotices;
 use App\Services\PublicSite;
@@ -148,7 +147,8 @@ final class CartRecovery
             $lead->order_id !== null => 'waiting_payment',
             $lead->created_at->lt(now()->subDays($manual ? self::MANUAL_MAX_DAYS : self::MAX_AGE_DAYS)) => 'old',
             BlockedCustomer::isBlocked((string) $lead->customer_phone, $lead->ip_address) => 'blocked',
-            RecoveryOptOut::blocks($lead->customer_phone, $lead->customer_email) => 'opted_out',
+            // «مش مهتم» on this cart (a changed cart asks again: CaptureLead clears it).
+            $lead->opted_out_at !== null => 'opted_out',
             Order::query()->where('customer_phone', $lead->customer_phone)->where('created_at', '>=', $lead->created_at)->exists() => 'ordered',
             default => null,
         };
@@ -191,7 +191,7 @@ final class CartRecovery
     {
         return AbandonedLead::query()
             ->whereIn('status', [LeadStatus::Open, LeadStatus::Contacted])
-            ->whereNotNull('customer_phone')->whereNull('order_id')
+            ->whereNotNull('customer_phone')->whereNull('order_id')->whereNull('opted_out_at')
             ->where('created_at', '>=', now()->subDays(self::MANUAL_MAX_DAYS))
             ->when($ids !== null, fn (Builder $q) => $q->whereKey($ids))
             ->when($source !== null, fn (Builder $q) => $q->where('source', $source));
@@ -459,13 +459,14 @@ final class CartRecovery
         });
     }
 
-    /** The customer asked to stop (the WhatsApp button or the email link): no more reminders from this store. */
+    /**
+     * The customer asked to stop (the WhatsApp button or the email link): no more reminders about this cart. Their
+     * other carts, and this one once they change it, can still get reminders (owner).
+     */
     public function optOut(AbandonedLead $lead, bool $reply): void
     {
         Tenancy::runAs($lead->tenant_id, function () use ($lead, $reply): void {
-            if (! RecoveryOptOut::blocks($lead->customer_phone, $lead->customer_email)) {
-                RecoveryOptOut::query()->create(['phone' => $lead->customer_phone, 'email' => $lead->customer_email ? mb_strtolower($lead->customer_email) : null]);
-            }
+            AbandonedLead::query()->whereKey($lead->id)->whereNull('opted_out_at')->update(['opted_out_at' => now()]);
             if ($reply && $lead->customer_phone) {
                 try {
                     $this->messenger->sendText((string) $lead->customer_phone, (string) __('recovery.stopped_reply', ['store' => $this->storeName($lead->tenant_id)]), MessagePurpose::CartReminderReply, $lead->tenant_id);

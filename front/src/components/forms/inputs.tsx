@@ -111,7 +111,7 @@ export function FileDrop({ accept, file, onFile, hint, invalid }: { accept: stri
         onFile(e.dataTransfer.files[0] ?? null);
       }}
       className={cn(
-        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center text-[13px] text-ink-3 transition-colors",
+        "flex min-w-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center text-[13px] text-ink-3 transition-colors",
         over ? "border-brand bg-brand-soft/50" : invalid ? "border-danger" : "border-border-strong hover:bg-surface-2/60",
       )}
     >
@@ -121,7 +121,7 @@ export function FileDrop({ accept, file, onFile, hint, invalid }: { accept: stri
       ) : (
         <Upload className="size-5" aria-hidden />
       )}
-      <span className="font-semibold text-ink">{file ? file.name : ar.common.dropHere}</span>
+      <span className="max-w-full truncate font-semibold text-ink" dir={file ? "ltr" : undefined}>{file ? file.name : ar.common.dropHere}</span>
       {hint ? <span>{hint}</span> : null}
       {file ? (
         <button

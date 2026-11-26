@@ -399,12 +399,12 @@ function PayForm({ info, token, onSent }: { info: PayInfo; token: string; onSent
         }}
       />
       {file ? (
-        <span className="flex h-12 items-center gap-2 rounded-lg border border-neutral-300 px-3 text-sm">
+        <span className="flex h-12 min-w-0 items-center gap-2 rounded-lg border border-neutral-300 px-3 text-sm">
           <Paperclip className="size-4 shrink-0 text-neutral-500" aria-hidden />
-          <span className="truncate" dir="ltr">
+          <span className="min-w-0 flex-1 truncate" dir="ltr">
             {file.name}
           </span>
-          <button type="button" onClick={() => setFile(null)} className="ms-auto rounded p-1 text-neutral-500 hover:text-neutral-900" aria-label={t.removeReceipt}>
+          <button type="button" onClick={() => setFile(null)} className="shrink-0 rounded p-1 text-neutral-500 hover:text-neutral-900" aria-label={t.removeReceipt}>
             <X className="size-4" aria-hidden />
           </button>
         </span>

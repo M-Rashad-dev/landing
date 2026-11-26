@@ -59,14 +59,14 @@ export function TransferBox({ method, total, draft, onDraft, error }: { method: 
 
   const shown = fileError ?? error ?? null;
   return (
-    <div id="pay-receipt" className="flex scroll-mt-28 flex-col gap-3 rounded-xl bg-(--as-soft) p-3">
+    <div id="pay-receipt" className="flex min-w-0 scroll-mt-28 flex-col gap-3 rounded-xl bg-(--as-soft) p-3">
       <p className="as-sm font-semibold">{total !== null ? t.sendAmount(formatMoney(total)) : method.name}</p>
       {method.account ? (
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-(--as-bg) px-3 py-2">
-          <span className="as-base font-mono font-bold" dir="ltr">
+        <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-(--as-bg) px-3 py-2">
+          <span className="as-base min-w-0 break-all font-mono font-bold" dir="ltr">
             {method.account}
           </span>
-          <button type="button" onClick={() => void copy()} className="as-xs flex items-center gap-1 font-semibold text-(--as-primary)">
+          <button type="button" onClick={() => void copy()} className="as-xs flex shrink-0 items-center gap-1 font-semibold text-(--as-primary)">
             {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
             {copied ? t.copied : t.copy}
           </button>
@@ -93,12 +93,12 @@ export function TransferBox({ method, total, draft, onDraft, error }: { method: 
         }}
       />
       {draft.file ? (
-        <span className="as-sm flex h-12 items-center gap-2 rounded-lg border bg-(--as-bg) px-3">
+        <span className="as-sm flex h-12 min-w-0 items-center gap-2 rounded-lg border bg-(--as-bg) px-3">
           <Paperclip className="size-4 shrink-0 opacity-60" aria-hidden />
-          <span className="truncate" dir="ltr">
+          <span className="min-w-0 flex-1 truncate" dir="ltr">
             {draft.file.name}
           </span>
-          <button type="button" onClick={() => onDraft({ ...draft, file: null })} className="ms-auto rounded p-1 opacity-60 hover:opacity-100" aria-label={t.removeReceipt}>
+          <button type="button" onClick={() => onDraft({ ...draft, file: null })} className="shrink-0 rounded p-1 opacity-60 hover:opacity-100" aria-label={t.removeReceipt}>
             <X className="size-4" aria-hidden />
           </button>
         </span>

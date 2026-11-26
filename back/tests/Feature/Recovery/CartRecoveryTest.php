@@ -23,7 +23,6 @@ use App\Models\OutboundMessage;
 use App\Models\PaymentMethod;
 use App\Models\PlanFeatureValue;
 use App\Models\Product;
-use App\Models\RecoveryOptOut;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -205,9 +204,7 @@ it('waits for the morning and stops for every stop rule', function () {
         $lead = crLead(['customer_phone' => '+201088880000']);
         BlockedCustomer::query()->create(['type' => 'phone', 'value' => '+201088880000', 'reason' => 'x']);
         $out[] = $recovery->stopReason($lead);
-        $lead = crLead(['customer_phone' => '+201077770000']);
-        RecoveryOptOut::query()->create(['phone' => '+201077770000']);
-        $out[] = $recovery->stopReason($lead);
+        $out[] = $recovery->stopReason(crLead(['customer_phone' => '+201077770000', 'opted_out_at' => now()]));
         $out[] = $recovery->stopReason(crLead(['customer_phone' => '+201066660000']));
 
         return $out;
@@ -237,7 +234,7 @@ it('emails when the balance runs out, tells the merchant once, and gives back a 
         ->and(asTenant($this->owner, fn () => LeadReminder::query()->where('charged', true)->count()))->toBe(0);
 });
 
-it('stops on «مش مهتم» from that phone only, and from the email link', function () {
+it('stops on «مش مهتم» for that cart only, from that phone, and from the email link', function () {
     crOn();
     crBalance(5);
     $lead = crLead(['customer_email' => 'sara@example.com']);
@@ -246,14 +243,39 @@ it('stops on «مش مهتم» from that phone only, and from the email link', f
     $press = fn (string $p, string $from) => crWebhook(['messages' => [['from' => $from, 'id' => 'wamid.in'.random_int(1, 99999), 'type' => 'button', 'button' => ['payload' => $p, 'text' => 'مش مهتم']]]]);
     $press(substr($payload, 0, -3).'abc', '201011113333')->assertOk();
     $press($payload, '201099998888')->assertOk();
-    expect(asTenant($this->owner, fn () => RecoveryOptOut::query()->count()))->toBe(0);
+    expect($lead->fresh()->opted_out_at)->toBeNull();
     $press($payload, '201011113333')->assertOk();
-    expect(asTenant($this->owner, fn () => RecoveryOptOut::query()->where('phone', CR_PHONE)->count()))->toBe(1)
-        ->and(crRun())->toBe(0);
+    expect($lead->fresh()->opted_out_at)->not->toBeNull()->and(crRun())->toBe(0);
+    // The dashboard shows it.
+    $this->getJson('/api/v1/dashboard/leads?source=store')->assertJsonPath('data.0.opted_out_at', fn ($v) => $v !== null);
+
+    // Another cart of the same phone still gets its reminders.
+    $next = crLead(['source' => 'cart', 'cart_token' => 'cart_'.str_repeat('n', 20)]);
+    expect(crRun())->toBe(1)->and($next->fresh()->reminders_sent)->toBe(1);
 
     $other = crLead(['customer_phone' => '+201022223333', 'customer_email' => 'mona@example.com']);
     $this->postJson('/api/v1/public/recovery/unsubscribe', ['token' => app(CartRecovery::class)->token($other)], internalHeaders())->assertOk()->assertJsonPath('data.store', 'متجر حبة');
-    expect(asTenant($this->owner, fn () => RecoveryOptOut::blocks(null, 'mona@example.com')))->toBeTrue();
+    expect($other->fresh()->opted_out_at)->not->toBeNull();
+});
+
+it('asks again once the customer changes the cart they said «مش مهتم» about, and leaves it out of a manual send until then', function () {
+    $product = asTenant($this->owner, fn () => Product::factory()->create(['price' => '100.00', 'in_store' => true]));
+    $lead = asTenant($this->owner, function () use ($product) {
+        app(CaptureLead::class)->abandonedCart('cart_'.str_repeat('c', 20), ['phone' => CR_PHONE], ['items' => [['product_id' => $product->id, 'name' => 'x', 'quantity' => 1, 'options' => []]], 'total' => 100]);
+
+        return AbandonedLead::query()->where('source', 'cart')->firstOrFail();
+    });
+    app(CartRecovery::class)->optOut($lead, false);
+    crBalance(5);
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$lead->id]])->assertStatus(422)->assertJsonPath('code', 'nothing_to_remind');
+
+    // The same cart again: still stopped. A changed one: reminders may go.
+    asTenant($this->owner, fn () => app(CaptureLead::class)->abandonedCart('cart_'.str_repeat('c', 20), ['phone' => CR_PHONE], ['items' => [['product_id' => $product->id, 'name' => 'x', 'quantity' => 1, 'options' => []]], 'total' => 100]));
+    expect($lead->fresh()->opted_out_at)->not->toBeNull();
+    asTenant($this->owner, fn () => app(CaptureLead::class)->abandonedCart('cart_'.str_repeat('c', 20), ['phone' => CR_PHONE], ['items' => [['product_id' => $product->id, 'name' => 'x', 'quantity' => 2, 'options' => []]], 'total' => 200]));
+    expect($lead->fresh()->opted_out_at)->toBeNull();
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$lead->id]])->assertStatus(202);
+    expect($lead->fresh()->reminders_sent)->toBe(1);
 });
 
 it('restores the cart from the link on the store host only', function () {
