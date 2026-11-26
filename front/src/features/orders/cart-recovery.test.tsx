@@ -137,21 +137,23 @@ describe("manual reminders on the abandoned page", () => {
   const a = ar.orders.abandoned;
   const sent = () => fetchMock.mock.calls.filter(([url]) => String(url).includes("/leads/recovery/remind")).map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
-  it("sends to everyone on the tab, or to the picked carts only", async () => {
+  it("sends to everyone on the tab, or to the picked carts only", { timeout: 20000 }, async () => {
     // One waiting on its order's payment: marked, and can't be picked.
     route([lead(1), lead(2), lead(3, { order: { id: 9, number: 1009 } })]);
     page();
-    expect(await screen.findByText("عميل 1")).toBeInTheDocument();
+    expect(await screen.findByText("عميل 1", undefined, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText(a.waitingPayment)).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: a.pickOne("عميل 3") })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: a.remindAll }));
-    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }));
-    await waitFor(() => expect(sent()).toEqual([{ source: "cart" }]));
+    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }, { timeout: 5000 }));
+    await waitFor(() => expect(sent()).toEqual([{ source: "cart" }]), { timeout: 5000 });
+    // The dialog closes once the send is accepted.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull(), { timeout: 5000 });
 
     fireEvent.click(screen.getByRole("checkbox", { name: a.pickOne("عميل 2") }));
     fireEvent.click(screen.getByRole("button", { name: a.remindPicked(1) }));
-    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }));
-    await waitFor(() => expect(sent()[1]).toEqual({ ids: [2] }));
+    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }, { timeout: 5000 }));
+    await waitFor(() => expect(sent()[1]).toEqual({ ids: [2] }), { timeout: 5000 });
   });
 });

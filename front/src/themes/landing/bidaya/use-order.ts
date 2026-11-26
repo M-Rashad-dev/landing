@@ -11,6 +11,7 @@ import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
 import { useCustomerInputs } from "@/themes/shared/customer-inputs";
 import { defaultPayment } from "@/themes/shared/payment-choice";
+import { payToken, sendReceipt, startOnlinePayment, type ReceiptDraft } from "@/themes/shared/receipt-upload";
 import type { PageMode } from "./context";
 import type { FormFieldKey, LandingData, LandingQuote, OrderFormProps } from "./types";
 
@@ -19,7 +20,17 @@ const c = ar.storefront.checkout;
 
 /** The order the visitor just placed, read by «طلبك وصل» (it fires the purchase event once). */
 export const PLACED_KEY = "bd_placed";
-export type Placed = { slug: string; number: number; total: number; quantity: number; product_id: number; product_name: string; pay_url?: string | null };
+export type Placed = {
+  slug: string;
+  number: number;
+  total: number;
+  quantity: number;
+  product_id: number;
+  product_name: string;
+  pay_url?: string | null;
+  /** The receipt picked with the order: arrived, or to send again from the pay page (null: none picked). */
+  receipt?: "sent" | "failed" | null;
+};
 
 const ORDER = ["name", "phone", "phone2", "email", "governorate", "city", "address", "notes"] as const satisfies readonly FormFieldKey[];
 
@@ -78,6 +89,11 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
   // Cash on delivery or one of the store's prepaid methods.
   const paymentOptions = data.payments && digital ? { ...data.payments, cod: false } : data.payments;
   const [payment, setPaymentState] = React.useState(() => defaultPayment(paymentOptions));
+  // A transfer's receipt is picked right under it and sent with the order; an online method opens its gateway after.
+  const chosenMethod = paymentOptions?.methods.find((m) => String(m.id) === payment) ?? null;
+  const transfer = chosenMethod && chosenMethod.kind !== "online" ? chosenMethod : null;
+  const [receipt, setReceiptState] = React.useState<ReceiptDraft>({ file: null, sender: "" });
+  const [receiptError, setReceiptError] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [options, setOptions] = React.useState<Record<number, number>>(() => {
     const start: Record<number, number> = {};
@@ -255,6 +271,12 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     }
     setErrors(next);
     const inputsReady = custom.check();
+    const receiptMissing = live && transfer !== null && !receipt.file;
+    setReceiptError(receiptMissing ? ar.storefront.pay.receiptRequired : null);
+    if (receiptMissing && Object.keys(next).length === 0 && inputsReady) {
+      document.getElementById("pay-receipt")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (Object.keys(next).length > 0 || !inputsReady) {
       const first = Object.keys(next)[0] ?? (custom.missing[0] ? `inputs.${custom.missing[0].id}` : null);
       if (first) document.querySelector<HTMLElement>(`[data-field="${CSS.escape(first)}"]`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
@@ -294,7 +316,17 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
       const json = (await response.json().catch(() => ({}))) as { data?: { order_number: number; total: number; upsell?: UpsellOfferData | null; pay_url?: string | null }; code?: string; message?: string; errors?: Record<string, string[]> };
       if (response.ok && json.data) {
         saveUpsell(json.data.order_number, json.data.upsell);
-        onPlaced({ slug, number: json.data.order_number, total: json.data.total, quantity, product_id: product.id, product_name: product.name, pay_url: json.data.pay_url ?? null });
+        // Prepaid: pay now on the gateway's page, or send the receipt picked under the method.
+        const pay = payToken(json.data.pay_url);
+        if (pay && chosenMethod?.kind === "online") {
+          const url = await startOnlinePayment(pay, chosenMethod.id);
+          if (url) {
+            window.location.assign(url);
+            return;
+          }
+        }
+        const sent = pay && transfer && receipt.file ? await sendReceipt(pay, transfer.id, receipt) : null;
+        onPlaced({ slug, number: json.data.order_number, total: json.data.total, quantity, product_id: product.id, product_name: product.name, pay_url: json.data.pay_url ?? null, receipt: sent === null ? null : sent ? "sent" : "failed" });
         return;
       }
       setStatus("error");
@@ -329,7 +361,16 @@ export function useLandingOrder(props: OrderFormProps, data: LandingData, mode: 
     paymentOptions,
     digital,
     payment,
+    /** The chosen transfer method (null: cash on delivery or online) and its receipt. */
+    transfer,
+    receipt,
+    setReceipt: (d: ReceiptDraft) => {
+      setReceiptState(d);
+      if (d.file) setReceiptError(null);
+    },
+    receiptError,
     setPayment: (v: string) => {
+      setReceiptError(null);
       setPaymentState(v);
       setErrors((current) => {
         const next = { ...current };

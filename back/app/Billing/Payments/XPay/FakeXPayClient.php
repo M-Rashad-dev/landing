@@ -27,6 +27,19 @@ final class FakeXPayClient implements XPayClient
         return $this->ready;
     }
 
+    /** @var list<array{url: string, events: list<string>}> */
+    public array $webhooks = [];
+
+    public function registerWebhook(string $url, array $events): array
+    {
+        if ($this->fail !== null) {
+            throw new XPayError($this->fail);
+        }
+        $this->webhooks[] = ['url' => $url, 'events' => $events];
+
+        return ['id' => 'we_fake_'.count($this->webhooks), 'secret' => 'whsec_fake_'.Str::random(24), 'livemode' => false];
+    }
+
     public function createSession(array $body, string $idempotencyKey): array
     {
         if ($this->fail !== null) {

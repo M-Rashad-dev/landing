@@ -9,6 +9,7 @@ import { offerLabel, offerQuantity } from "@/lib/store/offers";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
+import { TransferBox } from "@/themes/shared/receipt-upload";
 import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { QuantityStepper } from "@/themes/store/asas/parts";
 import { imageSrc, usePage, useProductImages } from "./context";
@@ -210,7 +211,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
 
         <Summary quote={q} loading={form.quoteLoading} />
 
-        {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} /> : null}
+        {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} detail={form.transfer ? <TransferBox method={form.transfer} total={q?.total ?? null} draft={form.receipt} onDraft={form.setReceipt} error={form.receiptError} /> : null} /> : null}
 
         <p className="as-sm flex items-center gap-2 rounded-lg bg-(--as-soft) p-3 font-semibold">
           <Banknote className="size-5 as-primary" aria-hidden />

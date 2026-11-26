@@ -97,6 +97,48 @@ describe("«بداية»", () => {
     expect(JSON.parse(window.sessionStorage.getItem("bd_placed")!)).toMatchObject({ number: 1001, total: 1500 });
   });
 
+  it("takes the receipt right under a transfer method and sends it with the order", async () => {
+    const sent: Array<{ url: string; body: unknown }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string, init?: RequestInit) => {
+        const url = String(input);
+        sent.push({ url, body: init?.body ?? null });
+        if (url.startsWith("/api/public/landing/form-token")) return Response.json({ data: { token: "tok" } });
+        if (url === "/api/public/landing/quote") return Response.json({ data: { unit_price: 850, quantity: 1, base_subtotal: 850, offer: null, subtotal_after_offer: 850, code: null, code_error: null, shipping: null, total: 850 } });
+        if (url === "/api/public/landing/orders") return Response.json({ data: { order_number: 1002, total: 850, pay_url: "https://sama.test/pay/abcdef123456" } }, { status: 201 });
+        if (url === "/api/public/payments") return Response.json({ data: {} }, { status: 201 });
+        return new Response(null, { status: 202 });
+      }),
+    );
+    const paying = { ...data, payments: { cod: true, methods: [{ id: 8, kind: "instapay" as const, name: "إنستاباي", account: "sama@instapay", link: null, instructions: null }] } };
+    render(<BidayaPage content={content} data={paying} mode="live" />);
+    const c = ar.storefront.checkout;
+    fireEvent.change(screen.getByLabelText(c.name), { target: { value: "أحمد علي" } });
+    fireEvent.change(screen.getByLabelText(c.phone), { target: { value: "01012345678" } });
+    fireEvent.change(screen.getByLabelText(c.governorate), { target: { value: "القاهرة" } });
+    fireEvent.change(screen.getByLabelText(c.address), { target: { value: "شارع 9" } });
+    fireEvent.click(screen.getByRole("radio", { name: /إنستاباي/ }));
+    expect(screen.getByText("sama@instapay")).toBeInTheDocument();
+    await waitFor(() => expect(sent.some((x) => x.url.startsWith("/api/public/landing/form-token"))).toBe(true));
+
+    // No receipt yet: nothing goes.
+    fireEvent.click(screen.getByRole("button", { name: /تأكيد الطلب/ }));
+    expect(await screen.findByText(ar.storefront.pay.receiptRequired)).toBeInTheDocument();
+    expect(sent.some((x) => x.url === "/api/public/landing/orders")).toBe(false);
+
+    fireEvent.change(screen.getByLabelText(ar.storefront.pay.receipt), { target: { files: [new File([new Uint8Array([37, 80, 68, 70])], "receipt.pdf", { type: "application/pdf" })] } });
+    expect(await screen.findByText("receipt.pdf")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /تأكيد الطلب/ }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/watch/done?order=1002"));
+    expect(JSON.parse(String(sent.find((x) => x.url === "/api/public/landing/orders")!.body)).payment_method).toBe("8");
+    const receipt = sent.find((x) => x.url === "/api/public/payments")!.body as FormData;
+    expect(receipt.get("token")).toBe("abcdef123456");
+    expect(receipt.get("method_id")).toBe("8");
+    expect(JSON.parse(window.sessionStorage.getItem("bd_placed")!)).toMatchObject({ number: 1002, receipt: "sent" });
+  });
+
   it("sends nothing from the Builder", async () => {
     render(<BidayaPage content={content} data={data} mode="builder" />);
     fireEvent.change(screen.getByLabelText(ar.storefront.checkout.name), { target: { value: "أحمد علي" } });

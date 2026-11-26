@@ -34,4 +34,15 @@ interface XPayClient
 
     /** The XPay-Signature header ("t=…,v1=…") is valid for these exact bytes and recent (5 minutes). */
     public function signatureValid(string $rawBody, string $header): bool;
+
+    /**
+     * Registers the platform's webhook on the account of the configured key (live or test). XPay shows the signing
+     * secret only in this answer.
+     *
+     * @param  list<string>  $events
+     * @return array{id: string, secret: string, livemode: bool}
+     *
+     * @throws XPayError
+     */
+    public function registerWebhook(string $url, array $events): array;
 }

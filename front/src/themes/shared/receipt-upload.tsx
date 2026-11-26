@@ -125,3 +125,36 @@ export function TransferBox({ method, total, draft, onDraft, error }: { method: 
     </div>
   );
 }
+
+/** The order's private pay token from its pay link (".../pay/abc123def456"). */
+export function payToken(payUrl: string | null | undefined): string | null {
+  return payUrl?.match(/\/pay\/([a-z0-9]{12})$/)?.[1] ?? null;
+}
+
+/** The receipt picked with the order goes to its pay page. False when it didn't make it (sent again from there). */
+export async function sendReceipt(token: string, methodId: number, draft: ReceiptDraft): Promise<boolean> {
+  if (!draft.file) return false;
+  const form = new FormData();
+  form.set("token", token);
+  form.set("method_id", String(methodId));
+  if (draft.sender.trim()) form.set("sender_ref", draft.sender.trim());
+  form.set("receipt", draft.file, draft.file.name);
+  try {
+    const response = await fetch("/api/public/payments", { method: "POST", body: form, headers: { Accept: "application/json" } });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** An online method: the gateway's page for the new order (its address), or null when it can't open now. */
+export async function startOnlinePayment(token: string, methodId: number): Promise<string | null> {
+  try {
+    const response = await fetch("/api/public/payments/online", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ token, method_id: methodId }) });
+    const json = (await response.json().catch(() => ({}))) as { data?: { url?: string } };
+    return response.ok && json.data?.url ? json.data.url : null;
+  } catch {
+    return null;
+  }
+}
+

@@ -223,3 +223,15 @@ it('talks to XPay with the secret key, an idempotency key and checks its signatu
         ->and($client->signatureValid($raw.' ', FakeXPayClient::sign($raw)))->toBeFalse()
         ->and($client->signatureValid($raw, ''))->toBeFalse();
 });
+
+it('registers the platform webhook on the key\'s account and prints its secret once', function () {
+    $fake = app(XPayClient::class);
+
+    $this->artisan('xpay:webhook', ['url' => 'http://insecure.test/hook'])->assertExitCode(2);
+    $this->artisan('xpay:webhook', ['url' => 'https://app.mksab.store/api/webhooks/xpay'])
+        ->expectsOutputToContain('XPAY_WEBHOOK_SECRET=whsec_fake_')->assertExitCode(0);
+
+    expect($fake->webhooks)->toHaveCount(1)
+        ->and($fake->webhooks[0]['url'])->toBe('https://app.mksab.store/api/webhooks/xpay')
+        ->and($fake->webhooks[0]['events'])->toContain('checkout.session.completed', 'checkout.session.async_payment_succeeded');
+});

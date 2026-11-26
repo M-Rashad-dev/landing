@@ -8,6 +8,7 @@ import { GOVERNORATES } from "@/lib/store/governorates";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
+import { TransferBox } from "@/themes/shared/receipt-upload";
 import { CustomerInputFields } from "@/themes/shared/customer-inputs";
 import { QuantityStepper } from "@/themes/store/asas/parts";
 import { imageSrc, useImage, usePage, useProductImages } from "@/themes/landing/bidaya/context";
@@ -223,7 +224,7 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
             <CodeBox form={form} />
             <Summary quote={q} loading={form.quoteLoading} />
 
-            {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} /> : null}
+            {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} detail={form.transfer ? <TransferBox method={form.transfer} total={q?.total ?? null} draft={form.receipt} onDraft={form.setReceipt} error={form.receiptError} /> : null} /> : null}
 
             {form.formError ? (
               <p className="as-sm font-semibold text-red-600" role="alert">

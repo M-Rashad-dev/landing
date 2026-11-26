@@ -100,7 +100,7 @@ export function LandingDone({ payload, orderNumber }: { payload: LandingPayload;
               ) : null}
             </dl>
           ) : null}
-          {placed?.pay_url ? <PayNowBox href={placed.pay_url} /> : null}
+          {placed?.pay_url ? <PayNowBox href={placed.pay_url} receipt={placed.receipt ?? null} /> : null}
           <UpsellOffer orderNumber={number ?? null} onTotal={(total) => setPlaced((p) => (p ? { ...p, total } : p))} />
           <a href="/track" className="as-btn as-base h-12 w-full">
             <PackageSearch className="size-5" aria-hidden />

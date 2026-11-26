@@ -64,6 +64,17 @@ final class HttpXPayClient implements XPayClient
         return false;
     }
 
+    public function registerWebhook(string $url, array $events): array
+    {
+        $endpoint = $this->json(fn () => $this->http()->post('/webhook-endpoints', ['url' => $url, 'enabledEvents' => $events, 'description' => 'Mksab platform invoices']));
+        $secret = (string) ($endpoint['secret'] ?? '');
+        if ($secret === '') {
+            throw new XPayError('XPay answered without a webhook secret.');
+        }
+
+        return ['id' => (string) ($endpoint['id'] ?? ''), 'secret' => $secret, 'livemode' => (bool) ($endpoint['livemode'] ?? str_starts_with($this->key(), 'sk_live_'))];
+    }
+
     private function http(): PendingRequest
     {
         return Http::baseUrl(rtrim((string) config('services.xpay.base_url'), '/'))

@@ -18,7 +18,7 @@ import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
 import { defaultPayment } from "@/themes/shared/payment-choice";
-import type { ReceiptDraft } from "@/themes/shared/receipt-upload";
+import { payToken, sendReceipt, startOnlinePayment, type ReceiptDraft } from "@/themes/shared/receipt-upload";
 import { clearCartNote, readCartNote } from "./cart-note";
 
 const t = ar.storefront.checkout;
@@ -92,7 +92,9 @@ export function useCheckout(config: StoreConfig) {
     setReceiptError(null);
   };
   // A transfer (InstaPay, wallet, bank, link): its receipt is picked right under it and sent with the order.
-  const transfer = paymentOptions?.methods.find((m) => String(m.id) === payment && m.kind !== "online") ?? null;
+  // An online method: the gateway's page opens as soon as the order is placed.
+  const chosenMethod = paymentOptions?.methods.find((m) => String(m.id) === payment) ?? null;
+  const transfer = chosenMethod && chosenMethod.kind !== "online" ? chosenMethod : null;
   const [receipt, setReceiptState] = React.useState<ReceiptDraft>({ file: null, sender: "" });
   const [receiptError, setReceiptError] = React.useState<string | null>(null);
   const setReceipt = (d: ReceiptDraft) => {
@@ -231,8 +233,15 @@ export function useCheckout(config: StoreConfig) {
         clearCartNote();
         resetCartToken();
         saveUpsell(json.data.order_number, json.data.upsell);
-        // A prepaid order: «طلبك وصل» shows «ادفع وارفع الإيصال» (its private token), or that the receipt arrived.
-        const pay = json.data.pay_url?.match(/\/pay\/([a-z0-9]{12})$/)?.[1];
+        // A prepaid order: paid now (the gateway's page), or its receipt sent; «طلبك وصل» says where it is.
+        const pay = payToken(json.data.pay_url);
+        if (pay && chosenMethod?.kind === "online") {
+          const url = await startOnlinePayment(pay, chosenMethod.id);
+          if (url) {
+            window.location.assign(url);
+            return;
+          }
+        }
         const sent = pay && transfer && receipt.file ? await sendReceipt(pay, transfer.id, receipt) : null;
         router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}${pay ? `&pay=${pay}` : ""}${sent === null ? "" : `&receipt=${sent ? "sent" : "failed"}`}`);
         return;
@@ -305,18 +314,3 @@ export function useCheckout(config: StoreConfig) {
   };
 }
 
-/** The receipt picked at checkout goes to the new order's pay page. False when it didn't make it (sent again from there). */
-async function sendReceipt(token: string, methodId: number, draft: ReceiptDraft): Promise<boolean> {
-  if (!draft.file) return false;
-  const form = new FormData();
-  form.set("token", token);
-  form.set("method_id", String(methodId));
-  if (draft.sender.trim()) form.set("sender_ref", draft.sender.trim());
-  form.set("receipt", draft.file, draft.file.name);
-  try {
-    const response = await fetch("/api/public/payments", { method: "POST", body: form, headers: { Accept: "application/json" } });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
