@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { proxy } from "@/proxy";
+import { POST as landingOrder } from "./landing/orders/route";
 import { POST as order } from "./store/orders/route";
 import { POST as quote } from "./store/quote/route";
 
@@ -88,13 +89,24 @@ describe("store visitor endpoints", () => {
 
   it("forwards only the allowed order fields, with the host and the visitor's IP", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ data: { order_number: 1, total: 10 } }, { status: 201 }));
-    const response = await order(post("/api/public/store/orders", { items: [{ product_id: 1, quantity: 1 }], customer: { name: "س" }, cart_token: "a".repeat(20), host: "evil.com", ip: "1.1.1.1", status: "delivered" }));
+    const response = await order(post("/api/public/store/orders", { items: [{ product_id: 1, quantity: 1 }], customer: { name: "س" }, cart_token: "a".repeat(20), payment_method: "12", host: "evil.com", ip: "1.1.1.1", status: "delivered" }));
 
     expect(response.status).toBe(201);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("http://laravel.test/api/v1/public/store/orders");
     expect((init.headers as Headers).get("X-Internal-Key")).toBe("internal-key");
-    expect(JSON.parse(init.body)).toEqual({ items: [{ product_id: 1, quantity: 1 }], customer: { name: "س" }, cart_token: "a".repeat(20), host: "shop.example.com", ip: "41.1.2.3", user_agent: "phone" });
+    // The chosen way to pay goes along (a prepaid order is never made a cash-on-delivery one).
+    expect(JSON.parse(init.body)).toEqual({ items: [{ product_id: 1, quantity: 1 }], customer: { name: "س" }, cart_token: "a".repeat(20), payment_method: "12", host: "shop.example.com", ip: "41.1.2.3", user_agent: "phone" });
+  });
+
+  it("sends a landing page order's chosen way to pay too", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ data: { order_number: 2, total: 10 } }, { status: 201 }));
+    const response = await landingOrder(post("/api/public/landing/orders", { slug: "watch", quantity: 1, customer: { name: "س" }, payment_method: "7", status: "delivered" }));
+
+    expect(response.status).toBe(201);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ slug: "watch", quantity: 1, payment_method: "7" });
+    expect(body.status).toBeUndefined();
   });
 
   it("refuses a body that is not a cart, and relays Laravel's validation errors", async () => {

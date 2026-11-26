@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     method: "POST",
     body: {
       slug: "",
-      ...pickKeys(body, ["slug", "quantity", "options", "inputs", "code", "customer", "form_token", "website", "utm", "offer_id", "shipping_company_id", "idempotency_key", "ab"]),
+      ...pickKeys(body, ["slug", "quantity", "options", "inputs", "code", "customer", "form_token", "website", "utm", "offer_id", "shipping_company_id", "idempotency_key", "ab", "payment_method"]),
       host: visitorHost(request),
       ip: visitorIp(request),
       user_agent: (request.headers.get("user-agent") ?? "").slice(0, 500),
