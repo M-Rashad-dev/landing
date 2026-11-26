@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, Eye, ImageOff, MessageCircle, Minus, Plus, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
+import { CircleAlert, Check, ChevronLeft, Eye, ImageOff, MessageCircle, Minus, Plus, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
@@ -63,7 +63,7 @@ function Gallery({ images, name, look }: { images: Image[]; name: string; look: 
 
   if (look.gallery === "slider" && images.length > 1) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3">
         <div
           ref={slider}
           className="flex snap-x snap-mandatory overflow-x-auto rounded-[2rem] [scrollbar-width:none]"
@@ -177,10 +177,10 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
         <span className="font-bold text-(--as-text)">{product.name}</span>
       </nav>
 
-      <div className="grid gap-8 @3xl:grid-cols-2 @3xl:gap-12">
+      <div className="grid grid-cols-1 gap-8 @3xl:grid-cols-2 @3xl:gap-12">
         <Gallery images={product.images} name={product.name} look={look} />
 
-        <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-col gap-2">
             <h1 className="ss-display ss-title">{product.name}</h1>
             {page.rating.count > 0 ? (
@@ -230,8 +230,8 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
           {product.options.map((option) => {
             const lacking = buy.lacking(option);
             return (
-              <fieldset key={option.id} id={`opt-${option.id}`} className={cn("flex flex-col gap-2 rounded-2xl", lacking && "-m-2 bg-red-500/5 p-2 ring-2 ring-red-500/70")} aria-invalid={lacking || undefined}>
-                <legend className="as-sm mb-2 font-extrabold">
+              <fieldset key={option.id} id={`opt-${option.id}`} className="flex min-w-0 scroll-mt-28 flex-col gap-2" aria-invalid={lacking || undefined}>
+                <legend className={cn("as-sm mb-2 font-extrabold", lacking && "text-red-600")}>
                   {option.name}
                   {option.is_required ? <span className="text-red-600" aria-hidden> *</span> : null}
                 </legend>
@@ -259,7 +259,7 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
                           aria-checked={on}
                           disabled={valueOut(option, v.id)}
                           onClick={() => choose(option.id, v.id)}
-                          className={cn("as-sm flex items-center gap-2 rounded-full border-2 px-4 py-2 font-bold transition disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through", on ? "border-(--as-primary) bg-(--as-primary) text-(--as-on-primary)" : "hover:border-(--as-primary)/50")}
+                          className={cn("as-sm flex items-center gap-2 rounded-full border-2 px-4 py-2 font-bold transition disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through", on ? "border-(--as-primary) bg-(--as-primary) text-(--as-on-primary)" : lacking ? "border-red-500/70" : "hover:border-(--as-primary)/50")}
                         >
                           {option.display_type === "swatch" && v.color_hex ? <span className="size-4 rounded-full border border-black/10" style={{ background: v.color_hex }} aria-hidden /> : null}
                           {v.label}
@@ -270,7 +270,8 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
                   </div>
                 )}
                 {lacking ? (
-                  <p className="as-xs font-bold text-red-600" role="alert">
+                  <p className="as-xs flex items-center gap-1.5 font-semibold text-red-600" role="alert">
+                    <CircleAlert className="size-4 shrink-0" aria-hidden />
                     {ar.storefront.product.pickOne(option.name)}
                   </p>
                 ) : null}

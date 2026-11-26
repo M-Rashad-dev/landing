@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ImageOff, MessageCircle, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
+import { Check, CircleAlert, ImageOff, MessageCircle, ShoppingBag, Tag, Zap, MailCheck } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import { formatMoney } from "@/lib/format";
@@ -34,9 +34,9 @@ export function ProductView({ page }: { page: ProductPage }) {
     <Container className="flex flex-col gap-8 py-6 @3xl:py-8">
       <Breadcrumb items={[...breadcrumb.map((c) => ({ name: c.name, href: `/categories/${encodeURIComponent(c.slug)}` })), { name: product.name }]} />
 
-      <div className="grid gap-6 @3xl:grid-cols-2 @3xl:gap-10">
-        {/* Images */}
-        <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-6 @3xl:grid-cols-2 @3xl:gap-10">
+        {/* Images (min-w-0: a long thumbnail strip scrolls instead of widening the page) */}
+        <div className="flex min-w-0 flex-col gap-3">
           <div className="relative aspect-square overflow-hidden rounded-2xl border bg-(--as-soft)">
             {current ? (
               // eslint-disable-next-line @next/next/no-img-element -- store images come from the media server
@@ -68,7 +68,7 @@ export function ProductView({ page }: { page: ProductPage }) {
         </div>
 
         {/* Details */}
-        <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-col gap-2">
             <h1 className="as-2xl font-extrabold">{product.name}</h1>
             {page.rating.count > 0 ? (
@@ -116,8 +116,8 @@ export function ProductView({ page }: { page: ProductPage }) {
           {product.options.map((option) => {
             const lacking = buy.lacking(option);
             return (
-            <fieldset key={option.id} id={`opt-${option.id}`} className={cn("flex flex-col gap-2 rounded-xl transition", lacking && "-m-2 bg-red-500/5 p-2 ring-2 ring-red-500/70")} aria-invalid={lacking || undefined}>
-              <legend className="as-sm mb-2 font-bold">
+            <fieldset key={option.id} id={`opt-${option.id}`} className="flex min-w-0 scroll-mt-28 flex-col gap-2" aria-invalid={lacking || undefined}>
+              <legend className={cn("as-sm mb-2 font-bold", lacking && "text-red-600")}>
                 {option.name}
                 {option.is_required ? <span className="text-red-600" aria-hidden> *</span> : null}
                 {chosen[option.id] !== undefined ? <span className="as-muted font-normal">: {option.values.find((v) => v.id === chosen[option.id])?.label}</span> : null}
@@ -157,7 +157,7 @@ export function ProductView({ page }: { page: ProductPage }) {
                         title={v.label}
                         className={cn(
                           "relative flex size-11 items-center justify-center rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-35",
-                          selected ? "border-(--as-primary) ring-2 ring-(--as-primary) ring-offset-2 ring-offset-(--as-bg)" : "border-transparent hover:border-(--as-primary)/50",
+                          selected ? "border-(--as-primary) ring-2 ring-(--as-primary) ring-offset-2 ring-offset-(--as-bg)" : lacking ? "border-red-500/70" : "border-transparent hover:border-(--as-primary)/50",
                         )}
                       >
                         <span className="size-8 rounded-full border border-black/10" style={{ background: v.color_hex! }} aria-hidden />
@@ -180,7 +180,7 @@ export function ProductView({ page }: { page: ProductPage }) {
                         title={v.label}
                         className={cn(
                           "as-sm flex items-center gap-2 rounded-lg border-2 px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through",
-                          selected ? "border-(--as-primary) bg-(--as-primary) text-(--as-on-primary) shadow-sm" : "hover:border-(--as-primary)/50",
+                          selected ? "border-(--as-primary) bg-(--as-primary) text-(--as-on-primary) shadow-sm" : lacking ? "border-red-500/70" : "hover:border-(--as-primary)/50",
                         )}
                       >
                         {selected ? <Check className="size-4" strokeWidth={3} aria-hidden /> : null}
@@ -192,7 +192,8 @@ export function ProductView({ page }: { page: ProductPage }) {
                 </div>
               )}
               {lacking ? (
-                <p className="as-xs font-bold text-red-600" role="alert">
+                <p className="as-xs flex items-center gap-1.5 font-semibold text-red-600" role="alert">
+                  <CircleAlert className="size-4 shrink-0" aria-hidden />
                   {t.pickOne(option.name)}
                 </p>
               ) : null}

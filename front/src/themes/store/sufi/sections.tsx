@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, ExternalLink, ImageOff, MapPin, MessageCircle, Phone, Play, Plus, ShoppingBag, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, ExternalLink, ImageOff, MapPin, MessageCircle, Phone, Play, Plus, ShoppingBag, Star } from "lucide-react";
 import { toast } from "@/components/ui/feedback";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -456,10 +456,10 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
 
   return (
     <section className="sf-section sf-band">
-      <div className="sf-wrap grid items-center gap-10 @5xl:grid-cols-[1.05fr_1fr] @5xl:gap-16">
-        <div className="sf-reveal grid gap-3 @3xl:grid-cols-[5.5rem_1fr]">
+      <div className="sf-wrap grid grid-cols-1 items-center gap-10 @5xl:grid-cols-[1.05fr_1fr] @5xl:gap-16">
+        <div className="sf-reveal grid min-w-0 grid-cols-1 gap-3 @3xl:grid-cols-[5.5rem_1fr]">
           {images.length > 1 ? (
-            <div className="order-2 flex gap-2.5 @3xl:order-none @3xl:flex-col">
+            <div className="as-scroll order-2 flex min-w-0 gap-2.5 overflow-x-auto @3xl:order-none @3xl:flex-col @3xl:overflow-visible">
               {images.slice(0, 5).map((img, i) => (
                 <button key={img.id} type="button" onClick={() => setImage(i)} className={cn("h-24 w-20 shrink-0 overflow-hidden rounded-xl border-2", i === image ? "border-(--as-text)" : "border-transparent opacity-70")} aria-label={ar.storefront.product.image(i + 1)}>
                   <Img src={pick(img.urls, "thumb")} />
@@ -472,7 +472,7 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
             {compare ? <span className="as-sm absolute start-4 top-4 rounded-full bg-[#d9472b] px-3 py-1 font-bold text-white">{t.off(Math.round(((compare - price) / compare) * 100))}</span> : null}
           </div>
         </div>
-        <div className="sf-reveal">
+        <div className="sf-reveal min-w-0">
           {kicker ? <p className="sf-kicker">{kicker}</p> : null}
           <h2 className="sf-title mt-2">{product.name}</h2>
           {rating.count > 0 ? (
@@ -490,8 +490,8 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
           {product.options.map((o) => {
             const lacking = showMissing && o.is_required && chosen[o.id] === undefined;
             return (
-              <div key={o.id} className={cn("mt-6 rounded-xl transition", lacking && "-mx-2 bg-red-500/5 p-2 ring-2 ring-red-500/70")}>
-                <p className="as-sm mb-2.5 font-bold">
+              <div key={o.id} className="mt-6">
+                <p className={cn("as-sm mb-2.5 font-bold", lacking && "text-red-600")}>
                   {o.name}
                   {o.is_required ? <span className="text-red-600" aria-hidden> *</span> : null}
                   {chosen[o.id] ? <span className="font-normal opacity-60">: {o.values.find((v) => v.id === chosen[o.id])?.label}</span> : null}
@@ -506,7 +506,7 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
                         type="button"
                         disabled={out}
                         onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))}
-                        className={cn("relative flex size-11 items-center justify-center rounded-full transition disabled:opacity-30", on ? "ring-2 ring-(--as-text) ring-offset-2 ring-offset-(--as-bg)" : "ring-1 ring-(--as-line)")}
+                        className={cn("relative flex size-11 items-center justify-center rounded-full transition disabled:opacity-30", on ? "ring-2 ring-(--as-text) ring-offset-2 ring-offset-(--as-bg)" : lacking ? "ring-2 ring-red-500/70" : "ring-1 ring-(--as-line)")}
                         aria-label={v.label}
                         aria-pressed={on}
                       >
@@ -518,7 +518,7 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
                         ) : null}
                       </button>
                     ) : (
-                      <button key={v.id} type="button" disabled={out} onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))} className={cn("as-sm flex h-11 min-w-12 items-center justify-center gap-1.5 rounded-xl border-[1.5px] px-3 font-bold transition disabled:line-through disabled:opacity-35", on ? "border-(--as-text) bg-(--as-text) text-(--as-bg) shadow-sm" : "bg-(--as-bg) hover:border-(--as-text)/60")} aria-pressed={on}>
+                      <button key={v.id} type="button" disabled={out} onClick={() => setChosen((c) => ({ ...c, [o.id]: v.id }))} className={cn("as-sm flex h-11 min-w-12 items-center justify-center gap-1.5 rounded-xl border-[1.5px] px-3 font-bold transition disabled:line-through disabled:opacity-35", on ? "border-(--as-text) bg-(--as-text) text-(--as-bg) shadow-sm" : lacking ? "border-red-500/70 bg-(--as-bg)" : "bg-(--as-bg) hover:border-(--as-text)/60")} aria-pressed={on}>
                         {on ? <Check className="size-4" strokeWidth={3} aria-hidden /> : null}
                         {v.label}
                       </button>
@@ -526,7 +526,8 @@ function FeaturedView({ entry, kicker }: { entry: NonNullable<NonNullable<SufiDa
                   })}
                 </div>
                 {lacking ? (
-                  <p className="as-xs mt-2 font-bold text-red-600" role="alert">
+                  <p className="as-xs mt-2 flex items-center gap-1.5 font-semibold text-red-600" role="alert">
+                    <CircleAlert className="size-4 shrink-0" aria-hidden />
                     {ar.storefront.product.pickOne(o.name)}
                   </p>
                 ) : null}
