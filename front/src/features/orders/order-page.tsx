@@ -580,7 +580,7 @@ const MESSAGE_TONE: Record<CustomerMessage["status"], Tone> = { pending: "neutra
 /** What the customer was told about this order (WhatsApp / email) and whether it arrived. */
 function CustomerMessages({ order }: { order: OrderDetail }) {
   const m = d.messages;
-  const reach = order.customer_email ? m.byEmail : order.whatsapp_opt_in ? m.byWhatsapp : m.none;
+  const reach = order.notify_via === "whatsapp" ? m.byWhatsapp : order.notify_via === "email" ? m.byEmail : m.none;
   return (
     <Panel>
       <PanelHeader title={m.title} description={reach} />

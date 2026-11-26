@@ -145,7 +145,7 @@ export function AccountView() {
           </button>
         ))}
       </div>
-      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} email={me.email ?? ""} phone={me.phone} channel={me.notify_channel} />}
+      {tab === "orders" ? <OrdersList /> : tab === "addresses" ? <AddressBook addresses={me.addresses} /> : <ProfileForm name={me.name ?? ""} email={me.email ?? ""} phone={me.phone} />}
       {confirmLeave ? <ConfirmDialog title={t.signOutTitle} text={t.signOutText} confirmLabel={t.signOut} onConfirm={() => void leave()} onCancel={() => setConfirmLeave(false)} /> : null}
     </Container>
   );
@@ -333,8 +333,8 @@ function AddressForm({ address, onDone, onCancel }: { address: Address | null; o
   );
 }
 
-function ProfileForm({ name, email, phone, channel }: { name: string; email: string; phone: string; channel: "email" | "whatsapp" }) {
-  const { values, set, errors, state, submit } = useProfileForm({ name, email, channel });
+function ProfileForm({ name, email, phone }: { name: string; email: string; phone: string }) {
+  const { values, set, errors, state, submit } = useProfileForm({ name, email });
 
   return (
     <form
@@ -354,16 +354,6 @@ function ProfileForm({ name, email, phone, channel }: { name: string; email: str
       <FormField id="pf-phone" label={t.phone} hint={t.phoneFixed}>
         <input id="pf-phone" dir="ltr" value={formatPhoneLocal(phone)} readOnly className={cn(inputClass, "text-end opacity-70")} />
       </FormField>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="as-sm mb-2 font-bold">{t.updatesBy}</legend>
-        {(["whatsapp", "email"] as const).map((option) => (
-          <label key={option} className={cn("as-sm flex cursor-pointer items-center gap-2 rounded-lg border p-3 font-semibold", values.channel === option && "border-(--as-primary) bg-(--as-soft)")}>
-            <input type="radio" name="pf-channel" value={option} checked={values.channel === option} onChange={() => set({ channel: option })} className="size-4 accent-(--as-primary)" />
-            {option === "whatsapp" ? t.updatesWhatsapp : t.updatesEmail}
-          </label>
-        ))}
-        {errors.channel ? <p className="as-xs text-red-600">{errors.channel}</p> : null}
-      </fieldset>
       {errors.form ? <p className="as-sm text-red-600">{errors.form}</p> : null}
       <div className="flex items-center gap-3">
         <button type="submit" disabled={state === "busy"} className="as-btn as-sm h-10 disabled:opacity-60">

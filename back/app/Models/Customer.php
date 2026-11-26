@@ -17,7 +17,6 @@ use Illuminate\Support\Carbon;
  * @property string $phone
  * @property string|null $name
  * @property string|null $email optional: order news and offers
- * @property string|null $notify_channel email | whatsapp, chosen in their store account (null = email when they have one)
  * @property string|null $governorate
  * @property string|null $city
  * @property string|null $address
@@ -31,7 +30,7 @@ class Customer extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['phone', 'name', 'email', 'notify_channel', 'governorate', 'city', 'address', 'note', 'block_exempt', 'first_order_at', 'last_order_at'];
+    protected $fillable = ['phone', 'name', 'email', 'governorate', 'city', 'address', 'note', 'block_exempt', 'first_order_at', 'last_order_at'];
 
     protected function casts(): array
     {

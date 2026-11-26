@@ -30,8 +30,6 @@ export const bidaya = {
     gift: (name: string) => `هدية: ${name}`,
     total: "الإجمالي",
     cod: "الدفع عند الاستلام",
-    whatsappOptIn: "ابعتولي تحديثات طلبي على واتساب",
-    whatsappOptInHint: "تأكيد الطلب، والشحن، والتسليم.",
     submitting: "بنسجّل طلبك...",
     unavailable: "المنتج ده مش متاح دلوقتي.",
     preview: "دي معاينة: الطلب بيتبعت من الصفحة المنشورة بس.",

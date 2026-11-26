@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   return relayPublic("/public/store/orders", {
     method: "POST",
     body: {
-      ...pickKeys(body, ["items", "customer", "code", "shipping_company_id", "form_token", "website", "utm", "cart_token", "save_address", "whatsapp_opt_in"]),
+      ...pickKeys(body, ["items", "customer", "code", "shipping_company_id", "form_token", "website", "utm", "cart_token", "save_address"]),
       host: visitorHost(request),
       ip: visitorIp(request),
       user_agent: (request.headers.get("user-agent") ?? "").slice(0, 500),

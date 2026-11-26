@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Analytics\OrderCosts;
 use App\Auth\PermissionCatalog;
+use App\Messaging\WhatsApp\WhatsAppMessenger;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\OrderEvent;
@@ -33,7 +34,8 @@ final class OrderDetailResource extends OrderResource
         return array_merge(parent::toArray($request), [
             'customer_phone2' => $this->customer_phone2,
             'customer_email' => $this->customer_email,
-            'whatsapp_opt_in' => (bool) $this->whatsapp_opt_in,
+            // Where order updates go: WhatsApp on the phone, email when WhatsApp isn't set up.
+            'notify_via' => app(WhatsAppMessenger::class)->configured() ? 'whatsapp' : ($this->customer_email ? 'email' : null),
             // What the customer was told about this order, and how it ended.
             'customer_messages' => OutboundMessage::query()->where('order_id', $this->id)->orderBy('id')->get()->map(fn (OutboundMessage $m): array => [
                 'id' => $m->id,

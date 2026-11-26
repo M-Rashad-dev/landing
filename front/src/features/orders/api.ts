@@ -163,7 +163,8 @@ export type OrderDetail = Omit<OrderRow, "shipment"> & {
   deliveries?: OrderDelivery[];
   customer_phone2: string | null;
   customer_email: string | null;
-  whatsapp_opt_in: boolean;
+  /** Where order updates go (WhatsApp on the phone; email when WhatsApp isn't set up). */
+  notify_via: "whatsapp" | "email" | null;
   customer_messages: CustomerMessage[];
   city: string | null;
   address: string | null;

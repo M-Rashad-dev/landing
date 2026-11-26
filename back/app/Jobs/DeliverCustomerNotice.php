@@ -57,12 +57,8 @@ final class DeliverCustomerNotice implements ShouldQueue
             }
             $customer = $order->customer_id === null ? null : Customer::query()->find($order->customer_id);
             $email = $order->customer_email ?: $customer?->email;
-            $choice = $customer?->notify_channel;
-            // Choosing WhatsApp in the account is consent too.
-            $whatsappAllowed = $order->whatsapp_opt_in || $choice === 'whatsapp';
-
-            $useWhatsapp = $whatsappAllowed && ($choice === 'whatsapp' || $email === null || $email === '');
-            if ($useWhatsapp && $this->whatsapp($order, $messenger)) {
+            // WhatsApp on the order's phone (the owner's decision: no opt-in asked); email only when WhatsApp couldn't go.
+            if ($this->whatsapp($order, $messenger)) {
                 return;
             }
             if ($email !== null && $email !== '') {

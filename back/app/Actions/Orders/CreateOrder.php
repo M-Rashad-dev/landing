@@ -154,7 +154,6 @@ final class CreateOrder
                 'customer_phone' => $phone,
                 'customer_phone2' => $customer['phone2'] ?? null,
                 'customer_email' => $customer['email'] ?? null,
-                'whatsapp_opt_in' => filter_var($input['whatsapp_opt_in'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'governorate' => $customer['governorate'] ?? null,
                 'city' => $customer['city'] ?? null,
                 'address' => $customer['address'] ?? null,

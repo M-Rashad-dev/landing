@@ -43,7 +43,7 @@ function ocOn(array $settings = []): void
 
 function ocOrder(array $attributes = []): Order
 {
-    $order = asTenant(test()->owner, fn () => Order::factory()->create($attributes + ['order_number' => 1024, 'total' => '450.00', 'customer_phone' => OC_PHONE, 'whatsapp_opt_in' => true, 'customer_email' => null]));
+    $order = asTenant(test()->owner, fn () => Order::factory()->create($attributes + ['order_number' => 1024, 'total' => '450.00', 'customer_phone' => OC_PHONE, 'customer_email' => null]));
     app(CustomerNotices::class)->received($order);
 
     return asTenant(test()->owner, fn () => $order->fresh());
@@ -100,9 +100,8 @@ it('sends the confirmation with three buttons instead of «received», only when
     });
     expect($order->confirm_state)->toBe(ConfirmState::Sent);
 
-    // No consent, or prepaid → nothing new.
-    expect(ocOrder(['order_number' => 1030, 'whatsapp_opt_in' => false])->confirm_state)->toBeNull()
-        ->and(ocOrder(['order_number' => 1031, 'status' => OrderStatus::AwaitingPayment, 'payment_method' => Order::PREPAID])->confirm_state)->toBeNull();
+    // Prepaid → nothing new (cash on delivery needs no opt-in).
+    expect(ocOrder(['order_number' => 1031, 'status' => OrderStatus::AwaitingPayment, 'payment_method' => Order::PREPAID])->confirm_state)->toBeNull();
 });
 
 it('confirms, cancels or asks for a call from the buttons, with the owner\'s replies', function () {

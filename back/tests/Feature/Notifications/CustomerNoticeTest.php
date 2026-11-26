@@ -40,7 +40,7 @@ function cnTenant(): Tenant
 function cnOrder(Tenant $tenant, array $attributes = []): Order
 {
     return asTenant($tenant, fn () => Order::factory()->create($attributes + [
-        'order_number' => 1024, 'total' => '450.00', 'customer_phone' => '+201011112222', 'customer_email' => null, 'whatsapp_opt_in' => false,
+        'order_number' => 1024, 'total' => '450.00', 'customer_phone' => '+201011112222', 'customer_email' => null,
     ]));
 }
 
@@ -50,12 +50,12 @@ it('gives every order a private tracking token', function () {
     expect($order->track_token)->toMatch('/^[a-z0-9]{12}$/');
 });
 
-it('messages the customer on WhatsApp when they agreed and gave no email', function () {
+it('messages the customer on WhatsApp on the order\'s phone (no opt-in asked)', function () {
     cnWhatsappOn();
     Mail::fake();
     Http::fake([CN_GRAPH.'/111/messages' => Http::response(['messages' => [['id' => 'wamid.O1']]])]);
     $tenant = cnTenant();
-    $order = cnOrder($tenant, ['whatsapp_opt_in' => true]);
+    $order = cnOrder($tenant, ['customer_email' => 'sara@example.com']);
 
     app(CustomerNotices::class)->received($order);
 
@@ -73,11 +73,10 @@ it('messages the customer on WhatsApp when they agreed and gave no email', funct
     Mail::assertNothingSent();
 });
 
-it('emails the customer when they gave an email, in the store\'s name', function () {
-    cnWhatsappOn();
+it('emails the customer when WhatsApp is not set up, in the store\'s name', function () {
     Mail::fake();
     Http::fake();
-    $order = cnOrder(cnTenant(), ['customer_email' => 'sara@example.com', 'whatsapp_opt_in' => true]);
+    $order = cnOrder(cnTenant(), ['customer_email' => 'sara@example.com']);
 
     app(CustomerNotices::class)->received($order);
 
@@ -89,8 +88,7 @@ it('emails the customer when they gave an email, in the store\'s name', function
     expect(OutboundMessage::query()->sole())->channel->toBe('email')->recipient->toBe('sara@example.com');
 });
 
-it('sends nothing without an email or WhatsApp consent', function () {
-    cnWhatsappOn();
+it('sends nothing without WhatsApp set up and without an email', function () {
     Mail::fake();
     Http::fake();
 
@@ -101,12 +99,12 @@ it('sends nothing without an email or WhatsApp consent', function () {
     expect(OutboundMessage::query()->count())->toBe(0);
 });
 
-it('follows the customer\'s own choice, and falls back to email when WhatsApp fails', function () {
+it('falls back to email when WhatsApp fails', function () {
     cnWhatsappOn();
     Mail::fake();
     Http::fake([CN_GRAPH.'/*' => Http::response(['error' => ['code' => 132001, 'message' => 'Template does not exist']], 404)]);
     $tenant = cnTenant();
-    $customer = asTenant($tenant, fn () => Customer::query()->create(['phone' => '+201011112222', 'email' => 'sara@example.com', 'notify_channel' => 'whatsapp']));
+    $customer = asTenant($tenant, fn () => Customer::query()->create(['phone' => '+201011112222', 'email' => 'sara@example.com']));
     $order = cnOrder($tenant, ['customer_id' => $customer->id]);
 
     app(CustomerNotices::class)->received($order);

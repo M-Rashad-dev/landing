@@ -45,7 +45,7 @@ function smGmail(array $override = []): array
 
 function smOrderEmail(): Order
 {
-    $order = asTenant(test()->user, fn () => Order::factory()->create(['total' => '450.00', 'customer_email' => 'sara@example.com', 'whatsapp_opt_in' => false]));
+    $order = asTenant(test()->user, fn () => Order::factory()->create(['total' => '450.00', 'customer_email' => 'sara@example.com']));
     app(CustomerNotices::class)->received($order);
 
     return $order;
@@ -178,7 +178,7 @@ it('keeps every store\'s mailbox to itself', function () {
     $other = actingAsOwner();
 
     $this->getJson(SM_URL)->assertOk()->assertJsonPath('data.mode', 'platform')->assertJsonPath('data.smtp.host', null);
-    $order = asTenant($other, fn () => Order::factory()->create(['customer_email' => 'omar@example.com', 'whatsapp_opt_in' => false]));
+    $order = asTenant($other, fn () => Order::factory()->create(['customer_email' => 'omar@example.com']));
     app(CustomerNotices::class)->received($order);
 
     expect(smBox()->sent)->toBe([]);

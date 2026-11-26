@@ -211,13 +211,6 @@ export function OrderForm({ props }: { props: OrderFormProps }) {
         <Summary quote={q} loading={form.quoteLoading} />
 
         {hasPaymentChoice(form.paymentOptions) ? <PaymentChoice options={form.paymentOptions} value={form.payment} onChange={form.setPayment} error={form.errors.payment_method} /> : null}
-        <label className="as-sm flex cursor-pointer items-start gap-2 font-semibold">
-          <input type="checkbox" checked={form.whatsappOptIn} onChange={(e) => form.setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
-          <span>
-            {t.whatsappOptIn}
-            <span className="as-xs as-muted block font-normal">{t.whatsappOptInHint}</span>
-          </span>
-        </label>
 
         <p className="as-sm flex items-center gap-2 rounded-lg bg-(--as-soft) p-3 font-semibold">
           <Banknote className="size-5 as-primary" aria-hidden />

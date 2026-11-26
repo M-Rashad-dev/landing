@@ -12,7 +12,6 @@ use App\Messaging\WhatsApp\WhatsAppError;
 use App\Messaging\WhatsApp\WhatsAppMessenger;
 use App\Messaging\WhatsApp\WhatsAppTemplateStatus;
 use App\Models\BlockedCustomer;
-use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderConfirmationSetting;
 use App\Models\OrderItem;
@@ -56,9 +55,9 @@ final class WhatsAppConfirmations
         if ($order->status !== OrderStatus::New || $order->isPrepaid() || $order->confirm_state !== null || ! OrderConfirmationSetting::current()->enabled || ! $this->available()) {
             return false;
         }
-        $choice = $order->customer_id === null ? null : Customer::query()->whereKey($order->customer_id)->value('notify_channel');
 
-        return ($order->whatsapp_opt_in || $choice === 'whatsapp') && ! BlockedCustomer::isBlocked($order->customer_phone, $order->ip_address);
+        // Every cash-on-delivery order on its phone (no opt-in asked), except a blocked customer.
+        return ! BlockedCustomer::isBlocked($order->customer_phone, $order->ip_address);
     }
 
     /** Sends the confirmation (or its reminder); false when it couldn't go (the order stays for a call). */
