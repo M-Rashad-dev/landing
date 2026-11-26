@@ -256,3 +256,35 @@ it('won\'t delete a method customers are still paying with', function () {
     $other = ppMethod(['name' => 'إنستاباي', 'kind' => 'instapay', 'account' => 'habba@instapay']);
     $this->deleteJson("/api/v1/dashboard/payments/methods/{$other->id}")->assertNoContent();
 });
+
+it('keeps an unpaid prepaid order in «دفع متروك» until its receipt is accepted', function () {
+    $store = ppStore();
+    $product = ppProduct();
+    $method = ppMethod();
+
+    // The checkout lead (phone typed), then the order chose the wallet: still open, now with its order.
+    test()->postJson('/api/v1/public/store/leads', ['host' => PP_HOST, 'items' => [['product_id' => $product->id, 'quantity' => 1]], 'phone' => '01012345678', 'form_token' => app(FormToken::class)->issue('store:'.$store->id, time() - 10)], internalHeaders())->assertStatus(202);
+    ppCheckout($store, $product, ['payment_method' => (string) $method->id])->assertCreated();
+    $order = asTenant($this->tenant, fn () => Order::query()->latest('id')->firstOrFail());
+    expect($order->status)->toBe(OrderStatus::AwaitingPayment);
+    $this->getJson('/api/v1/dashboard/leads?source=store')->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.status', 'open')->assertJsonPath('data.0.order.id', $order->id);
+
+    // The receipt accepted → paid → converted.
+    ppReceipt(ppToken(), $method->id)->assertCreated();
+    $receipt = asTenant($this->tenant, fn () => OrderPayment::query()->latest('id')->firstOrFail());
+    $this->postJson("/api/v1/dashboard/orders/{$order->id}/payments/{$receipt->id}/approve")->assertOk();
+    $this->getJson('/api/v1/dashboard/leads?source=store&status=converted')->assertJsonCount(1, 'data')->assertJsonPath('data.0.order.id', $order->id);
+    $this->getJson('/api/v1/dashboard/leads?source=store')->assertJsonCount(0, 'data');
+});
+
+it('puts an unpaid order with no checkout lead in «دفع متروك» by itself', function () {
+    $store = ppStore();
+    $product = ppProduct();
+    $method = ppMethod();
+
+    ppCheckout($store, $product, ['payment_method' => (string) $method->id])->assertCreated();
+
+    $this->getJson('/api/v1/dashboard/leads?source=store')->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.customer_phone', '+201012345678')->assertJsonPath('data.0.cart.items.0.name', 'كورس')->assertJsonPath('data.0.status', 'open');
+});

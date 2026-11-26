@@ -7,7 +7,10 @@ import { parseCart } from "@/lib/store/cart";
 import { applyRecovered, recoveryToken, type Recovered } from "@/lib/store/recovery";
 import { formatMoney } from "@/lib/format";
 import { ar } from "@/messages/ar";
+import { AbandonedPage, type Lead } from "./abandoned-page";
 import { CartRecoveryPanel, type RecoveryState } from "./cart-recovery-panel";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }), usePathname: () => "/dashboard/abandoned", useSearchParams: () => new URLSearchParams("kind=cart") }));
 
 const t = ar.orders.recovery;
 const fetchMock = vi.fn();
@@ -102,5 +105,53 @@ describe("cart reminders", () => {
     expect(cart.items).toHaveLength(1);
     expect(cart.items[0]).toMatchObject({ product_id: 4, quantity: 2, options: { "7": 21 }, options_label: "المقاس: L" });
     expect(window.location.search).toBe("");
+  });
+});
+
+describe("manual reminders on the abandoned page", () => {
+  const lead = (id: number, extra: Partial<Lead> = {}): Lead => ({
+    id, customer_name: `عميل ${id}`, customer_phone: `+20101111000${id}`, customer_id: null, governorate: null, quantity: 1, status: "open", page: null, product: null,
+    source: "cart", cart: { items: [{ product_id: 1, name: "قميص", quantity: 1 }], total: 300 }, order: null, contacted_at: null, last_seen_at: null, created_at: new Date().toISOString(), ...extra,
+  });
+
+  function route(rows: Lead[]) {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("/leads/recovery/remind")) return Response.json({ data: { count: init?.body ? (JSON.parse(String(init.body)).ids?.length ?? 2) : 2 } }, { status: 202 });
+      if (String(url).includes("/leads/recovery")) return Response.json({ data: { ...base, balance: 50 } });
+      return Response.json({ data: rows, meta: { current_page: 1, last_page: 1, per_page: 20, total: rows.length, counts: { open: rows.length, contacted: 0, converted: 0, dismissed: 0 }, sources: { store: 0, cart: rows.length, landing: 0 } } });
+    });
+  }
+
+  function page() {
+    return render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <TooltipProvider>
+          <SessionProvider value={{ user: { id: 1, name: "م", role: "owner", permissions: ["*"] }, tenant: { name: "x" }, plan: null, store_name: "x", storeUrl: null } as never}>
+            <AbandonedPage />
+          </SessionProvider>
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  const a = ar.orders.abandoned;
+  const sent = () => fetchMock.mock.calls.filter(([url]) => String(url).includes("/leads/recovery/remind")).map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+
+  it("sends to everyone on the tab, or to the picked carts only", async () => {
+    // One waiting on its order's payment: marked, and can't be picked.
+    route([lead(1), lead(2), lead(3, { order: { id: 9, number: 1009 } })]);
+    page();
+    expect(await screen.findByText("عميل 1")).toBeInTheDocument();
+    expect(screen.getByText(a.waitingPayment)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: a.pickOne("عميل 3") })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: a.remindAll }));
+    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }));
+    await waitFor(() => expect(sent()).toEqual([{ source: "cart" }]));
+
+    fireEvent.click(screen.getByRole("checkbox", { name: a.pickOne("عميل 2") }));
+    fireEvent.click(screen.getByRole("button", { name: a.remindPicked(1) }));
+    fireEvent.click(await screen.findByRole("button", { name: a.remindSend }));
+    await waitFor(() => expect(sent()[1]).toEqual({ ids: [2] }));
   });
 });

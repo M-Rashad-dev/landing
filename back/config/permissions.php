@@ -185,6 +185,7 @@ return [
         'POST integrations/{webhook}/rotate-secret' => 'integrations.update',
         'POST integrations/{webhook}/test' => 'integrations.update',
         'POST integrations/{webhook}/toggle' => 'integrations.update',
+        'POST leads/recovery/remind' => 'abandoned.update',
         'POST mail-settings/test' => 'emails.update',
         'POST media' => '@any',
         'POST notifications/read' => '@self',
@@ -283,6 +284,7 @@ return [
     'copilot' => [
         'abandoned_leads' => ['abandoned.view'],
         'cart_recovery' => ['abandoned.view'],
+        'cart_recovery.remind' => ['abandoned.update'],
         'categories' => ['categories.view', 'categories.create', 'categories.update'],
         'customers' => ['customers.view', 'customers.update', 'customers.update'],
         'discount_codes' => ['coupons.view', 'coupons.create', 'coupons.update'],

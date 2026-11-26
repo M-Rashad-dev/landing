@@ -10,10 +10,11 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/feedback";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
 import { errorMessage } from "@/lib/api/errors";
-import { useSession } from "@/lib/auth/session-context";
+import { usePlanFeature, useSession } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
+import { MessageBalancePanel } from "../orders/cart-recovery-panel";
 import { invoiceItem, shownStatus, useInvoices, usePlans, useUsage, type Period, type ShownStatus } from "./billing-api";
 
 const t = ar.settings.billing;
@@ -22,10 +23,15 @@ const FEATURES = ["store", "upsells", "abandoned_leads", "advanced_analytics", "
 const LIMITS = ["products", "landing_pages", "offers", "discount_codes", "custom_domains", "media_storage_mb"] as const;
 
 export function BillingPage() {
+  // WhatsApp messages for cart reminders come with the abandoned orders feature.
+  const messages = usePlanFeature("abandoned_leads");
   return (
     <div className="flex flex-col gap-4">
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <Current />
+        <div className="flex flex-col gap-4">
+          <Current />
+          {messages ? <MessageBalancePanel /> : null}
+        </div>
         <UsageList />
       </div>
       <Plans />

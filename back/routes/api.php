@@ -345,6 +345,7 @@ Route::prefix('dashboard')
         Route::get('leads/recovery', [CartRecoveryController::class, 'show']);
         Route::put('leads/recovery', [CartRecoveryController::class, 'update']);
         Route::get('leads/recovery/entries', [CartRecoveryController::class, 'entries']);
+        Route::post('leads/recovery/remind', [CartRecoveryController::class, 'remind']);
         Route::patch('leads/{lead}', [LeadController::class, 'update']);
         Route::delete('leads/{lead}', [LeadController::class, 'destroy']);
 

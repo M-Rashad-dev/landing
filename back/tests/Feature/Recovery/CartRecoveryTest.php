@@ -9,7 +9,9 @@ use App\Billing\PlanCatalog;
 use App\Billing\PlatformSettings;
 use App\Enums\LeadStatus;
 use App\Enums\MessagePurpose;
+use App\Jobs\SendManualReminders;
 use App\Mail\CustomerOrderMail;
+use App\Messaging\WhatsApp\WhatsAppTemplates;
 use App\Models\AbandonedLead;
 use App\Models\BlockedCustomer;
 use App\Models\DiscountCode;
@@ -298,4 +300,65 @@ it('gives the copilot the reminders report and the abandoned orders', function (
     expect($report->failed)->toBeFalse()->and(json_encode($report->data))->toContain('message_balance');
     $leads = $run('find_records', ['resource' => 'abandoned_leads']);
     expect($leads->failed)->toBeFalse()->and(json_encode($leads->data, JSON_UNESCAPED_UNICODE))->not->toContain('سارة');
+});
+
+it('sends a manual reminder to everyone or to the picked carts, counted as the next step', function () {
+    crOn();
+    crBalance(10);
+    $fresh = crLead(['customer_phone' => '+201011110001']);
+    $once = crLead(['customer_phone' => '+201011110002', 'reminders_sent' => 1, 'last_reminded_at' => now()->subHour()]);
+    $twice = crLead(['customer_phone' => '+201011110003', 'reminders_sent' => 2, 'last_reminded_at' => now()->subHour()]);
+    // Out of reach: no phone, older than 14 days, waiting on an order's payment.
+    crLead(['customer_phone' => null]);
+    crLead(['customer_phone' => '+201011110005', 'created_at' => now()->subDays(15)]);
+    crLead(['customer_phone' => '+201011110006', 'order_id' => asTenant($this->owner, fn () => Order::factory()->create()->id)]);
+
+    // The picked ones only, then everyone (night hours don't matter for a manual one).
+    $this->travelTo(CarbonImmutable::parse('2026-11-24 23:30', 'Africa/Cairo'));
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$fresh->id]])->assertStatus(202)->assertJsonPath('data.count', 1);
+    expect($fresh->fresh()->reminders_sent)->toBe(1)->and(crTemplates())->toHaveCount(1)
+        ->and(crTemplates()[0]['template']['name'])->toBe(WhatsAppTemplates::name('cart_reminder'));
+    // Another tab's kind is left alone.
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['source' => 'cart'])->assertStatus(422)->assertJsonPath('code', 'nothing_to_remind');
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['source' => 'store'])->assertStatus(202)->assertJsonPath('data.count', 3);
+    expect([$fresh->fresh()->reminders_sent, $once->fresh()->reminders_sent, $twice->fresh()->reminders_sent])->toBe([2, 2, 3])
+        // No coupon in a manual one, even as the second step.
+        ->and(collect(crTemplates())->pluck('template.name')->unique()->values()->all())->toBe([WhatsAppTemplates::name('cart_reminder')]);
+
+    // The automatic second never follows a reminder already counted as the second.
+    $this->travelTo(CarbonImmutable::parse('2026-11-26 12:00', 'Africa/Cairo'));
+    expect(crRun())->toBe(0);
+});
+
+it('makes the automatic reminder that follows a manual first one the second', function () {
+    crOn();
+    crBalance(10);
+    $lead = crLead();
+
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$lead->id]])->assertStatus(202);
+    expect($lead->fresh()->reminders_sent)->toBe(1);
+    // Not the first again an hour later; the second 24 hours after the manual one.
+    $this->travel(1)->hours();
+    expect(crRun())->toBe(0);
+    $this->travel(24)->hours();
+    expect(crRun())->toBe(1)->and($lead->fresh()->reminders_sent)->toBe(2);
+});
+
+it('checks the manual reminder: nothing to send, one at a time, picked carts of this store only, signed in', function () {
+    crBalance(10);
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', [])->assertStatus(422)->assertJsonPath('code', 'nothing_to_remind');
+    $lead = crLead();
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => ['x']])->assertStatus(422)->assertJsonValidationErrors(['ids.0']);
+    $foreign = asTenant(Tenant::factory()->onPlan('pro')->create(), fn () => AbandonedLead::query()->forceCreate(['source' => 'cart', 'customer_phone' => '+201099990000', 'status' => LeadStatus::Open, 'quantity' => 1, 'last_seen_at' => now()])->id);
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$foreign]])->assertStatus(422)->assertJsonValidationErrors(['ids.0']);
+
+    Cache::put(SendManualReminders::lockKey($this->owner->tenant_id), true, 60);
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', ['ids' => [$lead->id]])->assertStatus(409)->assertJsonPath('code', 'reminders_running');
+    Cache::forget(SendManualReminders::lockKey($this->owner->tenant_id));
+
+    Sanctum::actingAs(User::factory()->for(Tenant::factory()->onPlan('basic')->create())->create()->fresh(['tenant']));
+    $this->postJson('/api/v1/dashboard/leads/recovery/remind', [])->assertForbidden();
+    app('auth')->forgetGuards();
+    $this->withHeaders(['Authorization' => ''])->postJson('/api/v1/dashboard/leads/recovery/remind', [])->assertUnauthorized();
+    expect($lead->fresh()->reminders_sent)->toBe(0);
 });

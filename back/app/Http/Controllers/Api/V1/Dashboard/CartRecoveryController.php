@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Billing\Entitlements;
 use App\Enums\InvoiceStatus;
 use App\Enums\PlanFeature;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendManualReminders;
 use App\Models\CartRecoverySetting;
 use App\Models\DiscountCode;
 use App\Models\Invoice;
@@ -20,6 +22,7 @@ use App\Rules\TenantExists;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -68,6 +71,34 @@ final class CartRecoveryController extends Controller
         CartRecoverySetting::current()->fill($data)->save();
 
         return $this->ok($this->state());
+    }
+
+    /**
+     * «ابعت تذكير» now: to every lead it can reach (14 days), or to the picked ones. Sent in the background, one send at
+     * a time per store; 202 with how many it is going to.
+     */
+    public function remind(Request $request, Entitlements $entitlements): JsonResponse
+    {
+        $entitlements->ensure(PlanFeature::AbandonedLeads);
+        $data = $request->validate([
+            'ids' => ['nullable', 'array', 'max:500'],
+            'ids.*' => ['integer', TenantExists::table('abandoned_leads')],
+            // «ابعت للكل» on one tab: that kind only.
+            'source' => ['nullable', Rule::in(['landing', 'store', 'cart'])],
+        ]);
+        $source = $data['source'] ?? null;
+        $ids = isset($data['ids']) && $data['ids'] !== [] ? array_values(array_unique(array_map('intval', $data['ids']))) : null;
+        $count = $this->recovery->manualTargets($ids, $source)->count();
+        if ($count === 0) {
+            throw new ApiException(422, 'nothing_to_remind', __('recovery.nothing_to_remind'));
+        }
+        $tenantId = (int) $request->user()->tenant_id;
+        if (! Cache::add(SendManualReminders::lockKey($tenantId), true, CartRecovery::MANUAL_LOCK_SECONDS)) {
+            throw new ApiException(409, 'reminders_running', __('recovery.reminders_running'));
+        }
+        SendManualReminders::dispatch($tenantId, $ids, $source);
+
+        return new JsonResponse(['data' => ['count' => $count]], 202);
     }
 
     public function entries(Request $request): JsonResponse

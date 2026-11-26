@@ -14,12 +14,13 @@ import { RadioCards, SwitchRow } from "@/components/ui/choice";
 import { Alert, ErrorState, Skeleton, toast } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Drawer } from "@/components/ui/overlay";
-import { Panel, PanelBody } from "@/components/ui/panel";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import { applyServerErrors, errorMessage, isApiError } from "@/lib/api/errors";
 import { useCan } from "@/lib/auth/session-context";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 
 const t = ar.orders.recovery;
@@ -90,29 +91,60 @@ export function CartRecoveryPanel() {
             <Metric label={t.stats.recovered} value={formatNumber(s.stats.recovered)} />
             <Metric label={t.stats.revenue} value={formatMoney(s.stats.revenue)} />
           </dl>
-          <div className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:w-72">
-            <p className="flex items-center gap-2 text-sm">
-              <MessageCircle className="size-4 text-ink-3" aria-hidden />
-              <span className="flex-1">{t.balance}</span>
-              <span className={s.balance === 0 ? "tabular font-semibold text-danger" : "tabular font-semibold"}>{t.messages(s.balance)}</span>
-            </p>
-            {s.pending ? (
-              <p className="text-xs text-ink-3">
-                {t.pending(s.pending.messages)}{" "}
-                <Link className="text-brand-strong hover:underline" href={`/dashboard/settings/billing/invoices/${s.pending.id}`}>
-                  {s.pending.number}
-                </Link>
-              </p>
-            ) : canBuy && s.packs.length > 0 ? (
-              <BuyPacks packs={s.packs} />
-            ) : null}
-            <p className="text-xs text-ink-3">{t.balanceHint}</p>
-          </div>
+          <MessageBalance state={s} canBuy={canBuy} className="rounded-lg border border-border p-3 sm:w-72" />
         </div>
       </PanelBody>
       <Drawer open={editing} onOpenChange={setEditing} title={t.settingsTitle}>
         {editing ? <RecoveryForm state={s} onDone={() => setEditing(false)} /> : null}
       </Drawer>
+    </Panel>
+  );
+}
+
+/** The store's WhatsApp message balance (cart reminders), a pack waiting for review, or packs to buy. */
+export function MessageBalance({ state: s, canBuy, className }: { state: Pick<RecoveryState, "balance" | "pending" | "packs">; canBuy: boolean; className?: string }) {
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      <p className="flex items-center gap-2 text-sm">
+        <MessageCircle className="size-4 text-ink-3" aria-hidden />
+        <span className="flex-1">{t.balance}</span>
+        <span className={s.balance <= LOW_BALANCE ? "tabular font-semibold text-danger" : "tabular font-semibold"}>{t.messages(s.balance)}</span>
+      </p>
+      {s.balance <= LOW_BALANCE && !s.pending ? <p className="text-xs font-semibold text-danger">{s.balance === 0 ? t.balanceEmpty : t.balanceLow}</p> : null}
+      {s.pending ? (
+        <p className="text-xs text-ink-3">
+          {t.pending(s.pending.messages)}{" "}
+          <Link className="text-brand-strong hover:underline" href={`/dashboard/settings/billing/invoices/${s.pending.id}`}>
+            {s.pending.number}
+          </Link>
+        </p>
+      ) : canBuy && s.packs.length > 0 ? (
+        <BuyPacks packs={s.packs} />
+      ) : null}
+      <p className="text-xs text-ink-3">{t.balanceHint}</p>
+    </div>
+  );
+}
+
+/** The balance turns red and says so at this many messages or fewer. */
+const LOW_BALANCE = 20;
+
+/** The balance and packs on their own (billing page): read from the cart reminders state. */
+export function MessageBalancePanel() {
+  const query = useQuery({ queryKey: KEY, queryFn: () => api<RecoveryState>("/dashboard/leads/recovery") });
+  const can = useCan();
+  return (
+    <Panel>
+      <PanelHeader title={t.balance} description={t.balancePanelHint} />
+      <PanelBody>
+        {query.isPending ? (
+          <Skeleton className="h-20" />
+        ) : query.isError ? (
+          <ErrorState onRetry={() => void query.refetch()} message={errorMessage(query.error)} />
+        ) : (
+          <MessageBalance state={query.data} canBuy={can("billing.pay")} />
+        )}
+      </PanelBody>
     </Panel>
   );
 }

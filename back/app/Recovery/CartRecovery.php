@@ -30,6 +30,8 @@ use App\Support\CairoTime;
 use App\Support\Money;
 use App\Tenancy\Tenancy;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -57,6 +59,12 @@ final class CartRecovery
 
     /** A generated coupon lasts this long. */
     public const COUPON_HOURS = 48;
+
+    /** The merchant's own reminders («ابعت تذكير») reach leads up to this old. */
+    public const MANUAL_MAX_DAYS = 14;
+
+    /** One manual send at a time per store (seconds the lock lives at most). */
+    public const MANUAL_LOCK_SECONDS = 600;
 
     public function __construct(
         private readonly WhatsAppMessenger $messenger,
@@ -131,12 +139,14 @@ final class CartRecovery
         return $settings->second_hours !== null && $lead->last_reminded_at !== null && $lead->last_reminded_at->copy()->addHours($settings->second_hours)->lte(now());
     }
 
-    /** Why this lead gets no more reminders, or null. */
-    public function stopReason(AbandonedLead $lead): ?string
+    /** Why this lead gets no more reminders, or null. A manual one also reaches «اتواصلت» leads, up to 14 days old. */
+    public function stopReason(AbandonedLead $lead, bool $manual = false): ?string
     {
         return match (true) {
-            $lead->status !== LeadStatus::Open => 'handled',
-            $lead->created_at->lt(now()->subDays(self::MAX_AGE_DAYS)) => 'old',
+            $lead->status !== LeadStatus::Open && ! ($manual && $lead->status === LeadStatus::Contacted) => 'handled',
+            // A prepaid order waiting for its money: the pay page follows it, not a cart reminder.
+            $lead->order_id !== null => 'waiting_payment',
+            $lead->created_at->lt(now()->subDays($manual ? self::MANUAL_MAX_DAYS : self::MAX_AGE_DAYS)) => 'old',
             BlockedCustomer::isBlocked((string) $lead->customer_phone, $lead->ip_address) => 'blocked',
             RecoveryOptOut::blocks($lead->customer_phone, $lead->customer_email) => 'opted_out',
             Order::query()->where('customer_phone', $lead->customer_phone)->where('created_at', '>=', $lead->created_at)->exists() => 'ordered',
@@ -147,17 +157,54 @@ final class CartRecovery
     /** Sends the lead's next reminder on every channel it can; false when nothing could go. */
     public function remind(AbandonedLead $lead, CartRecoverySetting $settings): bool
     {
-        if ($this->stopReason($lead) !== null) {
-            return false;
-        }
-        $step = $lead->reminders_sent + 1;
-        $coupon = $step === 2 ? $this->coupon($lead, $settings) : null;
-        $sent = false;
+        return $this->locked($lead, function (AbandonedLead $lead) use ($settings): bool {
+            // Sent by hand meanwhile: the step it was due for is gone.
+            if ($this->stopReason($lead) !== null || ! $this->due($lead, $settings)) {
+                return false;
+            }
+            $step = $lead->reminders_sent + 1;
+            $coupon = $step === 2 ? $this->coupon($lead, $settings) : null;
 
-        if ($settings->whatsapp && $lead->customer_phone && $this->whatsappAvailable()) {
+            return $this->deliver($lead, $step, $coupon, $settings->whatsapp, $settings->email);
+        });
+    }
+
+    /**
+     * The merchant's reminder, now (any hour, no coupon). It counts as the lead's next step: by hand before the first
+     * one, the automatic one that follows is the second; by hand after the first, the automatic second never goes;
+     * after both, as many as the merchant wants. False when it couldn't go (stopped, or no channel worked).
+     */
+    public function remindNow(AbandonedLead $lead): bool
+    {
+        return $this->locked($lead, fn (AbandonedLead $lead): bool => $this->stopReason($lead, true) === null
+            && $this->deliver($lead, $lead->reminders_sent + 1, null, true, true));
+    }
+
+    /**
+     * The leads a manual reminder can go to: open or contacted, with a phone, not waiting on an order's payment, up
+     * to 14 days old ($ids = null: all of them; $source: landing / store / cart only).
+     *
+     * @param  list<int>|null  $ids
+     * @return Builder<AbandonedLead>
+     */
+    public function manualTargets(?array $ids = null, ?string $source = null): Builder
+    {
+        return AbandonedLead::query()
+            ->whereIn('status', [LeadStatus::Open, LeadStatus::Contacted])
+            ->whereNotNull('customer_phone')->whereNull('order_id')
+            ->where('created_at', '>=', now()->subDays(self::MANUAL_MAX_DAYS))
+            ->when($ids !== null, fn (Builder $q) => $q->whereKey($ids))
+            ->when($source !== null, fn (Builder $q) => $q->where('source', $source));
+    }
+
+    /** @param array{code: string, discount: string, until: string}|null $coupon */
+    private function deliver(AbandonedLead $lead, int $step, ?array $coupon, bool $whatsapp, bool $email): bool
+    {
+        $sent = false;
+        if ($whatsapp && $lead->customer_phone && $this->whatsappAvailable()) {
             $sent = $this->whatsapp($lead, $step, $coupon) || $sent;
         }
-        if ($settings->email && $lead->customer_email) {
+        if ($email && $lead->customer_email) {
             $sent = $this->email($lead, $step, $coupon) || $sent;
         }
         if ($sent) {
@@ -165,6 +212,26 @@ final class CartRecovery
         }
 
         return $sent;
+    }
+
+    /**
+     * One reminder per lead at a time (the scheduler and a manual send can meet): runs on a fresh copy of the lead.
+     *
+     * @param  callable(AbandonedLead): bool  $send
+     */
+    private function locked(AbandonedLead $lead, callable $send): bool
+    {
+        $lock = Cache::lock('cart-reminder:'.$lead->id, 60);
+        if (! $lock->get()) {
+            return false;
+        }
+        try {
+            $fresh = AbandonedLead::query()->find($lead->id);
+
+            return $fresh !== null && $send($fresh);
+        } finally {
+            $lock->release();
+        }
     }
 
     /** @param array{code: string, discount: string, until: string}|null $coupon */

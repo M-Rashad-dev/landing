@@ -90,6 +90,10 @@ final class ChangeOrderStatus
         if ($to === OrderStatus::Returned) {
             $this->autoBlock->afterReturn($changed);
         }
+        // A prepaid order's money arrived: it leaves «دفع متروك».
+        if ($from === OrderStatus::AwaitingPayment && $to === OrderStatus::Confirmed) {
+            app(CaptureLead::class)->paid($changed);
+        }
         $this->webhooks->order(WebhookEvent::OrderStatusChanged, $changed, ['previous_status' => $from->value]);
         if (($options['notify'] ?? true) !== false) {
             $this->customerNotices->statusChanged($changed, $to);

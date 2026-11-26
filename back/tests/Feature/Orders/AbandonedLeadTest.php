@@ -73,7 +73,7 @@ it('captures one open lead per phone and page, updating it as the visitor types'
         ->and($all[0]->product_id)->toBe($this->product->id);
 });
 
-it('drops bad phones, bad tokens, blocked visitors and recent buyers silently', function () {
+it('drops bad phones, bad tokens and blocked visitors silently, but keeps a buyer\'s new attempt', function () {
     sendLead(['phone' => '12345'])->assertStatus(202);
     sendLead(['form_token' => 'nope'])->assertStatus(202);
     sendLead(['form_token' => app(FormToken::class)->issue($this->page->id + 1, time() - 10)])->assertStatus(202);
@@ -81,10 +81,13 @@ it('drops bad phones, bad tokens, blocked visitors and recent buyers silently', 
     asTenant($this->tenant, fn () => BlockedCustomer::query()->create(['type' => BlockType::Phone, 'value' => '+201001234567']));
     sendLead()->assertStatus(202);
 
+    expect(leads())->toBeEmpty();
+
+    // Ordered earlier today, then left the form again: a new attempt to follow up.
     asTenant($this->tenant, fn () => Order::factory()->create(['customer_phone' => '+201112223334', 'landing_page_id' => $this->page->id]));
     sendLead(['phone' => '01112223334'])->assertStatus(202);
 
-    expect(leads())->toBeEmpty();
+    expect(leads())->toHaveCount(1)->and(leads()[0]->customer_phone)->toBe('+201112223334');
 });
 
 it('validates input, needs the internal key and an existing page', function () {

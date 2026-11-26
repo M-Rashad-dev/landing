@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Orders\LinkCustomer;
 use App\Enums\OrderStatus;
+use App\Models\AbandonedLead;
 use App\Models\Customer;
 use App\Models\CustomerLoginCode;
 use App\Models\Domain;
@@ -247,13 +248,26 @@ it('keeps accounts and reviews to their own store', function () {
     $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/dashboard/reviews')->assertUnauthorized();
 });
 
-it('lets the customer choose where order updates go', function () {
+it('keeps the profile without a channel choice (order updates go on WhatsApp)', function () {
     accountStore();
     $token = signIn('01012345678');
 
-    accountCall('GET', 'account', token: $token)->assertOk()->assertJsonPath('data.notify_channel', 'whatsapp');
-    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => null, 'notify_channel' => 'email'], $token)->assertStatus(422)->assertJsonValidationErrors('notify_channel');
-    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com'], $token)->assertOk()->assertJsonPath('data.notify_channel', 'email');
-    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com', 'notify_channel' => 'whatsapp'], $token)->assertOk()->assertJsonPath('data.notify_channel', 'whatsapp');
-    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com', 'notify_channel' => 'sms'], $token)->assertStatus(422)->assertJsonValidationErrors('notify_channel');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com'], $token)->assertOk()
+        ->assertJsonPath('data.email', 'sara@example.com')->assertJsonMissingPath('data.notify_channel');
+});
+
+it('keeps a signed-in customer\'s cart under their phone and name (abandoned carts)', function () {
+    [$tenant] = accountStore();
+    $token = signIn('01012345678');
+    accountCall('PUT', 'account', ['name' => 'سارة', 'email' => 'sara@example.com'], $token)->assertOk();
+    $product = asTenant($tenant, fn () => Product::factory()->create(['price' => '100.00', 'in_store' => true]));
+
+    accountCall('POST', 'carts', ['cart_token' => 'cart_'.str_repeat('s', 20), 'items' => [['product_id' => $product->id, 'quantity' => 2]]], $token)->assertStatus(202);
+    // A guest's cart stays without a phone.
+    accountCall('POST', 'carts', ['cart_token' => 'cart_'.str_repeat('g', 20), 'items' => [['product_id' => $product->id, 'quantity' => 1]]])->assertStatus(202);
+
+    $leads = asTenant($tenant, fn () => AbandonedLead::query()->where('source', 'cart')->orderBy('id')->get());
+    expect($leads)->toHaveCount(2)
+        ->and($leads[0]->customer_phone)->toBe('+201012345678')->and($leads[0]->customer_name)->toBe('سارة')->and($leads[0]->customer_email)->toBe('sara@example.com')
+        ->and($leads[1]->customer_phone)->toBeNull();
 });

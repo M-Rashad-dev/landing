@@ -1,19 +1,21 @@
 "use client";
 
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck, CreditCard, FileText, MessageCircle, RotateCcw, Search, ShoppingCart, Trash2, User, X } from "lucide-react";
+import { BellRing, CheckCheck, CreditCard, FileText, MessageCircle, RotateCcw, Search, ShoppingCart, Trash2, User, X } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { Pagination } from "@/components/data/data-table";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/choice";
 import { EmptyState, ErrorState, LockedNotice, Skeleton, toast } from "@/components/ui/feedback";
 import { InputGroup } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/ui/overlay";
 import { Segmented, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, apiPage, type Paginated } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/errors";
-import { usePlanFeature, useSession } from "@/lib/auth/session-context";
+import { useCan, usePlanFeature, useSession } from "@/lib/auth/session-context";
 import { formatDateTime, formatMoney, formatPhone } from "@/lib/format";
 import { useUrlState } from "@/lib/use-url-state";
 import { ar } from "@/messages/ar";
@@ -61,6 +63,12 @@ type LeadPage = Paginated<Lead> & {
   };
 };
 
+/** A manual reminder reaches it: waiting or contacted, with a phone, not an unpaid order, up to 14 days old. */
+const REMIND_DAYS = 14;
+function remindable(lead: Lead): boolean {
+  return (lead.status === "open" || lead.status === "contacted") && Boolean(lead.customer_phone) && !lead.order && Date.now() - new Date(lead.created_at).getTime() <= REMIND_DAYS * 86_400_000;
+}
+
 /** "تيشيرت + 2 منتج" from a cart, or the page's product. */
 function itemsText(lead: Lead): string {
   const items = lead.cart?.items ?? [];
@@ -94,6 +102,45 @@ export function AbandonedPage() {
   });
   const refresh = () => client.invalidateQueries({ queryKey: ["leads"] });
   const store = session.store_name ?? session.tenant?.name ?? "";
+  const can = useCan();
+
+  // «ابعت تذكير»: the picked rows, or every lead of this tab it can reach.
+  const [picked, setPicked] = React.useState<Set<number>>(() => new Set());
+  const [confirming, setConfirming] = React.useState(false);
+  const [reminding, setReminding] = React.useState(false);
+  const listKey = `${kind}|${status}|${url.q}|${page}`;
+  const [pickedFor, setPickedFor] = React.useState(listKey);
+  if (pickedFor !== listKey) {
+    setPickedFor(listKey);
+    setPicked(new Set());
+  }
+  const togglePick = (id: number, on: boolean) =>
+    setPicked((current) => {
+      const next = new Set(current);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  async function remind() {
+    setReminding(true);
+    try {
+      const body = picked.size > 0 ? { ids: [...picked] } : { source: kind };
+      const result = await api<{ count: number }>("/dashboard/leads/recovery/remind", { method: "POST", body });
+      toast.success(t.remindQueued(result.count));
+      setConfirming(false);
+      setPicked(new Set());
+      // Sent in the background: the counts follow a moment later.
+      window.setTimeout(() => {
+        void refresh();
+        void client.invalidateQueries({ queryKey: ["cart-recovery"] });
+      }, 4000);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setReminding(false);
+    }
+  }
 
   async function setStatus(lead: Lead, next: "open" | "contacted" | "dismissed") {
     try {
@@ -120,6 +167,9 @@ export function AbandonedPage() {
 
   const meta = query.data?.meta;
   const rows = query.data?.data ?? [];
+  const canRemind = can("abandoned.update") && (status === "open" || status === "contacted");
+  const reachable = rows.filter(remindable);
+  const allPicked = reachable.length > 0 && reachable.every((l) => picked.has(l.id));
 
   return (
     <>
@@ -147,6 +197,12 @@ export function AbandonedPage() {
           <p className="mb-3 text-sm text-ink-2">{t.kindHints[kind]}</p>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
             <InputGroup start={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.search} aria-label={t.search} className="sm:w-72" />
+            {canRemind && rows.length > 0 ? (
+              <Button size="sm" variant={picked.size > 0 ? "primary" : "secondary"} onClick={() => setConfirming(true)}>
+                <BellRing />
+                {picked.size > 0 ? t.remindPicked(picked.size) : t.remindAll}
+              </Button>
+            ) : null}
             <Segmented
               value={status}
               onChange={(v) => setUrl({ status: v === "open" ? null : v, page: null })}
@@ -172,6 +228,12 @@ export function AbandonedPage() {
             </div>
           ) : (
             <>
+              {canRemind && reachable.length > 0 ? (
+                <label className="mb-2 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-2">
+                  <Checkbox checked={allPicked ? true : picked.size > 0 ? "indeterminate" : false} onCheckedChange={(v) => setPicked(v === true ? new Set(reachable.map((l) => l.id)) : new Set())} aria-label={t.pickAll} />
+                  {t.pickAll}
+                </label>
+              ) : null}
               <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
                 {rows.map((lead) => {
                   const Icon = ICONS[lead.source];
@@ -179,6 +241,11 @@ export function AbandonedPage() {
                   return (
                     <li key={lead.id} className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center">
                       <div className="flex min-w-0 flex-1 items-start gap-3">
+                        {canRemind ? (
+                          <span className="flex h-10 w-[18px] shrink-0 items-center">
+                            {remindable(lead) ? <Checkbox checked={picked.has(lead.id)} onCheckedChange={(v) => togglePick(lead.id, v === true)} aria-label={t.pickOne(name)} /> : null}
+                          </span>
+                        ) : null}
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
                           <Icon className="size-5" aria-hidden />
                         </span>
@@ -198,6 +265,11 @@ export function AbandonedPage() {
                             ) : lead.reminders_sent ? (
                               <Badge size="sm" tone="info">
                                 {t.reminded(lead.reminders_sent)}
+                              </Badge>
+                            ) : null}
+                            {lead.order && lead.status === "open" ? (
+                              <Badge size="sm" tone="warning">
+                                {t.waitingPayment}
                               </Badge>
                             ) : null}
                             {lead.order ? (
@@ -262,6 +334,15 @@ export function AbandonedPage() {
           )}
         </>
       )}
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={picked.size > 0 ? t.remindPickedTitle(picked.size) : t.remindAllTitle(t.kinds[kind])}
+        description={t.remindText}
+        confirmLabel={t.remindSend}
+        loading={reminding}
+        onConfirm={() => void remind()}
+      />
     </>
   );
 }

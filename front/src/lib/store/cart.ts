@@ -72,6 +72,11 @@ export function parseCart(raw: string | null): Cart {
   }
 }
 
+/** The cart now (outside React, e.g. to send it again after signing in). */
+export function currentCart(): Cart {
+  return read();
+}
+
 function read(): Cart {
   let raw: string | null = null;
   try {

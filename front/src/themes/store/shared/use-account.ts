@@ -6,6 +6,8 @@ import * as React from "react";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { normalizePhone } from "@/lib/phone";
 import { accountKeys, deleteAddress, saveAddress, sendCode, signOut, updateProfile, useAccount, verifyCode, type Address } from "@/lib/store/account";
+import { currentCart } from "@/lib/store/cart";
+import { syncCart } from "@/lib/store/events";
 import { ar } from "@/messages/ar";
 
 const t = ar.storefront.account;
@@ -64,6 +66,9 @@ export function useSignIn(next: string | null) {
     try {
       const { customer } = await verifyCode(phone, code);
       queryClient.setQueryData(accountKeys.me, customer);
+      // A cart filled before signing in now belongs to this customer (abandoned carts).
+      const cart = currentCart();
+      if (cart.items.length > 0) syncCart(cart);
       router.replace(safeNext(next));
     } catch (err) {
       setError(isApiError(err) && err.errors.code?.[0] ? err.errors.code[0] : errorMessage(err));
@@ -149,23 +154,22 @@ export function useAddressForm(address: Address | null, onDone: () => void) {
   return { values, set: (patch: Partial<typeof values>) => setValues((f) => ({ ...f, ...patch })), errors, busy, submit };
 }
 
-/** The customer's name, email and how they get order updates. */
-export function useProfileForm(initial: { name: string; email: string; channel: "email" | "whatsapp" }) {
+/** The customer's name and email (order updates go on WhatsApp to their phone). */
+export function useProfileForm(initial: { name: string; email: string }) {
   const queryClient = useQueryClient();
   const [values, setValues] = React.useState(initial);
-  const [errors, setErrors] = React.useState<{ name?: string; email?: string; channel?: string; form?: string }>({});
+  const [errors, setErrors] = React.useState<{ name?: string; email?: string; form?: string }>({});
   const [state, setState] = React.useState<"idle" | "busy" | "saved">("idle");
 
   const submit = async () => {
     setState("busy");
     setErrors({});
     try {
-      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null, values.channel));
+      queryClient.setQueryData(accountKeys.me, await updateProfile(values.name, values.email.trim() || null));
       setState("saved");
     } catch (err) {
       setState("idle");
-      if (isApiError(err) && (err.errors.name || err.errors.email || err.errors.notify_channel))
-        setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0], channel: err.errors.notify_channel?.[0] });
+      if (isApiError(err) && (err.errors.name || err.errors.email)) setErrors({ name: err.errors.name?.[0], email: err.errors.email?.[0] });
       else setErrors({ form: errorMessage(err) });
     }
   };

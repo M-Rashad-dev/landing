@@ -123,7 +123,6 @@ final class StoreController extends Controller
             'ip' => ['nullable', 'ip'],
             'user_agent' => ['nullable', 'string', 'max:2000'],
             'save_address' => ['nullable', 'boolean'],
-            'whatsapp_opt_in' => ['nullable', 'boolean'],
             // "cod" or a store payment method id.
             'payment_method' => ['nullable', 'string', 'max:20'],
         ]);
@@ -173,7 +172,7 @@ final class StoreController extends Controller
      * The visitor's cart changed (sent by the storefront, debounced): kept as an abandoned cart
      * until it is ordered. Always 202; stored only with the plan feature. Empty items remove it.
      */
-    public function cart(Request $request, CaptureLead $leads, PhoneNormalizer $phones, CreateStoreOrder $orders, PriceCalculator $calculator, Entitlements $entitlements): JsonResponse
+    public function cart(Request $request, CaptureLead $leads, PhoneNormalizer $phones, CreateStoreOrder $orders, PriceCalculator $calculator, Entitlements $entitlements, CustomerAccounts $accounts): JsonResponse
     {
         $data = $request->validate([
             'host' => ['required', 'string', 'max:253'],
@@ -188,9 +187,14 @@ final class StoreController extends Controller
             'ip' => ['nullable', 'ip'],
         ]);
 
-        return $this->inStore($request, function () use ($data, $leads, $phones, $orders, $calculator, $entitlements) {
+        return $this->inStore($request, function () use ($request, $data, $leads, $phones, $orders, $calculator, $entitlements, $accounts) {
             if ($entitlements->allows(PlanFeature::AbandonedLeads)) {
                 $details = ['phone' => $phones->normalize($data['phone'] ?? null), 'name' => isset($data['name']) ? trim(strip_tags($data['name'])) : null, 'ip' => $data['ip'] ?? null];
+                // A signed-in customer's cart carries their phone, name and email (follow-up and reminders).
+                $customer = $accounts->customer($request->header(StoreAccountController::TOKEN_HEADER));
+                if ($customer !== null) {
+                    $details = ['phone' => $customer->phone, 'name' => $customer->name ?: $details['name'], 'email' => $customer->email, 'ip' => $details['ip']];
+                }
                 try {
                     $lines = $data['items'] === [] ? [] : $calculator->quoteCart($orders->lines($data['items']), now())->lines;
                     $leads->abandonedCart($data['cart_token'], $details, [
