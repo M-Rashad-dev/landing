@@ -19,5 +19,7 @@ export default async function OrderDonePage({ params, searchParams }: Props) {
   const total = typeof search.total === "string" && /^\d{1,9}(\.\d{1,2})?$/.test(search.total) ? Number(search.total) : null;
   // A prepaid order: its private token, for «ادفع وارفع الإيصال».
   const pay = typeof search.pay === "string" && /^[a-z0-9]{12}$/.test(search.pay) ? search.pay : null;
-  return <OrderDone orderNumber={order} total={total} pay={pay} />;
+  // The receipt picked at checkout: arrived, or to send again.
+  const receipt = search.receipt === "sent" || search.receipt === "failed" ? search.receipt : null;
+  return <OrderDone orderNumber={order} total={total} pay={pay} receipt={receipt} />;
 }

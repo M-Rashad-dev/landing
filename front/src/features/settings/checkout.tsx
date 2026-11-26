@@ -127,6 +127,8 @@ export function ReceiptForm({
   const [ref, setRef] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // A field's own error shows under it; anything else on top.
+  const [fieldErrors, setFieldErrors] = React.useState<{ receipt?: string; sender_ref?: string }>({});
   const chosen = usable.find((m) => m.key === method);
   const online = chosen?.type === "online";
   const free = total <= 0;
@@ -143,6 +145,7 @@ export function ReceiptForm({
   async function send() {
     setBusy(true);
     setError(null);
+    setFieldErrors({});
     try {
       if (online) {
         const invoice = await submit({ method }, null);
@@ -154,7 +157,8 @@ export function ReceiptForm({
       const fields: Record<string, string> = free ? {} : { method, ...(ref.trim() ? { sender_ref: ref.trim() } : {}) };
       await onDone(await submit(fields, receipt));
     } catch (e) {
-      if (e instanceof ImageRejected) setError(e.reason === "type" ? ar.media.rejectedType(e.fileName) : ar.media.rejectedSize(e.fileName));
+      if (e instanceof ImageRejected) setFieldErrors({ receipt: e.reason === "type" ? ar.media.rejectedType(e.fileName) : ar.media.rejectedSize(e.fileName) });
+      else if (isApiError(e) && e.isValidation && (e.errors.receipt || e.errors.sender_ref)) setFieldErrors({ receipt: e.errors.receipt?.[0], sender_ref: e.errors.sender_ref?.[0] });
       else setError(isApiError(e) && e.isValidation ? (Object.values(e.errors)[0]?.[0] ?? errorMessage(e)) : errorMessage(e));
     } finally {
       setBusy(false);
@@ -206,17 +210,6 @@ export function ReceiptForm({
                     </Button>
                   </p>
                 ) : null}
-                {chosen.reference ? (
-                  <p className="flex flex-wrap items-center gap-2">
-                    <span className="text-ink-2">{t.reference}:</span>
-                    <span dir="ltr" className="font-mono font-semibold">
-                      {chosen.reference}
-                    </span>
-                    <Button size="icon-sm" variant="ghost" aria-label={ar.common.copy} onClick={() => void copy(chosen.reference!)}>
-                      <Copy />
-                    </Button>
-                  </p>
-                ) : null}
                 <p className="font-semibold">
                   {t.total}: {formatMoney(chosen.amount)}
                 </p>
@@ -225,10 +218,10 @@ export function ReceiptForm({
             ) : null}
             {online ? null : (
               <>
-                <Field label={t.receipt} hint={t.receiptHint} required>
+                <Field label={t.receipt} hint={t.receiptHint} error={fieldErrors.receipt} required>
                   <FileDrop accept={IMAGE_ACCEPT} file={file} onFile={setFile} />
                 </Field>
-                <Field label={t.senderRef} htmlFor="pay-ref" hint={t.senderRefHint} optional>
+                <Field label={t.senderRef} htmlFor="pay-ref" hint={t.senderRefHint} error={fieldErrors.sender_ref} optional>
                   <Input id="pay-ref" dir="ltr" maxLength={120} value={ref} onChange={(e) => setRef(e.target.value)} />
                 </Field>
                 <Button className="self-start" loading={busy} disabled={!file || !method} onClick={() => void send()}>

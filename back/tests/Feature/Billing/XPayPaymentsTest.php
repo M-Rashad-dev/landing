@@ -190,7 +190,7 @@ it('pays an open invoice online again, and keeps the receipt rules for transfers
 
     $this->postJson("/api/v1/dashboard/billing/invoices/{$id}/payments", ['method' => 'xpay'])->assertOk()->assertJsonPath('data.redirect_url', fn ($url) => str_starts_with($url, 'https://checkout.xpay.app/c/'));
     expect(OnlinePayment::query()->withoutGlobalScopes()->where('invoice_id', $id)->count())->toBe(2);
-    $this->postJson("/api/v1/dashboard/billing/invoices/{$id}/payments", ['method' => 'instapay'])->assertStatus(422)->assertJsonValidationErrors(['sender_ref', 'receipt']);
+    $this->postJson("/api/v1/dashboard/billing/invoices/{$id}/payments", ['method' => 'instapay'])->assertStatus(422)->assertJsonValidationErrors(['receipt'])->assertJsonMissingValidationErrors(['sender_ref']);
 });
 
 it('says so when XPay is down, and the invoice stays payable', function () {

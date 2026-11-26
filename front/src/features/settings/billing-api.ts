@@ -40,7 +40,6 @@ export type PayMethod = {
   account_label: string | null;
   account_value: string | null;
   instructions: string | null;
-  reference: string | null;
 };
 
 export type Payment = {

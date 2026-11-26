@@ -11,7 +11,7 @@ import { UpsellOffer } from "../../../upsell-offer";
 const t = ar.storefront.done;
 
 /** After the order, in «شابع»'s look: its number and total, the after-order offer, tracking. */
-export function ShabeOrderDone({ orderNumber, total: initialTotal, pay = null }: { orderNumber: number | null; total: number | null; pay?: string | null }) {
+export function ShabeOrderDone({ orderNumber, total: initialTotal, pay = null, receipt = null }: { orderNumber: number | null; total: number | null; pay?: string | null; receipt?: "sent" | "failed" | null }) {
   const [total, setTotal] = React.useState(initialTotal);
   return (
     <div className="ss-wrap flex justify-center py-12 @3xl:py-16">
@@ -22,7 +22,7 @@ export function ShabeOrderDone({ orderNumber, total: initialTotal, pay = null }:
         <h1 className="ss-display ss-title">{t.title}</h1>
         {orderNumber ? <p className="ss-display as-2xl text-(--as-primary)">{t.number(orderNumber)}</p> : null}
         <p className="as-base as-muted">{t.text}</p>
-        {pay ? <PayNowBox href={`/pay/${pay}`} /> : null}
+        {pay ? <PayNowBox href={`/pay/${pay}`} receipt={receipt} /> : null}
         {total !== null ? (
           <p className="as-base flex w-full justify-between rounded-2xl bg-(--ss-soft) px-5 py-3">
             <span className="as-muted">{t.total}</span>

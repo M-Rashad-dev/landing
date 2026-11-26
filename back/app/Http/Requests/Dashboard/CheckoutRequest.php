@@ -30,7 +30,7 @@ final class CheckoutRequest extends FormRequest
             'messages' => ['required_if:type,message_pack', 'nullable', 'integer', 'min:1', 'max:1000000'],
             // Placing only (the preview ignores them); required when there is something to transfer.
             'method' => ['nullable', 'string', 'max:40'],
-            'sender_ref' => ['nullable', 'string', 'min:3', 'max:120'],
+            'sender_ref' => ['nullable', 'string', 'max:120'],
             // Content and type are checked again (decoded and re-encoded) by ReceiptStore.
             'receipt' => ['nullable', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
         ];

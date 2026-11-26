@@ -21,7 +21,8 @@ final class PayInvoiceRequest extends FormRequest
     {
         return [
             'method' => ['required', 'string', 'max:40'],
-            'sender_ref' => [Rule::requiredIf(fn () => ! $this->online()), 'nullable', 'string', 'min:3', 'max:120'],
+            // Optional: helps the reviewer find the transfer.
+            'sender_ref' => ['nullable', 'string', 'max:120'],
             // Content and type are checked again (decoded and re-encoded) by ReceiptStore.
             'receipt' => [Rule::requiredIf(fn () => ! $this->online()), 'nullable', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
         ];

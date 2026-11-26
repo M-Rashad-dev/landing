@@ -78,7 +78,7 @@ it('needs a signed-in owner', function () {
     $this->getJson('/api/v1/dashboard/billing/invoices')->assertUnauthorized();
 });
 
-it('shows the pay page with the price, the way to pay and the store reference, saving nothing', function () {
+it('shows the pay page with the price and the way to pay, saving nothing', function () {
     $owner = payOwner('basic');
 
     previewPlan('pro', 'monthly')
@@ -91,7 +91,8 @@ it('shows the pay page with the price, the way to pay and the store reference, s
         ->assertJsonPath('data.pay_with.0.key', 'instapay')
         ->assertJsonPath('data.pay_with.0.account_value', 'platform@instapay')
         ->assertJsonPath('data.pay_with.0.amount', 100)
-        ->assertJsonPath('data.pay_with.0.reference', sprintf('ST-%05d', $owner->tenant_id));
+        // No transfer note asked any more.
+        ->assertJsonMissingPath('data.pay_with.0.reference');
 
     // Only a look: no invoice until the receipt is sent.
     expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0);
@@ -174,10 +175,17 @@ it('validates receipts and methods, leaving no invoice behind', function () {
     buyPlan('pro', 'monthly', ['receipt' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')])->assertStatus(422)->assertJsonValidationErrors('receipt');
     buyPlan('pro', 'monthly', ['receipt' => UploadedFile::fake()->create('fake.jpg', 10, 'image/jpeg')])->assertStatus(422)->assertJsonValidationErrors('receipt');
     buyPlan('pro', 'monthly', ['method' => 'vodafone_cash'])->assertStatus(422)->assertJsonValidationErrors('method');
-    buyPlan('pro', 'monthly', ['sender_ref' => ''])->assertStatus(422)->assertJsonValidationErrors('sender_ref');
     buyPlan('pro', 'monthly', ['receipt' => null])->assertStatus(422)->assertJsonValidationErrors('receipt');
 
     expect(Invoice::query()->withoutGlobalScopes()->count())->toBe(0)->and(Payment::query()->withoutGlobalScopes()->count())->toBe(0);
+});
+
+it('takes a receipt without the transfer number (optional)', function () {
+    payOwner('basic');
+
+    buyPlan('pro', 'monthly', ['sender_ref' => ''])->assertCreated();
+
+    expect(Payment::query()->withoutGlobalScopes()->value('sender_ref'))->toBe('');
 });
 
 it('refuses receipts for a rejected invoice left past its time', function () {

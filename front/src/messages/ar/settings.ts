@@ -236,7 +236,6 @@ export const settings = {
     activate: "فعّل الباقة",
     method: "هتدفع إزاي؟",
     transferTo: "حوّل على",
-    reference: "اكتب في ملاحظات التحويل",
     receipt: "صورة الإيصال",
     receiptHint: "صورة واضحة للإيصال. لو كبيرة هنصغّرها لوحدها.",
     senderRef: "رقم العملية أو الرقم اللي حولت منه",

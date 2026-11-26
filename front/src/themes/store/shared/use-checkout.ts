@@ -18,6 +18,7 @@ import { track } from "@/lib/tracking/track";
 import { captureUtm } from "@/lib/tracking/utm";
 import { ar } from "@/messages/ar";
 import { defaultPayment } from "@/themes/shared/payment-choice";
+import type { ReceiptDraft } from "@/themes/shared/receipt-upload";
 import { clearCartNote, readCartNote } from "./cart-note";
 
 const t = ar.storefront.checkout;
@@ -79,8 +80,6 @@ export function useCheckout(config: StoreConfig) {
   const me = account.data ?? null;
   const [chosenAddress, setChosenAddress] = React.useState<number | "new" | null>(null);
   const [keepAddress, setKeepAddress] = React.useState(true);
-  // Order messages on WhatsApp: only when the customer ticks it (unchecked by default, Meta's rule).
-  const [whatsappOptIn, setWhatsappOptIn] = React.useState(false);
   // Cash on delivery or one of the store's prepaid methods.
   // A cart with digital products is paid first: no cash on delivery.
   const paymentOptions = config.payments && digital ? { ...config.payments, cod: false } : config.payments;
@@ -90,6 +89,15 @@ export function useCheckout(config: StoreConfig) {
   const setPayment = (v: string) => {
     setPaymentState(v);
     setPaymentError(null);
+    setReceiptError(null);
+  };
+  // A transfer (InstaPay, wallet, bank, link): its receipt is picked right under it and sent with the order.
+  const transfer = paymentOptions?.methods.find((m) => String(m.id) === payment && m.kind !== "online") ?? null;
+  const [receipt, setReceiptState] = React.useState<ReceiptDraft>({ file: null, sender: "" });
+  const [receiptError, setReceiptError] = React.useState<string | null>(null);
+  const setReceipt = (d: ReceiptDraft) => {
+    setReceiptState(d);
+    if (d.file) setReceiptError(null);
   };
   const filled = React.useRef(false);
   const preferred = me ? (me.addresses.find((a) => a.is_default) ?? me.addresses[0] ?? null) : null;
@@ -193,6 +201,11 @@ export function useCheckout(config: StoreConfig) {
   const submit = handleSubmit(async (values) => {
     setFailure(null);
     setLineErrors({});
+    if (transfer && !receipt.file) {
+      setReceiptError(ar.storefront.pay.receiptRequired);
+      document.getElementById("pay-receipt")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      return;
+    }
     setPlacing(true);
     try {
       const response = await fetch("/api/public/store/orders", {
@@ -208,7 +221,6 @@ export function useCheckout(config: StoreConfig) {
           utm: captureUtm(),
           cart_token: cartToken() || null,
           save_address: me !== null && addressId === "new" && keepAddress,
-          whatsapp_opt_in: whatsappOptIn,
           payment_method: payment,
         }),
       });
@@ -219,9 +231,10 @@ export function useCheckout(config: StoreConfig) {
         clearCartNote();
         resetCartToken();
         saveUpsell(json.data.order_number, json.data.upsell);
-        // A prepaid order: «طلبك وصل» shows «ادفع وارفع الإيصال» (its private token).
+        // A prepaid order: «طلبك وصل» shows «ادفع وارفع الإيصال» (its private token), or that the receipt arrived.
         const pay = json.data.pay_url?.match(/\/pay\/([a-z0-9]{12})$/)?.[1];
-        router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}${pay ? `&pay=${pay}` : ""}`);
+        const sent = pay && transfer && receipt.file ? await sendReceipt(pay, transfer.id, receipt) : null;
+        router.replace(`/checkout/done?order=${json.data.order_number}&total=${json.data.total}${pay ? `&pay=${pay}` : ""}${sent === null ? "" : `&receipt=${sent ? "sent" : "failed"}`}`);
         return;
       }
       if (response.status === 422 && json.errors) {
@@ -265,8 +278,11 @@ export function useCheckout(config: StoreConfig) {
     pickAddress,
     keepAddress,
     setKeepAddress,
-    whatsappOptIn,
-    setWhatsappOptIn,
+    /** The chosen transfer method (null: cash on delivery or online) and its receipt. */
+    transfer,
+    receipt,
+    setReceipt,
+    receiptError,
     /** The discount code: what is typed, what is applied. */
     codeInput,
     setCodeInput,
@@ -287,4 +303,20 @@ export function useCheckout(config: StoreConfig) {
     /** False until the anti-bot token arrives: the order can't be sent before. */
     ready: token !== null,
   };
+}
+
+/** The receipt picked at checkout goes to the new order's pay page. False when it didn't make it (sent again from there). */
+async function sendReceipt(token: string, methodId: number, draft: ReceiptDraft): Promise<boolean> {
+  if (!draft.file) return false;
+  const form = new FormData();
+  form.set("token", token);
+  form.set("method_id", String(methodId));
+  if (draft.sender.trim()) form.set("sender_ref", draft.sender.trim());
+  form.set("receipt", draft.file, draft.file.name);
+  try {
+    const response = await fetch("/api/public/payments", { method: "POST", body: form, headers: { Accept: "application/json" } });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }

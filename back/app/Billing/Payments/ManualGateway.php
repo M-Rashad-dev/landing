@@ -40,12 +40,10 @@ final class ManualGateway implements PaymentGateway
             'account_label' => $method->account_label,
             'account_value' => $method->account_value,
             'instructions' => $method->instructions,
-            // The merchant writes this in the transfer note so the admin can match it.
-            'reference' => self::storeReference($invoice->tenant_id),
         ];
     }
 
-    /** "ST-00025": written in the transfer note so the admin matches the transfer to the store. */
+    /** "ST-00025": the store's short code on the admin's payments list. */
     public static function storeReference(int $tenantId): string
     {
         return sprintf('ST-%05d', $tenantId);

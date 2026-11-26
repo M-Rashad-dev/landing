@@ -10,6 +10,7 @@ import type { CartQuote, StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
+import { TransferBox } from "@/themes/shared/receipt-upload";
 import { StoreLink, useHydrated } from "@/themes/store/shared/context";
 import { useCheckout, type CheckoutValues } from "@/themes/store/shared/use-checkout";
 import { Breadcrumb, Container, Empty, FormField, inputClass } from "../parts";
@@ -21,7 +22,7 @@ const ta = ar.storefront.checkoutAccount;
 export function CheckoutView({ config }: { config: StoreConfig }) {
   const hydrated = useHydrated();
   const checkout = useCheckout(config);
-  const { cart, form, governorate, me, account, addressId, pickAddress, keepAddress, setKeepAddress, whatsappOptIn, setWhatsappOptIn, quote, shown, shippingOn, selectedCompany, setCompanyId, failure, placing } = checkout;
+  const { cart, form, governorate, me, account, addressId, pickAddress, keepAddress, setKeepAddress, quote, shown, shippingOn, selectedCompany, setCompanyId, failure, placing } = checkout;
   const { register, formState } = form;
 
   if (!hydrated) return <Container className="min-h-[50vh] py-8">{null}</Container>;
@@ -118,14 +119,6 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
             <FormField id="co-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="co-notes" rows={2} maxLength={500} className={cn(inputClass, "h-auto py-2")} {...register("notes")} />
             </FormField>
-            {hasPaymentChoice(checkout.paymentOptions) ? <PaymentChoice options={checkout.paymentOptions} value={checkout.payment} onChange={checkout.setPayment} error={checkout.paymentError} /> : null}
-            <label className="as-sm flex items-start gap-2 font-semibold">
-              <input type="checkbox" checked={whatsappOptIn} onChange={(e) => setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
-              <span>
-                {t.whatsappOptIn}
-                <span className="as-xs as-muted block font-normal">{t.whatsappOptInHint}</span>
-              </span>
-            </label>
             {me && addressId === "new" ? (
               <label className="as-sm flex items-center gap-2 font-semibold">
                 <input type="checkbox" checked={keepAddress} onChange={(e) => setKeepAddress(e.target.checked)} className="size-4 accent-(--as-primary)" />
@@ -172,13 +165,24 @@ export function CheckoutView({ config }: { config: StoreConfig }) {
 
           <section className="flex flex-col gap-3 rounded-2xl border p-4 @3xl:p-5">
             <h2 className="as-lg font-bold">{t.payment}</h2>
-            <div className="flex items-center gap-3 rounded-xl border-2 border-(--as-primary) bg-(--as-soft) p-3">
-              <Banknote className="size-6 shrink-0 as-primary" aria-hidden />
-              <span className="flex flex-col">
-                <span className="as-sm font-bold">{t.cod}</span>
-                <span className="as-xs as-muted">{t.codHint}</span>
-              </span>
-            </div>
+            {hasPaymentChoice(checkout.paymentOptions) ? (
+              <PaymentChoice
+                options={checkout.paymentOptions}
+                value={checkout.payment}
+                onChange={checkout.setPayment}
+                error={checkout.paymentError}
+                legend={false}
+                detail={checkout.transfer ? <TransferBox method={checkout.transfer} total={q?.total ?? null} draft={checkout.receipt} onDraft={checkout.setReceipt} error={checkout.receiptError} /> : null}
+              />
+            ) : (
+              <div className="flex items-center gap-3 rounded-xl border-2 border-(--as-primary) bg-(--as-soft) p-3">
+                <Banknote className="size-6 shrink-0 as-primary" aria-hidden />
+                <span className="flex flex-col">
+                  <span className="as-sm font-bold">{t.cod}</span>
+                  <span className="as-xs as-muted">{t.codHint}</span>
+                </span>
+              </div>
+            )}
           </section>
         </div>
 

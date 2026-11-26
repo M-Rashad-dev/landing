@@ -49,13 +49,14 @@ describe("ReceiptForm", () => {
     const onDone = vi.fn();
     wrap(
       <ReceiptForm
-        methods={[{ key: "instapay", name: "إنستاباي", kind: "manual", type: "transfer", amount: 100, account_label: "رقم انستاباي", account_value: "01000000000", instructions: null, reference: "ST-00025" }]}
+        methods={[{ key: "instapay", name: "إنستاباي", kind: "manual", type: "transfer", amount: 100, account_label: "رقم انستاباي", account_value: "01000000000", instructions: null }]}
         total={100}
         submit={submit}
         onDone={onDone}
       />,
     );
-    expect(screen.getByText("ST-00025")).toBeInTheDocument();
+    // No transfer note to write any more.
+    expect(screen.queryByText("ST-00025")).toBeNull();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File([new Uint8Array(10)], "r.png", { type: "image/png" })] } });
     fireEvent.change(screen.getByLabelText(new RegExp(ar.settings.checkout.senderRef)), { target: { value: "TX-1" } });
@@ -74,8 +75,8 @@ describe("ReceiptForm", () => {
     wrap(
       <ReceiptForm
         methods={[
-          { key: "xpay", name: "ادفع أونلاين", kind: "xpay", type: "online", amount: 100, account_label: null, account_value: null, instructions: null, reference: null },
-          { key: "instapay", name: "إنستاباي", kind: "manual", type: "transfer", amount: 100, account_label: "رقم انستاباي", account_value: "01000000000", instructions: null, reference: "ST-00025" },
+          { key: "xpay", name: "ادفع أونلاين", kind: "xpay", type: "online", amount: 100, account_label: null, account_value: null, instructions: null },
+          { key: "instapay", name: "إنستاباي", kind: "manual", type: "transfer", amount: 100, account_label: "رقم انستاباي", account_value: "01000000000", instructions: null },
         ]}
         total={100}
         submit={submit}

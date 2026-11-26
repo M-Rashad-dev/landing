@@ -10,6 +10,7 @@ import type { StoreConfig } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import { hasPaymentChoice, PaymentChoice } from "@/themes/shared/payment-choice";
+import { TransferBox } from "@/themes/shared/receipt-upload";
 import { StoreLink, useHydrated } from "@/themes/store/shared/context";
 import { useCheckout, type CheckoutValues } from "@/themes/store/shared/use-checkout";
 import { ShabeCartLines } from "./cart";
@@ -160,14 +161,6 @@ export function ShabeCheckoutView({ config }: { config: StoreConfig }) {
             <Field id="sc-notes" label={t.notes} error={err("notes")} optional>
               <textarea id="sc-notes" rows={2} maxLength={500} className={cn(input, "h-auto py-3")} {...register("notes")} />
             </Field>
-            {hasPaymentChoice(c.paymentOptions) ? <PaymentChoice options={c.paymentOptions} value={c.payment} onChange={c.setPayment} error={c.paymentError} /> : null}
-            <label className="as-sm flex items-start gap-2 font-bold">
-              <input type="checkbox" checked={c.whatsappOptIn} onChange={(e) => c.setWhatsappOptIn(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-(--as-primary)" />
-              <span>
-                {t.whatsappOptIn}
-                <span className="as-xs block font-normal as-muted">{t.whatsappOptInHint}</span>
-              </span>
-            </label>
             {me && addressId === "new" ? (
               <label className="as-sm flex items-center gap-2 font-bold">
                 <input type="checkbox" checked={c.keepAddress} onChange={(e) => c.setKeepAddress(e.target.checked)} className="size-4 accent-(--as-primary)" />
@@ -214,13 +207,24 @@ export function ShabeCheckoutView({ config }: { config: StoreConfig }) {
 
           <section className={card}>
             <h2 className="ss-display as-2xl">{t.payment}</h2>
-            <div className="flex items-center gap-3 rounded-2xl border-2 border-(--as-primary) bg-(--ss-soft) p-4">
-              <Banknote className="size-7 shrink-0 text-(--as-primary)" aria-hidden />
-              <span className="flex flex-col">
-                <span className="as-sm font-extrabold">{t.cod}</span>
-                <span className="as-xs as-muted">{t.codHint}</span>
-              </span>
-            </div>
+            {hasPaymentChoice(c.paymentOptions) ? (
+              <PaymentChoice
+                options={c.paymentOptions}
+                value={c.payment}
+                onChange={c.setPayment}
+                error={c.paymentError}
+                legend={false}
+                detail={c.transfer ? <TransferBox method={c.transfer} total={q?.total ?? null} draft={c.receipt} onDraft={c.setReceipt} error={c.receiptError} /> : null}
+              />
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border-2 border-(--as-primary) bg-(--ss-soft) p-4">
+                <Banknote className="size-7 shrink-0 text-(--as-primary)" aria-hidden />
+                <span className="flex flex-col">
+                  <span className="as-sm font-extrabold">{t.cod}</span>
+                  <span className="as-xs as-muted">{t.codHint}</span>
+                </span>
+              </div>
+            )}
           </section>
         </div>
 

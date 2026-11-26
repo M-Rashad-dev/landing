@@ -254,6 +254,49 @@ describe("checkout", () => {
     expect(parseCart(window.localStorage.getItem("as_cart_v1")).items).toHaveLength(0);
   });
 
+  it("takes the receipt right under a transfer method and sends it with the order", async () => {
+    addToCart({ product_id: 7, quantity: 1, options: {}, name: "قميص", slug: "shirt", image: null, price: 300, options_label: "" });
+    const calls: Array<{ url: string; body: unknown }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url, body: init?.body ?? null });
+        if (url.endsWith("/form-token")) return Response.json({ data: { token: "tok-1" } });
+        if (url.endsWith("/quote")) return Response.json({ data: quote });
+        if (url.endsWith("/orders")) return Response.json({ data: { order_number: 1043, total: 350, pay_url: "https://naanaa.test/pay/abcdef123456" } }, { status: 201 });
+        if (url.endsWith("/api/public/payments")) return Response.json({ data: {} }, { status: 201 });
+        if (url.includes("/store/account")) return Response.json({ code: "signed_out" }, { status: 401 });
+        return new Response(null, { status: 202 });
+      }),
+    );
+    const paying = { ...config, payments: { cod: true, methods: [{ id: 5, kind: "wallet" as const, name: "فودافون كاش", account: "01099998888", link: null, instructions: null }] } };
+    inTheme(<CheckoutView config={paying} />);
+    await screen.findByText("350 ج.م", undefined, { timeout: 3000 });
+    fill();
+
+    // One payment section only; the wallet's number and the receipt show under it.
+    expect(screen.getAllByText(ar.storefront.checkout.payment)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("radio", { name: /فودافون كاش/ }));
+    expect(screen.getByText("01099998888")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: ar.storefront.checkout.submit })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.checkout.submit }));
+    expect(await screen.findByText(ar.storefront.pay.receiptRequired)).toBeInTheDocument();
+    expect(calls.some((c) => c.url.endsWith("/orders"))).toBe(false);
+
+    const file = new File([new Uint8Array([37, 80, 68, 70])], "receipt.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(ar.storefront.pay.receipt), { target: { files: [file] } });
+    expect(await screen.findByText("receipt.pdf")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: ar.storefront.checkout.submit }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/checkout/done?order=1043&total=350&pay=abcdef123456&receipt=sent"));
+    const order = JSON.parse(String(calls.find((c) => c.url.endsWith("/orders"))!.body));
+    expect(order.payment_method).toBe("5");
+    const receipt = calls.find((c) => c.url.endsWith("/api/public/payments"))!.body as FormData;
+    expect(receipt.get("token")).toBe("abcdef123456");
+    expect(receipt.get("method_id")).toBe("5");
+    expect((receipt.get("receipt") as File).name).toBe("receipt.pdf");
+  });
+
   it("checks the form before sending, and puts the server's errors on their fields", async () => {
     addToCart({ product_id: 7, quantity: 1, options: {}, name: "قميص", slug: "shirt", image: null, price: 300, options_label: "" });
     const calls = stubFetch(() => Response.json({ message: "خطأ", errors: { "customer.address": ["العنوان قصير"], "items.0.quantity": ["الكمية المتاحة 0"] } }, { status: 422 }));
