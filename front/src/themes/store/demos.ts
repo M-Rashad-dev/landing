@@ -1,4 +1,6 @@
 import type { DesignData } from "./shared/types";
+import { RAWAQ_DEMO_DATA, RAWAQ_DEMO_DESIGN } from "./rawaq/demo";
+import { RAWAQ_KEY } from "./rawaq/types";
 import { SHABE_DEMO_DATA, SHABE_DEMO_DESIGN } from "./shabe/demo";
 import { SHABE_STORE_KEY } from "./shabe/types";
 import { SUFI_DEMO_DATA, SUFI_DEMO_DESIGN } from "./sufi/demo";
@@ -14,4 +16,5 @@ export type StoreDemo = { design: unknown; data: DesignData; storeName: string; 
 export const STORE_DEMOS: Record<string, StoreDemo> = {
   [SUFI_KEY]: { design: SUFI_DEMO_DESIGN, data: SUFI_DEMO_DATA, storeName: "صُوفي", schemes: true },
   [SHABE_STORE_KEY]: { design: SHABE_DEMO_DESIGN, data: SHABE_DEMO_DATA, storeName: "شابع", schemes: false },
+  [RAWAQ_KEY]: { design: RAWAQ_DEMO_DESIGN, data: RAWAQ_DEMO_DATA, storeName: "رواق", schemes: false },
 };

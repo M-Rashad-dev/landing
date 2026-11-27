@@ -12,10 +12,11 @@ export const THEME_SHOTS: Record<string, string[]> = {
   shabe_landing: shots("landing", "shabe"),
   sufi_landing: shots("landing", "sufi"),
   shabe_store: shots("store", "shabe"),
+  rawaq_store: shots("store", "rawaq"),
 };
 
 /** Themes with a showcase store (themes/store/demos.ts: the same keys, a test checks it). */
-export const THEME_DEMOS = new Set(["sufi_store", "shabe_store"]);
+export const THEME_DEMOS = new Set(["sufi_store", "shabe_store", "rawaq_store"]);
 
 /** Landing themes with a showcase page (themes/landing/demos.ts: the same keys, a test checks it). */
 export const LANDING_THEME_DEMOS = new Set(["bidaya_landing", "shabe_landing", "sufi_landing"]);

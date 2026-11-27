@@ -10,6 +10,7 @@ use App\Models\Media;
 use App\Models\Product;
 use App\Models\StoreQuizResult;
 use App\Models\Tenant;
+use App\Models\Theme;
 use App\Models\User;
 use App\Themes\Store\RawaqStoreDesign;
 use Laravel\Sanctum\Sanctum;
@@ -290,4 +291,16 @@ it('counts each finished quiz per result for the merchant, only for a published 
     expect(StoreQuizResult::query()->withoutGlobalScopes()->where('tenant_id', $owner->tenant_id)->sum('count'))->toEqual(7);
     app('auth')->forgetGuards();
     $this->withHeaders(['Authorization' => ''])->getJson('/api/v1/dashboard/store/design/quiz-results')->assertUnauthorized();
+});
+
+it('lists «رواق» once finished, with its final texts, on a database where it was hidden', function () {
+    Theme::query()->whereKey('rawaq_store')->update(['is_listed' => false, 'short_description' => 'قديم']);
+
+    (require database_path('migrations/2026_12_18_100003_list_rawaq_store_theme.php'))->up();
+
+    $theme = Theme::query()->findOrFail('rawaq_store');
+    expect($theme->is_listed)->toBeTrue()
+        ->and($theme->short_description)->toStartWith('متجر تجميل وعناية')
+        ->and($theme->features)->toContain('اختبار البشرة وترشيح بالذكاء الاصطناعي')
+        ->and($theme->tags()->pluck('slug')->all())->toBe(['beauty']);
 });
