@@ -17,6 +17,7 @@ export const nav = {
     reviews: "التقييمات",
     products: "المنتجات",
     categories: "التصنيفات",
+    specGroups: "مجموعات المواصفات",
     themeHome: "الثيم والرئيسية",
     storePages: "الصفحات الثابتة",
     offers: "العروض",

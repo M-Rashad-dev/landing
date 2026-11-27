@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ShipmentController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingController;
 use App\Http\Controllers\Api\V1\Dashboard\ShippingOfferController;
+use App\Http\Controllers\Api\V1\Dashboard\SpecGroupController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\Dashboard\StoreController;
@@ -229,6 +230,12 @@ Route::prefix('dashboard')
         Route::patch('products/{product}/quick', [ProductController::class, 'quick']);
         Route::post('products/{product}/toggle', [ProductController::class, 'toggle']);
         Route::post('products/{product}/duplicate', [ProductController::class, 'duplicate']);
+        // «مجموعات المواصفات» (docs/plans/tekno/PLAN.md §1.3).
+        Route::apiResource('spec-groups', SpecGroupController::class)->parameters(['spec-groups' => 'specGroup']);
+        Route::post('spec-groups/{specGroup}/apply', [SpecGroupController::class, 'apply'])->whereNumber('specGroup');
+        Route::post('spec-groups/{specGroup}/push', [SpecGroupController::class, 'push'])->whereNumber('specGroup');
+        Route::get('spec-groups/{specGroup}/grid', [SpecGroupController::class, 'grid'])->whereNumber('specGroup');
+        Route::put('spec-groups/{specGroup}/grid', [SpecGroupController::class, 'saveGrid'])->whereNumber('specGroup');
 
         Route::apiResource('offers', OfferController::class);
         Route::post('offers/{offer}/toggle', [OfferController::class, 'toggle']);

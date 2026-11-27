@@ -10,6 +10,7 @@ use App\Models\ProductFile;
 use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\Specs\ProductSpecs;
 use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -75,6 +76,9 @@ final class ProductResource extends JsonResource
             'files' => $this->whenLoaded('files', fn () => $this->files->map(fn (ProductFile $f) => ['id' => $f->id, 'name' => $f->name, 'original_name' => $f->original_name, 'size' => $f->size])->all()),
             'codes_left' => $this->deliversCodes() ? (object) app(Stock::class)->codeStock($this->resource) : null,
             'inputs' => $this->whenLoaded('inputs', fn () => $this->inputs->map(fn (ProductInput $input) => self::input($input))->all()),
+            'video_url' => $this->video_url,
+            // «المواصفات»: the product's spec tables (product form).
+            'specs' => $this->whenLoaded('specTables', fn () => app(ProductSpecs::class)->forDashboard($this->resource)),
             'created_at' => $this->created_at?->toIso8601ZuluString(),
             'updated_at' => $this->updated_at?->toIso8601ZuluString(),
         ];

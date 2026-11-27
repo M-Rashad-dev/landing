@@ -66,6 +66,7 @@ final class FakeAiClient implements AiClient
         $next = array_shift($this->queue) ?? match (true) {
             self::isCopilot($messages) => self::copilotReply($messages, $options),
             self::isContent($messages) => self::contentReply($messages),
+            self::isSpecs($messages) => self::specsReply($messages),
             self::isQuiz($messages) => self::quizReply($messages),
             default => self::defaultReply($messages),
         };
@@ -109,6 +110,39 @@ final class FakeAiClient implements AiClient
                 };
             }
             $products[] = $row;
+        }
+
+        return (string) json_encode(['products' => $products], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** @param array<int, mixed> $messages */
+    private static function isSpecs(array $messages): bool
+    {
+        $first = $messages[0] ?? null;
+
+        return is_array($first) && is_string($first['content'] ?? null) && str_contains($first['content'], 'MKSAB_COPILOT_SPECS');
+    }
+
+    /**
+     * The copilot's spec values without a provider: a row is filled only when the description has a line
+     * «{label}: {value}» (nothing is made up, like the real rules ask).
+     *
+     * @param  array<int, mixed>  $messages
+     */
+    private static function specsReply(array $messages): string
+    {
+        $payload = json_decode((string) (end($messages)['content'] ?? '{}'), true);
+        $products = [];
+        foreach ((array) ($payload['products'] ?? []) as $product) {
+            $text = (string) ($product['description'] ?? '')."\n".(string) ($product['short_description'] ?? '');
+            $values = [];
+            foreach ((array) ($product['empty'] ?? []) as $row) {
+                $label = (string) ($row['label'] ?? '');
+                if ($label !== '' && preg_match('/^[\s\-•*]*'.preg_quote($label, '/').'\s*[:：]\s*(.+)$/mu', $text, $m) === 1) {
+                    $values[] = ['table' => (string) ($row['table'] ?? ''), 'label' => $label, 'value' => trim($m[1])];
+                }
+            }
+            $products[] = ['id' => (int) ($product['id'] ?? 0), 'values' => $values];
         }
 
         return (string) json_encode(['products' => $products], JSON_UNESCAPED_UNICODE);

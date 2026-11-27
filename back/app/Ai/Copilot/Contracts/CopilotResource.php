@@ -219,6 +219,18 @@ abstract class CopilotResource implements CopilotCapability
         return $out;
     }
 
+    /**
+     * Columns an Excel file adds after the fields, read from the rows about to be written (e.g. the products' spec
+     * rows «لابتوب: المعالج»). Null = none.
+     *
+     * @param  Builder<Model>  $query  the export's rows
+     * @return array{headers: list<string>, cells: \Closure(Model): list<string>}|null
+     */
+    public function exportColumns(Builder $query): ?array
+    {
+        return null;
+    }
+
     /** @return array<string, Field> */
     public function fieldMap(): array
     {

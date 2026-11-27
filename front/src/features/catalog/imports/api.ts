@@ -92,6 +92,6 @@ export const failuresFileUrl = (id: number) => `/api/bff/dashboard/product-impor
 /** Field groups on the mapping screen. */
 export const FIELD_GROUPS: Array<{ key: "main" | "details" | "variants"; fields: string[] }> = [
   { key: "main", fields: ["name", "price", "sale_price", "compare_at_price", "cost", "sku", "stock"] },
-  { key: "details", fields: ["description", "short_description", "category", "images", "status", "slug", "seo_title", "seo_description"] },
+  { key: "details", fields: ["description", "short_description", "category", "images", "status", "slug", "seo_title", "seo_description", "specs"] },
   { key: "variants", fields: ["group", "option1_name", "option1_value", "option2_name", "option2_value", "option3_name", "option3_value", "variant_image", "external_id", "parent"] },
 ];

@@ -10,6 +10,7 @@ use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Store\Payments\StorePayments;
+use App\Store\Specs\ProductSpecs;
 use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -74,6 +75,9 @@ final class PublicProductResource extends JsonResource
                 ->all(),
             // «حسب الطلب»: what the customer types or uploads when buying.
             'inputs' => $this->inputs->map(fn (ProductInput $input) => ProductResource::input($input))->values()->all(),
+            'video_url' => $this->video_url,
+            // «المواصفات»: tables with their filled rows only (empty → []).
+            'specs' => app(ProductSpecs::class)->forPublic($this->resource),
         ];
     }
 }

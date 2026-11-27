@@ -19,6 +19,7 @@ import { ProductReviewsSection } from "../../asas/pages/reviews";
 import { RawaqCard } from "../card";
 import { useRawaq, useRawaqPage } from "../root";
 import type { RawaqPageSettings } from "../types";
+import { ProductSpecs } from "@/themes/store/shared/specs";
 
 const t = ar.rawaqStore;
 const tp = ar.rawaqStore.product;
@@ -345,6 +346,8 @@ export function RawaqProductView({ page }: { page: ProductPage }) {
               </div>
             </section>
           ) : null}
+
+          <ProductSpecs specs={product.specs} titleClass="rq-display" />
         </div>
       </div>
 

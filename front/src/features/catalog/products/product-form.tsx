@@ -33,11 +33,12 @@ import { EMPTY, fromDetail, productSchema, toPayload, type ProductValues } from 
 import { DigitalEditor } from "./digital-editor";
 import { InputsEditor } from "./inputs-editor";
 import { OptionsEditor } from "./options-editor";
+import { SpecsEditor } from "./specs-editor";
 import { StockEditor } from "./stock-editor";
 
 const t = ar.catalog.form;
-const SECTIONS = ["basics", "images", "pricing", "categories", "digital", "options", "inputs", "stock", "visibility", "seo"] as const;
-const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "cost", "sku", "category_ids", "primary_category_id", "kind", "delivery_type", "options", "inputs", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
+const SECTIONS = ["basics", "images", "pricing", "categories", "digital", "options", "inputs", "specs", "stock", "visibility", "seo"] as const;
+const FIELDS = ["name", "short_description", "description", "price", "compare_at_price", "cost", "sku", "category_ids", "primary_category_id", "kind", "delivery_type", "options", "inputs", "specs", "video_url", "stock_mode", "stock", "low_stock_threshold", "is_active", "in_store", "is_featured", "slug", "seo"] as const;
 
 /** New product or full edit: every field in titled sections, a live preview beside them. */
 /** «ربحك في القطعة»: the price minus the cost, and the margin (before shipping and ads). */
@@ -87,6 +88,8 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
     pricing: !!(errors.price || errors.compare_at_price || errors.cost || errors.sku),
     options: !!errors.options,
     inputs: !!errors.inputs,
+    specs: !!errors.specs,
+    images: !!errors.video_url,
     digital: !!(errors.delivery_type || errors.link || errors.downloads || errors.opens || errors.subject || errors.message),
     stock: !!(errors.stock || errors.low_stock_threshold),
     seo: !!(errors.slug || errors.seo),
@@ -124,8 +127,11 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
           </div>
 
           <div id="section-images" className="scroll-mt-36">
-            <FormSection title={t.sections.images} description={t.imagesHint}>
+            <FormSection title={t.sections.images} description={t.imagesHint} hasError={sectionError.images}>
               <Controller control={form.control} name="media" render={({ field }) => <ImageGallery value={field.value} onChange={field.onChange} />} />
+              <Field label={t.video} htmlFor="video_url" hint={t.videoHint} error={errors.video_url?.message} optional>
+                <Input id="video_url" dir="ltr" inputMode="url" placeholder="https://www.youtube.com/watch?v=…" className="text-start" aria-invalid={!!errors.video_url} {...form.register("video_url")} />
+              </Field>
             </FormSection>
           </div>
 
@@ -196,6 +202,12 @@ export function ProductForm({ product }: { product: ProductDetail | null }) {
           <div id="section-inputs" className="scroll-mt-36">
             <FormSection title={t.sections.inputs} description={t.inputs.hint} hasError={sectionError.inputs}>
               <InputsEditor />
+            </FormSection>
+          </div>
+
+          <div id="section-specs" className="scroll-mt-36">
+            <FormSection title={t.sections.specs} description={ar.specs.product.hint} hasError={sectionError.specs} collapsible defaultOpen={(product?.specs?.length ?? 0) > 0}>
+              <SpecsEditor />
             </FormSection>
           </div>
 

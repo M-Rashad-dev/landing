@@ -10,10 +10,11 @@ use App\Models\Product;
 use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
+use App\Store\Specs\ProductSpecs;
 use App\Support\Slugs;
 use Illuminate\Support\Facades\DB;
 
-/** Copies a product with its options, values and images; the copy starts inactive. */
+/** Copies a product with its options, values, images and spec tables; the copy starts inactive. */
 final class DuplicateProduct
 {
     public function handle(Product $source): Product
@@ -79,6 +80,8 @@ final class DuplicateProduct
             if ($rows !== []) {
                 DB::table('product_media')->insert($rows);
             }
+
+            app(ProductSpecs::class)->copy($source, $copy);
 
             return $copy;
         });

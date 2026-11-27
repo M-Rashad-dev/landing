@@ -77,11 +77,12 @@ final class ExportBuilder
             throw new CopilotToolError("That is {$count} rows; a file holds at most ".self::MAX_ROWS.'. Narrow the filters (a shorter period, a status…).');
         }
         $fields = array_values(array_filter($resource->fields(), fn ($f) => $f->inTable));
-        $headers = ['#', ...array_map(fn ($f) => $f->label, $fields)];
-        $rows = (function () use ($query, $resource, $fields) {
+        $extra = $resource->exportColumns(clone $query);
+        $headers = ['#', ...array_map(fn ($f) => $f->label, $fields), ...($extra['headers'] ?? [])];
+        $rows = (function () use ($query, $resource, $fields, $extra) {
             foreach ($query->with($resource->with())->lazy(500) as $row) {
                 /** @var Model $row */
-                yield [(string) $row->getKey(), ...array_map(fn ($f) => $resource->cell($row, $f), $fields)];
+                yield [(string) $row->getKey(), ...array_map(fn ($f) => $resource->cell($row, $f), $fields), ...($extra !== null ? ($extra['cells'])($row) : [])];
             }
         })();
 

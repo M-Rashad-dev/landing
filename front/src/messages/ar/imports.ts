@@ -75,6 +75,7 @@ export const imports = {
     slug: { label: "الرابط", hint: "" },
     seo_title: { label: "عنوان جوجل", hint: "" },
     seo_description: { label: "وصف جوجل", hint: "" },
+    specs: { label: "المواصفات", hint: "أعمدة اسمها «الجدول: الصف» زي «لابتوب: الرامات»: بتتملا في مواصفات المنتج (من مجموعة بنفس الاسم لو موجودة)" },
   } as Record<string, { label: string; hint: string }>,
 
   options: {

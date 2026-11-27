@@ -91,6 +91,22 @@ describe("«شابع» product page", () => {
     expect(screen.queryByRole("region", { name: tp.quantity })).toBeNull();
   });
 
+  it("shows «المواصفات» only when the product has some", () => {
+    draw({});
+    expect(screen.queryByRole("heading", { name: ar.specs.storefront.title })).toBeNull();
+    cleanup();
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ShabeStoreRoot settings={settings({})} data={data} storeName="شابع" mode="live">
+          <ShabeProductView page={{ ...page, product: { ...page.product, specs: [{ name: "الأداء", rows: [{ label: "المعالج", value: "Core i5", in_card: true }] }] } }} />
+        </ShabeStoreRoot>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("heading", { name: ar.specs.storefront.title })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "المعالج" }).nextElementSibling).toHaveTextContent("Core i5");
+  });
+
   it("shows «اطلبه مع» and the WhatsApp question, each only when turned on", () => {
     draw({});
     expect(screen.getByRole("heading", { name: tp.related })).toBeInTheDocument();

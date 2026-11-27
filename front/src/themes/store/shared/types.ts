@@ -35,6 +35,8 @@ export type ProductCard = {
   max_quantity?: number | null;
   /** Visible reviews (null: none yet). */
   rating?: { average: number; count: number } | null;
+  /** Values of the spec rows flagged «يظهر في كارت المنتج» (≤ 4; missing on older cached pages). */
+  spec_chips?: string[];
 };
 
 export type DesignData = {

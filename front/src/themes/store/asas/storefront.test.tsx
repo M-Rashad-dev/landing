@@ -204,6 +204,16 @@ describe("product page", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(ar.storefront.product.maxReached(3));
   });
 
+  it("shows «المواصفات» under the description only when the product has some (asas and sufi)", () => {
+    inTheme(<ProductView page={{ ...shirt, product: { ...shirt.product, specs: [{ name: "الأداء", rows: [{ label: "المعالج", value: "Core i5", in_card: true }] }] } }} />);
+    expect(screen.getByRole("heading", { name: ar.specs.storefront.title })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "المعالج" }).nextElementSibling).toHaveTextContent("Core i5");
+    cleanup();
+
+    inTheme(<ProductView page={{ ...shirt, product: { ...shirt.product, specs: [] } }} />);
+    expect(screen.queryByRole("heading", { name: ar.specs.storefront.title })).toBeNull();
+  });
+
   it("goes straight to checkout with «اشتري دلوقتي»", () => {
     inTheme(<ProductView page={{ ...shirt, product: { ...shirt.product, stock_mode: "unlimited", variant_stock: null, options: [] } }} />);
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.product.buyNow }));

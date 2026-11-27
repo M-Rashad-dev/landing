@@ -1,4 +1,4 @@
-import { BadgeDollarSign, BarChart3, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, TrendingUp, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, BarChart3, ListChecks, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, TrendingUp, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
 import { canOpen } from "@/lib/auth/permissions";
 import { ar } from "@/messages/ar";
 
@@ -34,6 +34,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard/catalog/products", label: t.items.products, icon: Package, status: "ready" },
       { href: "/dashboard/catalog/categories", label: t.items.categories, icon: FolderTree, status: "ready" },
+      { href: "/dashboard/catalog/spec-groups", label: t.items.specGroups, icon: ListChecks, status: "ready" },
       { href: "/dashboard/shipping", label: t.items.shipping, icon: Truck, status: "ready" },
       { href: "/dashboard/store", label: t.items.storeSettings, icon: Store, status: "ready" },
     ],

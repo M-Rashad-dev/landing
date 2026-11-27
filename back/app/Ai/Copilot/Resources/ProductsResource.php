@@ -12,9 +12,12 @@ use App\Ai\Copilot\CopilotContext;
 use App\Auth\PermissionCatalog;
 use App\Enums\PlanLimit;
 use App\Http\Requests\Dashboard\ProductRequest;
+use App\Imports\Products\SpecCells;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductSpecRow;
 use App\Store\ProductList;
+use App\Store\Specs\ProductSpecs;
 use App\Store\Stock;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,7 +39,7 @@ final class ProductsResource extends CopilotResource
 
     public function summary(): string
     {
-        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories, digital products (kind digital, delivered by email once paid: files, codes, a link or a service the merchant does; codes_left for codes products), «حسب الطلب» fields (inputs: what the customer types or uploads when buying — a text, a long text, an image or a file — with its extra price; set on the product form).';
+        return 'Products: price, old price, stock (stock_mode unlimited | product | variant; variant products keep stock per option), active or not, categories, digital products (kind digital, delivered by email once paid: files, codes, a link or a service the merchant does; codes_left for codes products), «حسب الطلب» fields (inputs: what the customer types or uploads when buying — a text, a long text, an image or a file — with its extra price; set on the product form), «المواصفات» (specs: spec tables like «لابتوب: 12 صف», each row a label and a plain-text value; filled with the action products.fill_specs; reusable tables are the resource spec_groups).';
     }
 
     public function model(): string
@@ -74,6 +77,9 @@ final class ProductsResource extends CopilotResource
             Field::int('codes_left')->label('الأكواد الباقية')->notInTable()->using(fn (Model $p) => $p instanceof Product && $p->deliversCodes() ? array_sum(app(Stock::class)->codeStock($p)) : null),
             Field::text('inputs')->label('خانات حسب الطلب')->notInTable()
                 ->using(fn (Model $p) => $p->relationLoaded('inputs') ? $p->inputs->map(fn ($i) => $i->label.' ('.$i->kind->label().($i->is_required ? '، إجباري' : '').((float) $i->price_delta > 0 ? '، +'.$i->price_delta : '').')')->all() : []),
+            // «المواصفات»: «لابتوب: 12 صف (9 متعبّية)» per table (values: the product page; written by products.fill_specs).
+            Field::text('specs')->label('المواصفات')->notInTable()
+                ->using(fn (Model $p) => $p->relationLoaded('specTables') ? $p->specTables->map(fn ($t) => (string) __('ai.copilot.specs_summary', ['name' => $t->name, 'rows' => $t->rows->count(), 'filled' => $t->rows->filter(fn ($r) => trim((string) $r->value) !== '')->count()]))->all() : []),
             Field::date('created_at')->label('اتضاف')->filterable()->sortable(),
         ];
     }
@@ -100,12 +106,49 @@ final class ProductsResource extends CopilotResource
 
     public function with(): array
     {
-        return ['categories:id,name', 'media', 'inputs'];
+        return ['categories:id,name', 'media', 'inputs', 'specTables.rows'];
     }
 
     public function request(): ?string
     {
         return ProductRequest::class;
+    }
+
+    /** «{الجدول}: {الصف}» columns (the import reads them back), in the order they first appear; at most 200. */
+    public function exportColumns(Builder $query): ?array
+    {
+        $pairs = ProductSpecRow::query()
+            ->join('product_spec_tables', 'product_spec_tables.id', '=', 'product_spec_rows.product_spec_table_id')
+            ->whereIn('product_spec_tables.product_id', $query->clone()->reorder()->select('products.id'))
+            ->distinct()
+            ->get(['product_spec_tables.name', 'product_spec_rows.label', 'product_spec_tables.position as table_position', 'product_spec_rows.position as row_position']);
+        if ($pairs->isEmpty()) {
+            return null;
+        }
+        $first = [];
+        foreach ($pairs as $pair) {
+            $key = ProductSpecs::key((string) $pair->getAttribute('name')).'|'.ProductSpecs::key((string) $pair->getAttribute('label'));
+            $order = [(int) $pair->getAttribute('table_position'), (int) $pair->getAttribute('row_position')];
+            if (! isset($first[$key]) || $order < $first[$key]['order']) {
+                $first[$key] = ['order' => $order, 'header' => SpecCells::header((string) $pair->getAttribute('name'), (string) $pair->getAttribute('label'))];
+            }
+        }
+        uasort($first, fn (array $a, array $b) => $a['order'] <=> $b['order']);
+        $columns = array_slice($first, 0, 200, true);
+
+        return [
+            'headers' => array_values(array_map(fn (array $c) => $c['header'], $columns)),
+            'cells' => function (Model $product) use ($columns): array {
+                $values = [];
+                foreach ($product instanceof Product ? $product->specTables : [] as $table) {
+                    foreach ($table->rows as $row) {
+                        $values[ProductSpecs::key($table->name).'|'.ProductSpecs::key($row->label)] = (string) ($row->value ?? '');
+                    }
+                }
+
+                return array_values(array_map(fn (string $key) => $values[$key] ?? '', array_keys($columns)));
+            },
+        ];
     }
 
     public function routeParameter(): string

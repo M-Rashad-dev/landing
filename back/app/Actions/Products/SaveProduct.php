@@ -14,6 +14,7 @@ use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
 use App\Store\ProductCategories;
+use App\Store\Specs\ProductSpecs;
 use App\Store\Stock;
 use App\Support\Money;
 use App\Support\SeoInput;
@@ -82,6 +83,10 @@ final class SaveProduct
                 $this->syncVariants($product, $data['variants'] ?? []);
             }
 
+            if (array_key_exists('specs', $data)) {
+                app(ProductSpecs::class)->sync($product, $data['specs'] ?? []);
+            }
+
             return $product;
         });
 
@@ -95,7 +100,7 @@ final class SaveProduct
     /** @param array<string, mixed> $data */
     private function fillStoreFields(Product $product, array $data): void
     {
-        foreach (['short_description', 'in_store', 'is_featured', 'low_stock_threshold'] as $key) {
+        foreach (['short_description', 'in_store', 'is_featured', 'low_stock_threshold', 'video_url'] as $key) {
             if (array_key_exists($key, $data)) {
                 $product->setAttribute($key, $data[$key]);
             }

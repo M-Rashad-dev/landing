@@ -4,6 +4,7 @@ import { SLUG_PATTERN } from "@/lib/slug";
 import { zRequiredString } from "@/lib/validation";
 import { ar } from "@/messages/ar";
 import { cleanSeo, type SeoValue } from "../seo/seo-model";
+import { MAX_CARD_ROWS, MAX_ROWS, MAX_TABLES, specKey } from "../specs/api";
 import type { DisplayType, ProductDetail, StockMode } from "./api";
 
 const v = ar.validation;
@@ -26,6 +27,24 @@ const option = z.object({
 });
 
 export const MAX_INPUTS = 5;
+
+/** «فيديو المنتج»: YouTube / Vimeo over https (back end: StoreSections::VIDEO_HOSTS). */
+export const VIDEO_URL = /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com)\//i;
+
+const specRow = z.object({
+  label: zRequiredString(60),
+  value: z.string().max(200, v.max(200)),
+  in_card: z.boolean(),
+  filterable: z.boolean(),
+});
+
+const specTable = z.object({
+  spec_group_id: z.number().nullable(),
+  name: zRequiredString(60),
+  rows: z.array(specRow).min(1, ar.specs.product.tableRowsRequired).max(MAX_ROWS, ar.specs.group.maxRows),
+});
+
+export type SpecTableValues = z.infer<typeof specTable>;
 
 const input = z.object({
   id: z.number().nullable(),
@@ -50,6 +69,13 @@ export const productSchema = z
     primary_category_id: z.number().nullable(),
     options: z.array(option).max(5),
     inputs: z.array(input).max(MAX_INPUTS),
+    // «المواصفات» and the product video.
+    specs: z.array(specTable).max(MAX_TABLES, ar.specs.product.maxTables),
+    video_url: z
+      .string()
+      .trim()
+      .max(300, v.max(300))
+      .refine((s) => s === "" || VIDEO_URL.test(s), ar.catalog.form.videoInvalid),
     // «منتج رقمي»
     kind: z.enum(["physical", "digital"]),
     delivery_type: z.enum(["files", "codes", "links", "services"]).or(z.literal("")),
@@ -82,6 +108,26 @@ export const productSchema = z
     if (val.kind === "physical" && val.stock_mode === "product" && !/^\d{1,7}$/.test(val.stock)) {
       ctx.addIssue({ code: "custom", path: ["stock"], message: v.required });
     }
+    // Spec tables: names unique, labels unique per table, a group once, at most 4 rows on the card.
+    const names = new Set<string>();
+    const groups = new Set<number>();
+    let cards = 0;
+    val.specs.forEach((table, i) => {
+      const name = specKey(table.name);
+      if (name && names.has(name)) ctx.addIssue({ code: "custom", path: ["specs", i, "name"], message: ar.specs.product.tableDuplicate });
+      names.add(name);
+      if (table.spec_group_id !== null) {
+        if (groups.has(table.spec_group_id)) ctx.addIssue({ code: "custom", path: ["specs", i, "name"], message: ar.specs.product.groupTaken });
+        groups.add(table.spec_group_id);
+      }
+      const labels = new Set<string>();
+      table.rows.forEach((row, j) => {
+        const label = specKey(row.label);
+        if (label && labels.has(label)) ctx.addIssue({ code: "custom", path: ["specs", i, "rows", j, "label"], message: ar.specs.group.duplicate });
+        labels.add(label);
+        if (row.in_card && ++cards > MAX_CARD_ROWS) ctx.addIssue({ code: "custom", path: ["specs", i, "rows", j, "in_card"], message: ar.specs.group.tooManyCard });
+      });
+    });
   });
 
 export type ProductValues = z.infer<typeof productSchema>;
@@ -100,6 +146,8 @@ export const EMPTY: ProductValues = {
   primary_category_id: null,
   options: [],
   inputs: [],
+  specs: [],
+  video_url: "",
   kind: "physical",
   delivery_type: "",
   downloads: "",
@@ -171,6 +219,8 @@ export function fromDetail(p: ProductDetail): ProductValues {
     primary_category_id: p.primary_category_id,
     options,
     inputs: (p.inputs ?? []).map((i) => ({ id: i.id, kind: i.kind, label: i.label, placeholder: i.placeholder ?? "", is_required: i.is_required, price_delta: i.price_delta ? String(i.price_delta) : "" })),
+    specs: (p.specs ?? []).map((table) => ({ spec_group_id: table.spec_group_id, name: table.name, rows: table.rows.map((r) => ({ label: r.label, value: r.value ?? "", in_card: r.in_card, filterable: r.filterable })) })),
+    video_url: p.video_url ?? "",
     kind: p.kind ?? "physical",
     delivery_type: p.delivery_type ?? "",
     downloads: p.delivery_settings?.downloads ? String(p.delivery_settings.downloads) : "",
@@ -231,6 +281,12 @@ export function toPayload(v: ProductValues, withCost = false) {
       is_required: i.is_required,
       price_delta: i.price_delta || "0",
     })),
+    specs: v.specs.map((table) => ({
+      spec_group_id: table.spec_group_id,
+      name: table.name.trim(),
+      rows: table.rows.map((r) => ({ label: r.label.trim(), value: r.value.trim() || null, in_card: r.in_card, filterable: r.filterable })),
+    })),
+    video_url: v.video_url.trim() || null,
     kind: v.kind,
     delivery_type: v.kind === "digital" ? v.delivery_type || null : null,
     delivery_settings:

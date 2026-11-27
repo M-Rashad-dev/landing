@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { api, apiPage, type Paginated } from "@/lib/api/client";
 import type { MediaItem } from "@/features/media/api";
 import type { SeoAuto, SeoValue } from "../seo/seo-model";
+import type { ProductSpecTable } from "../specs/api";
 
 export type StockMode = "unlimited" | "product" | "variant";
 export type DisplayType = "buttons" | "dropdown" | "swatch";
@@ -57,6 +58,10 @@ export type ProductDetail = ProductCard & {
   /** What a unit costs the store; only sent to whoever has «تكلفة المنتجات». */
   cost?: number | null;
   variants: Array<{ id: number; value_ids: number[]; stock: number; sku: string | null; cost?: number | null }>;
+  /** «المواصفات»: the product's spec tables. */
+  specs?: ProductSpecTable[];
+  /** «فيديو المنتج» (YouTube / Vimeo). */
+  video_url?: string | null;
 };
 
 export const STATUSES = ["all", "active", "inactive", "out", "low"] as const;

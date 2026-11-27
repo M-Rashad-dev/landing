@@ -19,6 +19,7 @@ import { ProductReviewsSection } from "../../asas/pages/reviews";
 import { FoodCard } from "../card";
 import { usePageSettings, useShabe } from "../root";
 import type { PageSettings } from "../types";
+import { ProductSpecs } from "@/themes/store/shared/specs";
 
 const t = ar.shabeStore;
 const tp = ar.shabeStore.product;
@@ -307,6 +308,8 @@ export function ShabeProductView({ page }: { page: ProductPage }) {
               </div>
             </section>
           ) : null}
+
+          <ProductSpecs specs={product.specs} titleClass="ss-display" />
         </div>
       </div>
 

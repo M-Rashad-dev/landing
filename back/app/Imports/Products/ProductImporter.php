@@ -17,9 +17,11 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImport;
 use App\Models\ProductImportFailure;
+use App\Models\SpecGroup;
 use App\Models\User;
 use App\Notifications\StoreNotices;
 use App\Store\Categories;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -48,6 +50,12 @@ final class ProductImporter
 
     private ?bool $storeAllowed = null;
 
+    /** @var array<int, array{0: string, 1: string}> «المواصفات» columns: index → [table, label] */
+    private array $specColumns = [];
+
+    /** @var Collection<string, SpecGroup>|null the store's spec groups, loaded once */
+    private ?Collection $specGroups = null;
+
     public function __construct(
         private readonly SpreadsheetReader $reader,
         private readonly RowGrouper $grouper,
@@ -55,6 +63,7 @@ final class ProductImporter
         private readonly SaveProduct $save,
         private readonly Categories $categories,
         private readonly Entitlements $entitlements,
+        private readonly SpecCells $specCells,
     ) {}
 
     public function run(ProductImport $import): void
@@ -76,6 +85,8 @@ final class ProductImporter
             'started_at' => $import->started_at ?? now(),
         ])->save();
         $this->notes = array_fill_keys((array) $import->warnings, true);
+        $this->specColumns = SpecCells::columns(array_values((array) $import->headers), array_map('intval', (array) ($mapping['specs'] ?? [])));
+        $this->specGroups = $this->specColumns === [] ? null : SpecCells::groups();
 
         $match = $import->option('match', 'sku') === 'sku' && isset($mapping['sku']);
         $onExisting = (string) $import->option('existing', 'update');
@@ -188,6 +199,13 @@ final class ProductImporter
             // Costs only from someone allowed to see them («تكلفة المنتجات»).
             if (isset($payload['cost']) && ! PermissionCatalog::allows($import->user_id === null ? null : User::query()->find($import->user_id), 'products.cost')) {
                 unset($payload['cost']);
+            }
+            if ($this->specColumns !== [] && $this->specGroups !== null) {
+                $base = collect($rows)->first(fn (array $r) => isset($mapping['name']) && is_int($mapping['name']) && trim($r['cells'][$mapping['name']] ?? '') !== '') ?? $rows[0];
+                $specs = $this->specCells->payload($existing, $base['cells'], $this->specColumns, $this->specGroups, $this->notes);
+                if ($specs !== null) {
+                    $payload['specs'] = $specs;
+                }
             }
             $categoryIds = $this->categoryIds($draft->categories);
             if ($categoryIds !== []) {

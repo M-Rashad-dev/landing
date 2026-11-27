@@ -86,7 +86,14 @@ export type StoreProduct = {
   /** «منتج رقمي»: delivered by email after a prepaid order. */
   kind?: "physical" | "digital";
   delivery_type?: "files" | "codes" | "links" | "services" | null;
+  /** «فيديو المنتج»: a YouTube / Vimeo link (missing on older cached pages). */
+  video_url?: string | null;
+  /** «المواصفات»: tables with their filled rows only (missing on older cached pages). */
+  specs?: ProductSpecTable[];
 };
+
+/** A spec table on the product page: its name and the rows that have a value. */
+export type ProductSpecTable = { name: string; rows: Array<{ label: string; value: string; in_card: boolean }> };
 
 export type ProductOffer = {
   id: number;

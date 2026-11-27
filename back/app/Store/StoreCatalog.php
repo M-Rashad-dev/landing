@@ -11,6 +11,7 @@ use App\Models\Offer;
 use App\Models\Product;
 use App\Services\PublicPageData;
 use App\Store\Payments\StorePayments;
+use App\Store\Specs\ProductSpecs;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,10 +25,14 @@ final class StoreCatalog
 {
     public const SORTS = ['newest', 'price_asc', 'price_desc', 'best_sellers', 'featured'];
 
+    /** What card() reads, loaded once per list (one query per relation, never per card). */
+    public const CARD_WITH = ['media', 'variants', 'options', 'inputs', 'cardSpecs'];
+
     public function __construct(
         private readonly Categories $categories,
         private readonly PublicPageData $data,
         private readonly SeoDefaults $seo,
+        private readonly ProductSpecs $specs,
     ) {}
 
     /** @return Builder<Product> */
@@ -42,7 +47,7 @@ final class StoreCatalog
      */
     public function search(array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']));
+        $query = $this->withRatings($this->sellable()->with(self::CARD_WITH));
 
         if (($filters['offers'] ?? false) === true) {
             $this->onOffer($query);
@@ -87,7 +92,7 @@ final class StoreCatalog
      */
     public function forSection(string $source, ?int $categoryId, int $limit, bool $inStockOnly = false): array
     {
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']));
+        $query = $this->withRatings($this->sellable()->with(self::CARD_WITH));
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -113,7 +118,7 @@ final class StoreCatalog
         if ($ids === []) {
             return [];
         }
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']))->whereIn('id', $ids);
+        $query = $this->withRatings($this->sellable()->with(self::CARD_WITH))->whereIn('id', $ids);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -174,7 +179,7 @@ final class StoreCatalog
     public function related(Product $product, bool $inStockOnly = false, int $limit = 8): array
     {
         $ids = $product->categories->pluck('id')->all();
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs']))->whereKeyNot($product->id);
+        $query = $this->withRatings($this->sellable()->with(self::CARD_WITH))->whereKeyNot($product->id);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -202,7 +207,7 @@ final class StoreCatalog
         if ($words === []) {
             return $this->related($product, $inStockOnly, $limit);
         }
-        $query = $this->withRatings($this->sellable()->with(['media', 'variants', 'options', 'inputs', 'categories']))->whereKeyNot($product->id);
+        $query = $this->withRatings($this->sellable()->with([...self::CARD_WITH, 'categories']))->whereKeyNot($product->id);
         if ($inStockOnly) {
             $this->inStock($query);
         }
@@ -276,6 +281,8 @@ final class StoreCatalog
             'rating' => (int) ($p->getAttribute('rating_count') ?? 0) > 0
                 ? ['average' => round((float) $p->getAttribute('rating_average'), 1), 'count' => (int) $p->getAttribute('rating_count')]
                 : null,
+            // Values of the spec rows flagged «يظهر في كارت المنتج» (≤ 4, in order).
+            'spec_chips' => $this->specs->chips($p),
         ];
     }
 

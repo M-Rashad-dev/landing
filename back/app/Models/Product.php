@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -28,6 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $is_active
  * @property string|null $slug
  * @property string|null $short_description
+ * @property string|null $video_url YouTube / Vimeo link shown on the product page
  * @property bool $in_store
  * @property bool $is_featured
  * @property string $stock_mode unlimited | product | variant
@@ -57,7 +59,7 @@ class Product extends Model
     protected $fillable = [
         'name', 'slug', 'description', 'short_description', 'price', 'compare_at_price', 'sku', 'is_active',
         'in_store', 'is_featured', 'stock_mode', 'stock', 'low_stock_threshold', 'seo',
-        'kind', 'delivery_type', 'delivery_settings', 'cost',
+        'kind', 'delivery_type', 'delivery_settings', 'cost', 'video_url',
     ];
 
     protected $hidden = ['delivery_settings'];
@@ -119,6 +121,29 @@ class Product extends Model
     public function needsChoices(): bool
     {
         return $this->options->contains(fn (ProductOption $o) => $o->is_required) || $this->inputs->contains(fn (ProductInput $i) => $i->is_required);
+    }
+
+    /** «المواصفات»: its spec tables, in order. @return HasMany<ProductSpecTable, $this> */
+    public function specTables(): HasMany
+    {
+        return $this->hasMany(ProductSpecTable::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Spec rows flagged «يظهر في كارت المنتج» with a value, in table then row order (cards show the first 4).
+     *
+     * @return HasManyThrough<ProductSpecRow, ProductSpecTable, $this>
+     */
+    public function cardSpecs(): HasManyThrough
+    {
+        return $this->hasManyThrough(ProductSpecRow::class, ProductSpecTable::class)
+            ->where('product_spec_rows.in_card', true)
+            ->whereNotNull('product_spec_rows.value')
+            ->where('product_spec_rows.value', '!=', '')
+            ->orderBy('product_spec_tables.position')
+            ->orderBy('product_spec_tables.id')
+            ->orderBy('product_spec_rows.position')
+            ->orderBy('product_spec_rows.id');
     }
 
     /** @return BelongsToMany<Media, $this> */

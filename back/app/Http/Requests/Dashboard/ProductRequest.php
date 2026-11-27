@@ -14,9 +14,12 @@ use App\Models\ProductInput;
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
 use App\Rules\PageSlug;
+use App\Rules\SafeUrl;
 use App\Rules\TenantExists;
 use App\Rules\TenantUnique;
+use App\Store\Specs\ProductSpecs;
 use App\Support\Money;
+use App\Themes\Store\StoreSections;
 use Illuminate\Validation\Validator;
 
 /** Create or full update (nested options/values/media sync) of a product. */
@@ -83,6 +86,35 @@ final class ProductRequest extends ApiRequest
                 }
             }
             $merge['inputs'] = $inputs;
+        }
+
+        if (is_string($this->input('video_url'))) {
+            $value = trim($this->input('video_url'));
+            $merge['video_url'] = $value === '' ? null : $value;
+        }
+
+        $specs = $this->input('specs');
+        if (is_array($specs)) {
+            foreach ($specs as $i => $table) {
+                if (! is_array($table)) {
+                    continue;
+                }
+                if (isset($table['name']) && is_string($table['name'])) {
+                    $specs[$i]['name'] = trim(strip_tags($table['name']));
+                }
+                foreach ((array) ($table['rows'] ?? []) as $j => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    foreach (['label', 'value'] as $key) {
+                        if (isset($row[$key]) && is_string($row[$key])) {
+                            $clean = trim(strip_tags($row[$key]));
+                            $specs[$i]['rows'][$j][$key] = $key === 'value' && $clean === '' ? null : $clean;
+                        }
+                    }
+                }
+            }
+            $merge['specs'] = $specs;
         }
 
         $this->merge($merge);
@@ -182,6 +214,21 @@ final class ProductRequest extends ApiRequest
             'inputs.*.placeholder' => ['nullable', 'string', 'max:120'],
             'inputs.*.is_required' => ['sometimes', 'boolean'],
             'inputs.*.price_delta' => ['sometimes', ...$money, 'min:0', 'max:9999999.99'],
+
+            // «فيديو المنتج»: a YouTube / Vimeo link shown on the product page.
+            'video_url' => ['sometimes', 'nullable', 'string', 'max:300', new SafeUrl, 'regex:'.StoreSections::VIDEO_HOSTS],
+
+            // «المواصفات»: the whole list of the product's spec tables (replaces the old one).
+            'specs' => ['sometimes', 'array', 'max:'.ProductSpecs::maxTables()],
+            'specs.*' => ['array'],
+            'specs.*.spec_group_id' => ['nullable', 'integer', TenantExists::table('spec_groups')],
+            'specs.*.name' => ['required', 'string', 'max:60'],
+            'specs.*.rows' => ['required', 'array', 'min:1', 'max:'.ProductSpecs::maxRows()],
+            'specs.*.rows.*' => ['array'],
+            'specs.*.rows.*.label' => ['required', 'string', 'max:60'],
+            'specs.*.rows.*.value' => ['nullable', 'string', 'max:200'],
+            'specs.*.rows.*.in_card' => ['sometimes', 'boolean'],
+            'specs.*.rows.*.filterable' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -201,6 +248,7 @@ final class ProductRequest extends ApiRequest
 
             $this->validateOptions($validator, $data['options'] ?? []);
             $this->validateInputs($validator, $data['inputs'] ?? []);
+            $this->validateSpecs($validator, $data['specs'] ?? []);
             if (($data['kind'] ?? null) === Product::DIGITAL) {
                 if (empty($data['delivery_type'])) {
                     $validator->errors()->add('delivery_type', __('digital.type_required'));
@@ -209,6 +257,44 @@ final class ProductRequest extends ApiRequest
                 }
             }
         });
+    }
+
+    /**
+     * Table names unique in the product, labels unique in a table, a group once, and at most 4 rows on the card
+     * (the extra ones are refused, never dropped).
+     *
+     * @param  array<int, array<string, mixed>>  $specs
+     */
+    private function validateSpecs(Validator $validator, array $specs): void
+    {
+        $names = [];
+        $groups = [];
+        $cards = 0;
+        foreach ($specs as $i => $table) {
+            $name = ProductSpecs::key((string) $table['name']);
+            if (isset($names[$name])) {
+                $validator->errors()->add("specs.{$i}.name", __('specs.table_duplicate'));
+            }
+            $names[$name] = true;
+            if (isset($table['spec_group_id'])) {
+                $group = (int) $table['spec_group_id'];
+                if (isset($groups[$group])) {
+                    $validator->errors()->add("specs.{$i}.spec_group_id", __('specs.group_twice'));
+                }
+                $groups[$group] = true;
+            }
+            $labels = [];
+            foreach ((array) $table['rows'] as $j => $row) {
+                $label = ProductSpecs::key((string) $row['label']);
+                if (isset($labels[$label])) {
+                    $validator->errors()->add("specs.{$i}.rows.{$j}.label", __('specs.label_duplicate'));
+                }
+                $labels[$label] = true;
+                if (filter_var($row['in_card'] ?? false, FILTER_VALIDATE_BOOLEAN) && ++$cards > ProductSpecs::maxCardRows()) {
+                    $validator->errors()->add("specs.{$i}.rows.{$j}.in_card", __('specs.too_many_card_rows', ['max' => ProductSpecs::maxCardRows()]));
+                }
+            }
+        }
     }
 
     /** @param array<int, array<string, mixed>> $inputs */

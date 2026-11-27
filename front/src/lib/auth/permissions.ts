@@ -18,6 +18,8 @@ const PAGES: Array<[string, string]> = [
   ["/dashboard/catalog/products/new", "products.create"],
   ["/dashboard/catalog/products", "products.view"],
   ["/dashboard/catalog/categories", "categories.view"],
+  ["/dashboard/catalog/spec-groups/new", "products.create"],
+  ["/dashboard/catalog/spec-groups", "products.view"],
   ["/dashboard/shipping", "shipping.view"],
   ["/dashboard/store", "store.view"],
   ["/dashboard/design/pages", "store_pages.view"],

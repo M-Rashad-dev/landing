@@ -419,3 +419,21 @@ setting; empty/loading/error states; front + back tests. Send the owner the comp
 
 ## PROGRESS LOG
 (append one entry per finished stage: date, what was built, commit, decisions taken, what the owner must do)
+
+### S1 — Product specifications «المواصفات» (2026-11-28) — done, waiting for the owner's review
+- **Back**: migration `2026_12_19_100001_create_product_specs` (spec_groups, spec_group_rows, product_spec_tables,
+  product_spec_rows, products.video_url); models; `App\Store\Specs\ProductSpecs` (product tables, public shape, card
+  chips, copy) and `SpecGroups` (CRUD, apply, push, grid); `SpecGroupController` + `SpecGroupRequest` /
+  `SpecGridRequest` (9 routes, mapped to `products.*`); `ProductRequest` `specs` + `video_url`; `SaveProduct`,
+  `DuplicateProduct`; public product `specs` + `video_url`, cards `spec_chips` (`StoreCatalog::CARD_WITH`).
+- **Import / export**: `Imports\Products\SpecCells` («{الجدول}: {الصف}» columns, field `specs` in the mapping),
+  template columns, copilot products export columns (`CopilotResource::exportColumns`).
+- **Copilot**: products `specs` summary, `SpecGroupsResource`, actions `products.fill_specs` (prompt
+  `resources/prompts/copilot-specs.md`, fake answer in `FakeAiClient`) and `spec_groups.create`.
+- **Front**: «مجموعات المواصفات» page + group page (tabs «الصفوف» | «املأ القيم», «أضف المجموعة لمنتجات» dialog,
+  «ضيف التعديل»), product form card «المواصفات (اختياري)» + «فيديو المنتج», import mapping field, shared
+  storefront table in «أساس» / «صوفي» / «شابع» / «رواق». Strings `messages/ar/specs.ts`.
+- **Tests**: back `tests/Feature/Specs/*` (4 files, 48 tests: success, validation, 401, isolation, limits, push never
+  touching values, delete keeps copies, one query for chips, import / export round trip, copilot fill + undo);
+  front `features/catalog/specs/specs.test.tsx` + a specs case per theme's product page.
+- Decisions: DECISIONS.md «المواصفات». Nothing for the owner to do (no new keys, no WhatsApp templates).

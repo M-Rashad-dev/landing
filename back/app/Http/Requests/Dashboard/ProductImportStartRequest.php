@@ -31,7 +31,7 @@ final class ProductImportStartRequest extends ApiRequest
         ];
         foreach (ColumnMapper::FIELDS as $field) {
             $rules["mapping.{$field}"] = in_array($field, ColumnMapper::MULTI, true)
-                ? ['sometimes', 'nullable', 'array', 'max:10']
+                ? ['sometimes', 'nullable', 'array', 'max:'.ColumnMapper::MULTI_MAX[$field]]
                 : ['sometimes', 'nullable', 'integer', 'min:0'];
             if (in_array($field, ColumnMapper::MULTI, true)) {
                 $rules["mapping.{$field}.*"] = ['integer', 'min:0', 'distinct'];

@@ -16,10 +16,16 @@ final class ColumnMapper
     public const FIELDS = [
         'name', 'price', 'sale_price', 'compare_at_price', 'cost', 'sku', 'stock', 'description', 'short_description', 'category', 'images',
         'group', 'external_id', 'parent', 'option1_name', 'option1_value', 'option2_name', 'option2_value', 'option3_name', 'option3_value',
-        'variant_image', 'status', 'slug', 'seo_title', 'seo_description',
+        'variant_image', 'status', 'slug', 'seo_title', 'seo_description', 'specs',
     ];
 
-    public const MULTI = ['images'];
+    public const MULTI = ['images', 'specs'];
+
+    /** Columns a multi field may take. */
+    public const MULTI_MAX = ['images' => 10, 'specs' => 240];
+
+    /** Sources whose headers may hold «{group}: {label}» spec columns (ours, or a sheet made by hand). */
+    private const SPEC_SOURCES = ['maksab', 'generic'];
 
     /**
      * Header names per field (compared after normalize()); earlier names win when two columns
@@ -83,17 +89,22 @@ final class ColumnMapper
         $normalized = array_map(self::normalize(...), $headers);
         $taken = [];
         $mapping = [];
+        // «لابتوب: وصف مختصر» is a spec row, not the short description.
+        $specLike = in_array($source, self::SPEC_SOURCES, true) ? array_map(fn (string $h) => SpecCells::parse($h) !== null, $headers) : [];
 
         // Pass 1: exact names; pass 2: a known name inside a longer header.
         foreach ([true, false] as $exact) {
             foreach (self::FIELDS as $field) {
+                if ($field === 'specs') {
+                    continue;
+                }
                 if (isset($mapping[$field]) && ! in_array($field, self::MULTI, true)) {
                     continue;
                 }
                 foreach ($this->synonyms($field, $source) as $synonym) {
                     $syn = self::normalize($synonym);
                     foreach ($normalized as $i => $h) {
-                        if (isset($taken[$i]) || $h === '') {
+                        if (isset($taken[$i]) || $h === '' || (! $exact && ($specLike[$i] ?? false))) {
                             continue;
                         }
                         $hit = $exact ? $h === $syn : (! in_array($syn, self::EXACT_ONLY, true) && mb_strlen($syn) >= 3 && str_contains($h, $syn));
@@ -110,6 +121,15 @@ final class ColumnMapper
 
                         continue 3;
                     }
+                }
+            }
+        }
+
+        // «المواصفات»: every other «{group}: {label}» column (other platforms' «Meta: …» columns are not ours).
+        if (in_array($source, self::SPEC_SOURCES, true)) {
+            foreach ($headers as $i => $header) {
+                if (! isset($taken[$i]) && SpecCells::parse($header) !== null) {
+                    $mapping['specs'] = [...(array) ($mapping['specs'] ?? []), $i];
                 }
             }
         }

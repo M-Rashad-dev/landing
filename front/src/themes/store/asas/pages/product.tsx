@@ -15,6 +15,7 @@ import { useProductBuy } from "@/themes/store/shared/use-product-buy";
 import { Breadcrumb, Container, QuantityStepper, Stars } from "../parts";
 import { ProductCard } from "../product-card";
 import { ProductReviewsSection } from "./reviews";
+import { ProductSpecs } from "@/themes/store/shared/specs";
 
 const t = ar.storefront.product;
 
@@ -247,6 +248,8 @@ export function ProductView({ page }: { page: ProductPage }) {
               </div>
             </section>
           ) : null}
+
+          <ProductSpecs specs={product.specs} titleClass="font-bold" />
         </div>
       </div>
 

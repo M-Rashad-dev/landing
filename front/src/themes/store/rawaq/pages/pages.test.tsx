@@ -79,6 +79,16 @@ describe("«رواق» product page", () => {
     expect(screen.getByRole("link", { name: t.product.ask })).toHaveAttribute("href", expect.stringContaining("wa.me/201000000000"));
   });
 
+  it("shows «المواصفات» only when the product has some", () => {
+    draw(<RawaqProductView page={page} />, settings({}));
+    expect(screen.queryByRole("heading", { name: ar.specs.storefront.title })).toBeNull();
+    cleanup();
+
+    draw(<RawaqProductView page={{ ...page, product: { ...page.product, specs: [{ name: "الأداء", rows: [{ label: "المعالج", value: "Core i5", in_card: true }] }] } }} />, settings({}));
+    expect(screen.getByRole("heading", { name: ar.specs.storefront.title })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "المعالج" }).nextElementSibling).toHaveTextContent("Core i5");
+  });
+
   it("leaves out each part the merchant turned off, and puts her buttons in the bar at the bottom", () => {
     draw(<RawaqProductView page={page} />, settings({ promises: [], related_enabled: false, whatsapp_ask: false, description: false, sticky_buttons: "both" }));
     expect(screen.queryByRole("heading", { name: t.product.related })).toBeNull();

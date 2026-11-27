@@ -91,6 +91,11 @@ return [
         'content_max_depth' => 5,
         'content_max_array_items' => 50,
         'export_max_rows' => 10000,
+        // «المواصفات»: groups per store, rows per group / product table, tables per product, card rows per product.
+        'spec_groups' => 100,
+        'spec_rows' => 40,
+        'spec_tables' => 6,
+        'spec_card_rows' => 4,
     ],
 
     // Plans and subscriptions (docs/PROJECT.md). Prices, limits and the trial are set in the admin.

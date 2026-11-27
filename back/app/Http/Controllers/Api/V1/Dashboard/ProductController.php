@@ -26,7 +26,7 @@ use Illuminate\Http\Response;
 
 final class ProductController extends Controller
 {
-    private const DETAIL = ['options.values', 'inputs', 'files', 'media', 'categories', 'variants'];
+    private const DETAIL = ['options.values', 'inputs', 'files', 'media', 'categories', 'variants', 'specTables.rows'];
 
     /** What a product card needs. */
     private const CARD = ['media', 'categories:id,name'];
