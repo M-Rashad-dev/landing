@@ -1,0 +1,111 @@
+/*
+ * «رواق · صفحة هبوط»: the beauty landing theme. Built on the store utilities (as-*) and «بداية»'s
+ * button shape; its own look is prefixed rl- (no other theme uses it): soft pastel plates mixed from
+ * the merchant's colors, a title font, rounded cards, a glowing hero. Reacts to its own width
+ * (container queries), so the Builder's phone frame shows the phone layout.
+ */
+.rl-root {
+  --rl-radius: 1.6rem;
+  --rl-blush: color-mix(in srgb, var(--as-primary) 12%, var(--as-bg));
+  --rl-mint: color-mix(in srgb, var(--as-secondary) 14%, var(--as-bg));
+  --rl-sand: color-mix(in srgb, var(--as-text) 5%, color-mix(in srgb, var(--as-primary) 5%, var(--as-bg)));
+  --rl-white: color-mix(in srgb, #fff 82%, var(--as-bg));
+  overflow-x: clip;
+  background: var(--as-bg);
+  color: var(--as-text);
+}
+
+.rl-display { font-family: var(--rl-display), var(--as-font), system-ui, sans-serif; font-weight: 700; letter-spacing: 0; }
+.rl-root[data-display="body"] .rl-display { font-weight: 800; }
+
+.rl-dark {
+  background: var(--rl-dark);
+  color: var(--rl-on-dark);
+  --as-muted: color-mix(in srgb, var(--rl-on-dark) 70%, var(--rl-dark));
+  --as-line: color-mix(in srgb, var(--rl-on-dark) 15%, var(--rl-dark));
+  --as-card: color-mix(in srgb, var(--rl-on-dark) 7%, var(--rl-dark));
+}
+.rl-blush { background: var(--rl-blush); }
+.rl-sand { background: var(--rl-sand); }
+
+.rl-wrap { width: 100%; max-width: 74rem; margin-inline: auto; padding-inline: 1rem; }
+@container (min-width: 48rem) { .rl-wrap { padding-inline: 2rem; } }
+.rl-section { padding-block: 3.25rem; }
+@container (min-width: 48rem) { .rl-section { padding-block: 5rem; } }
+
+.rl-title { font-size: calc(var(--as-fs) * 1.75rem); line-height: 1.3; }
+@container (min-width: 48rem) { .rl-title { font-size: calc(var(--as-fs) * 2.4rem); } }
+.rl-hero-title { font-size: calc(var(--as-fs) * 2.3rem); line-height: 1.18; }
+@container (min-width: 64rem) { .rl-hero-title { font-size: calc(var(--as-fs) * 3.6rem); } }
+.rl-kicker { color: var(--as-primary); font-weight: 800; font-size: calc(var(--as-fs) * 0.82rem); letter-spacing: 0.04em; }
+.rl-dark .rl-kicker { color: color-mix(in srgb, var(--as-primary) 45%, #fff); }
+
+.rl-card { background: var(--rl-white); border: 1px solid var(--as-line); border-radius: var(--rl-radius); }
+
+/* buttons: the merchant's shape */
+.rl-root .as-btn { border-radius: var(--bd-radius); }
+@layer components {
+  .rl-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border-radius: var(--bd-radius); font-weight: 800; padding-inline: 1.7rem; white-space: nowrap;
+    transition: filter 0.15s, transform 0.15s;
+  }
+  .rl-btn:active { transform: scale(0.98); }
+  .rl-btn-main { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 16px 30px -16px color-mix(in srgb, var(--as-primary) 90%, transparent); }
+  .rl-btn-main:hover { filter: brightness(0.95); }
+  .rl-btn-line { border: 1.5px solid currentColor; }
+  .rl-btn-ink { background: var(--as-text); color: var(--as-bg); }
+}
+
+/* ---------- hero ---------- */
+.rl-hero { background: linear-gradient(125deg, var(--rl-blush) 0%, color-mix(in srgb, var(--rl-blush) 40%, var(--as-bg)) 55%, var(--rl-mint) 100%); overflow: hidden; }
+.rl-stage { position: relative; }
+.rl-disk { position: absolute; border-radius: 999px; }
+.rl-photo { position: relative; aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 40px 80px -40px rgb(90 30 50 / 0.5); border: 10px solid color-mix(in srgb, #fff 70%, transparent); }
+.rl-badge {
+  position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.15;
+  width: 6rem; height: 6rem; border-radius: 999px; padding: 0.5rem; transform: rotate(-10deg);
+  background: var(--as-primary); color: var(--as-on-primary); font-weight: 800;
+  box-shadow: 0 16px 30px -14px var(--as-primary);
+}
+@container (min-width: 48rem) { .rl-badge { width: 7.2rem; height: 7.2rem; } }
+.rl-rating { position: absolute; background: #fff; color: #2b2226; border-radius: 1rem; padding: 0.55rem 0.85rem; box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.45); }
+.rl-chip { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.35rem 0.85rem; font-weight: 800; background: color-mix(in srgb, #fff 75%, transparent); border: 1px solid #fff; }
+.rl-chip::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 999px; background: var(--as-secondary); }
+
+/* ---------- benefits, ingredients, steps ---------- */
+.rl-benefit { position: relative; overflow: hidden; border-radius: var(--rl-radius); }
+.rl-benefit::after { content: ""; position: absolute; width: 8rem; height: 8rem; border-radius: 999px; inset-inline-end: -2.5rem; bottom: -3rem; background: color-mix(in srgb, var(--as-text) 6%, transparent); }
+.rl-symbol { display: flex; align-items: center; justify-content: center; width: 4.2rem; height: 4.2rem; border-radius: 999px; color: var(--as-primary); }
+.rl-step-no { display: inline-flex; width: 2.4rem; height: 2.4rem; border-radius: 999px; align-items: center; justify-content: center; background: var(--as-primary); color: var(--as-on-primary); font-weight: 800; flex-shrink: 0; }
+.rl-steps { position: relative; }
+.rl-steps::before { content: ""; position: absolute; inset-block: 1.2rem; inset-inline-start: 1.15rem; width: 2px; background: color-mix(in srgb, var(--as-primary) 30%, transparent); }
+.rl-time { display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 999px; padding: 0.15rem 0.65rem; background: var(--rl-blush); color: var(--as-primary); font-weight: 800; }
+.rl-suit { display: inline-flex; align-items: center; gap: 0.45rem; border-radius: 999px; padding: 0.55rem 1.1rem; font-weight: 800; background: var(--rl-white); border: 1px solid var(--as-line); }
+
+/* ---------- offers ---------- */
+.rl-bundle { position: relative; display: flex; flex-direction: column; border-radius: var(--rl-radius); background: var(--rl-white); border: 1.5px solid var(--as-line); transition: border-color 0.2s, transform 0.2s; }
+.rl-bundle[data-top] { border-color: var(--as-primary); box-shadow: 0 34px 60px -38px color-mix(in srgb, var(--as-primary) 80%, transparent); }
+.rl-bundle[data-chosen] { border-color: var(--as-primary); background: var(--rl-blush); }
+
+/* ---------- gallery, digits, bar ---------- */
+.rl-zoom { overflow: hidden; }
+.rl-zoom img { transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.rl-zoom:hover img { transform: scale(1.04); }
+.rl-digit { border-radius: 1.1rem; background: color-mix(in srgb, var(--rl-on-dark) 9%, var(--rl-dark)); }
+.rl-bar { height: 0.55rem; border-radius: 999px; background: color-mix(in srgb, var(--rl-on-dark) 15%, var(--rl-dark)); overflow: hidden; }
+.rl-bar > div { height: 100%; border-radius: 999px; background: var(--as-primary); }
+
+/* ---------- questions ---------- */
+.rl-qa-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+.rl-qa-body > div { overflow: hidden; }
+.rl-qa[data-open] .rl-qa-body { grid-template-rows: 1fr; }
+
+/* motion: sections rise in as they reach the screen */
+.rl-motion .rl-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.rl-motion .rl-reveal[data-in] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-qa-body, .rl-zoom img, .rl-bundle { transition: none; }
+  .rl-motion .rl-reveal { opacity: 1; transform: none; }
+}

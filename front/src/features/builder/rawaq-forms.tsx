@@ -24,7 +24,7 @@ const NONE: Link = { type: "none", target_id: null, url: null };
 type Props<P> = { props: P; onChange: (p: P) => void; errors: Errors };
 
 /** A tile's own color, or the theme's soft colors in turn. */
-function ColorChoice({ id, value, onChange, label, hint }: { id: string; value: string | null; onChange: (v: string | null) => void; label: string; hint?: string }) {
+export function ColorChoice({ id, value, onChange, label, hint }: { id: string; value: string | null; onChange: (v: string | null) => void; label: string; hint?: string }) {
   return (
     <Field label={label} hint={hint}>
       <div className="flex items-center gap-2">

@@ -209,7 +209,7 @@ it('starts with defaults that pass its own validation in the shape the order for
 
 it('keeps every registered landing theme to the contract', function () {
     $themes = app(LandingThemes::class);
-    expect(LandingThemes::keys())->toBe(['bidaya_landing', 'shabe_landing', 'sufi_landing']);
+    expect(LandingThemes::keys())->toBe(['bidaya_landing', 'shabe_landing', 'sufi_landing', 'rawaq_landing']);
 
     foreach (LandingThemes::THEMES as $class) {
         $design = $themes->for($class::KEY);

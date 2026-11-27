@@ -1,52 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  AlarmClock,
-  BadgeCheck,
-  ChartNoAxesColumn,
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  CircleHelp,
-  Copy,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  FileCog,
-  Film,
-  Flame,
-  Footprints,
-  Images,
-  Laptop,
-  LayoutList,
-  LayoutPanelTop,
-  ListChecks,
-  Lock,
-  MessageSquareQuote,
-  Package,
-  MoreHorizontal,
-  Palette,
-  PanelBottom,
-  Plus,
-  Redo2,
-  Rocket,
-  ScanSearch,
-  Scale,
-  Settings2,
-  ShieldCheck,
-  ShoppingBag,
-  Smartphone,
-  Sparkles,
-  Tablet,
-  Trash2,
-  TriangleAlert,
-  Type,
-  Undo2,
-  UtensilsCrossed,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import { AlarmClock, ArrowDown, ArrowRight, ArrowUp, BadgeCheck, ChartNoAxesColumn, CircleHelp, Copy, ExternalLink, Eye, EyeOff, FileCog, Film, Flame, FlaskConical, Footprints, Heart, Images, Laptop, LayoutList, LayoutPanelTop, ListChecks, ListOrdered, Lock, MessageSquareQuote, MoreHorizontal, Package, Palette, PanelBottom, Plus, Redo2, Rocket, Scale, ScanSearch, Settings2, ShieldCheck, ShoppingBag, Smartphone, Sparkles, SplitSquareHorizontal, Tablet, Trash2, TriangleAlert, Type, Undo2, UserCheck, UtensilsCrossed, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { SortableList } from "@/components/data/sortable-list";
@@ -107,6 +62,12 @@ const LOOK: Record<string, { icon: LucideIcon; tint: string }> = {
   stats: { icon: ChartNoAxesColumn, tint: "bg-yellow-100 text-yellow-800" },
   countdown: { icon: AlarmClock, tint: "bg-pink-100 text-pink-700" },
   promises: { icon: BadgeCheck, tint: "bg-cyan-100 text-cyan-700" },
+  trust: { icon: ShieldCheck, tint: "bg-emerald-100 text-emerald-700" },
+  benefits: { icon: Heart, tint: "bg-rose-100 text-rose-700" },
+  before_after: { icon: SplitSquareHorizontal, tint: "bg-orange-100 text-orange-700" },
+  ingredients: { icon: FlaskConical, tint: "bg-teal-100 text-teal-700" },
+  how_to: { icon: ListOrdered, tint: "bg-indigo-100 text-indigo-700" },
+  suits: { icon: UserCheck, tint: "bg-sky-100 text-sky-700" },
   ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 

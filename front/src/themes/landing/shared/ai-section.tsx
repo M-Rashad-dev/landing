@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { bidayaLandingAiTokens, shabeLandingAiTokens, sufiLandingAiTokens } from "@/themes/shared/ai-section/tokens";
+import { bidayaLandingAiTokens, rawaqLandingAiTokens, shabeLandingAiTokens, sufiLandingAiTokens } from "@/themes/shared/ai-section/tokens";
 import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import { AiSectionView } from "@/themes/shared/ai-section/view";
 import { pick, type MediaUrls } from "@/themes/shared/design";
@@ -13,7 +13,7 @@ export function LandingAiSection({
   themeKey = "bidaya_landing",
 }: {
   section: { id: string; props: AiSectionProps };
-  themeKey?: "bidaya_landing" | "shabe_landing" | "sufi_landing";
+  themeKey?: "bidaya_landing" | "shabe_landing" | "sufi_landing" | "rawaq_landing";
 }) {
   const { mode, settings, data, media } = usePage();
   const { scheme } = useSufiScheme();
@@ -25,6 +25,7 @@ export function LandingAiSection({
   const tokens = React.useMemo(() => {
     if (themeKey === "sufi_landing") return sufiLandingAiTokens(settings, scheme);
     if (themeKey === "shabe_landing") return shabeLandingAiTokens(settings);
+    if (themeKey === "rawaq_landing") return rawaqLandingAiTokens(settings);
     return bidayaLandingAiTokens(settings);
   }, [themeKey, settings, scheme]);
 

@@ -13,13 +13,14 @@ export const THEME_SHOTS: Record<string, string[]> = {
   sufi_landing: shots("landing", "sufi"),
   shabe_store: shots("store", "shabe"),
   rawaq_store: shots("store", "rawaq"),
+  rawaq_landing: shots("landing", "rawaq"),
 };
 
 /** Themes with a showcase store (themes/store/demos.ts: the same keys, a test checks it). */
 export const THEME_DEMOS = new Set(["sufi_store", "shabe_store", "rawaq_store"]);
 
 /** Landing themes with a showcase page (themes/landing/demos.ts: the same keys, a test checks it). */
-export const LANDING_THEME_DEMOS = new Set(["bidaya_landing", "shabe_landing", "sufi_landing"]);
+export const LANDING_THEME_DEMOS = new Set(["bidaya_landing", "shabe_landing", "sufi_landing", "rawaq_landing"]);
 
 /** Showcases with a light / dark switch (STORE_DEMOS / LANDING_DEMOS [key].schemes; a test checks it). */
 export const THEME_DEMO_SCHEMES = new Set(["sufi_store", "sufi_landing"]);

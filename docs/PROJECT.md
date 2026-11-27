@@ -449,6 +449,8 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
 | `shabe_landing` «شابع» | landing | paid (100) | food landing page (meals, boxes, trays); 14 section types + one order form (≤20); see below |
 | `shabe_store` «شابع» | store | paid (990 placeholder) | food store: 15 home sections (≤30) incl. «مواعيد العمل», own shopping pages and 4 extra settings groups; see below |
 | `sufi_landing` «صوفي» | landing | paid (150 starting price) | luxury one-product page with dark mode; 13 section types + one order form (≤20); see below |
+| `rawaq_store` «رواق» | store | paid (990) | beauty & care store: 19 home sections incl. the skin quiz (+ AI add-on), before/after, care tips; own shopping pages |
+| `rawaq_landing` «رواق» | landing | paid (150 starting price) | one beauty product: 15 section types + one order form (≤20); see below |
 
 ### Landing theme architecture
 - Back end: every landing theme implements `App\Themes\Landing\LandingThemeDesign` (`KEY`, static `defaults()`,
@@ -486,6 +488,17 @@ wherever a theme is named alone (`ar.common.themeName` → «صوفي · متج�
   stats, testimonials, countdown (+ real stock), order_form, promises, faq.
 - Front `themes/landing/sufi/`. The visitor's scheme is shared with «صوفي · متجر» (`themes/shared/scheme.ts`,
   same browser key); the Builder previews dark from the look panel (`setBuilderScheme`, not saved).
+
+### «رواق · صفحة هبوط» (paid beauty landing theme)
+- Back end `App\Themes\Landing\RawaqLandingDesign`; settings = «بداية»'s + `colors.dark` (strip, countdown band,
+  footer), `display_font` (El Messiri titles), `header.button_label`, `general.animations`. Sections: hero (product
+  in a circle, highlighted word, round badge, rating card, chips), trust, benefits (colored cards), before_after
+  (drag line, both pictures required), ingredients (symbols), how_to (numbered steps + «الصبح / بالليل»), suits
+  («مناسب لـ»), bundles (offer cards), stats, gallery, video, testimonials, countdown (+ real stock), order_form,
+  promises, faq. Bought apart from «رواق · متجر».
+- Front `themes/landing/rawaq/` (own CSS, prefix `rl-`), Builder `features/landings/rawaq-forms.tsx` (reuses the
+  store theme's colour picker and before/after, ingredient labels). Showcase: a vitamin C serum with the store
+  showcase's photos. AI designer guide `resources/prompts/themes/rawaq_landing.md` (generated from `defaults()`).
 
 ### Store theme architecture
 - Back end, **one contract per store theme**: `App\Themes\Store\StoreThemeDesign` (abstract) does the validation

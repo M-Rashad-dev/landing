@@ -1,13 +1,16 @@
 "use client";
 
 import type * as React from "react";
-import { bidayaLandingAiTokens, shabeLandingAiTokens, sufiLandingAiTokens } from "@/themes/shared/ai-section/tokens";
+import { bidayaLandingAiTokens, rawaqLandingAiTokens, shabeLandingAiTokens, sufiLandingAiTokens } from "@/themes/shared/ai-section/tokens";
 import type { AiTokens } from "@/themes/shared/ai-section/types";
 import type { MediaUrls } from "@/themes/shared/design";
 import { BidayaRoot, type PageMode } from "./bidaya/context";
 import { BidayaPage, type Selection } from "./bidaya/page";
 import type { Content, LandingData, Settings } from "./bidaya/types";
 import { DEFAULT_LANDING_THEME, LANDING_THEME_KEYS, type LandingThemeKey } from "./keys";
+import { RawaqLandingPage } from "./rawaq/page";
+import { RawaqLandingRoot } from "./rawaq/root";
+import type { RawaqLandingContent, RawaqLandingSettings } from "./rawaq/types";
 import { ShabePage } from "./shabe/page";
 import { ShabeRoot } from "./shabe/root";
 import type { ShabeContent, ShabeSettings } from "./shabe/types";
@@ -52,6 +55,11 @@ const THEMES: Record<LandingThemeKey, LandingTheme> = {
     Page: ({ content, ...rest }) => <SufiLandingPage content={content as unknown as SufiLandingContent} {...rest} />,
     Root: ({ settings, ...rest }) => <SufiLandingRoot settings={settings as unknown as SufiLandingSettings} {...rest} />,
     aiTokens: sufiLandingAiTokens,
+  },
+  rawaq_landing: {
+    Page: ({ content, ...rest }) => <RawaqLandingPage content={content as unknown as RawaqLandingContent} {...rest} />,
+    Root: ({ settings, ...rest }) => <RawaqLandingRoot settings={settings as unknown as RawaqLandingSettings} {...rest} />,
+    aiTokens: (s) => rawaqLandingAiTokens(s),
   },
 };
 

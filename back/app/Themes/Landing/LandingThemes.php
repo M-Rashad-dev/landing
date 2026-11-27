@@ -16,7 +16,7 @@ use App\Services\PageContentSanitizer;
 final class LandingThemes
 {
     /** @var list<class-string<LandingThemeDesign>> */
-    public const THEMES = [BidayaLandingDesign::class, ShabeLandingDesign::class, SufiLandingDesign::class];
+    public const THEMES = [BidayaLandingDesign::class, ShabeLandingDesign::class, SufiLandingDesign::class, RawaqLandingDesign::class];
 
     public function __construct(private readonly PageContentSanitizer $generic) {}
 
