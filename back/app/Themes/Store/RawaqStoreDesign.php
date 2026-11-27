@@ -164,6 +164,7 @@ final class RawaqStoreDesign extends StoreThemeDesign
             'button_label' => (string) $q['button'],
             'results' => array_map(fn (array $r) => ['id' => $r['id'], 'name' => $r['name'], 'text' => $r['text'], 'product_ids' => [], 'category_id' => null], (array) $q['results']),
             'questions' => (array) $q['questions'],
+            'ai' => StoreSections::QUIZ_AI_DEFAULTS,
         ];
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { captureUtm } from "@/lib/tracking/utm";
+import type { ProductCard } from "@/themes/store/shared/types";
 import { cartPayload, type Cart } from "./cart";
 
 export type StoreEventType = "view" | "product_view" | "add_to_cart" | "checkout";
@@ -77,4 +78,23 @@ export function syncCart(cart: Cart, contact: { phone?: string | null; name?: st
 /** A finished quiz: its result counts once for the merchant's numbers (fire-and-forget). */
 export function sendQuizResult(sectionId: string, resultId: string): void {
   send("/api/public/store/quiz", { section_id: sectionId, result_id: resultId });
+}
+
+/** The AI's pick for a finished quiz (`source: vote` when the AI wasn't asked), or null when the request failed. */
+export type QuizAdvice = { source: "ai" | "vote"; result_id: string; text?: string; products?: ProductCard[] };
+
+export async function quizAdvice(sectionId: string, answers: number[], note: string | null): Promise<QuizAdvice | null> {
+  try {
+    const response = await fetch("/api/public/store/quiz/advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ section_id: sectionId, answers, note }),
+      credentials: "same-origin",
+    });
+    if (!response.ok) return null;
+    const json = (await response.json()) as { data?: QuizAdvice };
+    return json.data?.result_id ? json.data : null;
+  } catch {
+    return null;
+  }
 }

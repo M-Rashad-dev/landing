@@ -210,7 +210,7 @@ it('shows the settings, the connection and what the AI cost', function () {
 
     $data = $this->getJson('/api/v1/admin/ai')->assertOk()->json('data');
 
-    expect($data['settings'])->toEqual(['features' => ['support' => true, 'designer' => false, 'copilot' => false], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])
+    expect($data['settings'])->toEqual(['features' => ['support' => true, 'designer' => false, 'copilot' => false, 'quiz' => false], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])
         ->and($data['status']['configured'])->toBeTrue()
         ->and($data['status']['limit_reached'])->toBeFalse()
         // Each model once, in task order (designer and copilot share one).
@@ -222,7 +222,7 @@ it('shows the settings, the connection and what the AI cost', function () {
 
 it('saves the AI settings and refuses wrong ones', function () {
     Sanctum::actingAs(User::factory()->superAdmin()->create());
-    $good = ['features' => ['support' => true, 'designer' => false, 'copilot' => false], 'daily_cap_usd' => 5, 'usd_rate' => 50.5, 'margin_percent' => 15, 'support_daily_messages' => 40, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10];
+    $good = ['features' => ['support' => true, 'designer' => false, 'copilot' => false, 'quiz' => false], 'daily_cap_usd' => 5, 'usd_rate' => 50.5, 'margin_percent' => 15, 'support_daily_messages' => 40, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10];
 
     $this->putJson('/api/v1/admin/ai/settings', $good)->assertOk()
         ->assertJsonPath('data.settings.features.support', true)

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { ColorInput } from "@/components/forms/inputs";
 import { Button } from "@/components/ui/button";
 import { SwitchRow } from "@/components/ui/choice";
@@ -12,7 +12,7 @@ import { useCategories } from "@/features/catalog/categories/api";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
 import type { Link } from "@/themes/store/sufi/types";
-import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, type Article, type ArticlesProps, type BeforeAfterProps, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqCartSettings, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings, type Reel, type ReelsProps, type QuizAnswer, type QuizQuestion, type QuizResult, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps, type SkinQuizProps } from "@/themes/store/rawaq/types";
+import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, QUIZ_AI_DEFAULTS, type Article, type ArticlesProps, type BeforeAfterProps, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqCartSettings, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings, type Reel, type ReelsProps, type QuizAi, type QuizAnswer, type QuizQuestion, type QuizResult, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps, type SkinQuizProps } from "@/themes/store/rawaq/types";
 import { ImagePick, LinkField, Text, type Errors, type Media } from "./library-forms";
 import { useQuizResults } from "./api";
 import { Card, move } from "./section-forms";
@@ -517,6 +517,7 @@ function QuizNumbers({ sectionId }: { sectionId: string }) {
       ) : (
         <>
           <p className="text-ink-2">{r.quiz.statsTotal(mine.total)}</p>
+          {mine.ai > 0 ? <p className="text-ink-3">{r.quiz.statsAi(mine.ai)}</p> : null}
           <ul className="flex flex-col gap-1">
             {mine.results.map((x) => (
               <li key={x.id} className="flex items-center gap-2">
@@ -527,6 +528,39 @@ function QuizNumbers({ sectionId }: { sectionId: string }) {
           </ul>
         </>
       )}
+    </div>
+  );
+}
+
+/** The quiz's AI add-on: on/off, the open question, and where it picks products from. */
+function QuizAiFields({ value, onChange, errors, productOptions, categoryOptions }: { value: QuizAi; onChange: (v: QuizAi) => void; errors: Errors; productOptions: Array<{ value: string; label: string }>; categoryOptions: Array<{ value: string; label: string }> }) {
+  const set = (patch: Partial<QuizAi>) => onChange({ ...value, ...patch });
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
+      <b className="flex items-center gap-1.5 text-sm">
+        <Sparkles className="size-4 text-primary" aria-hidden />
+        {r.quiz.ai}
+      </b>
+      <SwitchRow title={r.quiz.aiOn} description={r.quiz.aiHint} checked={value.enabled} onCheckedChange={(enabled) => set({ enabled })} />
+      {value.enabled ? (
+        <>
+          <SwitchRow title={r.quiz.openQuestion} description={r.quiz.openQuestionHint} checked={value.open_question} onCheckedChange={(open_question) => set({ open_question })} />
+          {value.open_question ? <Text id="qz-ai-label" label={r.quiz.openLabel} hint={r.quiz.openLabelHint} value={value.open_label} onChange={(v) => set({ open_label: v })} error={errors["ai.open_label"]} max={60} /> : null}
+          <Field label={r.quiz.scope}>
+            <Segmented value={value.scope} onChange={(scope) => set({ scope })} options={(["all", "categories", "products"] as const).map((k) => ({ value: k, label: r.quiz.scopes[k] }))} />
+          </Field>
+          {value.scope === "categories" ? (
+            <Field label={r.quiz.scopeCategories} error={errors["ai.category_ids"]} required>
+              <MultiSelect value={value.category_ids.map(String)} onChange={(v) => set({ category_ids: v.slice(0, 20).map(Number) })} options={categoryOptions} placeholder={r.quiz.scopeCategories} />
+            </Field>
+          ) : null}
+          {value.scope === "products" ? (
+            <Field label={r.quiz.scopeProducts} error={errors["ai.product_ids"]} required>
+              <MultiSelect value={value.product_ids.map(String)} onChange={(v) => set({ product_ids: v.slice(0, 50).map(Number) })} options={productOptions} placeholder={r.quiz.scopeProducts} />
+            </Field>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -557,6 +591,7 @@ export function SkinQuizForm({ sectionId, props, onChange, errors }: Props<SkinQ
       <Text id="qz-text" label={sf.text} value={props.text} onChange={(v) => set({ text: v })} error={errors.text} max={300} area />
       <Text id="qz-button" label={sf.buttonLabel} hint={r.quiz.buttonHint} value={props.button_label} onChange={(v) => set({ button_label: v })} error={errors.button_label} max={30} />
       <p className="text-xs text-ink-3">{r.quiz.howItWorks}</p>
+      <QuizAiFields value={props.ai ?? QUIZ_AI_DEFAULTS} onChange={(ai) => set({ ai })} errors={errors} productOptions={productOptions} categoryOptions={categoryOptions.slice(1)} />
 
       <Field label={r.quiz.results} hint={r.quiz.resultsHint} error={errors.results} required>
         <div className="flex flex-col gap-3">

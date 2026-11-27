@@ -129,7 +129,7 @@ describe("«رواق»", () => {
     expect(screen.getByRole("link", { name: t.quiz.category })).toHaveAttribute("href", "/categories/oily");
     const sent = (fetch.mock.calls as unknown as Array<[string, RequestInit]>).filter(([url]) => url === "/api/public/store/quiz");
     expect(sent.map(([, init]) => JSON.parse(String(init.body)))).toEqual([{ section_id: "quiz00000001", result_id: "oily" }]);
-    expect(window.localStorage.getItem("rq_quiz_quiz00000001")).toBe("oily");
+    expect(JSON.parse(window.localStorage.getItem("rq_quiz_quiz00000001")!)).toEqual({ r: "oily" });
 
     cleanup();
     draw("live");
@@ -147,5 +147,50 @@ describe("«رواق»", () => {
     expect(screen.getByRole("link", { name: t.articles.more })).toHaveAttribute("href", "/products?q=%D8%B3%D9%8A%D8%B1%D9%88%D9%85");
     fireEvent.click(screen.getAllByRole("button", { name: t.articles.close })[0]!);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("with the AI add-on, asks her own words, shows the AI's pick and products, and falls back to the vote when the request fails", async () => {
+    const withAi = sections.map((x) => (x.type === "skin_quiz" ? { ...x, props: { ...x.props, ai: { enabled: true, open_question: true, open_label: null, scope: "all" as const, category_ids: [], product_ids: [] } } } : x));
+    const fetch = vi.fn((url: string) =>
+      Promise.resolve(url === "/api/public/store/quiz/advice" ? Response.json({ data: { source: "ai", result_id: "dry", text: "بشرتك محتاجة ترطيب.", products: [product(9, "كريم ليلي", 300)] } }) : new Response(null, { status: 202 })),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const drawAi = () =>
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <ShopProvider config={config}>
+            <RawaqStore design={{ settings, sections: withAi }} data={data} storeName="رواق" mode="live" />
+          </ShopProvider>
+        </QueryClientProvider>,
+      );
+    drawAi();
+    fireEvent.click(screen.getByRole("button", { name: t.quiz.start }));
+    fireEvent.click(screen.getByRole("button", { name: /لامعة/ }));
+    fireEvent.click(screen.getByRole("button", { name: /حبوب/ }));
+    fireEvent.change(screen.getByLabelText(t.quiz.noteTitle), { target: { value: "بشرتي بتشد" } });
+    fireEvent.click(screen.getByRole("button", { name: t.quiz.seeResult }));
+
+    expect(await screen.findByText("بشرتك محتاجة ترطيب.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "بشرتك جافة" })).toBeInTheDocument();
+    expect(screen.getByText(t.quiz.picked)).toBeInTheDocument();
+    expect(screen.getByText("كريم ليلي")).toBeInTheDocument();
+    const calls = fetch.mock.calls as unknown as Array<[string, RequestInit]>;
+    expect(JSON.parse(String(calls.find(([url]) => url === "/api/public/store/quiz/advice")![1].body))).toEqual({ section_id: "quiz00000001", answers: [0, 0], note: "بشرتي بتشد" });
+    // The server counted it: nothing else is sent.
+    expect(calls.some(([url]) => url === "/api/public/store/quiz")).toBe(false);
+    expect(JSON.parse(window.localStorage.getItem("rq_quiz_quiz00000001")!)).toMatchObject({ r: "dry", t: "بشرتك محتاجة ترطيب." });
+
+    // The request fails: the vote result, as without the AI.
+    cleanup();
+    window.localStorage.clear();
+    fetch.mockImplementation(() => Promise.reject(new Error("offline")));
+    drawAi();
+    fireEvent.click(screen.getByRole("button", { name: t.quiz.start }));
+    fireEvent.click(screen.getByRole("button", { name: /لامعة/ }));
+    fireEvent.click(screen.getByRole("button", { name: /حبوب/ }));
+    fireEvent.click(screen.getByRole("button", { name: t.quiz.seeResult }));
+    expect(await screen.findByRole("heading", { name: "بشرتك دهنية" })).toBeInTheDocument();
+    expect(screen.getByText(t.quiz.yourResult)).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });

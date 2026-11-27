@@ -245,7 +245,7 @@ it('writes articles that wait for the assistant, then get ready once it is on, a
         ->assertCreated()->json('data');
     expect($made['title'])->toBe('إضافة منتج')->and($made['state'])->toBe('waiting')->and($made['pieces'])->toBe(2);
 
-    $this->putJson('/api/v1/admin/ai/settings', ['features' => ['support' => true, 'designer' => false, 'copilot' => false], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])->assertOk();
+    $this->putJson('/api/v1/admin/ai/settings', ['features' => ['support' => true, 'designer' => false, 'copilot' => false, 'quiz' => false], 'daily_cap_usd' => 20, 'usd_rate' => null, 'margin_percent' => 10, 'support_daily_messages' => 30, 'topup_packages' => [100, 250, 500, 1000], 'topup_min' => 50, 'topup_offers' => [], 'welcome_credit' => 10, 'low_balance' => 10])->assertOk();
     $listed = $this->getJson('/api/v1/admin/ai/articles?category=products')->assertOk()->json('data.0');
     expect($listed['state'])->toBe('ready');
 

@@ -474,6 +474,7 @@ Route::prefix('public')
         Route::post('store/carts', [PublicStoreController::class, 'cart'])->middleware('throttle:public-leads');
         Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
         Route::post('store/quiz', [PublicStoreController::class, 'quiz'])->middleware('throttle:public-quiz');
+        Route::post('store/quiz/advice', [PublicStoreController::class, 'quizAdvice'])->middleware('throttle:public-quiz');
 
         // Storefront customer accounts (phone + one-time code) and product reviews.
         Route::get('store/products/{slug}/reviews', [StoreAccountController::class, 'productReviews'])->middleware('throttle:public-read');

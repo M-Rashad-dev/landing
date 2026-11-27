@@ -123,7 +123,11 @@ export type QuizResult = { id: string; name: string; text: string | null; produc
 /** An answer counts for one or two results (by id). */
 export type QuizAnswer = { text: string; results: string[] };
 export type QuizQuestion = { text: string; answers: QuizAnswer[] };
-export type SkinQuizProps = { kicker: string | null; title: string; text: string | null; button_label: string | null; results: QuizResult[]; questions: QuizQuestion[] };
+/** The AI add-on (back end: StoreSections::QUIZ_AI_DEFAULTS): the AI picks the result and the store's products, paid by the merchant. */
+export type QuizAi = { enabled: boolean; open_question: boolean; open_label: string | null; scope: "all" | "categories" | "products"; category_ids: number[]; product_ids: number[] };
+export const QUIZ_AI_DEFAULTS: QuizAi = { enabled: false, open_question: true, open_label: null, scope: "all", category_ids: [], product_ids: [] };
+/** Missing `ai` in quizzes saved before the add-on (read as off). */
+export type SkinQuizProps = { kicker: string | null; title: string; text: string | null; button_label: string | null; results: QuizResult[]; questions: QuizQuestion[]; ai?: QuizAi };
 
 /** A tip: a card that opens its own text in a reader, or a link. */
 export type Article = { media_id: number | null; tag: string | null; title: string; body: string | null; link: Link };

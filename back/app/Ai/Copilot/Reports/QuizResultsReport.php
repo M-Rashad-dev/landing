@@ -49,14 +49,14 @@ final class QuizResultsReport extends CopilotReport
         $rows = [];
         foreach ($quizzes as $quiz) {
             foreach ($quiz['results'] as $result) {
-                $rows[] = ['quiz' => $quiz['title'], 'result' => $result['name'], 'count' => $result['count']];
+                $rows[] = ['quiz' => $quiz['title'], 'result' => $result['name'], 'count' => $result['count'], 'ai' => $result['ai']];
             }
         }
 
         return new ReportResult(
             summary: ['period_days' => $days, 'quizzes' => $quizzes],
             title: 'نتايج اختبار البشرة',
-            columns: [['key' => 'quiz', 'label' => 'الاختبار', 'kind' => 'text'], ['key' => 'result', 'label' => 'النتيجة', 'kind' => 'text'], ['key' => 'count', 'label' => 'عدد العميلات', 'kind' => 'int']],
+            columns: [['key' => 'quiz', 'label' => 'الاختبار', 'kind' => 'text'], ['key' => 'result', 'label' => 'النتيجة', 'kind' => 'text'], ['key' => 'count', 'label' => 'عدد العميلات', 'kind' => 'int'], ['key' => 'ai', 'label' => 'منهم بترشيح الذكاء الاصطناعي', 'kind' => 'int']],
             rows: $rows,
         );
     }

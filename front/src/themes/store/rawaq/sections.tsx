@@ -1,10 +1,10 @@
 "use client";
 
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ImageOff, Play, Plus, RotateCcw, Star, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ImageOff, Play, Plus, RotateCcw, Sparkles, Star, X } from "lucide-react";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
 import { addToCart } from "@/lib/store/cart";
-import { sendQuizResult, sendStoreEvent } from "@/lib/store/events";
+import { quizAdvice, sendQuizResult, sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -20,7 +20,7 @@ import type { FeaturesProps, ProductsProps, TestimonialsProps } from "../asas/ty
 import { embedUrl, youtubePoster, type BannersProps, type BrandsProps, type CategoriesProps, type CountdownProps, type FaqProps, type TabsProps, type VideoProps } from "../sufi/types";
 import { RawaqCard } from "./card";
 import { useRawaq } from "./root";
-import type { Article, ArticlesProps, BeforeAfterProps, CtaProps, GlowHeroProps, IngredientsProps, RawaqSection, ReelsProps, RoutineProps, ShortcutsProps, SkinQuizProps } from "./types";
+import { QUIZ_AI_DEFAULTS, type Article, type ArticlesProps, type BeforeAfterProps, type CtaProps, type GlowHeroProps, type IngredientsProps, type RawaqSection, type ReelsProps, type RoutineProps, type ShortcutsProps, type SkinQuizProps } from "./types";
 
 const t = ar.rawaqStore;
 
@@ -827,51 +827,96 @@ function readStored(key: string): string | null {
   }
 }
 
+/** What a finished quiz shows: the result, and the AI's own text and products when it picked them. */
+type Outcome = { index: number; text: string | null; products: ProductCard[] | null; ai: boolean };
+
+/** The visitor's last outcome as kept in her browser (`{r, t, p}`; an older plain result id still reads). */
+function parseStored(saved: string | null, results: SkinQuizProps["results"]): Outcome | null {
+  if (!saved) return null;
+  let raw: { r?: unknown; t?: unknown; p?: unknown } = { r: saved };
+  if (saved.startsWith("{")) {
+    try {
+      raw = JSON.parse(saved) as typeof raw;
+    } catch {
+      return null;
+    }
+  }
+  const index = results.findIndex((r) => r.id === raw.r);
+  if (index < 0) return null;
+  const products = Array.isArray(raw.p) ? (raw.p as ProductCard[]) : null;
+  return { index, text: typeof raw.t === "string" ? raw.t : null, products, ai: products !== null };
+}
+
 function SkinQuiz({ id, props }: { id: string; props: SkinQuizProps }) {
   const { data, mode } = useRawaq();
   const shop = useShop();
   const memory = `rq_quiz_${id}`;
-  // null: the start card; a number: the question showing; "done": the result.
-  const [step, setStep] = React.useState<number | "done" | null>(null);
+  const ai = props.ai ?? QUIZ_AI_DEFAULTS;
+  // null: the start card; a number: the question showing; "note": her own words; "thinking": the AI at work; "done": the result.
+  const [step, setStep] = React.useState<number | "note" | "thinking" | "done" | null>(null);
   const [picked, setPicked] = React.useState<number[]>([]);
-  const [result, setResult] = React.useState(0);
+  const [note, setNote] = React.useState("");
+  const [outcome, setOutcome] = React.useState<Outcome>({ index: 0, text: null, products: null, ai: false });
   const [added, setAdded] = React.useState<AddAll>("idle");
   // The live store shows the visitor's last result straight away (kept in this browser only).
   const saved = React.useSyncExternalStore(noSubscribe, () => (mode === "live" ? readStored(memory) : null), () => null);
-  const savedIndex = props.results.findIndex((r) => r.id === saved);
-  const remembered = step === null && savedIndex >= 0;
+  const stored = React.useMemo(() => parseStored(saved, props.results), [saved, props.results]);
+  const remembered = step === null && stored !== null;
+
+  const remember = (value: Outcome) => {
+    try {
+      window.localStorage.setItem(memory, JSON.stringify({ r: props.results[value.index]!.id, ...(value.ai ? { t: value.text, p: value.products } : {}) }));
+    } catch {
+      // Not remembered: fine.
+    }
+  };
+
+  const show = (value: Outcome) => {
+    setOutcome(value);
+    setAdded("idle");
+    setStep("done");
+  };
+
+  const finish = async (answers: number[], words: string | null) => {
+    const vote: Outcome = { index: quizResult(props, answers), text: null, products: null, ai: false };
+    if (mode !== "live") return show(vote);
+    if (!ai.enabled) {
+      sendQuizResult(id, props.results[vote.index]!.id);
+      remember(vote);
+      return show(vote);
+    }
+    // The AI's pick (the server counts the result itself); its vote result when the AI wasn't asked.
+    setStep("thinking");
+    const advice = await quizAdvice(id, answers, words);
+    if (!advice) return show(vote);
+    const index = Math.max(0, props.results.findIndex((r) => r.id === advice.result_id));
+    const value: Outcome = advice.source === "ai" ? { index, text: advice.text ?? null, products: advice.products ?? [], ai: true } : { ...vote, index };
+    remember(value);
+    show(value);
+  };
 
   const choose = (answer: number) => {
     if (typeof step !== "number") return;
     const next = [...picked.slice(0, step), answer];
     setPicked(next);
     if (step + 1 < props.questions.length) return setStep(step + 1);
-    const best = quizResult(props, next);
-    setResult(best);
-    setStep("done");
-    setAdded("idle");
-    const resultId = props.results[best]!.id;
-    if (mode === "live") {
-      sendQuizResult(id, resultId);
-      try {
-        window.localStorage.setItem(memory, resultId);
-      } catch {
-        // Not remembered: fine.
-      }
-    }
+    if (ai.enabled && ai.open_question) return setStep("note");
+    void finish(next, null);
   };
 
   const restart = () => {
     setPicked([]);
+    setNote("");
     setAdded("idle");
     setStep(0);
   };
 
-  const shown = remembered ? savedIndex : result;
-  const current = props.results[shown];
-  const products = data.products[`${id}:${shown}`] ?? [];
-  const category = data.links[`${id}:${shown}`] ?? null;
+  const shown = remembered ? stored : outcome;
+  const current = props.results[shown.index];
+  const products = shown.products ?? data.products[`${id}:${shown.index}`] ?? [];
+  const category = data.links[`${id}:${shown.index}`] ?? null;
   const question = typeof step === "number" ? props.questions[step] : null;
+  const last = props.questions.length - 1;
 
   return (
     <section className="rq-section rq-reveal">
@@ -916,23 +961,54 @@ function SkinQuiz({ id, props }: { id: string; props: SkinQuizProps }) {
                 ))}
               </ul>
             </div>
+          ) : step === "note" ? (
+            <form
+              className="mx-auto flex w-full max-w-2xl flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void finish(picked, note.trim() || null);
+              }}
+            >
+              <button type="button" onClick={() => setStep(last)} className="as-xs flex w-fit items-center gap-1 font-bold text-(--as-primary)">
+                <ChevronRight className="size-4" aria-hidden />
+                {t.quiz.back}
+              </button>
+              <label htmlFor={`${id}-note`} className="rq-display as-2xl">
+                {ai.open_label || t.quiz.noteTitle}
+              </label>
+              <textarea id={`${id}-note`} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={4} placeholder={t.quiz.notePlaceholder} className="rq-card as-base w-full resize-none p-4 outline-none focus:border-(--as-primary)" />
+              <span className="as-xs as-muted">{t.quiz.noteHint}</span>
+              <button type="submit" className="rq-btn rq-btn-main as-base h-13 w-fit px-9">
+                <Sparkles className="size-5" aria-hidden />
+                {t.quiz.seeResult}
+              </button>
+            </form>
+          ) : step === "thinking" ? (
+            <div className="mx-auto flex flex-col items-center gap-3 py-10 text-center" role="status">
+              <Sparkles className="size-9 animate-pulse text-(--as-primary)" aria-hidden />
+              <p className="rq-display as-xl">{t.quiz.thinking}</p>
+            </div>
           ) : current ? (
             <div className="flex flex-col gap-6">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="flex max-w-2xl flex-col gap-2">
-                  <span className="rq-kicker">{remembered ? t.quiz.remembered : t.quiz.yourResult}</span>
+                  <span className="rq-kicker flex items-center gap-1.5">
+                    {shown.ai ? <Sparkles className="size-4" aria-hidden /> : null}
+                    {remembered ? t.quiz.remembered : shown.ai ? t.quiz.picked : t.quiz.yourResult}
+                  </span>
                   <h2 className="rq-display rq-title">{current.name}</h2>
-                  {current.text ? <p className="as-base as-muted">{current.text}</p> : null}
+                  {(shown.text ?? current.text) ? <p className="as-base as-muted">{shown.text ?? current.text}</p> : null}
                 </div>
                 <button type="button" onClick={restart} className="rq-btn rq-btn-ink as-sm h-11 px-5">
                   <RotateCcw className="size-4" aria-hidden />
                   {t.quiz.again}
                 </button>
               </div>
+              {mode === "builder" && ai.enabled ? <Empty text={ar.design.rawaq.quiz.previewNote} /> : null}
               {products.length > 0 ? <Grid products={products} /> : category ? null : <Empty text={t.empty.quizProducts} />}
               <div className="flex flex-wrap items-center gap-3">
                 {products.length > 1 ? (
-                  <button type="button" onClick={() => mode === "live" && shop && setAdded(addAllToCart(products, products.length < current.product_ids.length))} className="rq-btn rq-btn-main as-base h-12 px-7">
+                  <button type="button" onClick={() => mode === "live" && shop && setAdded(addAllToCart(products, !shown.ai && products.length < current.product_ids.length))} className="rq-btn rq-btn-main as-base h-12 px-7">
                     {added === "added" ? <Check className="size-5" aria-hidden /> : null}
                     {added === "added" ? t.routine.added : t.routine.add}
                   </button>

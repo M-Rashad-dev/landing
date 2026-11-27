@@ -66,6 +66,7 @@ final class FakeAiClient implements AiClient
         $next = array_shift($this->queue) ?? match (true) {
             self::isCopilot($messages) => self::copilotReply($messages, $options),
             self::isContent($messages) => self::contentReply($messages),
+            self::isQuiz($messages) => self::quizReply($messages),
             default => self::defaultReply($messages),
         };
         if ($next instanceof AiError) {
@@ -111,6 +112,33 @@ final class FakeAiClient implements AiClient
         }
 
         return (string) json_encode(['products' => $products], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** @param array<int, mixed> $messages */
+    private static function isQuiz(array $messages): bool
+    {
+        $first = $messages[0] ?? null;
+
+        return is_array($first) && is_string($first['content'] ?? null) && str_contains($first['content'], 'MKSAB_QUIZ_ADVISOR');
+    }
+
+    /**
+     * The AI quiz without a provider: the vote result and the first products offered, with a sample text.
+     *
+     * @param  array<int, mixed>  $messages
+     */
+    private static function quizReply(array $messages): string
+    {
+        // The quiz JSON sits on the line after its heading (QuizAdvisor::userMessage).
+        $lines = explode("\n", (string) (end($messages)['content'] ?? ''));
+        $payload = json_decode($lines[1] ?? '{}', true);
+        $products = array_slice((array) ($payload['products'] ?? []), 0, 3);
+
+        return (string) json_encode([
+            'result_id' => (string) ($payload['vote_result'] ?? ''),
+            'text' => 'بشرتك محتاجة روتين خفيف ومنتظم: '.implode(' ثم ', array_map(fn ($p) => (string) ($p['name'] ?? ''), $products)).'.',
+            'product_ids' => array_map(fn ($p) => (int) ($p['id'] ?? 0), $products),
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /** @param array<int, mixed> $messages */

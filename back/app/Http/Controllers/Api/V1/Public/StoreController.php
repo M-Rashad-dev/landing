@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Actions\Orders\CaptureLead;
+use App\Ai\Quiz\QuizAdvisor;
 use App\Billing\Entitlements;
 use App\Enums\PlanFeature;
 use App\Exceptions\ApiException;
@@ -224,6 +225,23 @@ final class StoreController extends Controller
 
             return new JsonResponse(null, 202);
         });
+    }
+
+    /**
+     * «اختبار البشرة» with AI: the visitor's answers (and her own words, when the merchant asks for them)
+     * give a result and products picked by the AI from the store's own, paid by the merchant; anything
+     * wrong gives the vote result (`source: vote`). Counts the result too (the page sends nothing else).
+     */
+    public function quizAdvice(Request $request, QuizAdvisor $advisor): JsonResponse
+    {
+        $data = $request->validate([
+            'section_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'],
+            'answers' => ['required', 'array', 'min:2', 'max:6'],
+            'answers.*' => ['required', 'integer', 'min:0', 'max:4'],
+            'note' => ['nullable', 'string', 'max:300'],
+        ]);
+
+        return $this->inStore($request, fn (Store $store) => $this->ok($advisor->advise($store, $data['section_id'], array_map('intval', array_values($data['answers'])), $data['note'] ?? null)));
     }
 
     /** Store traffic counters (first-party, no personal data). */

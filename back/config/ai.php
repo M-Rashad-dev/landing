@@ -26,6 +26,8 @@ return [
         // The store copilot (tool calling), and the bulk texts it writes (descriptions, SEO).
         'copilot' => env('AI_MODEL_COPILOT', 'anthropic/claude-sonnet-5.5'),
         'copilot_content' => env('AI_MODEL_COPILOT_CONTENT', 'anthropic/claude-sonnet-5.5'),
+        // «اختبار البشرة» with AI: picks the customer's result and products out of a short list.
+        'quiz' => env('AI_MODEL_QUIZ', 'qwen/qwen4-max'),
         // The knowledge base and the questions searched in it (multilingual, Arabic included).
         // Changing it re-embeds every piece (php artisan ai:reembed).
         'embedding' => env('AI_MODEL_EMBEDDING', 'qwen/qwen3-embedding-8b'),
@@ -42,6 +44,7 @@ return [
         // Low: the copilot's hard work (math, validation) is done by PHP, so rounds stay fast and cheap.
         'copilot' => env('AI_EFFORT_COPILOT', 'low'),
         'copilot_content' => env('AI_EFFORT_COPILOT_CONTENT', 'none'),
+        'quiz' => env('AI_EFFORT_QUIZ', 'none'),
     ],
 
     // The store copilot's tool loop (docs/plans/ai-copilot.md §3.5): the most model rounds per merchant
@@ -50,6 +53,16 @@ return [
         'max_rounds' => (int) env('AI_COPILOT_MAX_ROUNDS', 8),
         'max_message_usd' => (float) env('AI_COPILOT_MAX_MESSAGE_USD', 0.50),
         'max_output' => 4000,
+    ],
+
+    // «اختبار البشرة» with AI (paid by the merchant): the products sent to the model at most (a bigger
+    // catalog is cut down by vectors first), the model calls a store may make a day, how long the
+    // same answers keep the same recommendation, and the answer length.
+    'quiz' => [
+        'candidates' => (int) env('AI_QUIZ_CANDIDATES', 45),
+        'store_daily' => (int) env('AI_QUIZ_STORE_DAILY', 300),
+        'cache_days' => 7,
+        'max_output' => 700,
     ],
 
     // Models whose prompt cache needs explicit cache_control marks (OpenRouter → Anthropic).

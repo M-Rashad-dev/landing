@@ -5,7 +5,7 @@ import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
 import type { DesignData } from "@/themes/store/shared/types";
 import type { Design, Section, SectionType } from "@/themes/store/asas/types";
-import type { RawaqSection, RawaqSectionType, SkinQuizProps } from "@/themes/store/rawaq/types";
+import { QUIZ_AI_DEFAULTS, type RawaqSection, type RawaqSectionType, type SkinQuizProps } from "@/themes/store/rawaq/types";
 import type { ShabeStoreSection, ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
 
@@ -198,11 +198,12 @@ export function starterQuiz(): SkinQuizProps {
     button_label: null,
     results: s.results.map((x) => ({ ...x, product_ids: [], category_id: null })),
     questions: s.questions.map((q) => ({ text: q.text, answers: q.answers.map(([text, ...results]) => ({ text, results })) })),
+    ai: { ...QUIZ_AI_DEFAULTS },
   };
 }
 
 /** How many visitors finished each quiz, per result (last 30 days). */
-export type QuizStats = { section_id: string; title: string; total: number; results: Array<{ id: string; name: string; count: number }> };
+export type QuizStats = { section_id: string; title: string; total: number; ai: number; results: Array<{ id: string; name: string; count: number; ai: number }> };
 export const useQuizResults = () => useQuery({ queryKey: ["store", "design", "quiz-results"], queryFn: () => api<QuizStats[]>("/dashboard/store/design/quiz-results") });
 
 /** A copy of a section with a new id (its banner images and texts stay the same). */

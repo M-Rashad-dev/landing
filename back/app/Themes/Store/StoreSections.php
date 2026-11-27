@@ -53,6 +53,12 @@ final class StoreSections
     /** A «اشترك» band: opens the store's WhatsApp with a ready message, or a link. */
     public const CTA_ACTIONS = ['whatsapp', 'link'];
 
+    /** Where the quiz's AI add-on picks products from: the whole store, some categories, or the merchant's list. */
+    public const QUIZ_AI_SCOPES = ['all', 'categories', 'products'];
+
+    /** The quiz's AI add-on as a new quiz (or one saved before it) has it: off. */
+    public const QUIZ_AI_DEFAULTS = ['enabled' => false, 'open_question' => true, 'open_label' => null, 'scope' => 'all', 'category_ids' => [], 'product_ids' => []];
+
     public const HEX = 'regex:/^#[0-9a-fA-F]{6}$/';
 
     public const VIDEO_HOSTS = '#^https://(www\.|m\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com)/#i';
@@ -655,6 +661,7 @@ final class StoreSections
                         'results' => array_values(array_unique(array_map('strval', (array) $a['results']))),
                     ], (array) $q['answers'])),
                 ], (array) $p['questions'])),
+                'ai' => self::cleanQuizAi(is_array($p['ai'] ?? null) ? $p['ai'] : []),
             ],
             'articles' => [
                 'kicker' => $str($p['kicker'] ?? null),
@@ -691,6 +698,9 @@ final class StoreSections
     {
         $text = self::text(...);
         $ids = array_values(array_filter(array_map(fn ($r) => is_array($r) ? ($r['id'] ?? null) : null, (array) ($props['results'] ?? [])), 'is_string'));
+        $ai = is_array($props['ai'] ?? null) ? $props['ai'] : [];
+        $aiOn = filter_var($ai['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $scope = $ai['scope'] ?? 'all';
 
         return [
             "{$s}.props.kicker" => $text(40),
@@ -711,6 +721,39 @@ final class StoreSections
             "{$s}.props.questions.*.answers.*.text" => $text(60, true),
             "{$s}.props.questions.*.answers.*.results" => ['required', 'array', 'min:1', 'max:2'],
             "{$s}.props.questions.*.answers.*.results.*" => ['string', Rule::in($ids)],
+            // The AI add-on (missing in quizzes saved before it: read as off).
+            "{$s}.props.ai" => ['sometimes', 'array'],
+            "{$s}.props.ai.enabled" => ['required_with:'."{$s}.props.ai", 'boolean'],
+            "{$s}.props.ai.open_question" => ['required_with:'."{$s}.props.ai", 'boolean'],
+            "{$s}.props.ai.open_label" => $text(60),
+            "{$s}.props.ai.scope" => ['required_with:'."{$s}.props.ai", Rule::in(self::QUIZ_AI_SCOPES)],
+            "{$s}.props.ai.category_ids" => ['present_with:'."{$s}.props.ai", 'array', 'max:20', ...$aiOn && $scope === 'categories' ? ['min:1'] : []],
+            "{$s}.props.ai.category_ids.*" => ['integer', 'distinct', TenantExists::table('categories')],
+            "{$s}.props.ai.product_ids" => ['present_with:'."{$s}.props.ai", 'array', 'max:50', ...$aiOn && $scope === 'products' ? ['min:2'] : []],
+            "{$s}.props.ai.product_ids.*" => ['integer', 'distinct', TenantExists::table('products')->ignoreTrashed()],
+        ];
+    }
+
+    /**
+     * The quiz's AI add-on as stored (defaults for a quiz saved before it).
+     *
+     * @param  array<string, mixed>  $ai
+     * @return array{enabled: bool, open_question: bool, open_label: string|null, scope: string, category_ids: list<int>, product_ids: list<int>}
+     */
+    public static function cleanQuizAi(array $ai): array
+    {
+        if ($ai === []) {
+            return self::QUIZ_AI_DEFAULTS;
+        }
+        $label = trim((string) ($ai['open_label'] ?? ''));
+
+        return [
+            'enabled' => (bool) filter_var($ai['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'open_question' => (bool) filter_var($ai['open_question'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'open_label' => $label === '' ? null : $label,
+            'scope' => in_array($ai['scope'] ?? null, self::QUIZ_AI_SCOPES, true) ? (string) $ai['scope'] : 'all',
+            'category_ids' => array_values(array_unique(array_map('intval', (array) ($ai['category_ids'] ?? [])))),
+            'product_ids' => array_values(array_unique(array_map('intval', (array) ($ai['product_ids'] ?? [])))),
         ];
     }
 

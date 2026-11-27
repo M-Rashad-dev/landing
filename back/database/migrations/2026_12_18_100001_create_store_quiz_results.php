@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('result_id', 12);
             $table->date('date');
             $table->unsignedInteger('count')->default(0);
+            // Of them, the ones whose result the AI recommended (the merchant's AI add-on).
+            $table->unsignedInteger('ai_count')->default(0);
 
             $table->unique(['tenant_id', 'section_id', 'result_id', 'date'], 'store_quiz_results_day');
         });

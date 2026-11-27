@@ -42,7 +42,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
 - **`faq`:** `title` (`<= 80`), `text` (`<= 300`), `whatsapp_button` (bool), `items` (array `1..20` of `{ question <= 160, answer <= 1000 }`).
 - **`cta`:** a colored band with one button: `title` (required `<= 80`), `text` (`<= 200`), `button_label` (required `<= 30`), `action` (`"whatsapp" | "link"`; whatsapp opens the store's footer WhatsApp number), `message` (`<= 200`, the ready WhatsApp message), `link`.
 - **`before_after`:** two photos with a line the customer drags: `kicker` (`<= 40`), `title` (`<= 80`), `text` (`<= 300`), `before_media_id` and `after_media_id` (both required, real media ids only: leave this section out when there are no such photos), `before_label` / `after_label` (required `<= 20`), `facts` (array `0..3` of `{ value (required <= 12: "92%"), label (required <= 40) }`).
-- **`skin_quiz`:** a short quiz recommending products: `kicker` (`<= 40`), `title` (required `<= 80`), `text` (`<= 300`), `button_label` (`<= 30`), `results` (array `2..6` of `{ id (required, distinct, a-z0-9 <= 12), name (required <= 40), text <= 300, product_ids (<= 4 real product ids), category_id (int|null) }`), `questions` (array `2..6` of `{ text (required <= 120), answers (array 2..5 of { text (required <= 60), results (1..2 ids from this quiz's results) }) }`). Each answer votes for its results; the result with the most votes shows (a tie goes to the first listed). Keep the starter quiz below unless asked to change it; no medical claims.
+- **`skin_quiz`:** a short quiz recommending products: `kicker` (`<= 40`), `title` (required `<= 80`), `text` (`<= 300`), `button_label` (`<= 30`), `results` (array `2..6` of `{ id (required, distinct, a-z0-9 <= 12), name (required <= 40), text <= 300, product_ids (<= 4 real product ids), category_id (int|null) }`), `questions` (array `2..6` of `{ text (required <= 120), answers (array 2..5 of { text (required <= 60), results (1..2 ids from this quiz's results) }) }`). Each answer votes for its results; the result with the most votes shows (a tie goes to the first listed). Keep the starter quiz below unless asked to change it; no medical claims. `ai` (the merchant's paid AI add-on): `{ enabled: bool, open_question: bool, open_label <= 60, scope: "all | categories | products", category_ids (<= 20, at least 1 when enabled with categories), product_ids (<= 50, at least 2 when enabled with products) }`; keep it as it is (`enabled: false` in a new design: the merchant turns it on).
 - **`articles`:** care tips: `kicker` (`<= 40`), `title` (`<= 80`), `items` (array `1..6` of `{ media_id (nullable), tag <= 30, title (required <= 80), body (<= 3000 plain text, line breaks kept: opens in a reader), link }`); a tip with no `body` opens its `link`.
 - **`ai`:** `ai_section_id` (required int), `values` (`{}`).
 
@@ -142,7 +142,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  },
  "sections": [
  {
- "id": "efc6e4f12e54",
+ "id": "1519a863f119",
  "type": "glow_hero",
  "visible": true,
  "props": {
@@ -173,7 +173,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "a4e80ee045f1",
+ "id": "2a172f62dafa",
  "type": "features",
  "visible": true,
  "props": {
@@ -203,7 +203,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "bab82577b49d",
+ "id": "95953493bb82",
  "type": "shortcuts",
  "visible": true,
  "props": {
@@ -282,7 +282,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "696454620be9",
+ "id": "ee721c7ee286",
  "type": "shortcuts",
  "visible": true,
  "props": {
@@ -339,7 +339,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "bfac572a4cba",
+ "id": "b6430f8a9960",
  "type": "product_tabs",
  "visible": true,
  "props": {
@@ -363,7 +363,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "ad514ecb8cdf",
+ "id": "cf18b412441b",
  "type": "ingredients",
  "visible": true,
  "props": {
@@ -419,7 +419,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "63c8d63528f8",
+ "id": "23dc6a5464f0",
  "type": "skin_quiz",
  "visible": true,
  "props": {
@@ -593,11 +593,19 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  ]
  }
- ]
+ ],
+ "ai": {
+ "enabled": false,
+ "open_question": true,
+ "open_label": null,
+ "scope": "all",
+ "category_ids": [],
+ "product_ids": []
+ }
  }
  },
  {
- "id": "386aa3d4be03",
+ "id": "093b03d06196",
  "type": "testimonials",
  "visible": true,
  "props": {
@@ -607,7 +615,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "23691e347311",
+ "id": "2e197082a295",
  "type": "cta",
  "visible": true,
  "props": {
