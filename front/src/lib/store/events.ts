@@ -73,3 +73,8 @@ export function syncCart(cart: Cart, contact: { phone?: string | null; name?: st
   if (!token) return;
   send("/api/public/store/carts", { cart_token: token, items: cartPayload(cart), phone: contact.phone ?? null, name: contact.name ?? null });
 }
+
+/** A finished quiz: its result counts once for the merchant's numbers (fire-and-forget). */
+export function sendQuizResult(sectionId: string, resultId: string): void {
+  send("/api/public/store/quiz", { section_id: sectionId, result_id: resultId });
+}

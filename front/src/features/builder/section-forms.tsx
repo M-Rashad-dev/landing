@@ -131,6 +131,11 @@ export function BannerForm({ props, onChange, errors, media, onMedia }: { props:
                 <Input dir="ltr" maxLength={500} placeholder="https://" value={slide.link.url ?? ""} onChange={(ev) => setLink(i, { url: ev.target.value })} />
               </Field>
             ) : null}
+            {slide.link.type === "search" ? (
+              <Field label={tb.searchWord} hint={tb.searchWordHint} error={e("link.url")}>
+                <Input maxLength={60} value={slide.link.url ?? ""} onChange={(ev) => setLink(i, { url: ev.target.value })} />
+              </Field>
+            ) : null}
           </Card>
         );
       })}

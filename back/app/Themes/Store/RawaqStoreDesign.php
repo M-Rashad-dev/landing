@@ -26,6 +26,7 @@ final class RawaqStoreDesign extends StoreThemeDesign
     public const SECTION_TYPES = [
         'glow_hero', 'features', 'shortcuts', 'categories', 'product_tabs', 'products', 'routine', 'banners',
         'countdown', 'reels', 'video', 'ingredients', 'brands', 'testimonials', 'faq', 'cta',
+        'before_after', 'skin_quiz', 'articles',
     ];
 
     public const MAX_SECTIONS = 30;
@@ -137,10 +138,32 @@ final class RawaqStoreDesign extends StoreThemeDesign
                     ['label' => (string) $t('tab_latest'), 'source' => 'latest', 'category_id' => null, 'product_ids' => []],
                     ['label' => (string) $t('tab_offers'), 'source' => 'offers', 'category_id' => null, 'product_ids' => []],
                 ]]),
-                self::section('ingredients', ['kicker' => (string) $t('ingredients.kicker'), 'title' => (string) $t('ingredients.title'), 'description' => null, 'items' => array_map(fn (array $item) => [...$item, 'link' => ['type' => 'none', 'target_id' => null, 'url' => null]], (array) $t('ingredients.items'))]),
+                // Each ingredient opens the store's search for its name (the products that have it).
+                self::section('ingredients', ['kicker' => (string) $t('ingredients.kicker'), 'title' => (string) $t('ingredients.title'), 'description' => null, 'items' => array_map(fn (array $item) => [...$item, 'link' => ['type' => 'search', 'target_id' => null, 'url' => $item['name']]], (array) $t('ingredients.items'))]),
+                self::section('skin_quiz', self::starterQuiz()),
                 self::section('testimonials', ['title' => (string) $t('testimonials_title'), 'source' => 'auto', 'items' => []]),
                 self::section('cta', ['title' => (string) $t('cta.title'), 'text' => (string) $t('cta.text'), 'button_label' => (string) $t('cta.button'), 'action' => 'whatsapp', 'message' => (string) $t('cta.message'), 'link' => ['type' => 'none', 'target_id' => null, 'url' => null]]),
             ],
+        ];
+    }
+
+    /**
+     * The ready «اختبار البشرة» (4 skin types, 5 questions): the merchant only picks each result's
+     * products, and edits the rest if she likes.
+     *
+     * @return array<string, mixed>
+     */
+    public static function starterQuiz(): array
+    {
+        $q = (array) __('themes/store/rawaq.quiz');
+
+        return [
+            'kicker' => (string) $q['kicker'],
+            'title' => (string) $q['title'],
+            'text' => (string) $q['text'],
+            'button_label' => (string) $q['button'],
+            'results' => array_map(fn (array $r) => ['id' => $r['id'], 'name' => $r['name'], 'text' => $r['text'], 'product_ids' => [], 'category_id' => null], (array) $q['results']),
+            'questions' => (array) $q['questions'],
         ];
     }
 

@@ -66,6 +66,11 @@ export function LinkField({ value, onChange, errors, prefix }: { value: Link; on
           <Input dir="ltr" maxLength={500} placeholder="https://" value={value.url ?? ""} onChange={(e) => onChange({ ...value, url: e.target.value })} />
         </Field>
       ) : null}
+      {value.type === "search" ? (
+        <Field label={tb.searchWord} hint={tb.searchWordHint} error={errors[`${prefix}.url`]}>
+          <Input maxLength={60} value={value.url ?? ""} onChange={(e) => onChange({ ...value, url: e.target.value })} />
+        </Field>
+      ) : null}
     </>
   );
 }

@@ -4,7 +4,7 @@ import type { RawaqSection, RawaqSectionType, RawaqSettings } from "@/themes/sto
 import type { SufiSection } from "@/themes/store/sufi/types";
 import { newRawaqSection } from "../api";
 import { LibrarySectionForm } from "../library-forms";
-import { CtaForm, GlowHeroForm, IngredientsForm, RawaqCardForm, RawaqCartForm, RawaqFooterExtras, RawaqGeneralExtras, RawaqHeaderExtras, RawaqListingForm, RawaqLookExtras, RawaqPageForm, ReelsForm, RoutineForm, ShortcutsForm } from "../rawaq-forms";
+import { ArticlesForm, BeforeAfterForm, CtaForm, GlowHeroForm, SkinQuizForm, IngredientsForm, RawaqCardForm, RawaqCartForm, RawaqFooterExtras, RawaqGeneralExtras, RawaqHeaderExtras, RawaqListingForm, RawaqLookExtras, RawaqPageForm, ReelsForm, RoutineForm, ShortcutsForm } from "../rawaq-forms";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "../theme-forms";
 import { AsasSectionForm } from "./asas";
 import type { BuilderTheme, GroupFormProps, SectionFormProps } from "./types";
@@ -43,6 +43,12 @@ function RawaqForm(props: SectionFormProps) {
       return <ReelsForm props={section.props} onChange={onChange} errors={props.errors} {...media} />;
     case "ingredients":
       return <IngredientsForm props={section.props} onChange={onChange} errors={props.errors} />;
+    case "before_after":
+      return <BeforeAfterForm props={section.props} onChange={onChange} errors={props.errors} {...media} />;
+    case "skin_quiz":
+      return <SkinQuizForm sectionId={section.id} props={section.props} onChange={onChange} errors={props.errors} />;
+    case "articles":
+      return <ArticlesForm props={section.props} onChange={onChange} errors={props.errors} {...media} />;
     case "cta":
       return <CtaForm props={section.props} onChange={onChange} errors={props.errors} />;
     case "products":

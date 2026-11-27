@@ -106,6 +106,29 @@ export type IngredientsProps = { kicker: string | null; title: string | null; de
 
 export type CtaProps = { title: string; text: string | null; button_label: string; action: "whatsapp" | "link"; message: string | null; link: Link };
 
+export type BeforeAfterProps = {
+  kicker: string | null;
+  title: string | null;
+  text: string | null;
+  /** Required to save (null only in a section just added in the Builder). */
+  before_media_id: number | null;
+  after_media_id: number | null;
+  before_label: string;
+  after_label: string;
+  facts: Array<{ value: string; label: string }>;
+};
+
+/** One result of «اختبار البشرة»: what it says and what it recommends (products and / or a category). */
+export type QuizResult = { id: string; name: string; text: string | null; product_ids: number[]; category_id: number | null };
+/** An answer counts for one or two results (by id). */
+export type QuizAnswer = { text: string; results: string[] };
+export type QuizQuestion = { text: string; answers: QuizAnswer[] };
+export type SkinQuizProps = { kicker: string | null; title: string; text: string | null; button_label: string | null; results: QuizResult[]; questions: QuizQuestion[] };
+
+/** A tip: a card that opens its own text in a reader, or a link. */
+export type Article = { media_id: number | null; tag: string | null; title: string; body: string | null; link: Link };
+export type ArticlesProps = { kicker: string | null; title: string | null; items: Article[] };
+
 type S<T extends string, P> = { id: string; type: T; visible: boolean; props: P };
 export type RawaqSection =
   | S<"glow_hero", GlowHeroProps>
@@ -124,6 +147,9 @@ export type RawaqSection =
   | S<"testimonials", TestimonialsProps>
   | S<"faq", FaqProps>
   | S<"cta", CtaProps>
+  | S<"before_after", BeforeAfterProps>
+  | S<"skin_quiz", SkinQuizProps>
+  | S<"articles", ArticlesProps>
   | S<"ai", AiSectionProps>;
 export type RawaqSectionType = RawaqSection["type"];
 

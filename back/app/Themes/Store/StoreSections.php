@@ -28,7 +28,11 @@ final class StoreSections
     /** Food themes add their own icons to the base ones. */
     public const FOOD_ICONS = [...self::ICONS, 'flame', 'chef', 'leaf', 'utensils', 'meat', 'timer', 'thermo', 'bike', 'soup', 'sparkle'];
 
-    public const LINK_TYPES = ['none', 'all_products', 'offers', 'category', 'product', 'url'];
+    /** Where a section's button or picture leads (the AI sections keep these). */
+    public const BASE_LINK_TYPES = ['none', 'all_products', 'offers', 'category', 'product', 'url'];
+
+    /** The theme sections add «بحث بكلمة»: the store's search for a word (an ingredient, a brand…). */
+    public const LINK_TYPES = [...self::BASE_LINK_TYPES, 'search'];
 
     /** «مواعيد العمل»: one row per day, Saturday first (the Egyptian week). */
     public const WEEK_DAYS = 7;
@@ -85,7 +89,11 @@ final class StoreSections
                 'product' => ['required', 'integer', TenantExists::table('products')->ignoreTrashed()],
                 default => ['nullable'],
             },
-            "{$k}.url" => $type === 'url' ? ['required', 'string', 'max:500', new SafeUrl] : ['nullable'],
+            "{$k}.url" => match ($type) {
+                'url' => ['required', 'string', 'max:500', new SafeUrl],
+                'search' => ['required', 'string', 'max:60'],
+                default => ['nullable'],
+            },
         ];
     }
 
@@ -98,7 +106,11 @@ final class StoreSections
         return [
             'type' => (string) $link['type'],
             'target_id' => in_array($link['type'], ['category', 'product'], true) ? (int) $link['target_id'] : null,
-            'url' => $link['type'] === 'url' ? trim((string) $link['url']) : null,
+            'url' => match ($link['type']) {
+                'url' => trim((string) $link['url']),
+                'search' => (string) self::str($link['url']),
+                default => null,
+            },
         ];
     }
 
@@ -339,6 +351,30 @@ final class StoreSections
                     "{$k}.name" => $text(40, true),
                     "{$k}.text" => $text(100),
                     "{$k}.color" => ['nullable', 'string', self::HEX],
+                ]),
+            ],
+            'before_after' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.text" => $text(300),
+                "{$s}.props.before_media_id" => $media(),
+                "{$s}.props.after_media_id" => $media(),
+                "{$s}.props.before_label" => $text(20, true),
+                "{$s}.props.after_label" => $text(20, true),
+                "{$s}.props.facts" => ['present', 'array', 'max:3'],
+                "{$s}.props.facts.*.value" => $text(12, true),
+                "{$s}.props.facts.*.label" => $text(40, true),
+            ],
+            'skin_quiz' => $this->quizRules($s, $props),
+            'articles' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.items" => ['required', 'array', 'min:1', 'max:6'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.media_id" => $media(false),
+                    "{$k}.tag" => $text(30),
+                    "{$k}.title" => $text(80, true),
+                    "{$k}.body" => $text(3000),
                 ]),
             ],
             'cta' => [
@@ -590,6 +626,48 @@ final class StoreSections
                     'link' => self::cleanLink((array) $i['link']),
                 ]),
             ],
+            'before_after' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'text' => $str($p['text'] ?? null),
+                'before_media_id' => (int) $p['before_media_id'],
+                'after_media_id' => (int) $p['after_media_id'],
+                'before_label' => (string) $str($p['before_label']),
+                'after_label' => (string) $str($p['after_label']),
+                'facts' => array_values(array_map(fn (array $x) => ['value' => (string) $str($x['value']), 'label' => (string) $str($x['label'])], (array) $p['facts'])),
+            ],
+            'skin_quiz' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'text' => $str($p['text'] ?? null),
+                'button_label' => $str($p['button_label'] ?? null),
+                'results' => array_values(array_map(fn (array $r) => [
+                    'id' => (string) $r['id'],
+                    'name' => (string) $str($r['name']),
+                    'text' => $str($r['text'] ?? null),
+                    'product_ids' => array_values(array_unique(array_map('intval', (array) ($r['product_ids'] ?? [])))),
+                    'category_id' => isset($r['category_id']) && $r['category_id'] !== '' ? (int) $r['category_id'] : null,
+                ], (array) $p['results'])),
+                'questions' => array_values(array_map(fn (array $q) => [
+                    'text' => (string) $str($q['text']),
+                    'answers' => array_values(array_map(fn (array $a) => [
+                        'text' => (string) $str($a['text']),
+                        'results' => array_values(array_unique(array_map('strval', (array) $a['results']))),
+                    ], (array) $q['answers'])),
+                ], (array) $p['questions'])),
+            ],
+            'articles' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'items' => $items(fn (array $i) => [
+                    'media_id' => $mediaOrNull($i['media_id'] ?? null),
+                    'tag' => $str($i['tag'] ?? null),
+                    'title' => (string) $str($i['title']),
+                    // Line breaks kept: the reader shows paragraphs.
+                    'body' => isset($i['body']) && trim(strip_tags((string) $i['body'])) !== '' ? trim(strip_tags((string) $i['body'])) : null,
+                    'link' => self::cleanLink((array) $i['link']),
+                ]),
+            ],
             'cta' => [
                 'title' => (string) $str($p['title']),
                 'text' => $str($p['text'] ?? null),
@@ -600,6 +678,40 @@ final class StoreSections
             ],
             default => throw new \LogicException("Unknown store section type «{$type}»."),
         };
+    }
+
+    /**
+     * «اختبار البشرة»: 2–6 results (each with its products or a category), 2–6 questions of 2–5
+     * answers, each answer counting for one or two of the results (by their id).
+     *
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>
+     */
+    private function quizRules(string $s, array $props): array
+    {
+        $text = self::text(...);
+        $ids = array_values(array_filter(array_map(fn ($r) => is_array($r) ? ($r['id'] ?? null) : null, (array) ($props['results'] ?? [])), 'is_string'));
+
+        return [
+            "{$s}.props.kicker" => $text(40),
+            "{$s}.props.title" => $text(80, true),
+            "{$s}.props.text" => $text(300),
+            "{$s}.props.button_label" => $text(30),
+            "{$s}.props.results" => ['required', 'array', 'min:2', 'max:6'],
+            "{$s}.props.results.*.id" => ['required', 'string', 'regex:/^[a-z0-9]{1,12}$/', 'distinct'],
+            "{$s}.props.results.*.name" => $text(40, true),
+            "{$s}.props.results.*.text" => $text(300),
+            "{$s}.props.results.*.product_ids" => ['present', 'array', 'max:4'],
+            // No `distinct` here: across wildcards it would refuse one product in two results (repeats in one result are dropped in clean).
+            "{$s}.props.results.*.product_ids.*" => ['integer', TenantExists::table('products')->ignoreTrashed()],
+            "{$s}.props.results.*.category_id" => ['nullable', 'integer', TenantExists::table('categories')],
+            "{$s}.props.questions" => ['required', 'array', 'min:2', 'max:6'],
+            "{$s}.props.questions.*.text" => $text(120, true),
+            "{$s}.props.questions.*.answers" => ['required', 'array', 'min:2', 'max:5'],
+            "{$s}.props.questions.*.answers.*.text" => $text(60, true),
+            "{$s}.props.questions.*.answers.*.results" => ['required', 'array', 'min:1', 'max:2'],
+            "{$s}.props.questions.*.answers.*.results.*" => ['string', Rule::in($ids)],
+        ];
     }
 
     /** Rules of a list of {icon, title, text} items. @return array<string, mixed> */

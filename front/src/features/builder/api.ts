@@ -5,7 +5,7 @@ import { api } from "@/lib/api/client";
 import { ar } from "@/messages/ar";
 import type { DesignData } from "@/themes/store/shared/types";
 import type { Design, Section, SectionType } from "@/themes/store/asas/types";
-import type { RawaqSection, RawaqSectionType } from "@/themes/store/rawaq/types";
+import type { RawaqSection, RawaqSectionType, SkinQuizProps } from "@/themes/store/rawaq/types";
 import type { ShabeStoreSection, ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
 
@@ -175,12 +175,35 @@ export function newRawaqSection(type: RawaqSectionType): AnySection {
       return make("ingredients", { kicker: null, title: ds.ingredients.title, description: null, items: [0, 1].map(() => ({ symbol: "", name: "", text: null, color: null, link: none })) });
     case "cta":
       return make("cta", { title: ds.cta.title, text: null, button_label: ar.rawaqStore.whatsapp, action: "whatsapp", message: null, link: none });
+    case "before_after":
+      return make("before_after", { kicker: null, title: ds.before_after.title, text: null, before_media_id: null, after_media_id: null, before_label: rq.beforeAfter.beforeWord, after_label: rq.beforeAfter.afterWord, facts: [] });
+    case "skin_quiz":
+      return make("skin_quiz", starterQuiz());
+    case "articles":
+      return make("articles", { kicker: null, title: ds.articles.title, items: rq.articles.starter.map((title) => ({ media_id: null, tag: null, title, body: null, link: none })) });
     case "testimonials":
       return make("testimonials", { title: d.testimonialsTitle, source: "auto", items: [] });
     default:
       return newSufiSection(type as SufiSectionType);
   }
 }
+
+/** The ready quiz a new «اختبار البشرة» starts with (results and products are the merchant's to adjust). */
+export function starterQuiz(): SkinQuizProps {
+  const s = rq.quiz.starter;
+  return {
+    kicker: s.kicker,
+    title: s.title,
+    text: s.text,
+    button_label: null,
+    results: s.results.map((x) => ({ ...x, product_ids: [], category_id: null })),
+    questions: s.questions.map((q) => ({ text: q.text, answers: q.answers.map(([text, ...results]) => ({ text, results })) })),
+  };
+}
+
+/** How many visitors finished each quiz, per result (last 30 days). */
+export type QuizStats = { section_id: string; title: string; total: number; results: Array<{ id: string; name: string; count: number }> };
+export const useQuizResults = () => useQuery({ queryKey: ["store", "design", "quiz-results"], queryFn: () => api<QuizStats[]>("/dashboard/store/design/quiz-results") });
 
 /** A copy of a section with a new id (its banner images and texts stay the same). */
 export function copySection<T extends AnySection>(section: T): T {

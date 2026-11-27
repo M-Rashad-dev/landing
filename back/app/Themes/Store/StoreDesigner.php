@@ -206,8 +206,8 @@ final class StoreDesigner
                     $links["{$id}:{$i}"] = $this->href($slide['link'], $bySlug->all());
                 }
             }
-            // Items that carry an image and a link (banners, brands, gallery; «رواق»'s shortcuts and ingredients).
-            if (in_array($section['type'], ['banners', 'brands', 'gallery', 'shortcuts', 'ingredients'], true)) {
+            // Items that carry an image and a link (banners, brands, gallery; «رواق»'s shortcuts, ingredients and tips).
+            if (in_array($section['type'], ['banners', 'brands', 'gallery', 'shortcuts', 'ingredients', 'articles'], true)) {
                 foreach ($props['items'] as $i => $item) {
                     if (isset($item['media_id'])) {
                         $mediaIds[] = $item['media_id'];
@@ -218,6 +218,16 @@ final class StoreDesigner
             // «رواق»: the products of a routine in its order, and the reels' covers.
             if ($section['type'] === 'routine') {
                 $products[$id] = $this->catalog->cards(array_column($props['steps'], 'product_id'), false);
+            }
+            // «اختبار البشرة»: each result's products and its category.
+            if ($section['type'] === 'skin_quiz') {
+                foreach ($props['results'] as $i => $result) {
+                    $products["{$id}:{$i}"] = $this->catalog->cards($result['product_ids'], false);
+                    $links["{$id}:{$i}"] = $result['category_id'] === null ? null : $this->href(['type' => 'category', 'target_id' => $result['category_id'], 'url' => null], $bySlug->all());
+                }
+            }
+            if ($section['type'] === 'before_after') {
+                array_push($mediaIds, $props['before_media_id'], $props['after_media_id']);
             }
             if ($section['type'] === 'reels') {
                 array_push($mediaIds, ...array_filter(array_column($props['items'], 'cover_media_id')));
@@ -359,6 +369,7 @@ final class StoreDesigner
             'category' => isset($categories[$link['target_id']]) ? '/categories/'.rawurlencode((string) $categories[$link['target_id']]['slug']) : null,
             'product' => ($slug = $this->catalog->sellable()->whereKey($link['target_id'])->value('slug')) ? '/products/'.rawurlencode((string) $slug) : null,
             'url' => $link['url'],
+            'search' => $link['url'] ? '/products?q='.rawurlencode((string) $link['url']) : null,
             default => null,
         };
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Atom, BookOpen, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, Droplets, Flower2, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListChecks, ListOrdered, MapPin, MessageCircle, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Smartphone, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Atom, BookOpen, ClipboardList, Newspaper, SplitSquareHorizontal, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, Droplets, Flower2, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListChecks, ListOrdered, MapPin, MessageCircle, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Smartphone, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import type { MyAiSection } from "@/features/ai-designer/api";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
@@ -50,6 +50,9 @@ export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: stri
   reels: { icon: Smartphone, tint: "bg-fuchsia-100 text-fuchsia-700" },
   ingredients: { icon: Atom, tint: "bg-teal-100 text-teal-700" },
   cta: { icon: MessageCircle, tint: "bg-green-100 text-green-700" },
+  before_after: { icon: SplitSquareHorizontal, tint: "bg-orange-100 text-orange-700" },
+  skin_quiz: { icon: ClipboardList, tint: "bg-violet-100 text-violet-700" },
+  articles: { icon: Newspaper, tint: "bg-sky-100 text-sky-700" },
   ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 

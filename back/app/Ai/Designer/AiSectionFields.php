@@ -698,7 +698,7 @@ final class AiSectionFields
 
         return [
             $path => ['nullable', 'array', self::conditionalLinkRule('store')],
-            "{$path}.type" => ['required_with:'.$path, Rule::in(StoreSections::LINK_TYPES)],
+            "{$path}.type" => ['required_with:'.$path, Rule::in(StoreSections::BASE_LINK_TYPES)],
             "{$path}.target_id" => ['nullable', 'integer'],
             "{$path}.url" => ['nullable', 'string', 'max:500', new SafeUrl],
         ];

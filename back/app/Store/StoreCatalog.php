@@ -55,7 +55,8 @@ final class StoreCatalog
         }
         if (! empty($filters['q'])) {
             $like = '%'.addcslashes(mb_substr(trim((string) $filters['q']), 0, 60), '%_\\').'%';
-            $query->where(fn (Builder $q) => $q->where('name', 'like', $like)->orWhere('short_description', 'like', $like));
+            // The description too: a customer looks for an ingredient or a feature the merchant wrote there.
+            $query->where(fn (Builder $q) => $q->where('name', 'like', $like)->orWhere('short_description', 'like', $like)->orWhere('description', 'like', $like));
         }
         if (isset($filters['min']) && $filters['min'] !== null) {
             $query->where('price', '>=', Money::toDecimal(Money::toCents((string) $filters['min'])));

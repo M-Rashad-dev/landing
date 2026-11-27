@@ -251,6 +251,7 @@ Route::prefix('dashboard')
         Route::get('store/design', [StoreDesignController::class, 'show']);
         Route::put('store/design', [StoreDesignController::class, 'update']);
         Route::post('store/design/publish', [StoreDesignController::class, 'publish']);
+        Route::get('store/design/quiz-results', [StoreDesignController::class, 'quizResults']);
         Route::get('categories', [CategoryController::class, 'index']);
         Route::post('categories', [CategoryController::class, 'store']);
         Route::put('categories/order', [CategoryController::class, 'reorder']);
@@ -472,6 +473,7 @@ Route::prefix('public')
         Route::post('store/leads', [PublicStoreController::class, 'lead'])->middleware('throttle:public-leads');
         Route::post('store/carts', [PublicStoreController::class, 'cart'])->middleware('throttle:public-leads');
         Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
+        Route::post('store/quiz', [PublicStoreController::class, 'quiz'])->middleware('throttle:public-quiz');
 
         // Storefront customer accounts (phone + one-time code) and product reviews.
         Route::get('store/products/{slug}/reviews', [StoreAccountController::class, 'productReviews'])->middleware('throttle:public-read');

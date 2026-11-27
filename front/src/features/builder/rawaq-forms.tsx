@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { SwitchRow } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { MultiSelect, Select } from "@/components/ui/select";
 import { Segmented } from "@/components/ui/tabs";
+import { useCategories } from "@/features/catalog/categories/api";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
 import type { Link } from "@/themes/store/sufi/types";
-import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqCartSettings, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings, type Reel, type ReelsProps, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps } from "@/themes/store/rawaq/types";
+import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, type Article, type ArticlesProps, type BeforeAfterProps, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqCartSettings, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings, type Reel, type ReelsProps, type QuizAnswer, type QuizQuestion, type QuizResult, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps, type SkinQuizProps } from "@/themes/store/rawaq/types";
 import { ImagePick, LinkField, Text, type Errors, type Media } from "./library-forms";
+import { useQuizResults } from "./api";
 import { Card, move } from "./section-forms";
 
 const r = ar.design.rawaq;
@@ -459,3 +461,213 @@ export function RawaqCartForm({ settings, onChange }: SettingsProps) {
   );
 }
 
+
+/* ---------- before / after, the skin quiz, care tips ---------- */
+
+export function BeforeAfterForm({ props, onChange, errors, media, onMedia }: Props<BeforeAfterProps> & Media) {
+  const set = (patch: Partial<BeforeAfterProps>) => onChange({ ...props, ...patch });
+  const setFact = (i: number, patch: Partial<BeforeAfterProps["facts"][number]>) => set({ facts: props.facts.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  return (
+    <div className="flex flex-col gap-4">
+      <Text id="ba-kicker" label={sf.kicker} value={props.kicker} onChange={(v) => set({ kicker: v })} error={errors.kicker} max={40} />
+      <Text id="ba-title" label={sf.title} value={props.title} onChange={(v) => set({ title: v })} error={errors.title} max={80} />
+      <Text id="ba-text" label={sf.text} value={props.text} onChange={(v) => set({ text: v })} error={errors.text} max={300} area />
+      <p className="text-xs text-ink-3">{r.beforeAfter.hint}</p>
+      <ImagePick id={props.before_media_id} onChange={(id) => set({ before_media_id: id })} media={media} onMedia={onMedia} error={errors.before_media_id} label={r.beforeAfter.before} />
+      <Text id="ba-before" label={r.beforeAfter.beforeLabel} value={props.before_label} onChange={(v) => set({ before_label: v ?? "" })} error={errors.before_label} max={20} required />
+      <ImagePick id={props.after_media_id} onChange={(id) => set({ after_media_id: id })} media={media} onMedia={onMedia} error={errors.after_media_id} label={r.beforeAfter.after} />
+      <Text id="ba-after" label={r.beforeAfter.afterLabel} value={props.after_label} onChange={(v) => set({ after_label: v ?? "" })} error={errors.after_label} max={20} required />
+      <Field label={r.beforeAfter.facts} error={errors.facts}>
+        <div className="flex flex-col gap-3">
+          {props.facts.map((fact, i) => (
+            <Card key={i} title={r.beforeAfter.fact(i + 1)} onRemove={() => set({ facts: props.facts.filter((_, j) => j !== i) })} removeLabel={sf.remove}>
+              <Text id={`ba-${i}-value`} label={r.beforeAfter.value} value={fact.value} onChange={(v) => setFact(i, { value: v ?? "" })} error={errors[`facts.${i}.value`]} max={12} required />
+              <Text id={`ba-${i}-label`} label={r.beforeAfter.label} value={fact.label} onChange={(v) => setFact(i, { label: v ?? "" })} error={errors[`facts.${i}.label`]} max={40} required />
+            </Card>
+          ))}
+          {props.facts.length < 3 ? (
+            <Button variant="outline" onClick={() => set({ facts: [...props.facts, { value: "", label: "" }] })}>
+              <Plus />
+              {r.beforeAfter.addFact}
+            </Button>
+          ) : null}
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+/** A short id for a new result (letters and digits, unique in this quiz). */
+function resultId(taken: string[]): string {
+  for (;;) {
+    const id = `r${Math.random().toString(36).slice(2, 8)}`;
+    if (!taken.includes(id)) return id;
+  }
+}
+
+function QuizNumbers({ sectionId }: { sectionId: string }) {
+  const stats = useQuizResults();
+  if (!stats.isSuccess) return null;
+  const mine = stats.data.find((s) => s.section_id === sectionId);
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-surface-2 p-3 text-sm">
+      <b>{r.quiz.stats}</b>
+      {!mine || mine.total === 0 ? (
+        <p className="text-ink-3">{r.quiz.statsNone}</p>
+      ) : (
+        <>
+          <p className="text-ink-2">{r.quiz.statsTotal(mine.total)}</p>
+          <ul className="flex flex-col gap-1">
+            {mine.results.map((x) => (
+              <li key={x.id} className="flex items-center gap-2">
+                <span className="h-2 rounded-full bg-primary" style={{ width: `${Math.max(4, (x.count / mine.total) * 60)}%` }} aria-hidden />
+                <span className="shrink-0 text-ink-2">{r.quiz.statsRow(x.name, x.count)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function SkinQuizForm({ sectionId, props, onChange, errors }: Props<SkinQuizProps> & { sectionId: string }) {
+  const products = useProductChoices();
+  const categories = useCategories();
+  const productOptions = (products.data ?? []).map((p) => ({ value: String(p.id), label: p.name }));
+  const categoryOptions = [{ value: "", label: r.quiz.noCategory }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))];
+  const set = (patch: Partial<SkinQuizProps>) => onChange({ ...props, ...patch });
+  const setResult = (i: number, patch: Partial<QuizResult>) => set({ results: props.results.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  const setQuestion = (i: number, patch: Partial<QuizQuestion>) => set({ questions: props.questions.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  const setAnswer = (q: number, a: number, patch: Partial<QuizAnswer>) => setQuestion(q, { answers: props.questions[q]!.answers.map((x, j) => (j === a ? { ...x, ...patch } : x)) });
+  const resultOptions = props.results.map((x, i) => ({ value: x.id, label: x.name || r.quiz.result(i + 1) }));
+  // Removing a result takes it off every answer too.
+  const removeResult = (i: number) => {
+    const gone = props.results[i]!.id;
+    set({
+      results: props.results.filter((_, j) => j !== i),
+      questions: props.questions.map((q) => ({ ...q, answers: q.answers.map((a) => ({ ...a, results: a.results.filter((id) => id !== gone) })) })),
+    });
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <QuizNumbers sectionId={sectionId} />
+      <Text id="qz-kicker" label={sf.kicker} value={props.kicker} onChange={(v) => set({ kicker: v })} error={errors.kicker} max={40} />
+      <Text id="qz-title" label={sf.title} value={props.title} onChange={(v) => set({ title: v ?? "" })} error={errors.title} max={80} required />
+      <Text id="qz-text" label={sf.text} value={props.text} onChange={(v) => set({ text: v })} error={errors.text} max={300} area />
+      <Text id="qz-button" label={sf.buttonLabel} hint={r.quiz.buttonHint} value={props.button_label} onChange={(v) => set({ button_label: v })} error={errors.button_label} max={30} />
+      <p className="text-xs text-ink-3">{r.quiz.howItWorks}</p>
+
+      <Field label={r.quiz.results} hint={r.quiz.resultsHint} error={errors.results} required>
+        <div className="flex flex-col gap-3">
+          {props.results.map((result, i) => (
+            <Card
+              key={result.id}
+              title={r.quiz.result(i + 1)}
+              onUp={i > 0 ? () => set({ results: move(props.results, i, i - 1) }) : undefined}
+              onDown={i < props.results.length - 1 ? () => set({ results: move(props.results, i, i + 1) }) : undefined}
+              onRemove={props.results.length > 2 ? () => removeResult(i) : undefined}
+              removeLabel={sf.remove}
+            >
+              <Text id={`qz-r${i}-name`} label={r.quiz.resultName} value={result.name} onChange={(v) => setResult(i, { name: v ?? "" })} error={errors[`results.${i}.name`] ?? errors[`results.${i}.id`]} max={40} required />
+              <Text id={`qz-r${i}-text`} label={r.quiz.resultText} value={result.text} onChange={(v) => setResult(i, { text: v })} error={errors[`results.${i}.text`]} max={300} area />
+              <Field label={r.quiz.products} error={errors[`results.${i}.product_ids`]}>
+                <MultiSelect value={result.product_ids.map(String)} onChange={(v) => setResult(i, { product_ids: v.slice(-4).map(Number) })} options={productOptions} placeholder={r.quiz.products} />
+              </Field>
+              <Field label={r.quiz.category} error={errors[`results.${i}.category_id`]}>
+                <Select aria-label={r.quiz.category} value={result.category_id ? String(result.category_id) : ""} onValueChange={(v) => setResult(i, { category_id: v ? Number(v) : null })} options={categoryOptions} />
+              </Field>
+            </Card>
+          ))}
+          {props.results.length < 6 ? (
+            <Button variant="outline" onClick={() => set({ results: [...props.results, { id: resultId(props.results.map((x) => x.id)), name: "", text: null, product_ids: [], category_id: null }] })}>
+              <Plus />
+              {r.quiz.addResult}
+            </Button>
+          ) : null}
+        </div>
+      </Field>
+
+      <Field label={r.quiz.questions} error={errors.questions} required>
+        <div className="flex flex-col gap-3">
+          {props.questions.map((question, q) => (
+            <Card
+              key={q}
+              title={r.quiz.question(q + 1)}
+              onUp={q > 0 ? () => set({ questions: move(props.questions, q, q - 1) }) : undefined}
+              onDown={q < props.questions.length - 1 ? () => set({ questions: move(props.questions, q, q + 1) }) : undefined}
+              onRemove={props.questions.length > 2 ? () => set({ questions: props.questions.filter((_, j) => j !== q) }) : undefined}
+              removeLabel={sf.remove}
+            >
+              <Text id={`qz-q${q}`} label={r.quiz.questionText} value={question.text} onChange={(v) => setQuestion(q, { text: v ?? "" })} error={errors[`questions.${q}.text`]} max={120} required />
+              {errors[`questions.${q}.answers`] ? <p className="text-sm text-danger">{errors[`questions.${q}.answers`]}</p> : null}
+              {question.answers.map((answer, a) => (
+                <div key={a} className="flex flex-col gap-2 rounded-lg border border-border p-2.5">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Text id={`qz-q${q}-a${a}`} label={r.quiz.answer(a + 1)} value={answer.text} onChange={(v) => setAnswer(q, a, { text: v ?? "" })} error={errors[`questions.${q}.answers.${a}.text`]} max={60} required />
+                    </div>
+                    {question.answers.length > 2 ? (
+                      <Button variant="ghost" size="sm" onClick={() => setQuestion(q, { answers: question.answers.filter((_, j) => j !== a) })}>
+                        {sf.remove}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Field label={r.quiz.answerResults} hint={r.quiz.answerResultsHint} error={errors[`questions.${q}.answers.${a}.results`] ?? errors[`questions.${q}.answers.${a}.results.0`] ?? errors[`questions.${q}.answers.${a}.results.1`]} required>
+                    <MultiSelect value={answer.results} onChange={(v) => setAnswer(q, a, { results: v.slice(-2) })} options={resultOptions} placeholder={r.quiz.answerResults} />
+                  </Field>
+                </div>
+              ))}
+              {question.answers.length < 5 ? (
+                <Button variant="outline" size="sm" onClick={() => setQuestion(q, { answers: [...question.answers, { text: "", results: [] }] })}>
+                  <Plus />
+                  {r.quiz.addAnswer}
+                </Button>
+              ) : null}
+            </Card>
+          ))}
+          {props.questions.length < 6 ? (
+            <Button variant="outline" onClick={() => set({ questions: [...props.questions, { text: "", answers: [{ text: "", results: [] }, { text: "", results: [] }] }] })}>
+              <Plus />
+              {r.quiz.addQuestion}
+            </Button>
+          ) : null}
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+export function ArticlesForm({ props, onChange, errors, media, onMedia }: Props<ArticlesProps> & Media) {
+  const set = (patch: Partial<ArticlesProps>) => onChange({ ...props, ...patch });
+  const setItem = (i: number, patch: Partial<Article>) => set({ items: props.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  return (
+    <div className="flex flex-col gap-4">
+      <Text id="ar-kicker" label={sf.kicker} value={props.kicker} onChange={(v) => set({ kicker: v })} error={errors.kicker} max={40} />
+      <Text id="ar-title" label={sf.title} value={props.title} onChange={(v) => set({ title: v })} error={errors.title} max={80} />
+      {errors.items ? <p className="text-sm text-danger">{errors.items}</p> : null}
+      {props.items.map((item, i) => (
+        <Card
+          key={i}
+          title={r.articles.item(i + 1)}
+          onUp={i > 0 ? () => set({ items: move(props.items, i, i - 1) }) : undefined}
+          onDown={i < props.items.length - 1 ? () => set({ items: move(props.items, i, i + 1) }) : undefined}
+          onRemove={props.items.length > 1 ? () => set({ items: props.items.filter((_, j) => j !== i) }) : undefined}
+          removeLabel={sf.remove}
+        >
+          <Text id={`ar-${i}-tag`} label={r.articles.tag} hint={r.articles.tagHint} value={item.tag} onChange={(v) => setItem(i, { tag: v })} error={errors[`items.${i}.tag`]} max={30} />
+          <Text id={`ar-${i}-title`} label={r.articles.title} value={item.title} onChange={(v) => setItem(i, { title: v ?? "" })} error={errors[`items.${i}.title`]} max={80} required />
+          <Text id={`ar-${i}-body`} label={r.articles.body} hint={r.articles.bodyHint} value={item.body} onChange={(v) => setItem(i, { body: v })} error={errors[`items.${i}.body`]} max={3000} area />
+          <LinkField value={item.link} onChange={(link) => setItem(i, { link })} errors={errors} prefix={`items.${i}.link`} />
+          <ImagePick id={item.media_id} onChange={(id) => setItem(i, { media_id: id })} media={media} onMedia={onMedia} error={errors[`items.${i}.media_id`]} label={r.articles.image} optional />
+        </Card>
+      ))}
+      {props.items.length < 6 ? (
+        <Button variant="outline" onClick={() => set({ items: [...props.items, { media_id: null, tag: null, title: "", body: null, link: NONE }] })}>
+          <Plus />
+          {r.articles.add}
+        </Button>
+      ) : null}
+    </div>
+  );
+}

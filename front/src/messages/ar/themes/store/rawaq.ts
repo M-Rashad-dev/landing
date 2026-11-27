@@ -70,6 +70,17 @@ export const rawaqStore = {
     secure: "دفع آمن · والدفع عند الاستلام متاح",
   },
   faq: { whatsapp: "اسألينا واتساب" },
+  beforeAfter: { drag: "اسحبي عشان تشوفي الفرق" },
+  quiz: {
+    start: "ابدئي الاختبار",
+    progress: (n: number, of: number) => `سؤال ${formatNumber(n)} من ${formatNumber(of)}`,
+    back: "رجوع",
+    yourResult: "نتيجتك",
+    again: "أعيدي الاختبار",
+    category: "شوفي كل المنتجات المناسبة",
+    remembered: "روتينك من آخر مرة",
+  },
+  articles: { read: "اقري النصيحة", close: "اقفلي", more: "شوفي المنتجات" },
   footer: {
     shop: "تسوّقي",
     help: "المساعدة",
@@ -89,5 +100,7 @@ export const rawaqStore = {
     banners: "ضيفي صور البنرات من الإعدادات.",
     brands: "ضيفي لوجوهات البراندات من الإعدادات.",
     whatsapp: "الزرار ده بيفتح واتساب المتجر: اكتبي رقم الواتساب في إعدادات الفوتر.",
+    beforeAfter: "اختاري صورة «قبل» وصورة «بعد» من الإعدادات.",
+    quizProducts: "اختاري منتجات كل نتيجة من الإعدادات عشان تظهر هنا.",
   },
 } as const;

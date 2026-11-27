@@ -5,7 +5,8 @@ import type { StoreSettings } from "../shared/types";
 export const ASAS_KEY = "asas_store";
 
 export type IconKey = "truck" | "cash" | "return" | "shield" | "support" | "gift" | "star" | "clock" | "tag" | "heart" | "package" | "phone";
-export type LinkType = "none" | "all_products" | "offers" | "category" | "product" | "url";
+/** «search»: the store's search for a word (its `url` holds the word). */
+export type LinkType = "none" | "all_products" | "offers" | "category" | "product" | "url" | "search";
 
 export type Slide = { media_id: number; title: string | null; text: string | null; button_label: string | null; link: { type: LinkType; target_id: number | null; url: string | null } };
 

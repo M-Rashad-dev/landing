@@ -20,6 +20,7 @@ use App\Services\FormToken;
 use App\Services\PhoneNormalizer;
 use App\Store\Accounts\CustomerAccounts;
 use App\Store\CreateStoreOrder;
+use App\Store\QuizResults;
 use App\Store\StoreCatalog;
 use App\Store\StoreSite;
 use App\Support\TrafficSource;
@@ -207,6 +208,21 @@ final class StoreController extends Controller
             }
 
             return $this->noStore(new JsonResponse(null, 202));
+        });
+    }
+
+    /** «اختبار البشرة» finished with a result: counted for the merchant (no personal data). Always 202. */
+    public function quiz(Request $request, QuizResults $results): JsonResponse
+    {
+        $data = $request->validate([
+            'section_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{6,40}$/'],
+            'result_id' => ['required', 'string', 'regex:/^[a-z0-9]{1,12}$/'],
+        ]);
+
+        return $this->inStore($request, function (Store $store) use ($data, $results) {
+            $results->record($store, $data['section_id'], $data['result_id']);
+
+            return new JsonResponse(null, 202);
         });
     }
 

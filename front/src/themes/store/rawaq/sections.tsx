@@ -1,10 +1,10 @@
 "use client";
 
-import { Check, ChevronDown, ImageOff, Play, Plus, Star, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ImageOff, Play, Plus, RotateCcw, Star, X } from "lucide-react";
 import * as React from "react";
 import { formatMoney } from "@/lib/format";
 import { addToCart } from "@/lib/store/cart";
-import { sendStoreEvent } from "@/lib/store/events";
+import { sendQuizResult, sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
 import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
@@ -20,7 +20,7 @@ import type { FeaturesProps, ProductsProps, TestimonialsProps } from "../asas/ty
 import { embedUrl, youtubePoster, type BannersProps, type BrandsProps, type CategoriesProps, type CountdownProps, type FaqProps, type TabsProps, type VideoProps } from "../sufi/types";
 import { RawaqCard } from "./card";
 import { useRawaq } from "./root";
-import type { CtaProps, GlowHeroProps, IngredientsProps, RawaqSection, ReelsProps, RoutineProps, ShortcutsProps } from "./types";
+import type { Article, ArticlesProps, BeforeAfterProps, CtaProps, GlowHeroProps, IngredientsProps, RawaqSection, ReelsProps, RoutineProps, ShortcutsProps, SkinQuizProps } from "./types";
 
 const t = ar.rawaqStore;
 
@@ -89,6 +89,20 @@ function Grid({ products }: { products: ProductCard[] }) {
       ))}
     </ul>
   );
+}
+
+type AddAll = "idle" | "added" | "choose" | "gone";
+
+/** Puts every product in the cart in one go (a routine, a quiz result); `missing` when some can't be shown any more. */
+function addAllToCart(products: ProductCard[], missing: boolean): AddAll {
+  if (missing || products.some((p) => !p.available)) return "gone";
+  if (products.some((p) => p.needs_options)) return "choose";
+  for (const product of products) {
+    addToCart({ product_id: product.id, quantity: 1, options: {}, ...(product.digital ? { digital: true } : {}), name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
+  }
+  sendStoreEvent("add_to_cart");
+  track("AddToCart", { content_ids: products.map((p) => p.id), value: products.reduce((sum, p) => sum + p.price, 0), num_items: products.length });
+  return "added";
 }
 
 /* ---------- 1. the opening ---------- */
@@ -338,7 +352,7 @@ function Routine({ id, props }: { id: string; props: RoutineProps }) {
   const { data, mode } = useRawaq();
   const shop = useShop();
   const products = data.products[id] ?? [];
-  const [state, setState] = React.useState<"idle" | "added" | "choose" | "gone">("idle");
+  const [state, setState] = React.useState<AddAll>("idle");
   // The steps whose product can still be bought, in the merchant's order.
   const steps = props.steps.map((step) => ({ step, product: products.find((p) => p.id === step.product_id) ?? null })).filter((x) => x.product !== null) as Array<{ step: RoutineProps["steps"][number]; product: ProductCard }>;
   if (steps.length === 0) return <Empty text={t.empty.routine} />;
@@ -347,14 +361,7 @@ function Routine({ id, props }: { id: string; props: RoutineProps }) {
 
   const addAll = () => {
     if (mode !== "live" || !shop) return;
-    if (steps.some((x) => !x.product.available) || steps.length < props.steps.length) return setState("gone");
-    if (steps.some((x) => x.product.needs_options)) return setState("choose");
-    for (const { product } of steps) {
-      addToCart({ product_id: product.id, quantity: 1, options: {}, ...(product.digital ? { digital: true } : {}), name: product.name, slug: product.slug, image: pick(product.image?.urls, "thumb"), price: product.price, options_label: "", max: product.max_quantity ?? null });
-    }
-    sendStoreEvent("add_to_cart");
-    track("AddToCart", { content_ids: steps.map((x) => x.product.id), value: now, num_items: steps.length });
-    setState("added");
+    setState(addAllToCart(steps.map((x) => x.product), steps.length < props.steps.length));
   };
 
   return (
@@ -739,6 +746,300 @@ function Cta({ id, props }: { id: string; props: CtaProps }) {
   );
 }
 
+/* ---------- 15. before / after ---------- */
+
+function BeforeAfter({ props }: { props: BeforeAfterProps }) {
+  const image = useImage();
+  const before = image(props.before_media_id);
+  const after = image(props.after_media_id);
+  // How much of «قبل» shows, from the start (right) side, in %.
+  const [shown, setShown] = React.useState(50);
+  if (!before || !after) return <Empty text={t.empty.beforeAfter} />;
+  return (
+    <section className="rq-section rq-reveal">
+      <div className="rq-wrap grid items-center gap-8 @3xl:grid-cols-[1fr_1.3fr]">
+        <div className="flex flex-col gap-4">
+          <Head kicker={props.kicker} title={props.title} text={props.text} />
+          {props.facts.length > 0 ? (
+            <ul className="grid grid-cols-3 gap-3 pt-2">
+              {props.facts.map((fact, i) => (
+                <li key={i} className="rq-card flex flex-col gap-1 p-4 text-center">
+                  <b className="rq-display as-2xl text-(--as-primary)" dir="ltr">
+                    {fact.value}
+                  </b>
+                  <span className="as-xs as-muted">{fact.label}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        <div className="relative aspect-[4/5] select-none overflow-hidden rounded-[2rem] @3xl:aspect-[5/4]">
+          <Photo urls={after} alt={props.after_label} className="absolute inset-0 size-full" />
+          <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${100 - shown}%)` }}>
+            <Photo urls={before} alt={props.before_label} className="absolute inset-0 size-full" />
+          </div>
+          <span className="as-xs absolute start-4 top-4 rounded-full bg-white/90 px-3 py-1 font-extrabold text-black">{props.before_label}</span>
+          <span className="as-xs absolute end-4 top-4 rounded-full bg-(--as-primary) px-3 py-1 font-extrabold text-(--as-on-primary)">{props.after_label}</span>
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow" style={{ right: `${shown}%` }}>
+            <span className="absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black shadow-lg">
+              <ChevronRight className="-me-1 size-4" />
+              <ChevronLeft className="-ms-1 size-4" />
+            </span>
+          </span>
+          <input
+            type="range"
+            dir="rtl"
+            min={0}
+            max={100}
+            value={shown}
+            onChange={(e) => setShown(Number(e.target.value))}
+            aria-label={t.beforeAfter.drag}
+            className="absolute inset-0 size-full cursor-ew-resize opacity-0"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- 16. the skin quiz ---------- */
+
+/** The result with the most votes from the answers picked (a tie goes to the result listed first). */
+export function quizResult(props: Pick<SkinQuizProps, "results" | "questions">, picked: number[]): number {
+  const votes = new Map<string, number>();
+  picked.forEach((answer, q) => {
+    for (const id of props.questions[q]?.answers[answer]?.results ?? []) votes.set(id, (votes.get(id) ?? 0) + 1);
+  });
+  let best = 0;
+  props.results.forEach((result, i) => {
+    if ((votes.get(result.id) ?? 0) > (votes.get(props.results[best]!.id) ?? 0)) best = i;
+  });
+  return best;
+}
+
+const noSubscribe = () => () => undefined;
+
+function readStored(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function SkinQuiz({ id, props }: { id: string; props: SkinQuizProps }) {
+  const { data, mode } = useRawaq();
+  const shop = useShop();
+  const memory = `rq_quiz_${id}`;
+  // null: the start card; a number: the question showing; "done": the result.
+  const [step, setStep] = React.useState<number | "done" | null>(null);
+  const [picked, setPicked] = React.useState<number[]>([]);
+  const [result, setResult] = React.useState(0);
+  const [added, setAdded] = React.useState<AddAll>("idle");
+  // The live store shows the visitor's last result straight away (kept in this browser only).
+  const saved = React.useSyncExternalStore(noSubscribe, () => (mode === "live" ? readStored(memory) : null), () => null);
+  const savedIndex = props.results.findIndex((r) => r.id === saved);
+  const remembered = step === null && savedIndex >= 0;
+
+  const choose = (answer: number) => {
+    if (typeof step !== "number") return;
+    const next = [...picked.slice(0, step), answer];
+    setPicked(next);
+    if (step + 1 < props.questions.length) return setStep(step + 1);
+    const best = quizResult(props, next);
+    setResult(best);
+    setStep("done");
+    setAdded("idle");
+    const resultId = props.results[best]!.id;
+    if (mode === "live") {
+      sendQuizResult(id, resultId);
+      try {
+        window.localStorage.setItem(memory, resultId);
+      } catch {
+        // Not remembered: fine.
+      }
+    }
+  };
+
+  const restart = () => {
+    setPicked([]);
+    setAdded("idle");
+    setStep(0);
+  };
+
+  const shown = remembered ? savedIndex : result;
+  const current = props.results[shown];
+  const products = data.products[`${id}:${shown}`] ?? [];
+  const category = data.links[`${id}:${shown}`] ?? null;
+  const question = typeof step === "number" ? props.questions[step] : null;
+
+  return (
+    <section className="rq-section rq-reveal">
+      <div className="rq-wrap">
+        <div className="rq-routine flex flex-col gap-6 p-6 @3xl:p-11" aria-live="polite">
+          {step === null && !remembered ? (
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">
+              {props.kicker ? <span className="rq-kicker">{props.kicker}</span> : null}
+              <h2 className="rq-display rq-title">{props.title}</h2>
+              {props.text ? <p className="as-base as-muted">{props.text}</p> : null}
+              <button type="button" onClick={() => setStep(0)} className="rq-btn rq-btn-main as-base mt-2 h-13 px-9">
+                {props.button_label || t.quiz.start}
+              </button>
+            </div>
+          ) : question && typeof step === "number" ? (
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="as-xs font-bold as-muted">{t.quiz.progress(step + 1, props.questions.length)}</span>
+                {step > 0 ? (
+                  <button type="button" onClick={() => setStep(step - 1)} className="as-xs flex items-center gap-1 font-bold text-(--as-primary)">
+                    <ChevronRight className="size-4" aria-hidden />
+                    {t.quiz.back}
+                  </button>
+                ) : null}
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/70">
+                <div className="h-full rounded-full bg-(--as-primary) transition-[width]" style={{ width: `${((step + 1) / props.questions.length) * 100}%` }} />
+              </div>
+              <h3 className="rq-display as-2xl">{question.text}</h3>
+              <ul className="grid gap-3 @3xl:grid-cols-2">
+                {question.answers.map((answer, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => choose(i)}
+                      className={cn("rq-card as-base flex w-full items-center gap-3 p-4 text-start font-semibold transition hover:border-(--as-primary)", picked[step] === i && "border-(--as-primary) ring-2 ring-(--as-primary)/30")}
+                    >
+                      <span className="rq-step-no as-xs shrink-0">{i + 1}</span>
+                      {answer.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : current ? (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="flex max-w-2xl flex-col gap-2">
+                  <span className="rq-kicker">{remembered ? t.quiz.remembered : t.quiz.yourResult}</span>
+                  <h2 className="rq-display rq-title">{current.name}</h2>
+                  {current.text ? <p className="as-base as-muted">{current.text}</p> : null}
+                </div>
+                <button type="button" onClick={restart} className="rq-btn rq-btn-ink as-sm h-11 px-5">
+                  <RotateCcw className="size-4" aria-hidden />
+                  {t.quiz.again}
+                </button>
+              </div>
+              {products.length > 0 ? <Grid products={products} /> : category ? null : <Empty text={t.empty.quizProducts} />}
+              <div className="flex flex-wrap items-center gap-3">
+                {products.length > 1 ? (
+                  <button type="button" onClick={() => mode === "live" && shop && setAdded(addAllToCart(products, products.length < current.product_ids.length))} className="rq-btn rq-btn-main as-base h-12 px-7">
+                    {added === "added" ? <Check className="size-5" aria-hidden /> : null}
+                    {added === "added" ? t.routine.added : t.routine.add}
+                  </button>
+                ) : null}
+                {category ? (
+                  <StoreLink href={category} className="rq-btn rq-btn-ink as-base h-12 px-7">
+                    {t.quiz.category}
+                  </StoreLink>
+                ) : null}
+                {added === "choose" || added === "gone" ? (
+                  <p className="as-xs font-semibold text-red-600" role="alert">
+                    {added === "choose" ? t.routine.choose : t.routine.gone}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- 17. care tips ---------- */
+
+function Reader({ article, image, href, onClose }: { article: Article; image: MediaUrls | null; href: string | null; onClose: () => void }) {
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center @3xl:items-center @3xl:p-6" role="dialog" aria-modal="true" aria-label={article.title}>
+      <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label={t.articles.close} />
+      <article className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[2rem] bg-(--as-bg) @3xl:rounded-[2rem]">
+        {image ? <Photo urls={image} alt={article.title} className="aspect-[16/9] w-full shrink-0" /> : null}
+        <button type="button" onClick={onClose} className="absolute end-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-black shadow" aria-label={t.articles.close}>
+          <X className="size-5" />
+        </button>
+        <div className="flex flex-col gap-3 p-6 @3xl:p-9">
+          {article.tag ? <span className="rq-kicker">{article.tag}</span> : null}
+          <h3 className="rq-display as-2xl">{article.title}</h3>
+          <p className="as-base as-muted whitespace-pre-line leading-loose">{article.body}</p>
+          {href ? (
+            <StoreLink href={href} className="rq-btn rq-btn-main as-base mt-3 h-12 w-fit px-7">
+              {t.articles.more}
+            </StoreLink>
+          ) : null}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function Articles({ id, props }: { id: string; props: ArticlesProps }) {
+  const { data } = useRawaq();
+  const image = useImage();
+  const [open, setOpen] = React.useState<number | null>(null);
+  const close = React.useCallback(() => setOpen(null), []);
+  const reading = open === null ? null : props.items[open];
+  return (
+    <section className="rq-section rq-reveal">
+      <div className="rq-wrap flex flex-col gap-7">
+        <Head kicker={props.kicker} title={props.title} />
+        <ul className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @5xl:grid-cols-3">
+          {props.items.map((item, i) => {
+            const href = data.links[`${id}:${i}`] ?? null;
+            const urls = image(item.media_id);
+            const body = (
+              <>
+                {urls ? (
+                  <Photo urls={urls} size="medium" alt="" className="aspect-[16/10] w-full" />
+                ) : (
+                  <span aria-hidden className="block aspect-[16/10] w-full" style={{ background: SOFT[i % SOFT.length] }} />
+                )}
+                <span className="flex flex-1 flex-col gap-2 p-5">
+                  {item.tag ? <span className="rq-kicker">{item.tag}</span> : null}
+                  <b className="as-lg">{item.title}</b>
+                  {item.body ? <span className="as-sm as-muted line-clamp-2">{item.body}</span> : null}
+                  {item.body ? <span className="as-sm mt-auto pt-1 font-bold text-(--as-primary)">{t.articles.read}</span> : null}
+                </span>
+              </>
+            );
+            const look = "rq-card flex h-full flex-col overflow-hidden text-start transition hover:-translate-y-0.5";
+            return (
+              <li key={i}>
+                {item.body ? (
+                  <button type="button" onClick={() => setOpen(i)} className={cn(look, "w-full")}>
+                    {body}
+                  </button>
+                ) : href ? (
+                  <StoreLink href={href} className={look}>
+                    {body}
+                  </StoreLink>
+                ) : (
+                  <div className={look}>{body}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {reading && open !== null ? <Reader article={reading} image={image(reading.media_id)} href={data.links[`${id}:${open}`] ?? null} onClose={close} /> : null}
+    </section>
+  );
+}
+
 /** One home section of «رواق». */
 export function SectionView({ section }: { section: RawaqSection }) {
   const id = section.id;
@@ -775,6 +1076,12 @@ export function SectionView({ section }: { section: RawaqSection }) {
       return <Faq props={section.props} />;
     case "cta":
       return <Cta id={id} props={section.props} />;
+    case "before_after":
+      return <BeforeAfter props={section.props} />;
+    case "skin_quiz":
+      return <SkinQuiz id={id} props={section.props} />;
+    case "articles":
+      return <Articles id={id} props={section.props} />;
     case "ai":
       return <StoreAiSection section={section} themeKey="rawaq_store" />;
   }

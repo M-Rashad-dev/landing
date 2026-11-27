@@ -127,6 +127,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-uploads', fn (Request $request) => Limit::perMinute(10)->by('public-uploads:'.$visitor($request)));
         // Digital downloads and link opens (each one counted against the purchase too).
         RateLimiter::for('public-downloads', fn (Request $request) => Limit::perMinute(30)->by('public-downloads:'.$visitor($request)));
+        // «اختبار البشرة»: a visitor counts at most 10 finished quizzes a day (AI recommendations follow the same limit).
+        RateLimiter::for('public-quiz', fn (Request $request) => Limit::perDay(10)->by('public-quiz:'.$visitor($request)));
         RateLimiter::for('public-leads', fn (Request $request) => Limit::perMinute(15)->by('public-leads:'.$visitor($request)));
         // Page visit counters: a few per page view (view + form start), generous per visitor IP.
         RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));

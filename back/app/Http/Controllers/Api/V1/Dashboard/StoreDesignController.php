@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\StoreDesign;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Store\QuizResults;
 use App\Store\StoreSetup;
 use App\Themes\Store\StoreDesigner;
 use App\Themes\Store\StoreThemes;
@@ -49,6 +50,14 @@ final class StoreDesignController extends Controller
     public function publish(Request $request): JsonResponse
     {
         return $this->ok($this->payload($this->designer->publish($this->design($request))));
+    }
+
+    /** «اختبار البشرة»: how many visitors got each result in the last days (the Builder's quiz form). */
+    public function quizResults(Request $request, QuizResults $results): JsonResponse
+    {
+        $days = max(1, min(90, (int) $request->query('days', 30)));
+
+        return $this->ok($results->summary((array) ($this->design($request)->draft['sections'] ?? []), $days));
     }
 
     private function design(Request $request): StoreDesign

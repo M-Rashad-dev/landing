@@ -5,7 +5,7 @@
 - **Audience:** skin care, hair care, make-up and personal care stores (mostly women customers; Egyptian Arabic copy addresses the customer in the feminine: «تسوّقي»، «أضيفي»).
 - **Look:** soft pastel plates mixed from the store colors (blush from `primary`, mint from `secondary`), an elegant title font (El Messiri), rounded cards, products on a tinted plate.
 - **`MAX_SECTIONS`:** `30`
-- **Built-in Section Types (`SECTION_TYPES`):** `glow_hero`, `features`, `shortcuts`, `categories`, `product_tabs`, `products`, `routine`, `banners`, `countdown`, `reels`, `video`, `ingredients`, `brands`, `testimonials`, `faq`, `cta` (plus `ai` for approved custom AI sections)
+- **Built-in Section Types (`SECTION_TYPES`):** `glow_hero`, `features`, `shortcuts`, `categories`, `product_tabs`, `products`, `routine`, `banners`, `countdown`, `reels`, `video`, `ingredients`, `brands`, `testimonials`, `faq`, `cta`, `before_after`, `skin_quiz`, `articles` (plus `ai` for approved custom AI sections)
 - **Allowed Fonts (`settings.font`):** `cairo`, `tajawal`, `almarai`, `ibm_plex_arabic`, `noto_kufi`, `readex_pro`
 
 ## 1. Settings (`settings`)
@@ -21,7 +21,7 @@
 - `listing`: `{ "columns_desktop": 2..5, "columns_mobile": 1..2, "banner": bool, "subcategories": "circles | chips", "filters": "open | button | hidden" }`
 - `cart`: `{ "free_shipping_bar": bool, "suggestions_enabled": bool, "suggestions": "offers | latest", "order_notes": bool }`
 
-Store Link Shape (every `*_link` and item `link`): `{ "type": "none | all_products | offers | category | product | url", "target_id": int|null, "url": string|null }` (`target_id` required for `category` / `product`, `url` required https for `url`).
+Store Link Shape (every `*_link` and item `link`): `{ "type": "none | all_products | offers | category | product | url | search", "target_id": int|null, "url": string|null }` (`target_id` required for `category` / `product`, `url` required https for `url`; for `search` the `url` holds the word to search for, `<= 60`, opening the products whose name or description has it: use it for ingredients, «نياسيناميد»).
 
 ## 2. Section Types (`sections`)
 Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", "star", "clock", "tag", "heart", "package", "phone"]`.
@@ -41,6 +41,9 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
 - **`testimonials`:** `title` (`<= 80`), `source` (`"auto" | "manual"`), `items` (array `0..12` of `{ name <= 60, rating 1..5, text <= 400 }`).
 - **`faq`:** `title` (`<= 80`), `text` (`<= 300`), `whatsapp_button` (bool), `items` (array `1..20` of `{ question <= 160, answer <= 1000 }`).
 - **`cta`:** a colored band with one button: `title` (required `<= 80`), `text` (`<= 200`), `button_label` (required `<= 30`), `action` (`"whatsapp" | "link"`; whatsapp opens the store's footer WhatsApp number), `message` (`<= 200`, the ready WhatsApp message), `link`.
+- **`before_after`:** two photos with a line the customer drags: `kicker` (`<= 40`), `title` (`<= 80`), `text` (`<= 300`), `before_media_id` and `after_media_id` (both required, real media ids only: leave this section out when there are no such photos), `before_label` / `after_label` (required `<= 20`), `facts` (array `0..3` of `{ value (required <= 12: "92%"), label (required <= 40) }`).
+- **`skin_quiz`:** a short quiz recommending products: `kicker` (`<= 40`), `title` (required `<= 80`), `text` (`<= 300`), `button_label` (`<= 30`), `results` (array `2..6` of `{ id (required, distinct, a-z0-9 <= 12), name (required <= 40), text <= 300, product_ids (<= 4 real product ids), category_id (int|null) }`), `questions` (array `2..6` of `{ text (required <= 120), answers (array 2..5 of { text (required <= 60), results (1..2 ids from this quiz's results) }) }`). Each answer votes for its results; the result with the most votes shows (a tie goes to the first listed). Keep the starter quiz below unless asked to change it; no medical claims.
+- **`articles`:** care tips: `kicker` (`<= 40`), `title` (`<= 80`), `items` (array `1..6` of `{ media_id (nullable), tag <= 30, title (required <= 80), body (<= 3000 plain text, line breaks kept: opens in a reader), link }`); a tip with no `body` opens its `link`.
 - **`ai`:** `ai_section_id` (required int), `values` (`{}`).
 
 ## 3. Full `defaults()` Example
@@ -139,7 +142,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  },
  "sections": [
  {
- "id": "section_id",
+ "id": "efc6e4f12e54",
  "type": "glow_hero",
  "visible": true,
  "props": {
@@ -170,7 +173,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "a4e80ee045f1",
  "type": "features",
  "visible": true,
  "props": {
@@ -200,7 +203,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "bab82577b49d",
  "type": "shortcuts",
  "visible": true,
  "props": {
@@ -279,7 +282,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "696454620be9",
  "type": "shortcuts",
  "visible": true,
  "props": {
@@ -336,7 +339,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "bfac572a4cba",
  "type": "product_tabs",
  "visible": true,
  "props": {
@@ -360,7 +363,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "ad514ecb8cdf",
  "type": "ingredients",
  "visible": true,
  "props": {
@@ -374,9 +377,9 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  "text": "نضارة وتوحيد اللون",
  "color": "#f6e2df",
  "link": {
- "type": "none",
+ "type": "search",
  "target_id": null,
- "url": null
+ "url": "فيتامين C"
  }
  },
  {
@@ -385,9 +388,9 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  "text": "يقلّل المسام والدهون",
  "color": "#dcebe3",
  "link": {
- "type": "none",
+ "type": "search",
  "target_id": null,
- "url": null
+ "url": "نياسيناميد"
  }
  },
  {
@@ -396,9 +399,9 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  "text": "ترطيب عميق طول اليوم",
  "color": "#e1e9f2",
  "link": {
- "type": "none",
+ "type": "search",
  "target_id": null,
- "url": null
+ "url": "هيالورونيك"
  }
  },
  {
@@ -407,16 +410,194 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  "text": "للخطوط وتجديد البشرة",
  "color": "#efe4d6",
  "link": {
- "type": "none",
+ "type": "search",
  "target_id": null,
- "url": null
+ "url": "ريتينول"
  }
  }
  ]
  }
  },
  {
- "id": "section_id",
+ "id": "63c8d63528f8",
+ "type": "skin_quiz",
+ "visible": true,
+ "props": {
+ "kicker": "مش عارفة تبدئي منين؟",
+ "title": "اعرفي روتينك المناسب في دقيقة",
+ "text": "5 أسئلة بسيطة عن بشرتك، وهنرشحلك المنتجات المناسبة ليكي.",
+ "button_label": "ابدئي الاختبار",
+ "results": [
+ {
+ "id": "oily",
+ "name": "بشرتك دهنية",
+ "text": "محتاجة منظف خفيف يشيل الدهون من غير ما ينشّفها، ومرطب خفيف من غير زيوت، وواقي شمس جل.",
+ "product_ids": [],
+ "category_id": null
+ },
+ {
+ "id": "dry",
+ "name": "بشرتك جافة",
+ "text": "محتاجة منظف كريمي هادي، ومرطب غني بيحبس المية في البشرة، وماتنسيش الترطيب الصبح وبالليل.",
+ "product_ids": [],
+ "category_id": null
+ },
+ {
+ "id": "combo",
+ "name": "بشرتك مختلطة",
+ "text": "منطقة الجبهة والأنف دهنية والخدود عادية أو جافة، فمحتاجة منتجات متوازنة: منظف لطيف ومرطب خفيف.",
+ "product_ids": [],
+ "category_id": null
+ },
+ {
+ "id": "sensitive",
+ "name": "بشرتك حساسة",
+ "text": "محتاجة منتجات هادية من غير عطور ولا كحول، وجرّبي أي منتج جديد على مساحة صغيرة الأول.",
+ "product_ids": [],
+ "category_id": null
+ }
+ ],
+ "questions": [
+ {
+ "text": "بشرتك بتبقى عاملة إزاي آخر اليوم؟",
+ "answers": [
+ {
+ "text": "لامعة في كل الوش",
+ "results": [
+ "oily"
+ ]
+ },
+ {
+ "text": "لامعة في الجبهة والأنف بس",
+ "results": [
+ "combo"
+ ]
+ },
+ {
+ "text": "مشدودة وناشفة",
+ "results": [
+ "dry"
+ ]
+ },
+ {
+ "text": "بتحمر أو بتهرش",
+ "results": [
+ "sensitive"
+ ]
+ }
+ ]
+ },
+ {
+ "text": "بعد ما بتغسلي وشك بنص ساعة بتحسي بإيه؟",
+ "answers": [
+ {
+ "text": "بترجع تلمع بسرعة",
+ "results": [
+ "oily"
+ ]
+ },
+ {
+ "text": "بتشد ومحتاجة كريم على طول",
+ "results": [
+ "dry"
+ ]
+ },
+ {
+ "text": "الجبهة بتلمع والخدود عادية",
+ "results": [
+ "combo"
+ ]
+ },
+ {
+ "text": "بتلسع أو تحمر",
+ "results": [
+ "sensitive"
+ ]
+ }
+ ]
+ },
+ {
+ "text": "المسام عندك شكلها عامل إزاي؟",
+ "answers": [
+ {
+ "text": "واسعة وباينة في كل الوش",
+ "results": [
+ "oily"
+ ]
+ },
+ {
+ "text": "واسعة في الأنف والجبهة بس",
+ "results": [
+ "combo"
+ ]
+ },
+ {
+ "text": "صغيرة ومش باينة تقريبًا",
+ "results": [
+ "dry",
+ "sensitive"
+ ]
+ }
+ ]
+ },
+ {
+ "text": "الكريمات التقيلة بتعمل معاكي إيه؟",
+ "answers": [
+ {
+ "text": "بتطلّع حبوب أو تلمّع",
+ "results": [
+ "oily",
+ "combo"
+ ]
+ },
+ {
+ "text": "بتريحني وبتحتاجها",
+ "results": [
+ "dry"
+ ]
+ },
+ {
+ "text": "بتهيّج بشرتي",
+ "results": [
+ "sensitive"
+ ]
+ }
+ ]
+ },
+ {
+ "text": "بشرتك بتتأثر بالشمس أو المنتجات الجديدة؟",
+ "answers": [
+ {
+ "text": "بتحمر وتهيج بسرعة",
+ "results": [
+ "sensitive"
+ ]
+ },
+ {
+ "text": "بتقشّر وتنشف",
+ "results": [
+ "dry"
+ ]
+ },
+ {
+ "text": "لأ، بس بتلمع أكتر",
+ "results": [
+ "oily"
+ ]
+ },
+ {
+ "text": "تقريبًا مش بتتأثر",
+ "results": [
+ "combo"
+ ]
+ }
+ ]
+ }
+ ]
+ }
+ },
+ {
+ "id": "386aa3d4be03",
  "type": "testimonials",
  "visible": true,
  "props": {
@@ -426,7 +607,7 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  }
  },
  {
- "id": "section_id",
+ "id": "23691e347311",
  "type": "cta",
  "visible": true,
  "props": {
