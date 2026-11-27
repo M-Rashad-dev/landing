@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Readex+Pro:wght@500;600;700&display=swap');
+:root { --ink:#0b1220; --navy:#0f1a2e; --blue:#2563eb; --cyan:#22d3ee; --lime:#a3e635; --bg:#f2f4f8; --line:#e3e8f0; --muted:#64748b; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;font-family:Cairo,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+.d{font-family:'Readex Pro',Cairo,sans-serif;font-weight:700}
+.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
+.sec{padding:46px 0;position:relative}
+.new{position:absolute;top:14px;left:32px;background:linear-gradient(90deg,#f43f5e,#f59e0b);color:#fff;font-weight:900;font-size:13px;border-radius:999px;padding:5px 14px;box-shadow:0 8px 20px -8px #f43f5e;z-index:3}
+.new.dark{top:14px}
+.h2{font-size:30px}
+.kick{color:var(--blue);font-weight:800;font-size:13px;letter-spacing:.04em}
+.row{display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:12px;font-weight:800;border:0}
+.btn.p{background:var(--blue);color:#fff;box-shadow:0 12px 24px -12px var(--blue)}
+.btn.l{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.c{background:var(--cyan);color:var(--ink)}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700;background:#eef2ff;color:#3730a3}
+.price{font-family:'Readex Pro';font-weight:700;color:var(--ink)}
+s{color:var(--muted);font-size:13px}
+img{display:block}
+/* top */
+.strip{background:var(--ink);color:#cbd5e1;font-size:13px;font-weight:700}
+.strip .wrap{display:flex;justify-content:space-between;height:36px;align-items:center}
+.head{background:var(--navy);color:#fff}
+.head .wrap{display:flex;align-items:center;gap:26px;height:78px}
+.logo{font-family:'Readex Pro';font-size:30px;font-weight:700;letter-spacing:-.02em}
+.logo b{color:var(--cyan)}
+.search{flex:1;display:flex;height:48px;border-radius:12px;overflow:hidden;background:#fff}
+.search .cat{background:#e2e8f0;color:var(--ink);padding:0 16px;display:flex;align-items:center;font-weight:800;gap:6px;font-size:14px}
+.search .q{flex:1;display:flex;align-items:center;padding:0 16px;color:#94a3b8;font-size:14px}
+.search .go{background:var(--cyan);width:58px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-weight:900}
+.icons{display:flex;gap:18px;font-size:13px;font-weight:700;color:#cbd5e1}
+.icons span{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.icons i{width:24px;height:24px;border:2px solid #cbd5e1;border-radius:7px;display:block}
+.badge{position:absolute;top:-6px;left:-6px;background:var(--cyan);color:var(--ink);border-radius:999px;font-size:11px;font-weight:900;padding:0 6px}
+.nav{background:#13213a;color:#e2e8f0}
+.nav .wrap{display:flex;gap:26px;height:50px;align-items:center;font-weight:700;font-size:14px}
+.nav .all{background:var(--blue);color:#fff;height:50px;padding:0 18px;display:flex;align-items:center;gap:8px;margin-inline-start:-32px}
+.nav .hot{color:var(--lime)}
+/* mega menu */
+.mega{position:absolute;top:164px;right:96px;width:720px;background:#fff;border-radius:0 0 16px 16px;box-shadow:0 30px 60px -20px rgba(15,26,46,.45);display:grid;grid-template-columns:200px 1fr 1fr 180px;z-index:5;overflow:hidden}
+.mega .side{background:#f1f5f9;padding:12px 0}
+.mega .side div{padding:9px 18px;font-weight:700;font-size:14px}
+.mega .side .on{background:#fff;color:var(--blue);border-inline-start:3px solid var(--blue)}
+.mega .col{padding:16px 18px;font-size:13.5px;color:#334155;line-height:2}
+.mega .col b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+.mega .promo{background:linear-gradient(160deg,#1e3a8a,#0f1a2e);color:#fff;padding:16px;display:flex;flex-direction:column;gap:6px}
+.mega .promo img{width:100%;height:90px;object-fit:cover;border-radius:10px}
+/* hero */
+.hero{background:radial-gradient(900px 420px at 80% 30%,#1d4ed8 0%,transparent 60%),radial-gradient(700px 360px at 10% 90%,#0e7490 0%,transparent 60%),var(--navy);color:#fff;padding:34px 0 40px}
+.hero .grid{display:grid;grid-template-columns:2.1fr 1fr;gap:18px}
+.slide{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(120deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);display:grid;grid-template-columns:1.1fr 1fr;align-items:center;padding:34px;min-height:380px}
+.slide h1{font-size:44px;line-height:1.2}
+.slide h1 em{font-style:normal;color:var(--cyan)}
+.spec{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.spec span{border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:6px 10px;font-weight:700;font-size:13px;background:rgba(255,255,255,.06)}
+.slide img{width:100%;height:300px;object-fit:cover;border-radius:18px;transform:rotate(-3deg);box-shadow:0 40px 60px -30px #000}
+.inst{display:inline-flex;gap:8px;align-items:center;background:rgba(163,230,53,.15);color:var(--lime);border-radius:10px;padding:6px 12px;font-weight:800;font-size:14px}
+.dots{position:absolute;bottom:16px;right:34px;display:flex;gap:6px}.dots i{width:8px;height:8px;border-radius:9px;background:rgba(255,255,255,.35)}.dots i:first-child{width:24px;background:var(--cyan)}
+.mini{border-radius:18px;overflow:hidden;position:relative;height:181px;display:flex;align-items:flex-end;padding:16px}
+.mini img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+.mini div{position:relative}
+.mini + .mini{margin-top:18px}
+/* trust */
+.trust{background:#fff;border-bottom:1px solid var(--line)}
+.trust .wrap{display:grid;grid-template-columns:repeat(5,1fr);padding:18px 32px}
+.trust div{display:flex;gap:10px;align-items:center}
+.trust i{width:42px;height:42px;border-radius:12px;background:#e0f2fe;flex-shrink:0;display:grid;place-items:center;color:var(--blue);font-style:normal;font-weight:900}
+.trust b{display:block;font-size:14px}.trust small{color:var(--muted);font-size:12px}
+/* categories */
+.cats{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-top:22px}
+.cats div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 8px;text-align:center;font-weight:800;font-size:14px}
+.cats img{width:74px;height:74px;object-fit:cover;border-radius:50%;margin:0 auto 8px}
+/* deal of the day */
+.deal{background:linear-gradient(110deg,#0f1a2e,#1e3a8a);color:#fff;border-radius:24px;display:grid;grid-template-columns:1fr 1.3fr;gap:34px;padding:34px;align-items:center;position:relative;overflow:hidden}
+.deal img{width:100%;height:300px;object-fit:cover;border-radius:20px}
+.timer{display:flex;gap:8px;direction:ltr;justify-content:flex-end}
+.timer span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;width:72px;padding:8px 0;text-align:center}
+.timer b{display:block;font-family:'Readex Pro';font-size:28px;color:var(--cyan)}
+.timer small{font-size:11px;color:#cbd5e1}
+.bar{height:10px;border-radius:9px;background:rgba(255,255,255,.15);overflow:hidden}.bar i{display:block;height:100%;width:72%;background:linear-gradient(90deg,var(--cyan),var(--lime))}
+/* product card */
+.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs span{padding:7px 14px;border-radius:9px;font-weight:800;font-size:13.5px;color:var(--muted)}
+.tabs .on{background:var(--ink);color:#fff}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:22px}
+.pc{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.pc .ph{height:170px;background:#f8fafc;position:relative}
+.pc .ph img{width:100%;height:100%;object-fit:cover}
+.pc .off{position:absolute;top:10px;right:10px;background:#ef4444;color:#fff;font-weight:900;font-size:12px;border-radius:8px;padding:2px 8px}
+.pc .cmp{position:absolute;top:10px;left:10px;background:#fff;border-radius:8px;padding:3px 8px;font-size:11.5px;font-weight:800;display:flex;gap:5px;align-items:center;box-shadow:0 4px 10px -4px rgba(0,0,0,.25)}
+.pc .cmp i{width:13px;height:13px;border:2px solid var(--blue);border-radius:4px}
+.pc .cmp.on i{background:var(--blue)}
+.pc .body{padding:12px;display:flex;flex-direction:column;gap:7px;flex:1}
+.pc .name{font-weight:800;font-size:14px;line-height:1.4}
+.pc .chips{display:flex;gap:4px;flex-wrap:wrap}
+.pc .chips span{font-size:11px;font-weight:800;background:#f1f5f9;border-radius:6px;padding:2px 6px;color:#334155}
+.pc .stars{color:#f59e0b;font-size:12px;font-weight:800}
+.pc .inst2{font-size:12px;font-weight:800;color:#15803d}
+.pc .stock{font-size:11.5px;font-weight:800;color:#b45309}
+.pc .add{height:38px;border-radius:10px;background:var(--blue);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13.5px;margin-top:auto}
+.cond{position:absolute;bottom:10px;right:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px}
+/* finder */
+.finder{display:grid;grid-template-columns:1fr 1.4fr;gap:26px;align-items:center}
+.selects{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sel{background:#fff;border:1.5px solid var(--line);border-radius:12px;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:800}
+.sel small{display:block;color:var(--muted);font-size:11px;font-weight:700}
+.sel.on{border-color:var(--blue);box-shadow:0 0 0 3px #dbeafe}
+.res{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.res div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;font-weight:800;text-align:center}
+.res img{width:100%;height:70px;object-fit:cover;border-radius:8px;margin-bottom:6px}
+/* compare */
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:22px}
+th,td{padding:12px 14px;text-align:center;border-bottom:1px solid var(--line);font-size:14px}
+th{background:#f8fafc}
+td:first-child,th:first-child{text-align:start;font-weight:800;color:var(--muted);width:190px}
+th img{width:110px;height:80px;object-fit:cover;border-radius:12px;margin:0 auto 8px}
+.win{color:#15803d;font-weight:900}
+.best{background:#eff6ff}
+/* bundle */
+.fbt{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:center}
+.items{display:flex;align-items:center;gap:12px}
+.it{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px;width:200px;position:relative}
+.it img{width:100%;height:120px;object-fit:cover;border-radius:10px}
+.it .ck{position:absolute;top:16px;right:16px;width:22px;height:22px;border-radius:6px;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:900;font-size:13px}
+.plus{font-size:28px;color:var(--muted);font-weight:900}
+/* installments */
+.inst-sec{background:linear-gradient(110deg,#ecfccb,#d9f99d);border-radius:24px;padding:30px;display:grid;grid-template-columns:1fr 1.2fr;gap:24px;align-items:center}
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.months div{background:#fff;border-radius:14px;padding:12px;text-align:center;border:1.5px solid #bef264}
+.months .on{border-color:#15803d;box-shadow:0 0 0 3px #bbf7d0}
+.months b{display:block;font-family:'Readex Pro';font-size:22px}
+.prov{display:flex;gap:8px;margin-top:12px}
+.prov span{background:#fff;border-radius:10px;padding:8px 14px;font-weight:900;color:#1e293b;font-size:13px}
+/* brands */
+.brands{display:grid;grid-template-columns:repeat(8,1fr);gap:12px;margin-top:20px}
+.brands div{height:70px;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-family:'Readex Pro';font-weight:700;color:#475569;font-size:18px;letter-spacing:.04em}
+/* trade-in */
+.trade{background:var(--navy);color:#fff;border-radius:24px;padding:32px;display:grid;grid-template-columns:1fr 1.2fr;gap:28px;align-items:center}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:12px;height:50px;display:flex;align-items:center;padding:0 14px;color:#cbd5e1;font-weight:700;font-size:14px}
+.steps3{display:flex;gap:10px;margin-top:14px}
+.steps3 span{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:10px;font-size:13px;font-weight:700}
+.steps3 b{color:var(--cyan)}
+/* warranty */
+.warr{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+.warr > div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.warr i{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#ecfeff;color:#0e7490;font-style:normal;font-weight:900;margin-bottom:8px}
+/* reviews */
+.rev{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+.rev > div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;font-size:14px}
+.rev .st{color:#f59e0b;font-weight:900}
+.rev .bought{display:inline-block;margin-top:8px;font-size:12px;background:#f1f5f9;border-radius:6px;padding:2px 8px;font-weight:800}
+/* footer */
+.foot{background:var(--ink);color:#cbd5e1;padding:40px 0 24px;margin-top:20px}
+.foot .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.2fr;gap:26px}
+.foot b{color:#fff;display:block;margin-bottom:8px}.foot .logo b{display:inline;color:var(--cyan)}
+.foot p{font-size:13.5px;line-height:2}
+.pay{display:flex;gap:6px;flex-wrap:wrap}.pay span{background:#1e293b;border-radius:6px;padding:4px 9px;font-size:12px;font-weight:800}
+.title-row{display:flex;justify-content:space-between;align-items:flex-end}
+.more{color:var(--blue);font-weight:800;font-size:14px}
+</style>
+</head>
+<body>
+<div class="strip"><div class="wrap"><span>شحن مجاني فوق 2000 ج · ضمان الوكيل على كل الأجهزة</span><span>تابع طلبك · الخط الساخن 19999</span></div></div>
+<div class="head"><div class="wrap">
+  <div class="logo">تيكنو<b>.</b></div>
+  <div class="search"><div class="cat">كل الأقسام ▾</div><div class="q">ابحث باسم الجهاز أو الموديل… مثلًا: لابتوب i7 16GB</div><div class="go">بحث</div></div>
+  <div class="icons"><span><span class="badge">2</span><i></i>قارن</span><span><i></i>المفضلة</span><span><i></i>حسابي</span><span><span class="badge">3</span><i></i>السلة</span></div>
+</div></div>
+<div class="nav"><div class="wrap"><span class="all">☰ كل الأقسام</span><span>موبايلات</span><span>لابتوبات</span><span>تابلت</span><span>سماعات</span><span>ساعات ذكية</span><span>جيمنج</span><span>إكسسوارات</span><span>أجهزة منزلية</span><span class="hot">⚡ عروض اليوم</span></div></div>
+<section class="hero"><div class="wrap grid">
+  <div class="slide">
+    <div>
+      <div class="kick" style="color:var(--cyan)">وصل حديثًا</div>
+      <h1 class="d">لابتوب بأداء <em>يجري</em><br>معاك في الشغل واللعب</h1>
+      <div class="spec"><span>Core i7</span><span>16GB RAM</span><span>512GB SSD</span><span>شاشة 15.6"</span></div>
+      <div class="row" style="gap:14px"><b class="price" style="font-size:34px;color:#fff">32,999 ج.م</b><s style="color:#94a3b8">38,500</s></div>
+      <div class="inst" style="margin-top:10px">أو 2,750 ج.م / شهر بالتقسيط</div>
+      <div class="row" style="margin-top:20px"><span class="btn p">اشتري دلوقتي</span><span class="btn l" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4)">المواصفات كاملة</span></div>
+    </div>
+    <img src="img/desk.jpg">
+    <div class="dots"><i></i><i></i><i></i></div>
+  </div>
+  <div>
+    <div class="mini" style="background:#0e7490"><img src="img/headphones.jpg"><div><div class="kick" style="color:#a5f3fc">سماعات</div><b class="d" style="font-size:20px">صوت نقي وعزل ضوضاء</b><div style="font-weight:800;margin-top:4px">من 1,499 ج.م</div></div></div>
+    <div class="mini" style="background:#3730a3"><img src="img/controller.jpg"><div><div class="kick" style="color:#c7d2fe">جيمنج</div><b class="d" style="font-size:20px">كل اللي محتاجه للعب</b><div style="font-weight:800;margin-top:4px">خصم 15%</div></div></div>
+  </div>
+</div></section>
+
+<div class="trust"><div class="wrap">
+  <div><i>✓</i><span><b>ضمان الوكيل</b><small>سنة على الأقل</small></span></div>
+  <div><i>⇄</i><span><b>استبدال 14 يوم</b><small>لو فيه عيب صناعة</small></span></div>
+  <div><i>%</i><span><b>تقسيط بدون مقدم</b><small>لحد 24 شهر</small></span></div>
+  <div><i>🚚</i><span><b>توصيل سريع</b><small>لكل المحافظات</small></span></div>
+  <div><i>$</i><span><b>الدفع عند الاستلام</b><small>أو كارت ومحفظة</small></span></div>
+</div></div>
+
+<section class="sec"><div class="wrap">
+  <div class="title-row"><h2 class="d h2">تسوّق حسب القسم</h2><span class="more">كل الأقسام ←</span></div>
+  <div class="cats">
+    <div><img src="img/phone.jpg">موبايلات</div><div><img src="img/laptop.jpg">لابتوبات</div><div><img src="img/tablet.jpg">تابلت</div><div><img src="img/headphones.jpg">سماعات</div><div><img src="img/watch.jpg">ساعات ذكية</div><div><img src="img/controller.jpg">جيمنج</div><div><img src="img/keyboard.jpg">كيبوردات</div><div><img src="img/mouse.jpg">ماوس</div>
+  </div>
+</div></section>
+
+<section class="sec" style="padding-top:10px"><span class="new">جديد: عرض اليوم</span><div class="wrap">
+  <div class="deal">
+    <img src="img/watch.jpg">
+    <div>
+      <div class="row" style="justify-content:space-between"><span class="kick" style="color:var(--lime);font-size:15px">⚡ عرض اليوم · بيخلص بالليل</span><span class="chip" style="background:#ef4444;color:#fff">-35%</span></div>
+      <h2 class="d" style="font-size:34px;margin:10px 0 6px">ساعة ذكية بشاشة AMOLED ومتابعة صحية</h2>
+      <div class="spec"><span>بطارية 7 أيام</span><span>GPS</span><span>مقاومة للمية</span><span>NFC للدفع</span></div>
+      <div class="row" style="gap:14px"><b class="price" style="font-size:36px;color:#fff">2,599 ج.م</b><s style="color:#94a3b8">3,999</s><span class="inst">أو 433 ج/شهر</span></div>
+      <div style="margin:18px 0 8px;font-weight:800;font-size:14px">اتباع 72% من الكمية · فاضل 14 قطعة بس</div>
+      <div class="bar"><i></i></div>
+      <div class="row" style="justify-content:space-between;margin-top:18px">
+        <div class="timer"><span><b>05</b><small>ساعة</small></span><span><b>42</b><small>دقيقة</small></span><span><b>17</b><small>ثانية</small></span></div>
+        <span class="btn c">الحق العرض</span>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="title-row"><div><div class="kick">الأكثر طلبًا</div><h2 class="d h2">اختار جهازك</h2></div><div class="tabs"><span class="on">الأكثر مبيعًا</span><span>وصل حديثًا</span><span>عروض</span><span>جيمنج</span></div></div>
+  <div class="grid5">
+    <div class="pc"><div class="ph"><img src="img/phone.jpg"><span class="off">-12%</span><span class="cmp on"><i></i>قارن</span></div><div class="body"><div class="name">موبايل 6.7" بكاميرا 108 ميجا</div><div class="chips"><span>8GB</span><span>256GB</span><span>5G</span></div><div class="stars">★★★★★ 4.8 (312)</div><div><b class="price">18,499 ج.م</b> <s>20,999</s></div><div class="inst2">أو 1,542 ج/شهر بدون فوايد</div><div class="add">أضف للسلة</div></div></div>
+    <div class="pc"><div class="ph"><img src="img/laptop.jpg"><span class="cmp on"><i></i>قارن</span></div><div class="body"><div class="name">لابتوب 14" خفيف للشغل والدراسة</div><div class="chips"><span>Core i5</span><span>16GB</span><span>512GB</span></div><div class="stars">★★★★☆ 4.6 (97)</div><div><b class="price">24,999 ج.م</b></div><div class="inst2">أو 2,083 ج/شهر بدون فوايد</div><div class="add">أضف للسلة</div></div></div>
+    <div class="pc"><div class="ph"><img src="img/earbuds.jpg"><span class="off">-25%</span><span class="cmp"><i></i>قارن</span></div><div class="body"><div class="name">سماعة لاسلكي بعزل ضوضاء</div><div class="chips"><span>ANC</span><span>30 ساعة</span><span>Bluetooth 5.3</span></div><div class="stars">★★★★★ 4.9 (540)</div><div><b class="price">1,499 ج.م</b> <s>1,999</s></div><div class="stock">فاضل 3 بس</div><div class="add">أضف للسلة</div></div></div>
+    <div class="pc"><div class="ph"><img src="img/tablet.jpg"><span class="cmp"><i></i>قارن</span><span class="cond">كسر زيرو</span></div><div class="body"><div class="name">تابلت 11" مع قلم</div><div class="chips"><span>8GB</span><span>128GB</span><span>Wi-Fi</span></div><div class="stars">★★★★☆ 4.5 (41)</div><div><b class="price">12,750 ج.م</b> <s>15,900</s></div><div class="inst2">أو 1,063 ج/شهر بدون فوايد</div><div class="add">أضف للسلة</div></div></div>
+    <div class="pc"><div class="ph"><img src="img/keyboard.jpg"><span class="cmp"><i></i>قارن</span></div><div class="body"><div class="name">كيبورد ميكانيكال لاسلكي RGB</div><div class="chips"><span>Hot-swap</span><span>عربي/إنجليزي</span></div><div class="stars">★★★★★ 4.7 (128)</div><div><b class="price">2,350 ج.م</b></div><div class="inst2">أو 392 ج/شهر بدون فوايد</div><div class="add">أضف للسلة</div></div></div>
+  </div>
+  <div style="margin-top:14px;display:flex;justify-content:center"><span class="new" style="position:static">جديد: كارت منتج بمواصفات سريعة + تقسيط + «قارن» + حالة الجهاز (جديد / كسر زيرو / مستعمل)</span></div>
+</div></section>
+
+<section class="sec" style="background:#e8eef8"><span class="new">جديد: لاقي إكسسوار جهازك</span><div class="wrap finder">
+  <div><div class="kick">مش متأكد إيه المناسب؟</div><h2 class="d h2" style="margin:6px 0">لاقي الإكسسوار المناسب لجهازك</h2><p style="color:var(--muted);line-height:1.8">اختار البراند والموديل، ونطلّعلك الجرابات والشواحن والإسكرينات اللي بتركب عليه بالظبط.</p></div>
+  <div>
+    <div class="selects"><div class="sel on"><span><small>البراند</small>نوفا</span>▾</div><div class="sel on"><span><small>الموديل</small>نوفا X 12 برو</span>▾</div><div class="sel"><span><small>النوع</small>كل الإكسسوارات</span>▾</div></div>
+    <div class="res"><div><img src="img/earbuds2.jpg">سماعة متوافقة</div><div><img src="img/mouse.jpg">شاحن سريع 65W</div><div><img src="img/phone.jpg">جراب شفاف</div><div><img src="img/keyboard.jpg">إسكرينة زجاج</div></div>
+  </div>
+</div></section>
+
+<section class="sec"><span class="new">جديد: قارن قبل ما تشتري</span><div class="wrap">
+  <div class="title-row"><div><div class="kick">محتار بين أكتر من جهاز؟</div><h2 class="d h2">قارن قبل ما تشتري</h2></div><span class="more">قارن أجهزة تانية ←</span></div>
+  <table>
+    <tr><th>المواصفات</th><th><img src="img/laptop.jpg">لابتوب برو 14</th><th class="best"><img src="img/desk.jpg">لابتوب ماكس 15 <div class="chip" style="margin-top:4px;background:#dcfce7;color:#15803d">الأنسب ليك</div></th><th><img src="img/tablet.jpg">لابتوب إير 13</th></tr>
+    <tr><td>المعالج</td><td>Core i5</td><td class="best win">Core i7</td><td>Core i5</td></tr>
+    <tr><td>الرامات</td><td>16GB</td><td class="best win">32GB</td><td>8GB</td></tr>
+    <tr><td>التخزين</td><td>512GB SSD</td><td class="best win">1TB SSD</td><td>256GB SSD</td></tr>
+    <tr><td>البطارية</td><td class="win">12 ساعة</td><td class="best">9 ساعات</td><td class="win">12 ساعة</td></tr>
+    <tr><td>الوزن</td><td>1.4 كجم</td><td class="best">1.9 كجم</td><td class="win">1.2 كجم</td></tr>
+    <tr><td>السعر</td><td><b class="price">24,999</b></td><td class="best"><b class="price">36,500</b></td><td><b class="price">19,999</b></td></tr>
+    <tr><td></td><td><span class="btn l" style="height:38px">أضف للسلة</span></td><td class="best"><span class="btn p" style="height:38px">أضف للسلة</span></td><td><span class="btn l" style="height:38px">أضف للسلة</span></td></tr>
+  </table>
+</div></section>
+
+<section class="sec" style="padding-top:10px"><span class="new">جديد: اشتريهم مع بعض</span><div class="wrap fbt card" style="padding:26px">
+  <div><div class="kick">بيتشتروا مع بعض</div><h2 class="d h2" style="margin:4px 0 16px">كمّل جهازك ووفّر</h2>
+    <div class="items"><div class="it"><span class="ck">✓</span><img src="img/laptop.jpg"><b style="font-size:13px">لابتوب 14"</b><div class="price" style="font-size:14px">24,999</div></div><span class="plus">+</span><div class="it"><span class="ck">✓</span><img src="img/mouse.jpg"><b style="font-size:13px">ماوس لاسلكي</b><div class="price" style="font-size:14px">450</div></div><span class="plus">+</span><div class="it"><span class="ck">✓</span><img src="img/headphones.jpg"><b style="font-size:13px">سماعة بعزل</b><div class="price" style="font-size:14px">1,499</div></div></div>
+  </div>
+  <div style="text-align:center;background:#f8fafc;border-radius:18px;padding:22px"><div style="color:var(--muted);font-weight:700">إجمالي التلاتة</div><div class="row" style="justify-content:center;gap:10px;margin:6px 0"><b class="price" style="font-size:34px">25,948 ج.م</b><s>26,948</s></div><div class="chip" style="background:#dcfce7;color:#15803d">وفّرت 1,000 ج.م</div><div style="margin-top:16px"><span class="btn p" style="width:100%">أضف التلاتة للسلة</span></div></div>
+</div></section>
+
+<section class="sec" style="padding-top:10px"><span class="new">جديد: اشتري بالتقسيط</span><div class="wrap"><div class="inst-sec">
+  <div><div class="kick" style="color:#15803d">من غير مقدم ومن غير فوايد</div><h2 class="d h2" style="margin:6px 0">قسّط جهازك على راحتك</h2><p style="color:#365314;line-height:1.8">اختار عدد الشهور وشوف القسط قبل ما تطلب. بنقبل شركات التقسيط وكروت البنوك.</p><div class="prov"><span>شركة تقسيط 1</span><span>شركة تقسيط 2</span><span>كروت البنوك</span></div></div>
+  <div><div style="font-weight:800;margin-bottom:10px">لابتوب 14" · 24,999 ج.م</div><div class="months"><div><small>6 شهور</small><b>4,167</b></div><div class="on"><small>12 شهر</small><b>2,083</b></div><div><small>18 شهر</small><b>1,500</b></div><div><small>24 شهر</small><b>1,146</b></div></div><div style="margin-top:10px;color:#365314;font-size:13px;font-weight:700">* القسط تقريبي، والنهائي حسب شركة التقسيط</div></div>
+</div></div></section>
+
+<section class="sec" style="padding-top:10px"><div class="wrap">
+  <h2 class="d h2">براندات بنتعامل معاها</h2>
+  <div class="brands"><div>NOVA</div><div>ZENTRO</div><div>PIXELO</div><div>VOLTX</div><div>ORBIT</div><div>KAIRO</div><div>SONIQ</div><div>GRID</div></div>
+</div></section>
+
+<section class="sec" style="padding-top:10px"><span class="new">جديد: بدّل جهازك القديم</span><div class="wrap"><div class="trade">
+  <div><div class="kick" style="color:var(--cyan)">Trade-in</div><h2 class="d h2" style="margin:6px 0">بدّل جهازك القديم بخصم على الجديد</h2><p style="color:#cbd5e1;line-height:1.8">قولنا جهازك وحالته، ونكلمك بسعره ونخصمه من الجهاز الجديد.</p>
+    <div class="steps3"><span><b>1</b> ابعت بيانات جهازك</span><span><b>2</b> نقيّمه ونكلمك</span><span><b>3</b> خصم على الجديد</span></div></div>
+  <div><div class="form"><div>نوع الجهاز: موبايل ▾</div><div>البراند والموديل</div><div>الحالة: ممتاز ▾</div><div>رقم الموبايل</div></div><div style="margin-top:14px"><span class="btn c" style="width:100%">ابعت على واتساب</span></div></div>
+</div></div></section>
+
+<section class="sec" style="padding-top:10px"><div class="wrap">
+  <div class="title-row"><h2 class="d h2">الضمان وخدمة ما بعد البيع</h2><span class="new" style="position:static">جديد: الضمان والصيانة</span></div>
+  <div class="warr"><div><i>✓</i><b>ضمان الوكيل الرسمي</b><p style="color:var(--muted);font-size:13.5px">على كل الأجهزة، والمدة مكتوبة في صفحة كل منتج.</p></div><div><i>🛠</i><b>مراكز صيانة</b><p style="color:var(--muted);font-size:13.5px">في القاهرة والإسكندرية والمنصورة.</p></div><div><i>⇄</i><b>استبدال 14 يوم</b><p style="color:var(--muted);font-size:13.5px">لو فيه عيب صناعة، من غير أسئلة.</p></div><div><i>☎</i><b>دعم فني</b><p style="color:var(--muted);font-size:13.5px">واتساب من 10 الصبح لـ 10 بالليل.</p></div></div>
+</div></section>
+
+<section class="sec" style="padding-top:10px"><div class="wrap">
+  <h2 class="d h2">آراء العملاء</h2>
+  <div class="rev"><div><div class="st">★★★★★</div><p>اللابتوب وصل متغلّف وبضمان الوكيل، والتقسيط كان سهل جدًا.</p><span class="bought">اشترى: لابتوب 14"</span><div style="margin-top:8px;font-weight:800">أحمد · القاهرة</div></div><div><div class="st">★★★★★</div><p>قارنت بين 3 لابتوبات في الموقع واخترت الأنسب، شكرًا.</p><span class="bought">اشترى: لابتوب ماكس 15</span><div style="margin-top:8px;font-weight:800">منة · الجيزة</div></div><div><div class="st">★★★★☆</div><p>السماعة ممتازة والعزل قوي. التوصيل خد يومين.</p><span class="bought">اشترى: سماعة لاسلكي</span><div style="margin-top:8px;font-weight:800">كريم · المنصورة</div></div><div><div class="st">★★★★★</div><p>بدّلت موبايلي القديم وأخدت خصم محترم على الجديد.</p><span class="bought">اشترى: موبايل 6.7"</span><div style="margin-top:8px;font-weight:800">سارة · الإسكندرية</div></div></div>
+</div></section>
+
+<footer class="foot"><div class="wrap cols">
+  <div><div class="logo" style="color:#fff">تيكنو<b>.</b></div><p>أجهزة أصلية بضمان الوكيل، وتقسيط من غير مقدم، وتوصيل لكل المحافظات.</p></div>
+  <div><b>الأقسام</b><p>موبايلات<br>لابتوبات<br>سماعات<br>جيمنج</p></div>
+  <div><b>المساعدة</b><p>تابع طلبك<br>الضمان والصيانة<br>الاستبدال<br>التقسيط</p></div>
+  <div><b>تواصل معانا</b><p>19999<br>واتساب<br>القاهرة</p></div>
+  <div><b>طرق الدفع</b><div class="pay"><span>الدفع عند الاستلام</span><span>فيزا</span><span>محافظ</span><span>تقسيط</span></div></div>
+</div><div class="wrap" style="margin-top:20px;border-top:1px solid #1e293b;padding-top:14px;font-size:12px">© 2026 تيكنو · صنع بواسطة مكسب</div></footer>
+</body>
+</html>

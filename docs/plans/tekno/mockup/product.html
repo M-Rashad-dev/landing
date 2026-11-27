@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Readex+Pro:wght@500;600;700&display=swap');
+:root { --ink:#0b1220; --navy:#0f1a2e; --blue:#2563eb; --cyan:#22d3ee; --lime:#a3e635; --bg:#f2f4f8; --line:#e3e8f0; --muted:#64748b; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1860px;font-family:Cairo,sans-serif;background:#dfe6f0;color:var(--ink);font-size:15px;padding:40px}
+.d{font-family:'Readex Pro',Cairo,sans-serif;font-weight:700}
+img{display:block}
+.cols{display:grid;grid-template-columns:1260px 1fr;gap:40px;align-items:start}
+.label{display:inline-block;background:var(--ink);color:#fff;font-weight:900;border-radius:10px;padding:6px 14px;margin-bottom:12px;font-size:15px}
+.new{display:inline-block;background:linear-gradient(90deg,#f43f5e,#f59e0b);color:#fff;font-weight:900;font-size:12.5px;border-radius:999px;padding:4px 12px;box-shadow:0 8px 20px -8px #f43f5e}
+.screen{background:var(--bg);border-radius:20px;overflow:hidden;box-shadow:0 40px 80px -40px rgba(15,26,46,.5)}
+.bar{background:#e2e8f0;height:34px;display:flex;align-items:center;gap:7px;padding:0 14px;direction:ltr}.bar span{width:11px;height:11px;border-radius:9px}
+.head{background:var(--navy);color:#fff;display:flex;align-items:center;gap:22px;height:70px;padding:0 30px}
+.logo{font-family:'Readex Pro';font-size:28px;font-weight:700}.logo b{color:var(--cyan)}
+.search{flex:1;display:flex;height:44px;border-radius:12px;overflow:hidden;background:#fff}
+.search .cat{background:#e2e8f0;color:var(--ink);padding:0 14px;display:flex;align-items:center;font-weight:800;font-size:13px}
+.search .q{flex:1;display:flex;align-items:center;padding:0 14px;color:#94a3b8;font-size:13px}
+.search .go{background:var(--cyan);width:54px;display:grid;place-items:center;font-weight:900;color:var(--ink)}
+.crumb{padding:16px 30px 0;color:var(--muted);font-size:13px;font-weight:700}
+.pp{display:grid;grid-template-columns:1fr 1.05fr;gap:30px;padding:16px 30px 30px}
+.gal .main{background:#fff;border-radius:20px;border:1px solid var(--line);height:430px;overflow:hidden;position:relative}
+.gal .main img{width:100%;height:100%;object-fit:cover}
+.gal .zoom{position:absolute;bottom:14px;left:14px;background:#fff;border-radius:10px;padding:5px 10px;font-weight:800;font-size:12px}
+.gal .v360{position:absolute;top:14px;left:14px;background:var(--ink);color:#fff;border-radius:10px;padding:5px 10px;font-weight:800;font-size:12px}
+.thumbs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+.thumbs img{width:100%;height:76px;object-fit:cover;border-radius:12px;border:2px solid transparent}
+.thumbs img:first-child{border-color:var(--blue)}
+.info{display:flex;flex-direction:column;gap:12px}
+.brand{color:var(--blue);font-weight:900;font-size:13px}
+.info h1{font-size:28px;line-height:1.35}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stars{color:#f59e0b;font-weight:900;font-size:14px}
+.cond{background:#ecfeff;color:#0e7490;font-weight:900;border-radius:8px;padding:3px 9px;font-size:12.5px}
+.sku{color:var(--muted);font-size:12.5px;font-weight:700}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keys div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+.keys small{display:block;color:var(--muted);font-size:11px;font-weight:700}
+.keys b{font-size:13.5px}
+.opt b{display:block;font-size:13.5px;margin-bottom:6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips span{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:7px 12px;font-weight:800;font-size:13px}
+.chips .on{border-color:var(--blue);background:#eff6ff;color:var(--blue)}
+.chips small{color:var(--muted);font-weight:700;margin-inline-start:4px}
+.dots{display:flex;gap:10px}.dots i{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line)}.dots i.on{box-shadow:0 0 0 2px var(--blue)}
+.price{font-family:'Readex Pro';font-weight:700}
+.pbox{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.inst{background:#f7fee7;border:1.5px solid #bef264;border-radius:14px;padding:10px 12px}
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.months span{background:#fff;border-radius:10px;padding:6px;text-align:center;font-weight:800;font-size:12.5px;border:1.5px solid #d9f99d}
+.months .on{border-color:#15803d}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;font-weight:800;border:0;font-size:15px}
+.p{background:var(--blue);color:#fff;box-shadow:0 12px 24px -12px var(--blue)}
+.k{background:var(--ink);color:#fff}
+.l{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+.warr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.warr div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:12.5px;font-weight:800;display:flex;gap:8px;align-items:center}
+.warr i{width:30px;height:30px;border-radius:9px;background:#ecfeff;color:#0e7490;font-style:normal;display:grid;place-items:center;flex-shrink:0}
+.ship{background:#fff;border:1px dashed #94a3b8;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700}
+.tabs{display:flex;gap:4px;padding:0 30px;border-bottom:1px solid var(--line)}
+.tabs span{padding:12px 16px;font-weight:800;color:var(--muted);font-size:14px}
+.tabs .on{color:var(--blue);border-bottom:3px solid var(--blue)}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 30px}
+.grp{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.grp h4{background:#f8fafc;padding:10px 14px;font-size:14px;display:flex;gap:8px;align-items:center}
+.grp div{display:flex;justify-content:space-between;padding:9px 14px;border-top:1px solid var(--line);font-size:13.5px}
+.grp div span{color:var(--muted);font-weight:700}
+.box{padding:0 30px 26px;display:grid;grid-template-columns:1fr 1.3fr;gap:16px}
+.inbox{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
+.inbox ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.inbox li{background:#f1f5f9;border-radius:10px;padding:8px;font-weight:700;font-size:13px}
+.qa{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;font-size:13.5px}
+.qa p{border-top:1px solid var(--line);padding:8px 0}
+.cmpbar{background:var(--ink);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 30px}
+.cmpbar img{width:52px;height:52px;object-fit:cover;border-radius:10px;border:2px solid #334155}
+.cmpbar .ph{width:52px;height:52px;border-radius:10px;border:2px dashed #475569;display:grid;place-items:center;color:#64748b;font-weight:900}
+/* mega */
+.mega{background:#fff;border-radius:18px;overflow:hidden;display:grid;grid-template-columns:150px 1fr 1fr;box-shadow:0 30px 60px -30px rgba(15,26,46,.5)}
+.mega .side{background:#f1f5f9;padding:10px 0}
+.mega .side div{padding:8px 14px;font-weight:700;font-size:13.5px}
+.mega .side .on{background:#fff;color:var(--blue);border-inline-start:3px solid var(--blue)}
+.mega .col{padding:14px;font-size:13px;color:#334155;line-height:2}
+.mega .col b{display:block;color:var(--ink)}
+.mega .promo{grid-column:1/-1;background:linear-gradient(120deg,#1e3a8a,#0f1a2e);color:#fff;padding:12px 14px;display:flex;gap:12px;align-items:center}
+.mega .promo img{width:90px;height:60px;object-fit:cover;border-radius:10px}
+/* phone */
+.phone{width:390px;border-radius:44px;border:10px solid #0b1220;background:var(--bg);overflow:hidden;box-shadow:0 40px 80px -40px rgba(15,26,46,.6);margin-top:12px}
+.m-top{background:var(--navy);color:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.m-top .r{display:flex;justify-content:space-between;align-items:center}
+.m-search{background:#fff;border-radius:12px;height:40px;display:flex;align-items:center;padding:0 12px;color:#94a3b8;font-size:12.5px}
+.m-hero{margin:12px;border-radius:18px;background:linear-gradient(120deg,#1d4ed8,#0f1a2e);color:#fff;padding:16px;position:relative;overflow:hidden}
+.m-hero img{width:100%;height:130px;object-fit:cover;border-radius:12px;margin-top:10px}
+.m-cats{display:flex;gap:10px;padding:4px 12px;overflow:hidden}
+.m-cats div{flex-shrink:0;width:64px;text-align:center;font-size:11.5px;font-weight:800}
+.m-cats img{width:58px;height:58px;border-radius:50%;object-fit:cover;margin:0 auto 4px;border:3px solid #fff}
+.m-deal{margin:12px;border-radius:18px;background:var(--navy);color:#fff;padding:12px;display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
+.m-deal img{width:110px;height:110px;object-fit:cover;border-radius:12px}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}
+.m-card{background:#fff;border-radius:14px;border:1px solid var(--line);overflow:hidden;font-size:12px}
+.m-card img{width:100%;height:110px;object-fit:cover}
+.m-card div{padding:8px}
+.m-nav{background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0 14px;font-size:11px;font-weight:800;text-align:center;color:var(--muted)}
+.m-nav .on{color:var(--blue)}
+.m-nav i{display:block;width:22px;height:22px;border:2px solid currentColor;border-radius:7px;margin:0 auto 3px}
+.side-note{background:#fff;border-radius:18px;padding:18px;margin-top:24px;font-size:14px;line-height:1.9;box-shadow:0 20px 40px -30px rgba(15,26,46,.5)}
+</style>
+</head>
+<body>
+<div class="cols">
+<div>
+  <span class="label">صفحة المنتج</span>
+  <div class="screen">
+    <div class="bar"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+    <div class="head"><div class="logo">تيكنو<b>.</b></div><div class="search"><div class="cat">لابتوبات ▾</div><div class="q">ابحث باسم الجهاز أو الموديل…</div><div class="go">بحث</div></div></div>
+    <div class="crumb">الرئيسية › لابتوبات › لابتوبات للشغل</div>
+    <div class="pp">
+      <div class="gal">
+        <div class="main"><img src="img/laptop.jpg"><span class="zoom">🔍 كبّر الصورة</span><span class="v360">فيديو المنتج ▶</span></div>
+        <div class="thumbs"><img src="img/laptop.jpg"><img src="img/desk.jpg"><img src="img/keyboard.jpg"><img src="img/mouse.jpg"><img src="img/tablet.jpg"></div>
+      </div>
+      <div class="info">
+        <div class="row" style="justify-content:space-between"><span class="brand">ZENTRO</span><span class="new">جديد: حالة الجهاز + كود الموديل</span></div>
+        <h1 class="d">لابتوب 14" خفيف للشغل والدراسة</h1>
+        <div class="row"><span class="stars">★★★★☆ 4.6</span><span class="sku">(97 تقييم) · موديل ZX-14 · كود 10482</span><span class="cond">جديد بالكرتونة</span></div>
+        <div><span class="new" style="margin-bottom:6px">جديد: أهم المواصفات في لمحة</span>
+        <div class="keys" style="margin-top:6px"><div><small>المعالج</small><b>Core i5-1335U</b></div><div><small>الرامات</small><b>16GB DDR5</b></div><div><small>التخزين</small><b>512GB SSD</b></div><div><small>الشاشة</small><b>14" FHD IPS</b></div></div></div>
+        <div class="opt"><b>التخزين</b><div class="chips"><span>256GB<small>-1,500</small></span><span class="on">512GB</span><span>1TB<small>+2,800</small></span></div></div>
+        <div class="opt"><b>اللون: رمادي</b><div class="dots"><i class="on" style="background:#475569"></i><i style="background:#e2e8f0"></i><i style="background:#1e3a8a"></i></div></div>
+        <div class="pbox">
+          <div class="row"><b class="price" style="font-size:32px">24,999 ج.م</b><s style="color:var(--muted)">27,500</s><span class="cond" style="background:#fee2e2;color:#b91c1c">وفّر 2,501</span></div>
+          <div class="inst"><div class="row" style="justify-content:space-between"><b style="font-size:13.5px;color:#365314">قسّطه من غير مقدم</b><span class="new">جديد: حاسبة التقسيط</span></div><div class="months"><span>6 × 4,167</span><span class="on">12 × 2,083</span><span>18 × 1,500</span><span>24 × 1,146</span></div></div>
+          <div style="font-size:13px;font-weight:800;color:#b45309">فاضل 4 قطع بس في المخزن</div>
+          <div class="row"><span class="btn p" style="flex:1">أضف للسلة</span><span class="btn k" style="flex:1">اشتري دلوقتي</span><span class="btn l">⇄ قارن</span><span class="btn l">♡</span></div>
+        </div>
+        <div><span class="new" style="margin-bottom:6px">جديد: الضمان والتوصيل في صفحة المنتج</span>
+        <div class="warr" style="margin-top:6px"><div><i>✓</i>ضمان الوكيل سنتين</div><div><i>⇄</i>استبدال 14 يوم</div><div><i>🛠</i>صيانة معتمدة</div></div></div>
+        <div class="ship">🚚 لو في <b>القاهرة</b> هيوصلك <b>بكرة</b> · الشحن 60 ج.م (مجاني فوق 2000)</div>
+      </div>
+    </div>
+    <div class="tabs"><span class="on">المواصفات الكاملة</span><span>في العلبة إيه</span><span>الضمان</span><span>أسئلة العملاء (12)</span><span>التقييمات (97)</span></div>
+    <div style="padding:14px 30px 0"><span class="new">جديد: جدول مواصفات مقسّم (بيتعمل من بيانات المنتج)</span></div>
+    <div class="specs">
+      <div class="grp"><h4>⚙ الأداء</h4><div><span>المعالج</span><b>Intel Core i5-1335U</b></div><div><span>الرامات</span><b>16GB DDR5 4800</b></div><div><span>كارت الشاشة</span><b>Intel Iris Xe</b></div></div>
+      <div class="grp"><h4>🖥 الشاشة</h4><div><span>المقاس</span><b>14 بوصة</b></div><div><span>الدقة</span><b>1920×1080 FHD</b></div><div><span>النوع</span><b>IPS مطفية</b></div></div>
+      <div class="grp"><h4>💾 التخزين والمنافذ</h4><div><span>التخزين</span><b>512GB NVMe SSD</b></div><div><span>المنافذ</span><b>2×USB-C · HDMI · USB-A</b></div><div><span>واي فاي</span><b>Wi-Fi 6</b></div></div>
+      <div class="grp"><h4>🔋 البطارية والوزن</h4><div><span>البطارية</span><b>لحد 12 ساعة</b></div><div><span>الشاحن</span><b>65W USB-C</b></div><div><span>الوزن</span><b>1.4 كجم</b></div></div>
+    </div>
+    <div class="box">
+      <div class="inbox"><b>في العلبة إيه</b> <span class="new">جديد</span><ul><li>اللابتوب</li><li>شاحن 65W</li><li>كابل USB-C</li><li>كارت الضمان</li></ul></div>
+      <div class="qa"><b>أسئلة العملاء</b> <span class="new">جديد: سؤال وجواب على المنتج</span><p><b>س:</b> ينفع أزوّد الرامات؟ <br><b>ج (المتجر):</b> أيوه، فيه slot فاضية لحد 32GB.</p><p><b>س:</b> الكيبورد عربي؟ <br><b>ج (المتجر):</b> أيوه، عربي وإنجليزي ومنوّر.</p></div>
+    </div>
+    <div class="cmpbar"><span class="new">جديد: شريط المقارنة</span><b>أجهزة للمقارنة (2 من 4)</b><img src="img/laptop.jpg"><img src="img/desk.jpg"><span class="ph">+</span><span class="ph">+</span><span class="btn" style="background:var(--cyan);color:var(--ink);height:42px;margin-inline-start:auto">قارن دلوقتي</span><span style="color:#94a3b8;font-weight:800">امسح</span></div>
+  </div>
+</div>
+
+<div>
+  <span class="label">قايمة الأقسام الكبيرة</span> <span class="new">جديد</span>
+  <div class="mega" style="margin-top:4px">
+    <div class="side"><div class="on">لابتوبات ›</div><div>موبايلات ›</div><div>سماعات ›</div><div>جيمنج ›</div><div>إكسسوارات ›</div></div>
+    <div class="col"><b>حسب الاستخدام</b>للدراسة<br>للشغل<br>للجيمنج<br>للتصميم</div>
+    <div class="col"><b>حسب السعر</b>أقل من 15 ألف<br>15 – 30 ألف<br>30 – 50 ألف<br>أكتر من 50 ألف</div>
+    <div class="promo"><img src="img/laptop.jpg"><div><b>لابتوبات الطلبة</b><div style="font-size:13px;color:#cbd5e1">خصم لحد 20%</div></div></div>
+  </div>
+
+  <div style="margin-top:26px"><span class="label">على الموبايل</span></div>
+  <div class="phone">
+    <div class="m-top"><div class="r"><span>☰</span><span class="logo" style="font-size:22px">تيكنو<b>.</b></span><span>🛒</span></div><div class="m-search">ابحث باسم الجهاز أو الموديل…</div></div>
+    <div class="m-hero"><div style="color:var(--cyan);font-weight:800;font-size:12px">وصل حديثًا</div><b class="d" style="font-size:20px">لابتوب بأداء يجري معاك</b><div style="margin-top:6px;font-size:12px;font-weight:800;color:var(--lime)">32,999 ج.م · أو 2,750/شهر</div><img src="img/desk.jpg"></div>
+    <div class="m-cats"><div><img src="img/phone.jpg">موبايلات</div><div><img src="img/laptop.jpg">لابتوبات</div><div><img src="img/headphones.jpg">سماعات</div><div><img src="img/watch.jpg">ساعات</div><div><img src="img/controller.jpg">جيمنج</div></div>
+    <div class="m-deal"><img src="img/watch.jpg"><div><div style="color:var(--lime);font-weight:800;font-size:11px">⚡ عرض اليوم</div><b style="font-size:13.5px">ساعة ذكية AMOLED</b><div class="price" style="font-size:18px;margin:2px 0">2,599 ج.م</div><div style="font-size:11px;color:var(--cyan);font-weight:800;direction:ltr;text-align:right">05 : 42 : 17</div></div></div>
+    <div class="m-grid"><div class="m-card"><img src="img/phone.jpg"><div><b>موبايل 6.7"</b><div style="color:var(--muted)">8GB · 256GB</div><b class="price">18,499</b><div style="color:#15803d;font-weight:800">1,542/شهر</div></div></div><div class="m-card"><img src="img/earbuds.jpg"><div><b>سماعة ANC</b><div style="color:var(--muted)">30 ساعة</div><b class="price">1,499</b><div style="color:#b45309;font-weight:800">فاضل 3</div></div></div></div>
+    <div class="m-nav"><span class="on"><i></i>الرئيسية</span><span><i></i>الأقسام</span><span><i></i>قارن</span><span><i></i>السلة</span><span><i></i>حسابي</span></div>
+  </div>
+  <div class="side-note"><b>شكل «تيكنو»:</b> كحلي غامق مع أزرق كهربائي وسماوي، وأخضر ليموني للتقسيط والتوفير. خط عناوين Readex Pro، وزوايا ناعمة 14 بكسل، وكل الألوان والخطوط من إعدادات الثيم.</div>
+</div>
+</div>
+</body>
+</html>

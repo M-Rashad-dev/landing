@@ -15,25 +15,19 @@ Optional, only when touching them: `docs/plans/ai-copilot.md`, `docs/plans/ai-de
 
 ---
 
-## 1. Where we are now (2026-11-24)
+## 1. Where we are now (2026-11-28)
 
-Plan `docs/plans/merchant-essentials.md`. The owner chose features **1, 2, 3, 5, 7** = five stages:
+**The plan to execute now: `docs/plans/tekno/PLAN.md`** (product specifications in the platform, then the
+«تيكنو» electronics store theme), with the owner's **approved images** in `docs/plans/tekno/` and their HTML
+sources in `docs/plans/tekno/mockup/`. Read the whole plan, then **wait for the owner's «ابدأ»** and start
+with stage S1. One stage at a time, stop for review after each.
 
-| Stage | What | State |
-|---|---|---|
-| 1 | Staff accounts + permissions (spatie, per page and action) | done — commit `4b19206a` |
-| 2 | WhatsApp order confirmation (free, buttons) | done — `231bd338` |
-| 3 | Cost and profit («الأرباح») | done — `fc53d46a` |
-| 4 | Abandoned cart recovery (WhatsApp + email reminders, message packs) | done — `9b2228e7` |
-| 5 | Refunds («المرتجعات والمبالغ المسترجعة») | done — see the plan's PROGRESS LOG |
-
-**State: all five stages are finished, committed and pushed (v4 + main). Stage 5 (refunds) is waiting for
-the owner's review. The merchant-essentials plan is complete.**
-
-**What to do:** fix the owner's notes on Stage 5 first (if any), then ask him what's next (docs/PROJECT.md
-roadmap). Don't start anything new without his choice.
-
----
+Done before it (all committed and pushed, **not deployed** — the owner reviews locally first):
+- «رواق · متجر» (`rawaq_store`, 3 stages + released), «اختبار البشرة» with AI (feature `quiz`, no cap per
+  store), «رواق · صفحة هبوط» (`rawaq_landing`). Review account: `rawaq-test@example.com` / `demo-pass-123`
+  on `app.localhost:3200`, store `rawaq-test.localhost:3200` (throwaway tenant). If the owner sends review
+  notes on «رواق», fix them first.
+- Earlier: merchant-essentials plan (`docs/plans/merchant-essentials.md`, 5 stages, done).
 
 ## 2. How the owner works (hard rules)
 
@@ -56,7 +50,8 @@ roadmap). Don't start anything new without his choice.
   change must never break other parts. The platform grows like Salla / Zid.
 - **No legacy compatibility:** edit/rename/delete code in place; no parallel endpoints.
 - **Eloquent / query builder**, not raw SQL. Performance and security matter.
-- **Build UI directly** in the existing design system — no mockup images first.
+- **Build UI directly** in the existing design system — no mockup images first, unless the owner asks for one
+  (he did for «رواق» and «تيكنو»; for «تيكنو» the approved images are the spec).
 - **Tests:** every new feature gets Feature tests (success, validation, 401, tenant isolation) and front
   tests. Small text/link changes: quick checks only, no long verification. Heavy code (money, tenancy,
   AI): thorough.
