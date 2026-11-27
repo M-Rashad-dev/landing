@@ -133,7 +133,7 @@ a:hover > .rq-tile { transform: translateY(-3px); }
 
 /* phones: the floating WhatsApp / call buttons go up over a product page's fixed bar */
 @container (max-width: 47.99rem) {
-  .rq-root:has(.ss-sticky) .rq-float { bottom: 5.75rem; }
+  .rq-root:has(.rq-sticky) .rq-float { bottom: 5.75rem; }
 }
 
 /* motion: sections rise in as they reach the screen */

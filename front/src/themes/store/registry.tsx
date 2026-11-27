@@ -11,6 +11,11 @@ import { Listing } from "./asas/pages/listing";
 import { ProductView } from "./asas/pages/product";
 import { TrackView } from "./asas/pages/track";
 import { ASAS_KEY, type Design } from "./asas/types";
+import { RawaqCartView } from "./rawaq/pages/cart";
+import { RawaqCheckoutView } from "./rawaq/pages/checkout";
+import { RawaqOrderDone } from "./rawaq/pages/done";
+import { RawaqListing } from "./rawaq/pages/listing";
+import { RawaqProductView } from "./rawaq/pages/product";
 import { RawaqFrame, RawaqHomeSections, RawaqStore } from "./rawaq/rawaq-store";
 import { RAWAQ_KEY, type RawaqDesign, type RawaqSection } from "./rawaq/types";
 import type { ThemeMode } from "./shared/context";
@@ -108,8 +113,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   // «صوفي» draws its own frame and home; its inner pages are «أساس»'s in its colors (for now).
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES, aiTokens: sufiStoreAiTokens },
   // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
-  // «رواق»: its own frame and home; its inner pages are «أساس»'s in its colors until its own (stage 2).
-  [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: ASAS_PAGES, aiTokens: (s) => rawaqStoreAiTokens(s) },
+  // «رواق»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
+  [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: { ...ASAS_PAGES, Product: RawaqProductView, Listing: RawaqListing, Cart: RawaqCartView, Checkout: RawaqCheckoutView, OrderDone: RawaqOrderDone }, aiTokens: (s) => rawaqStoreAiTokens(s) },
   [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone }, aiTokens: (s) => shabeStoreAiTokens(s) },
 };
 

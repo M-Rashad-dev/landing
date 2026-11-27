@@ -57,7 +57,10 @@ it('switches a store that bought «رواق» to its beauty starter design, its 
     $res = $this->getJson('/api/v1/dashboard/store/design')->assertOk()
         ->assertJsonPath('data.theme.key', 'rawaq_store')
         ->assertJsonPath('data.theme.section_types', RawaqStoreDesign::SECTION_TYPES)
-        ->assertJsonPath('data.theme.settings_groups', ['look', 'header', 'footer', 'general', 'product_card'])
+        ->assertJsonPath('data.theme.settings_groups', ['look', 'header', 'footer', 'general', 'product_card', 'product_page', 'listing', 'cart'])
+        ->assertJsonPath('data.draft.settings.product_page.related', 'similar')
+        ->assertJsonPath('data.draft.settings.product_page.promises.0', 'أصلي 100%')
+        ->assertJsonPath('data.draft.settings.cart.order_notes', false)
         ->assertJsonPath('data.draft.settings.colors.primary', '#b9507a')
         ->assertJsonPath('data.draft.settings.colors.dark', '#2b2226')
         ->assertJsonPath('data.draft.settings.product_card.tinted', true)
@@ -141,4 +144,38 @@ it('checks its sections and settings', function () {
         'draft.sections.3.props.title', 'draft.sections.3.props.action',
         'draft.sections.4.type',
     ]);
+});
+
+it('saves its product page, category pages and cart settings, checks them, and gives old designs their defaults', function () {
+    rawaqOwner();
+    $draft = designDraft();
+    $draft['settings']['product_page'] = [...$draft['settings']['product_page'], 'gallery' => 'slider', 'promises' => ['<b>مرخّص</b>', 'أصلي'], 'viewers' => ['enabled' => true, 'min' => 20, 'max' => 60, 'every' => 10]];
+    $draft['settings']['listing']['columns_mobile'] = 1;
+    $draft['settings']['cart']['order_notes'] = true;
+    saveDesign($draft)->assertOk();
+    $this->getJson('/api/v1/dashboard/store/design')
+        ->assertJsonPath('data.draft.settings.product_page.gallery', 'slider')
+        ->assertJsonPath('data.draft.settings.product_page.promises', ['مرخّص', 'أصلي'])
+        ->assertJsonPath('data.draft.settings.product_page.viewers.max', 60)
+        ->assertJsonPath('data.draft.settings.listing.columns_mobile', 1)
+        ->assertJsonPath('data.draft.settings.cart.order_notes', true);
+
+    $bad = designDraft();
+    $bad['settings']['product_page']['promises'] = ['1', '2', '3', '4', '5'];
+    $bad['settings']['product_page']['viewers'] = ['enabled' => true, 'min' => 90, 'max' => 10, 'every' => 1];
+    $bad['settings']['listing']['columns_desktop'] = 9;
+    $bad['settings']['cart']['suggestions'] = 'random';
+    saveDesign($bad)->assertStatus(422)->assertJsonValidationErrors([
+        'draft.settings.product_page.promises', 'draft.settings.product_page.viewers.max', 'draft.settings.product_page.viewers.every',
+        'draft.settings.listing.columns_desktop', 'draft.settings.cart.suggestions',
+    ]);
+
+    // A design saved before stage 2 (no page groups) gets their defaults.
+    $old = designDraft();
+    unset($old['settings']['product_page'], $old['settings']['listing'], $old['settings']['cart']);
+    saveDesign($old)->assertOk();
+    $this->getJson('/api/v1/dashboard/store/design')
+        ->assertJsonPath('data.draft.settings.product_page.sticky_buttons', 'cart')
+        ->assertJsonPath('data.draft.settings.listing.filters', 'button')
+        ->assertJsonPath('data.draft.settings.cart.suggestions', 'offers');
 });

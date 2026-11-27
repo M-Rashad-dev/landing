@@ -4,7 +4,7 @@ import type { RawaqSection, RawaqSectionType, RawaqSettings } from "@/themes/sto
 import type { SufiSection } from "@/themes/store/sufi/types";
 import { newRawaqSection } from "../api";
 import { LibrarySectionForm } from "../library-forms";
-import { CtaForm, GlowHeroForm, IngredientsForm, RawaqCardForm, RawaqFooterExtras, RawaqGeneralExtras, RawaqHeaderExtras, RawaqLookExtras, ReelsForm, RoutineForm, ShortcutsForm } from "../rawaq-forms";
+import { CtaForm, GlowHeroForm, IngredientsForm, RawaqCardForm, RawaqCartForm, RawaqFooterExtras, RawaqGeneralExtras, RawaqHeaderExtras, RawaqListingForm, RawaqLookExtras, RawaqPageForm, ReelsForm, RoutineForm, ShortcutsForm } from "../rawaq-forms";
 import { FooterForm, GeneralForm, HeaderForm, LookForm } from "../theme-forms";
 import { AsasSectionForm } from "./asas";
 import type { BuilderTheme, GroupFormProps, SectionFormProps } from "./types";
@@ -55,7 +55,7 @@ function RawaqForm(props: SectionFormProps) {
   }
 }
 
-/** «رواق» in the Builder: the base groups each with its own fields, «كارد المنتج», and its 16 section types. */
+/** «رواق» in the Builder: the base groups each with its own fields, its card, product page, category pages and cart, and its 16 section types. */
 export const rawaqBuilder: BuilderTheme = {
   groups: [
     { key: "look", Form: withRawaq(LookForm, RawaqLookExtras) },
@@ -63,6 +63,9 @@ export const rawaqBuilder: BuilderTheme = {
     { key: "footer", Form: withRawaq(FooterForm, RawaqFooterExtras) },
     { key: "general", Form: withRawaq(GeneralForm, RawaqGeneralExtras) },
     { key: "product_card", Form: only(RawaqCardForm) },
+    { key: "product_page", Form: only(RawaqPageForm) },
+    { key: "listing", Form: only(RawaqListingForm) },
+    { key: "cart", Form: only(RawaqCartForm) },
   ],
   newSection: (type) => newRawaqSection(type as RawaqSectionType),
   SectionForm: RawaqForm,

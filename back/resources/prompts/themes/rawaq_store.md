@@ -17,6 +17,9 @@
 - `footer`: `about` (nullable `<= 500`), `show_pages`, `dark`, `payments` (required booleans), `phone`, `whatsapp` (nullable `<= 30`), `email` (nullable email), `address` (nullable `<= 200`), `social` (`{ facebook, instagram, tiktok, x, youtube, snapchat }`, each null or url)
 - `general`: `whatsapp_button`, `show_out_of_stock`, `floating_call`, `animations` (required booleans), `call_phone` (nullable phone `<= 30`), `products_per_page` (`[12, 16, 24, 32, 48]`)
 - `product_card`: `{ "image": "square | tall", "tinted": bool, "show_description": bool, "show_rating": bool, "button": "icon | full", "radius": 0..40 }`
+- `product_page`: `{ "gallery": "thumbs | slider", "zoom": bool, "description": bool, "reviews": bool, "whatsapp_ask": bool, "related_enabled": bool, "related": "category | similar", "sticky_bar": bool, "sticky_buttons": "cart | both | buy", "viewers": { "enabled": bool, "min": int, "max": int, "every": 3..300 }, "promises": string[] (0..4, each <= 40: «أصلي 100%»، «مرخّص من وزارة الصحة») }`
+- `listing`: `{ "columns_desktop": 2..5, "columns_mobile": 1..2, "banner": bool, "subcategories": "circles | chips", "filters": "open | button | hidden" }`
+- `cart`: `{ "free_shipping_bar": bool, "suggestions_enabled": bool, "suggestions": "offers | latest", "order_notes": bool }`
 
 Store Link Shape (every `*_link` and item `link`): `{ "type": "none | all_products | offers | category | product | url", "target_id": int|null, "url": string|null }` (`target_id` required for `category` / `product`, `url` required https for `url`).
 
@@ -97,6 +100,41 @@ Icons for `features`: `["truck", "cash", "return", "shield", "support", "gift", 
  "show_rating": true,
  "button": "full",
  "radius": 22
+ },
+ "product_page": {
+ "gallery": "thumbs",
+ "zoom": true,
+ "description": true,
+ "reviews": true,
+ "whatsapp_ask": true,
+ "related_enabled": true,
+ "related": "similar",
+ "sticky_bar": true,
+ "sticky_buttons": "cart",
+ "viewers": {
+ "enabled": false,
+ "min": 40,
+ "max": 120,
+ "every": 15
+ },
+ "promises": [
+ "أصلي 100%",
+ "الدفع عند الاستلام",
+ "استبدال سهل"
+ ]
+ },
+ "listing": {
+ "columns_desktop": 4,
+ "columns_mobile": 2,
+ "banner": true,
+ "subcategories": "circles",
+ "filters": "button"
+ },
+ "cart": {
+ "free_shipping_bar": true,
+ "suggestions_enabled": true,
+ "suggestions": "offers",
+ "order_notes": false
  }
  },
  "sections": [

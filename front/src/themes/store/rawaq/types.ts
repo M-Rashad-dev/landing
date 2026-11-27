@@ -1,7 +1,7 @@
 /** «رواق» design (back end: App\Themes\Store\RawaqStoreDesign). Library sections share their props with «صوفي» and «أساس». */
 import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import type { FeaturesProps, ProductsProps, TestimonialsProps } from "../asas/types";
-import type { DesignData, StoreSettings } from "../shared/types";
+import type { DesignData, ProductCard, StoreSettings } from "../shared/types";
 import type { BannersProps, BrandsProps, CategoriesProps, CategoryTile, CountdownProps, FaqProps, Link, TabsProps, VideoProps } from "../sufi/types";
 
 export const RAWAQ_KEY = "rawaq_store";
@@ -22,6 +22,44 @@ export type RawaqCardSettings = {
 
 export const RAWAQ_CARD_DEFAULTS: RawaqCardSettings = { image: "square", tinted: true, show_description: false, show_rating: true, button: "full", radius: 22 };
 
+/** The product page (back end: RawaqStoreDesign::PAGE_DEFAULTS). */
+export type RawaqPageSettings = {
+  gallery: "thumbs" | "slider";
+  zoom: boolean;
+  description: boolean;
+  reviews: boolean;
+  whatsapp_ask: boolean;
+  related_enabled: boolean;
+  related: "category" | "similar";
+  sticky_bar: boolean;
+  sticky_buttons: "cart" | "both" | "buy";
+  viewers: { enabled: boolean; min: number; max: number; every: number };
+  /** Short promises under the buttons («أصلي 100%»…), up to 4. */
+  promises: string[];
+};
+
+/** Category, all-products and offers pages (back end: RawaqStoreDesign::LISTING_DEFAULTS). */
+export type RawaqListingSettings = { columns_desktop: number; columns_mobile: number; banner: boolean; subcategories: "circles" | "chips"; filters: "open" | "button" | "hidden" };
+
+/** The cart (back end: RawaqStoreDesign::CART_DEFAULTS). */
+export type RawaqCartSettings = { free_shipping_bar: boolean; suggestions_enabled: boolean; suggestions: "offers" | "latest"; order_notes: boolean };
+
+export const RAWAQ_PAGE_DEFAULTS: RawaqPageSettings = {
+  gallery: "thumbs",
+  zoom: true,
+  description: true,
+  reviews: true,
+  whatsapp_ask: true,
+  related_enabled: true,
+  related: "similar",
+  sticky_bar: true,
+  sticky_buttons: "cart",
+  viewers: { enabled: false, min: 40, max: 120, every: 15 },
+  promises: ["أصلي 100%", "الدفع عند الاستلام", "استبدال سهل"],
+};
+export const RAWAQ_LISTING_DEFAULTS: RawaqListingSettings = { columns_desktop: 4, columns_mobile: 2, banner: true, subcategories: "circles", filters: "button" };
+export const RAWAQ_CART_DEFAULTS: RawaqCartSettings = { free_shipping_bar: true, suggestions_enabled: true, suggestions: "offers", order_notes: false };
+
 export type RawaqSettings = Omit<StoreSettings, "colors" | "header" | "footer" | "general"> & {
   colors: StoreSettings["colors"] & { dark: string };
   display_font: boolean;
@@ -29,8 +67,11 @@ export type RawaqSettings = Omit<StoreSettings, "colors" | "header" | "footer" |
   header: StoreSettings["header"] & { layout: "start" | "center"; categories_menu: boolean };
   footer: StoreSettings["footer"] & { dark: boolean; payments: boolean };
   general: StoreSettings["general"] & { floating_call: boolean; call_phone: string | null; animations: boolean };
-  /** Missing in designs saved before it (read with its defaults). */
+  /** Missing in designs saved before them (read with their defaults). */
   product_card?: RawaqCardSettings;
+  product_page?: RawaqPageSettings;
+  listing?: RawaqListingSettings;
+  cart?: RawaqCartSettings;
 };
 
 export type GlowHeroProps = {
@@ -88,4 +129,8 @@ export type RawaqSectionType = RawaqSection["type"];
 
 export type RawaqDesign = { settings: RawaqSettings; sections: RawaqSection[] };
 
-export type RawaqData = DesignData & { category_tiles?: Record<string, CategoryTile[]> };
+export type RawaqData = DesignData & {
+  category_tiles?: Record<string, CategoryTile[]>;
+  /** The cart's suggestions (offers or newest), when the merchant turned them on. */
+  cart_products?: ProductCard[];
+};

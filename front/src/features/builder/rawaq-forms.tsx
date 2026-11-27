@@ -11,7 +11,7 @@ import { Segmented } from "@/components/ui/tabs";
 import { useProductChoices } from "@/features/promotions/api";
 import { ar } from "@/messages/ar";
 import type { Link } from "@/themes/store/sufi/types";
-import { RAWAQ_CARD_DEFAULTS, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqSettings, type Reel, type ReelsProps, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps } from "@/themes/store/rawaq/types";
+import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, type CtaProps, type GlowHeroProps, type Ingredient, type IngredientsProps, type RawaqCardSettings, type RawaqCartSettings, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings, type Reel, type ReelsProps, type RoutineProps, type RoutineStep, type Shortcut, type ShortcutsProps } from "@/themes/store/rawaq/types";
 import { ImagePick, LinkField, Text, type Errors, type Media } from "./library-forms";
 import { Card, move } from "./section-forms";
 
@@ -335,3 +335,127 @@ export function RawaqCardForm({ settings, onChange, errors }: SettingsProps) {
     </div>
   );
 }
+
+/* ---------- «صفحة المنتج»، «صفحات الأقسام»، «السلة» ---------- */
+
+const rp = r.page;
+const rl = r.listing;
+const rc = r.cart;
+
+/** Settings saved before the group existed come without it: its defaults fill it. */
+const pageOf = (settings: RawaqSettings): RawaqPageSettings => ({ ...RAWAQ_PAGE_DEFAULTS, ...settings.product_page, viewers: { ...RAWAQ_PAGE_DEFAULTS.viewers, ...settings.product_page?.viewers } });
+
+export function RawaqPageForm({ settings, onChange, errors }: SettingsProps) {
+  const page = pageOf(settings);
+  const set = (patch: Partial<RawaqPageSettings>) => onChange({ ...settings, product_page: { ...page, ...patch } });
+  const setViewers = (patch: Partial<RawaqPageSettings["viewers"]>) => set({ viewers: { ...page.viewers, ...patch } });
+  const num = (v: string, min: number, max: number) => Math.min(max, Math.max(min, Math.round(Number(v) || min)));
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label={rp.gallery}>
+        <Segmented value={page.gallery} onChange={(v) => set({ gallery: v })} options={(["thumbs", "slider"] as const).map((k) => ({ value: k, label: rp.galleries[k] }))} />
+      </Field>
+      <SwitchRow title={rp.zoom} description={rp.zoomHint} checked={page.zoom} onCheckedChange={(v) => set({ zoom: v })} />
+      <SwitchRow title={rp.description} checked={page.description} onCheckedChange={(v) => set({ description: v })} />
+      <SwitchRow title={rp.reviews} checked={page.reviews} onCheckedChange={(v) => set({ reviews: v })} />
+      <SwitchRow title={rp.whatsappAsk} description={rp.whatsappAskHint} checked={page.whatsapp_ask} onCheckedChange={(v) => set({ whatsapp_ask: v })} />
+
+      <Field label={rp.promises} hint={rp.promisesHint} error={errors["product_page.promises"]} optional>
+        <div className="flex flex-col gap-2">
+          {page.promises.map((promise, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input aria-label={rp.promise(i + 1)} maxLength={40} value={promise} onChange={(e) => set({ promises: page.promises.map((x, j) => (j === i ? e.target.value : x)) })} aria-invalid={errors[`product_page.promises.${i}`] ? true : undefined} />
+              <Button size="sm" variant="ghost" onClick={() => set({ promises: page.promises.filter((_, j) => j !== i) })}>
+                {sf.remove}
+              </Button>
+            </div>
+          ))}
+          {page.promises.length < 4 ? (
+            <Button variant="outline" onClick={() => set({ promises: [...page.promises, ""] })}>
+              <Plus />
+              {rp.addPromise}
+            </Button>
+          ) : null}
+        </div>
+      </Field>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={rp.related} checked={page.related_enabled} onCheckedChange={(v) => set({ related_enabled: v })} />
+        {page.related_enabled ? (
+          <Field label={rp.relatedSource} hint={rp.relatedHint}>
+            <Segmented value={page.related} onChange={(v) => set({ related: v })} options={(["similar", "category"] as const).map((k) => ({ value: k, label: rp.relatedSources[k] }))} />
+          </Field>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={rp.sticky} description={rp.stickyHint} checked={page.sticky_bar} onCheckedChange={(v) => set({ sticky_bar: v })} />
+        {page.sticky_bar ? (
+          <Field label={rp.stickyButtons} hint={page.sticky_buttons !== "buy" ? rp.stickyCartHint : undefined}>
+            <Select aria-label={rp.stickyButtons} value={page.sticky_buttons} onValueChange={(v) => set({ sticky_buttons: v as RawaqPageSettings["sticky_buttons"] })} options={(["cart", "both", "buy"] as const).map((k) => ({ value: k, label: rp.stickyChoices[k] }))} searchable={false} />
+          </Field>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <SwitchRow title={rp.viewers} description={rp.viewersHint} checked={page.viewers.enabled} onCheckedChange={(v) => setViewers({ enabled: v })} />
+        {page.viewers.enabled ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={rp.viewersMin} htmlFor="rq-v-min" error={errors["product_page.viewers.min"]}>
+                <Input id="rq-v-min" type="number" dir="ltr" min={1} max={999000} value={page.viewers.min} onChange={(e) => setViewers({ min: num(e.target.value, 1, 999000) })} />
+              </Field>
+              <Field label={rp.viewersMax} htmlFor="rq-v-max" error={errors["product_page.viewers.max"]}>
+                <Input id="rq-v-max" type="number" dir="ltr" min={1} max={999000} value={page.viewers.max} onChange={(e) => setViewers({ max: num(e.target.value, 1, 999000) })} />
+              </Field>
+            </div>
+            <p className="text-xs text-ink-3">{rp.viewersRange}</p>
+            <Field label={rp.viewersEvery} htmlFor="rq-v-every" error={errors["product_page.viewers.every"]}>
+              <Input id="rq-v-every" type="number" dir="ltr" min={3} max={300} value={page.viewers.every} onChange={(e) => setViewers({ every: num(e.target.value, 3, 300) })} />
+            </Field>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function RawaqListingForm({ settings, onChange }: SettingsProps) {
+  const listing: RawaqListingSettings = { ...RAWAQ_LISTING_DEFAULTS, ...settings.listing };
+  const set = (patch: Partial<RawaqListingSettings>) => onChange({ ...settings, listing: { ...listing, ...patch } });
+  return (
+    <div className="flex flex-col gap-4">
+      <Field label={rl.columnsDesktop}>
+        <Segmented value={String(listing.columns_desktop)} onChange={(v) => set({ columns_desktop: Number(v) })} options={["2", "3", "4", "5"].map((k) => ({ value: k, label: k }))} />
+      </Field>
+      <Field label={rl.columnsMobile}>
+        <Segmented value={String(listing.columns_mobile)} onChange={(v) => set({ columns_mobile: Number(v) })} options={["1", "2"].map((k) => ({ value: k, label: k }))} />
+      </Field>
+      <SwitchRow title={rl.banner} description={rl.bannerHint} checked={listing.banner} onCheckedChange={(v) => set({ banner: v })} />
+      <Field label={rl.subcategories}>
+        <Segmented value={listing.subcategories} onChange={(v) => set({ subcategories: v })} options={(["circles", "chips"] as const).map((k) => ({ value: k, label: rl.subcategoryLooks[k] }))} />
+      </Field>
+      <Field label={rl.filters}>
+        <Segmented value={listing.filters} onChange={(v) => set({ filters: v })} options={(["open", "button", "hidden"] as const).map((k) => ({ value: k, label: rl.filterLooks[k] }))} />
+      </Field>
+    </div>
+  );
+}
+
+export function RawaqCartForm({ settings, onChange }: SettingsProps) {
+  const cart: RawaqCartSettings = { ...RAWAQ_CART_DEFAULTS, ...settings.cart };
+  const set = (patch: Partial<RawaqCartSettings>) => onChange({ ...settings, cart: { ...cart, ...patch } });
+  return (
+    <div className="flex flex-col gap-4">
+      <SwitchRow title={rc.freeShipping} description={rc.freeShippingHint} checked={cart.free_shipping_bar} onCheckedChange={(v) => set({ free_shipping_bar: v })} />
+      <SwitchRow title={rc.suggestions} checked={cart.suggestions_enabled} onCheckedChange={(v) => set({ suggestions_enabled: v })} />
+      {cart.suggestions_enabled ? (
+        <Field label={rc.suggestions}>
+          <Segmented value={cart.suggestions} onChange={(v) => set({ suggestions: v })} options={(["offers", "latest"] as const).map((k) => ({ value: k, label: rc.suggestionSources[k] }))} />
+        </Field>
+      ) : null}
+      <SwitchRow title={rc.notes} description={rc.notesHint} checked={cart.order_notes} onCheckedChange={(v) => set({ order_notes: v })} />
+    </div>
+  );
+}
+

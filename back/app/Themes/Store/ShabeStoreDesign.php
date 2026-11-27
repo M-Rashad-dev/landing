@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Themes\Store;
 
+use App\Themes\Store\Concerns\PageSettingsGroups;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rule;
  */
 final class ShabeStoreDesign extends StoreThemeDesign
 {
+    use PageSettingsGroups;
+
     public const KEY = 'shabe_store';
 
     public const SECTION_TYPES = [
@@ -56,7 +59,7 @@ final class ShabeStoreDesign extends StoreThemeDesign
         'viewers' => ['enabled' => false, 'min' => 300, 'max' => 600, 'every' => 15],
     ];
 
-    public const VIEWERS_MAX = 999000;
+    public const VIEWERS_MAX = self::PAGE_VIEWERS_MAX;
 
     /** Category, all-products and offers pages (designs saved before these settings read them). */
     public const LISTING_DEFAULTS = [
@@ -181,31 +184,9 @@ final class ShabeStoreDesign extends StoreThemeDesign
             "{$p}.settings.product_card.border_color" => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             "{$p}.settings.product_card.radius" => ['sometimes', 'integer', 'between:0,40'],
             "{$p}.settings.product_card.shadow" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page" => ['sometimes', 'array'],
-            "{$p}.settings.product_page.gallery" => ['sometimes', Rule::in(['thumbs', 'slider'])],
-            "{$p}.settings.product_page.zoom" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.description" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.reviews" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.whatsapp_ask" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.related_enabled" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.related" => ['sometimes', Rule::in(['category', 'similar'])],
-            "{$p}.settings.product_page.sticky_bar" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.sticky_buttons" => ['sometimes', Rule::in(['cart', 'both', 'buy'])],
-            "{$p}.settings.product_page.viewers.enabled" => ['sometimes', 'boolean'],
-            "{$p}.settings.product_page.viewers.min" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX],
-            "{$p}.settings.product_page.viewers.max" => ['sometimes', 'integer', 'between:1,'.self::VIEWERS_MAX, 'gte:'.$p.'.settings.product_page.viewers.min'],
-            "{$p}.settings.product_page.viewers.every" => ['sometimes', 'integer', 'between:3,300'],
-            "{$p}.settings.listing" => ['sometimes', 'array'],
-            "{$p}.settings.listing.columns_desktop" => ['sometimes', 'integer', 'between:2,5'],
-            "{$p}.settings.listing.columns_mobile" => ['sometimes', 'integer', 'between:1,2'],
-            "{$p}.settings.listing.banner" => ['sometimes', 'boolean'],
-            "{$p}.settings.listing.subcategories" => ['sometimes', Rule::in(['circles', 'chips'])],
-            "{$p}.settings.listing.filters" => ['sometimes', Rule::in(['open', 'button', 'hidden'])],
-            "{$p}.settings.cart" => ['sometimes', 'array'],
-            "{$p}.settings.cart.free_shipping_bar" => ['sometimes', 'boolean'],
-            "{$p}.settings.cart.suggestions_enabled" => ['sometimes', 'boolean'],
-            "{$p}.settings.cart.suggestions" => ['sometimes', Rule::in(['offers', 'latest'])],
-            "{$p}.settings.cart.kitchen_notes" => ['sometimes', 'boolean'],
+            ...$this->productPageRules($p),
+            ...$this->listingRules($p),
+            ...$this->cartRules($p, 'kitchen_notes'),
         ];
     }
 
@@ -239,36 +220,9 @@ final class ShabeStoreDesign extends StoreThemeDesign
                 'animations' => (bool) $s['general']['animations'],
             ],
             'product_card' => $this->cleanCard((array) ($s['product_card'] ?? [])),
-            'product_page' => $this->cleanPage((array) ($s['product_page'] ?? [])),
-            'listing' => $this->cleanListing((array) ($s['listing'] ?? [])),
-            'cart' => $this->cleanCart((array) ($s['cart'] ?? [])),
-        ];
-    }
-
-    /** @param array<string, mixed> $l @return array<string, mixed> */
-    private function cleanListing(array $l): array
-    {
-        $l = [...self::LISTING_DEFAULTS, ...$l];
-
-        return [
-            'columns_desktop' => (int) $l['columns_desktop'],
-            'columns_mobile' => (int) $l['columns_mobile'],
-            'banner' => (bool) $l['banner'],
-            'subcategories' => (string) $l['subcategories'],
-            'filters' => (string) $l['filters'],
-        ];
-    }
-
-    /** @param array<string, mixed> $c @return array<string, mixed> */
-    private function cleanCart(array $c): array
-    {
-        $c = [...self::CART_DEFAULTS, ...$c];
-
-        return [
-            'free_shipping_bar' => (bool) $c['free_shipping_bar'],
-            'suggestions_enabled' => (bool) $c['suggestions_enabled'],
-            'suggestions' => (string) $c['suggestions'],
-            'kitchen_notes' => (bool) $c['kitchen_notes'],
+            'product_page' => $this->cleanProductPage((array) ($s['product_page'] ?? []), self::PAGE_DEFAULTS),
+            'listing' => $this->cleanListing((array) ($s['listing'] ?? []), self::LISTING_DEFAULTS),
+            'cart' => $this->cleanCart((array) ($s['cart'] ?? []), self::CART_DEFAULTS, 'kitchen_notes'),
         ];
     }
 
@@ -286,26 +240,6 @@ final class ShabeStoreDesign extends StoreThemeDesign
             'border_color' => $c['border_color'] === null ? null : strtolower((string) $c['border_color']),
             'radius' => (int) $c['radius'],
             'shadow' => (bool) $c['shadow'],
-        ];
-    }
-
-    /** @param array<string, mixed> $g @return array<string, mixed> */
-    private function cleanPage(array $g): array
-    {
-        $g = [...self::PAGE_DEFAULTS, ...$g];
-        $v = [...self::PAGE_DEFAULTS['viewers'], ...(array) $g['viewers']];
-
-        return [
-            'gallery' => (string) $g['gallery'],
-            'zoom' => (bool) $g['zoom'],
-            'description' => (bool) $g['description'],
-            'reviews' => (bool) $g['reviews'],
-            'whatsapp_ask' => (bool) $g['whatsapp_ask'],
-            'related_enabled' => (bool) $g['related_enabled'],
-            'related' => (string) $g['related'],
-            'sticky_bar' => (bool) $g['sticky_bar'],
-            'sticky_buttons' => (string) $g['sticky_buttons'],
-            'viewers' => ['enabled' => (bool) $v['enabled'], 'min' => (int) $v['min'], 'max' => (int) $v['max'], 'every' => (int) $v['every']],
         ];
     }
 }

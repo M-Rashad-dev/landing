@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Themes\Store;
 
+use App\Themes\Store\Concerns\PageSettingsGroups;
 use Illuminate\Validation\Rule;
 
 /**
@@ -13,11 +14,13 @@ use Illuminate\Validation\Rule;
  * the start or in the middle and the categories in it, a light or dark footer with the ways to pay,
  * floating call and motion, and its product card. Its own sections: «البداية» (picture, rating,
  * badge, chips), «اختصارات» (skin types, concerns… each opening a link), «روتين كامل» (2–4
- * products added together), «فيديوهات قصيرة», «المكوّنات» and a WhatsApp band. Its inner
- * pages are «أساس»'s in its colors until its own pages come (stage 2).
+ * products added together), «فيديوهات قصيرة», «المكوّنات» and a WhatsApp band. Its own product,
+ * category, cart and checkout pages, with their settings groups (stage 2).
  */
 final class RawaqStoreDesign extends StoreThemeDesign
 {
+    use PageSettingsGroups;
+
     public const KEY = 'rawaq_store';
 
     public const SECTION_TYPES = [
@@ -27,8 +30,8 @@ final class RawaqStoreDesign extends StoreThemeDesign
 
     public const MAX_SECTIONS = 30;
 
-    /** «رواق» draws its product cards its own way, so it has their settings. */
-    public const SETTINGS_GROUPS = ['look', 'header', 'footer', 'general', 'product_card'];
+    /** «رواق» draws its product cards and pages its own way, so it has their settings. */
+    public const SETTINGS_GROUPS = ['look', 'header', 'footer', 'general', 'product_card', 'product_page', 'listing', 'cart'];
 
     /** The product card (designs saved before these settings read them). */
     public const CARD_DEFAULTS = [
@@ -40,6 +43,43 @@ final class RawaqStoreDesign extends StoreThemeDesign
         'show_rating' => true,
         'button' => 'full',
         'radius' => 22,
+    ];
+
+    /** The product page (designs saved before these settings read them). */
+    public const PAGE_DEFAULTS = [
+        'gallery' => 'thumbs',
+        'zoom' => true,
+        'description' => true,
+        'reviews' => true,
+        'whatsapp_ask' => true,
+        'related_enabled' => true,
+        'related' => 'similar',
+        'sticky_bar' => true,
+        'sticky_buttons' => 'cart',
+        'viewers' => ['enabled' => false, 'min' => 40, 'max' => 120, 'every' => 15],
+        // Short promises under the buttons («أصلي 100%»، «مرخّص من وزارة الصحة»…).
+        'promises' => ['أصلي 100%', 'الدفع عند الاستلام', 'استبدال سهل'],
+    ];
+
+    /** Up to this many promises, each this long. */
+    public const PROMISES_MAX = 4;
+
+    /** Category, all-products and offers pages (designs saved before these settings read them). */
+    public const LISTING_DEFAULTS = [
+        'columns_desktop' => 4,
+        'columns_mobile' => 2,
+        'banner' => true,
+        'subcategories' => 'circles',
+        'filters' => 'button',
+    ];
+
+    /** The cart (designs saved before these settings read them). */
+    public const CART_DEFAULTS = [
+        'free_shipping_bar' => true,
+        'suggestions_enabled' => true,
+        'suggestions' => 'offers',
+        // «ملاحظة على الطلب»: written in the cart, carried to the checkout's notes.
+        'order_notes' => false,
     ];
 
     public const DEFAULT_COLORS = ['primary' => '#b9507a', 'secondary' => '#3d9a6f', 'background' => '#fbf7f3', 'text' => '#2b2226'];
@@ -71,6 +111,9 @@ final class RawaqStoreDesign extends StoreThemeDesign
                 'footer' => [...$base['footer'], 'dark' => true, 'payments' => true],
                 'general' => [...$base['general'], 'floating_call' => false, 'call_phone' => null, 'animations' => true],
                 'product_card' => self::CARD_DEFAULTS,
+                'product_page' => self::PAGE_DEFAULTS,
+                'listing' => self::LISTING_DEFAULTS,
+                'cart' => self::CART_DEFAULTS,
             ],
             'sections' => [
                 self::section('glow_hero', [
@@ -124,6 +167,11 @@ final class RawaqStoreDesign extends StoreThemeDesign
             "{$p}.settings.product_card.show_rating" => ['sometimes', 'boolean'],
             "{$p}.settings.product_card.button" => ['sometimes', Rule::in(['icon', 'full'])],
             "{$p}.settings.product_card.radius" => ['sometimes', 'integer', 'between:0,40'],
+            ...$this->productPageRules($p),
+            "{$p}.settings.product_page.promises" => ['sometimes', 'array', 'max:'.self::PROMISES_MAX],
+            "{$p}.settings.product_page.promises.*" => StoreSections::text(40, true),
+            ...$this->listingRules($p),
+            ...$this->cartRules($p, 'order_notes'),
         ];
     }
 
@@ -154,6 +202,12 @@ final class RawaqStoreDesign extends StoreThemeDesign
                 'button' => (string) $card['button'],
                 'radius' => (int) $card['radius'],
             ],
+            'product_page' => [
+                ...$this->cleanProductPage((array) ($s['product_page'] ?? []), self::PAGE_DEFAULTS),
+                'promises' => array_values(array_map(fn ($x) => (string) StoreSections::str($x), (array) ($s['product_page']['promises'] ?? self::PAGE_DEFAULTS['promises']))),
+            ],
+            'listing' => $this->cleanListing((array) ($s['listing'] ?? []), self::LISTING_DEFAULTS),
+            'cart' => $this->cleanCart((array) ($s['cart'] ?? []), self::CART_DEFAULTS, 'order_notes'),
         ];
     }
 }

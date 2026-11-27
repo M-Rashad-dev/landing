@@ -7,7 +7,7 @@ import type { ThemeMode } from "@/themes/store/shared/context";
 import { useTheme } from "@/themes/store/shared/context";
 import type { DesignData, StoreSettings } from "@/themes/store/shared/types";
 import { AsasRoot } from "../asas/root";
-import { RAWAQ_CARD_DEFAULTS, type ButtonShape, type RawaqCardSettings, type RawaqData, type RawaqSettings } from "./types";
+import { RAWAQ_CARD_DEFAULTS, RAWAQ_CART_DEFAULTS, RAWAQ_LISTING_DEFAULTS, RAWAQ_PAGE_DEFAULTS, type ButtonShape, type RawaqCardSettings, type RawaqCartSettings, type RawaqData, type RawaqListingSettings, type RawaqPageSettings, type RawaqSettings } from "./types";
 import "./rawaq.css";
 
 /** The title font (the merchant can switch titles back to the body font). */
@@ -25,6 +25,25 @@ export function useRawaq() {
 export function useRawaqCard(): RawaqCardSettings {
   const { settings } = useRawaq();
   return { ...RAWAQ_CARD_DEFAULTS, ...settings.product_card };
+}
+
+/** The product page settings (their defaults for designs saved before them). */
+export function useRawaqPage(): RawaqPageSettings {
+  const { settings } = useRawaq();
+  const page = settings.product_page;
+  return { ...RAWAQ_PAGE_DEFAULTS, ...page, viewers: { ...RAWAQ_PAGE_DEFAULTS.viewers, ...page?.viewers } };
+}
+
+/** The category pages settings (their defaults for designs saved before them). */
+export function useRawaqListing(): RawaqListingSettings {
+  const { settings } = useRawaq();
+  return { ...RAWAQ_LISTING_DEFAULTS, ...settings.listing };
+}
+
+/** The cart settings (their defaults for designs saved before them). */
+export function useRawaqCart(): RawaqCartSettings {
+  const { settings } = useRawaq();
+  return { ...RAWAQ_CART_DEFAULTS, ...settings.cart };
 }
 
 /** Sections rise in as they reach the screen (when the merchant keeps motion on). */
