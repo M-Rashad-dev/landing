@@ -55,12 +55,11 @@ return [
         'max_output' => 4000,
     ],
 
-    // «اختبار البشرة» with AI (paid by the merchant): the products sent to the model at most (a bigger
-    // catalog is cut down by vectors first), the model calls a store may make a day, how long the
-    // same answers keep the same recommendation, and the answer length.
+    // «اختبار البشرة» with AI (paid by the merchant, so no daily cap per store: owner): the products sent
+    // to the model at most (a bigger catalog is cut down by vectors first), how long the same answers keep
+    // the same recommendation, and the answer length.
     'quiz' => [
         'candidates' => (int) env('AI_QUIZ_CANDIDATES', 45),
-        'store_daily' => (int) env('AI_QUIZ_STORE_DAILY', 300),
         'cache_days' => 7,
         'max_output' => 700,
     ],

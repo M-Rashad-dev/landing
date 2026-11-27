@@ -162,14 +162,6 @@ it('falls back to the vote result when the add-on is off, the AI is off, or the 
         ->and(StoreQuizResult::query()->withoutGlobalScopes()->where('tenant_id', $owner->tenant_id)->sum('ai_count'))->toEqual(0);
 });
 
-it('stops asking the model once the store reaches its daily limit', function () {
-    config(['ai.quiz.store_daily' => 1]);
-    [, $host] = aiQuizStore();
-    advice($host, ['answers' => [0, 0]])->assertOk()->assertJsonPath('data.source', 'ai');
-    advice($host, ['answers' => [1, 1]])->assertOk()->assertJsonPath('data.source', 'vote');
-    expect(quizAi()->chats)->toHaveCount(1);
-});
-
 it('sends a big catalog\'s nearest products only, keeping the vote result\'s own, and makes the store\'s vectors in the background', function () {
     Queue::fake();
     config(['ai.quiz.candidates' => 5]);

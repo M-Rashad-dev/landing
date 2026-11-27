@@ -28,7 +28,7 @@ use Throwable;
  * questions stay fixed; the AI reads the answers (and the customer's own words, when the merchant
  * asks for them), picks one of the merchant's results and up to 4 of the store's products, and
  * writes a short explanation. Only the store's products are offered to it and its picks are checked
- * here. Anything wrong (AI off, balance out, store limit reached, a failed call) falls back to the
+ * here. Anything wrong (AI off, balance out, a failed call) falls back to the
  * vote result, which the visitor sees as usual. The same answers get the same recommendation (cached).
  * Runs inside the store's tenant.
  */
@@ -85,7 +85,7 @@ final class QuizAdvisor
         $key = 'quiz-ai:'.$store->tenant_id.':'.$sectionId.':'.sha1((string) json_encode([$answers, $note, $props, Ai::model('quiz')], JSON_UNESCAPED_UNICODE));
         $picked = Cache::get($key);
         if (! is_array($picked)) {
-            if (! $this->ai->available('quiz') || ! $this->withinStoreLimit($store->tenant_id)) {
+            if (! $this->ai->available('quiz')) {
                 return $fallback();
             }
             $picked = $this->ask($store, $props, $settings, $answers, $note, $voteId);
@@ -197,7 +197,6 @@ final class QuizAdvisor
                 ['max_tokens' => (int) config('ai.quiz.max_output', 700), 'temperature' => 0.3],
                 (string) __('ai.quiz.charge'),
             );
-            Cache::increment($this->dayKey($store->tenant_id));
         } catch (AiUnavailable|ApiException) {
             // AI off or busy, balance out: the vote result (nothing charged).
             return null;
@@ -291,18 +290,5 @@ final class QuizAdvisor
 
             return [$p->id, $score];
         })->sortBy([[1, 'desc'], [0, 'desc']])->take($top)->pluck(0)->map(fn ($id) => (int) $id)->values()->all();
-    }
-
-    /** Whether the store may still ask the model today (a cap per store and Cairo day). */
-    private function withinStoreLimit(int $tenantId): bool
-    {
-        Cache::add($this->dayKey($tenantId), 0, now('Africa/Cairo')->endOfDay());
-
-        return (int) Cache::get($this->dayKey($tenantId), 0) < (int) config('ai.quiz.store_daily', 300);
-    }
-
-    private function dayKey(int $tenantId): string
-    {
-        return 'quiz-ai-day:'.$tenantId.':'.now('Africa/Cairo')->toDateString();
     }
 }

@@ -282,8 +282,8 @@ Works even when the plan expired.
   `resources/prompts/quiz-advisor.md`: no medical talk, store products only), then keeps only a known result and
   offered products (≤ 4) and a plain text. Over 45 products (`ai.quiz.candidates`) it sends the nearest ones:
   `product_vectors` (job `EmbedProductVectors`, made on the first big quiz) or words meanwhile; the vote result's own
-  products always stay in. Same answers = cached pick (7 days, no new charge); a store asks the model ≤ 300 times a
-  day (`ai.quiz.store_daily`). Anything wrong → the vote result (`source: vote`). The result is counted with
+  products always stay in. Same answers = cached pick (7 days, no new charge); no daily cap per store (the merchant
+  pays: owner). Anything wrong → the vote result (`source: vote`). The result is counted with
   `ai_count` (Builder numbers, copilot `quiz_results`).
 - **«المساعد التنفيذي للمتجر» (store copilot, plan `docs/plans/ai-copilot.md`, feature switch `copilot`, paid from
   the AI wallet)**: a chat beside every dashboard page (`✨ المساعد` drawer + `/dashboard/copilot` +
