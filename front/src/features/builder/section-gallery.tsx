@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListOrdered, MapPin, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Atom, BookOpen, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, Droplets, Flower2, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListChecks, ListOrdered, MapPin, MessageCircle, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Smartphone, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import type { MyAiSection } from "@/features/ai-designer/api";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils";
 import { ar } from "@/messages/ar";
 import type { AiTokens } from "@/themes/shared/ai-section/types";
 import type { SectionType } from "@/themes/store/asas/types";
+import type { RawaqSectionType } from "@/themes/store/rawaq/types";
 import type { ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSectionType } from "@/themes/store/sufi/types";
 
-export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionType;
+export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionType | RawaqSectionType;
 
 const t = ar.design.builder;
 
@@ -43,6 +44,12 @@ export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: stri
   steps: { icon: ListOrdered, tint: "bg-sky-100 text-sky-700" },
   bundles: { icon: Package, tint: "bg-rose-100 text-rose-700" },
   hours: { icon: CalendarClock, tint: "bg-emerald-100 text-emerald-700" },
+  glow_hero: { icon: Flower2, tint: "bg-pink-100 text-pink-700" },
+  shortcuts: { icon: Droplets, tint: "bg-rose-100 text-rose-700" },
+  routine: { icon: ListChecks, tint: "bg-amber-100 text-amber-800" },
+  reels: { icon: Smartphone, tint: "bg-fuchsia-100 text-fuchsia-700" },
+  ingredients: { icon: Atom, tint: "bg-teal-100 text-teal-700" },
+  cta: { icon: MessageCircle, tint: "bg-green-100 text-green-700" },
   ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 

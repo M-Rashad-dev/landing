@@ -206,14 +206,23 @@ final class StoreDesigner
                     $links["{$id}:{$i}"] = $this->href($slide['link'], $bySlug->all());
                 }
             }
-            // «صوفي»: items that carry an image and a link (banners, brands, gallery).
-            if (in_array($section['type'], ['banners', 'brands', 'gallery'], true)) {
+            // Items that carry an image and a link (banners, brands, gallery; «رواق»'s shortcuts and ingredients).
+            if (in_array($section['type'], ['banners', 'brands', 'gallery', 'shortcuts', 'ingredients'], true)) {
                 foreach ($props['items'] as $i => $item) {
-                    $mediaIds[] = $item['media_id'];
+                    if (isset($item['media_id'])) {
+                        $mediaIds[] = $item['media_id'];
+                    }
                     $links["{$id}:{$i}"] = $this->href($item['link'], $bySlug->all());
                 }
             }
-            if (in_array($section['type'], ['countdown', 'story'], true)) {
+            // «رواق»: the products of a routine in its order, and the reels' covers.
+            if ($section['type'] === 'routine') {
+                $products[$id] = $this->catalog->cards(array_column($props['steps'], 'product_id'), false);
+            }
+            if ($section['type'] === 'reels') {
+                array_push($mediaIds, ...array_filter(array_column($props['items'], 'cover_media_id')));
+            }
+            if (in_array($section['type'], ['countdown', 'story', 'cta'], true)) {
                 $links[$id] = $this->href($props['link'], $bySlug->all());
             }
             array_push($mediaIds, ...array_filter([$props['media_id'] ?? null, $props['media2_id'] ?? null, $props['cover_media_id'] ?? null]));
@@ -231,7 +240,7 @@ final class StoreDesigner
                 $featured[$id] = $this->featured((int) $props['product_id']);
             }
             // «شابع»: the hero's two buttons, and each pack card's offer with where it leads.
-            if ($section['type'] === 'food_hero') {
+            if ($section['type'] === 'food_hero' || $section['type'] === 'glow_hero') {
                 $links["{$id}:primary"] = $this->href($props['primary_link'], $bySlug->all());
                 $links["{$id}:second"] = $this->href($props['second_link'], $bySlug->all());
             }

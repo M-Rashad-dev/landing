@@ -86,6 +86,18 @@ export function shabeStoreAiTokens(settings: unknown): AiTokens {
   });
 }
 
+export function rawaqStoreAiTokens(settings: unknown): AiTokens {
+  const s = (settings ?? {}) as RawThemeSettings;
+  const fontBody = resolveFontFamily(s.font);
+  const fontDisplay = s.display_font !== false ? `"El Messiri", ${fontBody}` : fontBody;
+  return buildAiTokens({
+    colors: resolveColors(s.colors),
+    fontBody,
+    fontDisplay,
+    radius: "22px",
+  });
+}
+
 export function bidayaLandingAiTokens(settings: unknown): AiTokens {
   const s = (settings ?? {}) as RawThemeSettings;
   const fontBody = resolveFontFamily(s.font);

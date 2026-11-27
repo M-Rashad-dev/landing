@@ -1,6 +1,6 @@
 import type * as React from "react";
 import type { StoreConfig } from "@/lib/store/types";
-import { asasAiTokens, shabeStoreAiTokens, sufiStoreAiTokens } from "@/themes/shared/ai-section/tokens";
+import { asasAiTokens, rawaqStoreAiTokens, shabeStoreAiTokens, sufiStoreAiTokens } from "@/themes/shared/ai-section/tokens";
 import type { AiTokens } from "@/themes/shared/ai-section/types";
 import { AsasFrame, AsasStore, HomeSections, type Selection } from "./asas/asas-store";
 import { AccountView, MyOrderView, SignInView } from "./asas/pages/account";
@@ -11,6 +11,8 @@ import { Listing } from "./asas/pages/listing";
 import { ProductView } from "./asas/pages/product";
 import { TrackView } from "./asas/pages/track";
 import { ASAS_KEY, type Design } from "./asas/types";
+import { RawaqFrame, RawaqHomeSections, RawaqStore } from "./rawaq/rawaq-store";
+import { RAWAQ_KEY, type RawaqDesign, type RawaqSection } from "./rawaq/types";
 import type { ThemeMode } from "./shared/context";
 import type { DesignData } from "./shared/types";
 import { ShabeCartView } from "./shabe/pages/cart";
@@ -88,6 +90,15 @@ function ShabeCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
   return <ShabeStore design={design as ShabeStoreDesign} {...rest} />;
 }
 
+function RawaqHome({ config }: { config: StoreConfig }) {
+  return <RawaqHomeSections sections={config.design.sections as unknown as RawaqSection[]} />;
+}
+
+function RawaqCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
+  void _scheme;
+  return <RawaqStore design={design as RawaqDesign} {...rest} />;
+}
+
 /**
  * Every store theme by key: what the live store, the Builder and the preview draw. A new store
  * theme is added here once (its frame, home, canvas and pages); nothing else picks by key.
@@ -97,6 +108,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   // «صوفي» draws its own frame and home; its inner pages are «أساس»'s in its colors (for now).
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES, aiTokens: sufiStoreAiTokens },
   // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
+  // «رواق»: its own frame and home; its inner pages are «أساس»'s in its colors until its own (stage 2).
+  [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: ASAS_PAGES, aiTokens: (s) => rawaqStoreAiTokens(s) },
   [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone }, aiTokens: (s) => shabeStoreAiTokens(s) },
 };
 

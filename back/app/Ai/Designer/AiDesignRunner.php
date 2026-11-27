@@ -1257,6 +1257,7 @@ final class AiDesignRunner
         return match ($chat->theme_key) {
             'sufi_store', 'sufi_landing' => ['primary' => '#b9844f', 'secondary' => '#17181c', 'background' => '#faf8f4', 'text' => '#17181c'],
             'shabe_store', 'shabe_landing' => ['primary' => '#e4572e', 'secondary' => '#f2b33d', 'background' => '#fffaf2', 'text' => '#1b120c'],
+            'rawaq_store' => ['primary' => '#b9507a', 'secondary' => '#3d9a6f', 'background' => '#fbf7f3', 'text' => '#2b2226'],
             default => ['primary' => '#0b875b', 'secondary' => '#ffc83d', 'background' => '#ffffff', 'text' => '#13261d'],
         };
     }

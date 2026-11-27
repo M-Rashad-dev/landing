@@ -446,7 +446,9 @@ final class FakeAiClient implements AiClient
                 ['type' => 'order_form', 'title' => 'نموذج الطلب المباشر', 'purpose' => 'استقبال بيانات العميل وإتمام الطلب'],
             ]
             : [
-                ['type' => $themeKey === 'shabe_store' ? 'food_hero' : ($themeKey === 'sufi_store' ? 'hero' : 'banner'), 'title' => 'البنر الترحيبي الرئيسي', 'purpose' => 'عرض أقوى العروض في أعلى المتجر'],
+                ['type' => match ($themeKey) {
+                    'shabe_store' => 'food_hero', 'rawaq_store' => 'glow_hero', 'sufi_store' => 'hero', default => 'banner'
+                }, 'title' => 'البنر الترحيبي الرئيسي', 'purpose' => 'عرض أقوى العروض في أعلى المتجر'],
                 ['type' => 'products', 'title' => 'أحدث المنتجات المختارة', 'purpose' => 'عرض المنتجات الأكثر طلباً'],
                 ['type' => 'custom', 'key' => 'c1', 'title' => 'قسم عرض خاص بالذكاء الاصطناعي', 'request' => 'قسم بنر جانبي مع سلايدر منتجات متحرك'],
                 ['type' => 'features', 'title' => 'مميزات الشراء من متجرنا', 'purpose' => 'تأكيد سرعة الشحن والدفع عند الاستلام'],

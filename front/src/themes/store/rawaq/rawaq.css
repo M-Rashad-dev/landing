@@ -1,0 +1,147 @@
+/*
+ * «رواق»: the beauty and care store theme. Draws on the shared base (.as-root variables and as-*
+ * utilities) so the inner pages take its colors and font; everything here is its own look,
+ * prefixed rq- (no other theme uses it). Soft pastel plates mixed from the merchant's colors, a
+ * title font, rounded cards. Reacts to the store's own width (container queries), so the Builder
+ * previews phone and desktop exactly.
+ */
+.rq-root {
+  --rq-radius: 1.6rem;
+  --rq-blush: color-mix(in srgb, var(--as-primary) 12%, var(--as-bg));
+  --rq-mint: color-mix(in srgb, var(--as-secondary) 14%, var(--as-bg));
+  --rq-sand: color-mix(in srgb, var(--as-text) 5%, color-mix(in srgb, var(--as-primary) 5%, var(--as-bg)));
+  --rq-white: color-mix(in srgb, #fff 82%, var(--as-bg));
+  overflow-x: clip;
+}
+
+.rq-display { font-family: var(--rq-display), var(--as-font), system-ui, sans-serif; font-weight: 700; letter-spacing: 0; }
+
+.rq-dark {
+  background: var(--rq-dark);
+  color: var(--rq-on-dark);
+  --as-muted: color-mix(in srgb, var(--rq-on-dark) 70%, var(--rq-dark));
+  --as-line: color-mix(in srgb, var(--rq-on-dark) 15%, var(--rq-dark));
+  --as-card: color-mix(in srgb, var(--rq-on-dark) 7%, var(--rq-dark));
+}
+.rq-blush { background: var(--rq-blush); }
+.rq-sand { background: var(--rq-sand); }
+
+.rq-wrap { width: 100%; max-width: 78rem; margin-inline: auto; padding-inline: 1rem; }
+@container (min-width: 48rem) { .rq-wrap { padding-inline: 2rem; } }
+.rq-section { padding-block: 3rem; }
+@container (min-width: 48rem) { .rq-section { padding-block: 4.5rem; } }
+
+.rq-title { font-size: calc(var(--as-fs) * 1.7rem); line-height: 1.25; }
+@container (min-width: 48rem) { .rq-title { font-size: calc(var(--as-fs) * 2.3rem); } }
+.rq-hero-title { font-size: calc(var(--as-fs) * 2.4rem); line-height: 1.15; }
+@container (min-width: 48rem) { .rq-hero-title { font-size: calc(var(--as-fs) * 3.7rem); } }
+.rq-kicker { color: var(--as-primary); font-weight: 800; font-size: calc(var(--as-fs) * 0.82rem); letter-spacing: 0.04em; }
+.rq-dark .rq-kicker { color: color-mix(in srgb, var(--as-primary) 45%, #fff); }
+
+.rq-card { background: var(--rq-white); border: 1px solid var(--as-line); border-radius: var(--rq-radius); }
+.rq-dark .rq-card { background: var(--as-card); }
+
+/* buttons: the merchant's shape (in the components layer, so a utility class on a button wins) */
+@layer components {
+  .rq-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+    border-radius: var(--rq-btn-radius); font-weight: 800; padding: 0.65em 1.4em; white-space: nowrap;
+    transition: filter 0.15s, transform 0.15s;
+  }
+  .rq-btn:active { transform: scale(0.98); }
+  .rq-btn-main { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--as-primary) 90%, transparent); }
+  .rq-btn-main:hover { filter: brightness(0.95); }
+  .rq-btn-line { border: 1.5px solid currentColor; }
+  .rq-btn-ink { background: var(--as-text); color: var(--as-bg); }
+}
+.rq-root .as-btn { border-radius: var(--rq-btn-radius); }
+
+/* ---------- header ---------- */
+.rq-header { position: sticky; top: 0; z-index: 40; background: var(--as-bg); color: var(--as-text); transition: box-shadow 0.25s; }
+.rq-header[data-scrolled] { box-shadow: 0 10px 30px -16px rgb(60 20 35 / 0.35); }
+.rq-strip { background: var(--rq-dark); color: var(--rq-on-dark); }
+.rq-mainrow { height: 4.25rem; border-bottom: 1px solid var(--as-line); }
+@container (min-width: 64rem) { .rq-mainrow { height: 5rem; } }
+.rq-nav a { white-space: nowrap; }
+.rq-icon { display: flex; width: 2.6rem; height: 2.6rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--rq-blush); position: relative; transition: filter 0.15s; }
+.rq-icon:hover { filter: brightness(0.96); }
+
+.rq-drawer { visibility: hidden; transition: visibility 0s linear 0.32s; }
+.rq-drawer[data-open] { visibility: visible; transition: none; }
+.rq-drawer-shade { opacity: 0; transition: opacity 0.3s ease; }
+.rq-drawer[data-open] .rq-drawer-shade { opacity: 1; }
+.rq-drawer-panel { transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.rq-drawer[data-open] .rq-drawer-panel { transform: none; }
+.rq-search-panel { animation: rq-drop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes rq-drop { from { opacity: 0; transform: translateY(-100%); } }
+
+/* ---------- hero ---------- */
+.rq-hero { background: linear-gradient(120deg, var(--rq-blush) 0%, color-mix(in srgb, var(--rq-blush) 40%, var(--as-bg)) 55%, var(--rq-mint) 100%); overflow: hidden; }
+.rq-stage { position: relative; }
+.rq-stage-disk { position: absolute; border-radius: 999px; }
+.rq-stage-photo { position: relative; aspect-ratio: 1; border-radius: 999px; overflow: hidden; box-shadow: 0 40px 80px -40px rgb(90 30 50 / 0.5); border: 10px solid color-mix(in srgb, #fff 70%, transparent); }
+.rq-badge {
+  position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.15;
+  width: 6rem; height: 6rem; border-radius: 999px; padding: 0.5rem; transform: rotate(-10deg);
+  background: var(--as-primary); color: var(--as-on-primary); font-weight: 800;
+  box-shadow: 0 16px 30px -14px var(--as-primary);
+}
+@container (min-width: 48rem) { .rq-badge { width: 7.4rem; height: 7.4rem; } }
+.rq-rating { position: absolute; background: #fff; color: #2b2226; border-radius: 1rem; padding: 0.55rem 0.85rem; box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.45); }
+.rq-chip { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.35rem 0.85rem; font-weight: 800; background: color-mix(in srgb, #fff 75%, transparent); border: 1px solid #fff; }
+.rq-chip::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 999px; background: var(--as-secondary); }
+
+/* ---------- shortcuts ---------- */
+.rq-tile { aspect-ratio: 1; border-radius: 999px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 6px solid var(--rq-white); box-shadow: 0 16px 32px -22px rgb(60 20 35 / 0.5); transition: transform 0.25s; }
+a:hover > .rq-tile { transform: translateY(-3px); }
+.rq-drop { width: 36%; aspect-ratio: 0.8; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: color-mix(in srgb, #fff 70%, transparent); }
+.rq-concern { position: relative; overflow: hidden; border-radius: var(--rq-radius); min-height: 11rem; transition: transform 0.25s; }
+.rq-concern:hover { transform: translateY(-3px); }
+.rq-concern::after { content: ""; position: absolute; width: 9rem; height: 9rem; border-radius: 999px; inset-inline-end: -2.5rem; bottom: -3rem; background: color-mix(in srgb, var(--as-text) 7%, transparent); }
+
+/* ---------- products ---------- */
+.rq-tabs { display: flex; gap: 0.3rem; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; border: 1px solid var(--as-line); background: var(--rq-white); border-radius: 999px; padding: 0.3rem; }
+.rq-tabs::-webkit-scrollbar { display: none; }
+.rq-tab { border-radius: 999px; padding: 0.4rem 1.05rem; font-weight: 800; white-space: nowrap; color: var(--as-muted); transition: background 0.15s, color 0.15s; }
+.rq-tab[aria-selected="true"] { background: var(--as-text); color: var(--as-bg); }
+.rq-prod { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--rq-white); border: 1px solid var(--as-line); }
+.rq-prod .rq-ph { position: relative; overflow: hidden; }
+.rq-prod .rq-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s; }
+.rq-prod[data-tinted] .rq-ph img { object-fit: contain; padding: 8%; }
+.rq-prod:hover .rq-ph img { transform: scale(1.04); }
+.rq-add { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; height: 2.6rem; min-width: 2.6rem; padding-inline: 0.9rem; border-radius: var(--rq-btn-radius); background: var(--as-text); color: var(--as-bg); font-weight: 800; }
+.rq-slider { display: grid; grid-auto-flow: column; grid-auto-columns: 72%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 1rem; }
+.rq-slider::-webkit-scrollbar { display: none; }
+.rq-slider > * { scroll-snap-align: start; }
+@container (min-width: 48rem) { .rq-slider { grid-auto-columns: calc((100% - 3rem) / 4); } }
+
+/* ---------- routine ---------- */
+.rq-routine { background: var(--rq-sand); border-radius: 2rem; }
+.rq-step-no { display: inline-flex; width: 1.7rem; height: 1.7rem; border-radius: 999px; align-items: center; justify-content: center; background: var(--as-primary); color: var(--as-on-primary); font-weight: 800; }
+
+/* ---------- reels ---------- */
+.rq-reel { position: relative; aspect-ratio: 9 / 15; border-radius: 1.4rem; overflow: hidden; background: linear-gradient(170deg, color-mix(in srgb, var(--as-primary) 45%, #fff), var(--as-primary)); color: #fff; }
+.rq-reels { display: grid; grid-auto-flow: column; grid-auto-columns: 44%; gap: 0.75rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.rq-reels::-webkit-scrollbar { display: none; }
+.rq-reels > * { scroll-snap-align: start; }
+@container (min-width: 48rem) { .rq-reels { grid-auto-columns: calc((100% - 3rem) / 5); gap: 1rem; } }
+
+/* ---------- faq ---------- */
+.rq-qa-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+.rq-qa-body > div { overflow: hidden; }
+.rq-qa[data-open] .rq-qa-body { grid-template-rows: 1fr; }
+
+/* phones: the floating WhatsApp / call buttons go up over a product page's fixed bar */
+@container (max-width: 47.99rem) {
+  .rq-root:has(.ss-sticky) .rq-float { bottom: 5.75rem; }
+}
+
+/* motion: sections rise in as they reach the screen */
+.rq-motion .rq-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.rq-motion .rq-reveal[data-in] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rq-qa-body, .rq-drawer-panel, .rq-drawer-shade, .rq-tile, .rq-concern { transition: none; }
+  .rq-search-panel { animation: none; }
+  .rq-motion .rq-reveal { opacity: 1; transform: none; }
+}

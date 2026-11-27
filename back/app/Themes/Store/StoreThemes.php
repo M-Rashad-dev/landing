@@ -11,7 +11,7 @@ namespace App\Themes\Store;
 final class StoreThemes
 {
     /** @var list<class-string<StoreThemeDesign>> */
-    public const THEMES = [AsasStoreDesign::class, SufiStoreDesign::class, ShabeStoreDesign::class];
+    public const THEMES = [AsasStoreDesign::class, SufiStoreDesign::class, ShabeStoreDesign::class, RawaqStoreDesign::class];
 
     /** The free theme every store starts with, and the fallback for a key the code no longer has. */
     public const DEFAULT = AsasStoreDesign::KEY;

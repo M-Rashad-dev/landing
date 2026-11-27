@@ -43,6 +43,14 @@ final class StoreSections
 
     public const CATEGORY_SHAPES = ['circle', 'square', 'card'];
 
+    /** «اختصارات» (skin types, concerns…): round tiles or colored cards, each opening a link. */
+    public const SHORTCUT_STYLES = ['circles', 'cards'];
+
+    /** A «اشترك» band: opens the store's WhatsApp with a ready message, or a link. */
+    public const CTA_ACTIONS = ['whatsapp', 'link'];
+
+    public const HEX = 'regex:/^#[0-9a-fA-F]{6}$/';
+
     public const VIDEO_HOSTS = '#^https://(www\.|m\.)?(youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com)/#i';
 
     public const MAP_HOSTS = '#^https://(www\.)?(google\.[a-z.]+/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl/maps)#i';
@@ -275,6 +283,72 @@ final class StoreSections
                 "{$s}.props.open_message" => $text(160, true),
                 "{$s}.props.closed_message" => $text(160, true),
             ],
+            'glow_hero' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(100, true),
+                "{$s}.props.highlight" => $text(40),
+                "{$s}.props.subtitle" => $text(300),
+                "{$s}.props.media_id" => $media(false),
+                "{$s}.props.badge" => $text(20),
+                "{$s}.props.rating" => $text(40),
+                "{$s}.props.primary_label" => $text(30, true),
+                ...self::linkRules("{$s}.props.primary_link", (array) ($props['primary_link'] ?? [])),
+                "{$s}.props.second_label" => $text(30),
+                ...self::linkRules("{$s}.props.second_link", (array) ($props['second_link'] ?? [])),
+                "{$s}.props.chips" => ['present', 'array', 'max:4'],
+                "{$s}.props.chips.*" => $text(30, true),
+            ],
+            'shortcuts' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.style" => ['required', Rule::in(self::SHORTCUT_STYLES)],
+                "{$s}.props.items" => ['required', 'array', 'min:2', 'max:12'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.label" => $text(40, true),
+                    "{$k}.text" => $text(80),
+                    "{$k}.media_id" => $media(false),
+                    "{$k}.color" => ['nullable', 'string', self::HEX],
+                ]),
+            ],
+            'routine' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80, true),
+                "{$s}.props.text" => $text(300),
+                "{$s}.props.button_label" => $text(30),
+                "{$s}.props.steps" => ['required', 'array', 'min:2', 'max:4'],
+                "{$s}.props.steps.*.product_id" => ['required', 'integer', 'distinct', TenantExists::table('products')->ignoreTrashed()],
+                "{$s}.props.steps.*.label" => $text(30),
+                "{$s}.props.steps.*.hint" => $text(40),
+            ],
+            'reels' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.items" => ['required', 'array', 'min:1', 'max:10'],
+                "{$s}.props.items.*.url" => ['required', 'string', 'max:300', new SafeUrl, 'regex:'.self::VIDEO_HOSTS],
+                "{$s}.props.items.*.title" => $text(60),
+                "{$s}.props.items.*.cover_media_id" => $media(false),
+            ],
+            'ingredients' => [
+                "{$s}.props.kicker" => $text(40),
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.description" => $text(200),
+                "{$s}.props.items" => ['required', 'array', 'min:2', 'max:8'],
+                ...$this->itemsWithLinks($s, $props, fn (string $k) => [
+                    "{$k}.symbol" => $text(4, true),
+                    "{$k}.name" => $text(40, true),
+                    "{$k}.text" => $text(100),
+                    "{$k}.color" => ['nullable', 'string', self::HEX],
+                ]),
+            ],
+            'cta' => [
+                "{$s}.props.title" => $text(80, true),
+                "{$s}.props.text" => $text(200),
+                "{$s}.props.button_label" => $text(30, true),
+                "{$s}.props.action" => ['required', Rule::in(self::CTA_ACTIONS)],
+                "{$s}.props.message" => $text(200),
+                ...self::linkRules("{$s}.props.link", (array) ($props['link'] ?? [])),
+            ],
             'location' => [
                 "{$s}.props.title" => $text(80),
                 "{$s}.props.description" => $text(200),
@@ -464,6 +538,65 @@ final class StoreSections
                 'days' => array_values(array_map(fn (array $d) => ['open' => (bool) $d['open'], 'from' => (string) $d['from'], 'to' => (string) $d['to']], (array) $p['days'])),
                 'open_message' => (string) $str($p['open_message']),
                 'closed_message' => (string) $str($p['closed_message']),
+            ],
+            'glow_hero' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'highlight' => $str($p['highlight'] ?? null),
+                'subtitle' => $str($p['subtitle'] ?? null),
+                'media_id' => $mediaOrNull($p['media_id'] ?? null),
+                'badge' => $str($p['badge'] ?? null),
+                'rating' => $str($p['rating'] ?? null),
+                'primary_label' => (string) $str($p['primary_label']),
+                'primary_link' => self::cleanLink((array) $p['primary_link']),
+                'second_label' => $str($p['second_label'] ?? null),
+                'second_link' => self::cleanLink((array) $p['second_link']),
+                'chips' => array_values(array_map(fn ($t) => (string) $str($t), (array) $p['chips'])),
+            ],
+            'shortcuts' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'style' => (string) $p['style'],
+                'items' => $items(fn (array $i) => [
+                    'label' => (string) $str($i['label']),
+                    'text' => $str($i['text'] ?? null),
+                    'media_id' => $mediaOrNull($i['media_id'] ?? null),
+                    'color' => isset($i['color']) && $i['color'] !== '' ? strtolower((string) $i['color']) : null,
+                    'link' => self::cleanLink((array) $i['link']),
+                ]),
+            ],
+            'routine' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => (string) $str($p['title']),
+                'text' => $str($p['text'] ?? null),
+                'button_label' => $str($p['button_label'] ?? null),
+                'steps' => array_values(array_map(fn (array $x) => ['product_id' => (int) $x['product_id'], 'label' => $str($x['label'] ?? null), 'hint' => $str($x['hint'] ?? null)], (array) $p['steps'])),
+            ],
+            'reels' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'items' => $items(fn (array $i) => ['url' => trim((string) $i['url']), 'title' => $str($i['title'] ?? null), 'cover_media_id' => $mediaOrNull($i['cover_media_id'] ?? null)]),
+            ],
+            'ingredients' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'title' => $str($p['title'] ?? null),
+                'description' => $str($p['description'] ?? null),
+                'items' => $items(fn (array $i) => [
+                    'symbol' => (string) $str($i['symbol']),
+                    'name' => (string) $str($i['name']),
+                    'text' => $str($i['text'] ?? null),
+                    'color' => isset($i['color']) && $i['color'] !== '' ? strtolower((string) $i['color']) : null,
+                    'link' => self::cleanLink((array) $i['link']),
+                ]),
+            ],
+            'cta' => [
+                'title' => (string) $str($p['title']),
+                'text' => $str($p['text'] ?? null),
+                'button_label' => (string) $str($p['button_label']),
+                'action' => (string) $p['action'],
+                'message' => $str($p['message'] ?? null),
+                'link' => self::cleanLink((array) $p['link']),
             ],
             default => throw new \LogicException("Unknown store section type «{$type}»."),
         };
