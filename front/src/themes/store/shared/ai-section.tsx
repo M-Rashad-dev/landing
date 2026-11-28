@@ -5,7 +5,7 @@ import * as React from "react";
 import { addToCart } from "@/lib/store/cart";
 import { sendStoreEvent } from "@/lib/store/events";
 import { track } from "@/lib/tracking/track";
-import { asasAiTokens, rawaqStoreAiTokens, shabeStoreAiTokens, sufiStoreAiTokens } from "@/themes/shared/ai-section/tokens";
+import { asasAiTokens, rawaqStoreAiTokens, shabeStoreAiTokens, sufiStoreAiTokens, teknoStoreAiTokens } from "@/themes/shared/ai-section/tokens";
 import type { AiSectionProps } from "@/themes/shared/ai-section/types";
 import { AiSectionView } from "@/themes/shared/ai-section/view";
 import { pick } from "@/themes/shared/design";
@@ -18,7 +18,7 @@ export function StoreAiSection({
   themeKey = "asas_store",
 }: {
   section: { id: string; props: AiSectionProps };
-  themeKey?: "asas_store" | "sufi_store" | "shabe_store" | "rawaq_store";
+  themeKey?: "asas_store" | "sufi_store" | "shabe_store" | "rawaq_store" | "tekno_store";
 }) {
   const { mode, settings, data, media } = useTheme();
   const router = useRouter();
@@ -32,6 +32,7 @@ export function StoreAiSection({
     if (themeKey === "sufi_store") return sufiStoreAiTokens(settings, scheme);
     if (themeKey === "shabe_store") return shabeStoreAiTokens(settings);
     if (themeKey === "rawaq_store") return rawaqStoreAiTokens(settings);
+    if (themeKey === "tekno_store") return teknoStoreAiTokens(settings);
     return asasAiTokens(settings);
   }, [themeKey, settings, scheme]);
 

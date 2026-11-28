@@ -1258,6 +1258,7 @@ final class AiDesignRunner
             'sufi_store', 'sufi_landing' => ['primary' => '#b9844f', 'secondary' => '#17181c', 'background' => '#faf8f4', 'text' => '#17181c'],
             'shabe_store', 'shabe_landing' => ['primary' => '#e4572e', 'secondary' => '#f2b33d', 'background' => '#fffaf2', 'text' => '#1b120c'],
             'rawaq_store', 'rawaq_landing' => ['primary' => '#b9507a', 'secondary' => '#3d9a6f', 'background' => '#fbf7f3', 'text' => '#2b2226'],
+            'tekno_store' => ['primary' => '#2563eb', 'secondary' => '#22d3ee', 'background' => '#f2f4f8', 'text' => '#0b1220'],
             default => ['primary' => '#0b875b', 'secondary' => '#ffc83d', 'background' => '#ffffff', 'text' => '#13261d'],
         };
     }

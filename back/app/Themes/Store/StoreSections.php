@@ -19,7 +19,8 @@ final class StoreSections
 {
     public const PRODUCT_SOURCES = ['latest', 'offers', 'category'];
 
-    public const PRODUCT_LIMITS = [4, 8, 12, 16, 24, 32];
+    /** 10 fills two rows of a 5-column grid («تيكنو»). */
+    public const PRODUCT_LIMITS = [4, 8, 10, 12, 16, 24, 32];
 
     public const COLUMNS = [2, 3, 4, 5];
 
@@ -27,6 +28,12 @@ final class StoreSections
 
     /** Food themes add their own icons to the base ones. */
     public const FOOD_ICONS = [...self::ICONS, 'flame', 'chef', 'leaf', 'utensils', 'meat', 'timer', 'thermo', 'bike', 'soup', 'sparkle'];
+
+    /** Electronics themes («تيكنو»'s services and trust strip) add maintenance, support and a warranty badge. */
+    public const TECH_ICONS = [...self::ICONS, 'wrench', 'headset', 'badge-check'];
+
+    /** «عرض اليوم» ends at midnight in Cairo, or at a date the merchant picks. */
+    public const DEAL_ENDS = ['midnight', 'date'];
 
     /** Where a section's button or picture leads (the AI sections keep these). */
     public const BASE_LINK_TYPES = ['none', 'all_products', 'offers', 'category', 'product', 'url'];
@@ -41,7 +48,8 @@ final class StoreSections
 
     public const HERO_HEIGHTS = ['full', 'large', 'medium'];
 
-    public const TAB_SOURCES = ['latest', 'offers', 'category', 'manual'];
+    /** `best_sellers`: the products sold most (units in orders). */
+    public const TAB_SOURCES = ['latest', 'best_sellers', 'offers', 'category', 'manual'];
 
     public const MARQUEE_SPEEDS = ['slow', 'normal', 'fast'];
 
@@ -210,12 +218,13 @@ final class StoreSections
                 "{$s}.props.text" => $text(200),
                 "{$s}.props.cover_media_id" => $media(false),
             ],
+            // A brand is its logo, or its name alone (a text tile) when there is no logo.
             'brands' => [
                 "{$s}.props.title" => $text(80),
                 "{$s}.props.items" => ['required', 'array', 'min:2', 'max:16'],
                 ...$this->itemsWithLinks($s, $props, fn (string $k) => [
-                    "{$k}.media_id" => $media(),
-                    "{$k}.name" => $text(40),
+                    "{$k}.media_id" => $media(false),
+                    "{$k}.name" => ["required_without:{$k}.media_id", 'nullable', 'string', 'max:40'],
                 ]),
             ],
             'story' => [
@@ -372,6 +381,27 @@ final class StoreSections
                 "{$s}.props.facts.*.label" => $text(40, true),
             ],
             'skin_quiz' => $this->quizRules($s, $props),
+            'tech_hero' => $this->techHeroRules($s, $props),
+            'deal_of_day' => [
+                "{$s}.props.kicker" => $text(50),
+                "{$s}.props.product_id" => ['required', 'integer', TenantExists::table('products')->ignoreTrashed()],
+                "{$s}.props.title" => $text(90),
+                // null: the product's own card chips.
+                "{$s}.props.chips" => ['nullable', 'array', 'max:4'],
+                "{$s}.props.chips.*" => $text(20, true),
+                "{$s}.props.ends" => ['required', Rule::in(self::DEAL_ENDS)],
+                "{$s}.props.ends_at" => [($props['ends'] ?? null) === 'date' ? 'required' : 'nullable', 'date'],
+                "{$s}.props.stock_start" => ['nullable', 'integer', 'between:1,1000000'],
+                "{$s}.props.button_label" => $text(30, true),
+                "{$s}.props.show_installment" => ['required', 'boolean'],
+            ],
+            'services' => [
+                "{$s}.props.title" => $text(80),
+                "{$s}.props.items" => ['required', 'array', 'min:2', 'max:4'],
+                "{$s}.props.items.*.icon" => ['required', Rule::in(self::TECH_ICONS)],
+                "{$s}.props.items.*.title" => $text(40, true),
+                "{$s}.props.items.*.text" => $text(120),
+            ],
             'articles' => [
                 "{$s}.props.kicker" => $text(40),
                 "{$s}.props.title" => $text(80),
@@ -500,7 +530,7 @@ final class StoreSections
                 'text' => $str($p['text'] ?? null),
                 'cover_media_id' => $mediaOrNull($p['cover_media_id'] ?? null),
             ],
-            'brands' => ['title' => $str($p['title'] ?? null), 'items' => $items(fn (array $i) => ['media_id' => (int) $i['media_id'], 'name' => $str($i['name'] ?? null), 'link' => self::cleanLink((array) $i['link'])])],
+            'brands' => ['title' => $str($p['title'] ?? null), 'items' => $items(fn (array $i) => ['media_id' => $mediaOrNull($i['media_id'] ?? null), 'name' => $str($i['name'] ?? null), 'link' => self::cleanLink((array) $i['link'])])],
             'story' => [
                 'kicker' => $str($p['kicker'] ?? null),
                 'title' => (string) $str($p['title']),
@@ -663,6 +693,45 @@ final class StoreSections
                 ], (array) $p['questions'])),
                 'ai' => self::cleanQuizAi(is_array($p['ai'] ?? null) ? $p['ai'] : []),
             ],
+            'tech_hero' => [
+                'slides' => array_values(array_map(fn (array $x) => [
+                    'kicker' => $str($x['kicker'] ?? null),
+                    'title' => (string) $str($x['title']),
+                    'highlight' => $str($x['highlight'] ?? null),
+                    'subtitle' => $str($x['subtitle'] ?? null),
+                    'media_id' => $mediaOrNull($x['media_id'] ?? null),
+                    'chips' => array_values(array_map(fn ($c) => (string) $str($c), (array) $x['chips'])),
+                    'product_id' => $mediaOrNull($x['product_id'] ?? null),
+                    'button_label' => (string) $str($x['button_label']),
+                    'link' => self::cleanLink((array) $x['link']),
+                    'second_label' => $str($x['second_label'] ?? null),
+                    'second_link' => self::cleanLink((array) $x['second_link']),
+                ], (array) $p['slides'])),
+                'tiles' => array_values(array_map(fn (array $x) => [
+                    'media_id' => $mediaOrNull($x['media_id'] ?? null),
+                    'kicker' => $str($x['kicker'] ?? null),
+                    'title' => (string) $str($x['title']),
+                    'text' => $str($x['text'] ?? null),
+                    'color' => isset($x['color']) && $x['color'] !== '' ? strtolower((string) $x['color']) : null,
+                    'link' => self::cleanLink((array) $x['link']),
+                ], (array) $p['tiles'])),
+            ],
+            'deal_of_day' => [
+                'kicker' => $str($p['kicker'] ?? null),
+                'product_id' => (int) $p['product_id'],
+                'title' => $str($p['title'] ?? null),
+                'chips' => is_array($p['chips'] ?? null) ? array_values(array_map(fn ($c) => (string) $str($c), $p['chips'])) : null,
+                'ends' => (string) $p['ends'],
+                // Stored in UTC like «عرض بعداد»; only for a date the merchant picked.
+                'ends_at' => $p['ends'] === 'date' ? Carbon::parse((string) $p['ends_at'])->utc()->toIso8601ZuluString() : null,
+                'stock_start' => isset($p['stock_start']) && $p['stock_start'] !== '' ? (int) $p['stock_start'] : null,
+                'button_label' => (string) $str($p['button_label']),
+                'show_installment' => (bool) $p['show_installment'],
+            ],
+            'services' => [
+                'title' => $str($p['title'] ?? null),
+                'items' => $items(fn (array $i) => ['icon' => (string) $i['icon'], 'title' => (string) $str($i['title']), 'text' => $str($i['text'] ?? null)]),
+            ],
             'articles' => [
                 'kicker' => $str($p['kicker'] ?? null),
                 'title' => $str($p['title'] ?? null),
@@ -755,6 +824,53 @@ final class StoreSections
             'category_ids' => array_values(array_unique(array_map('intval', (array) ($ai['category_ids'] ?? [])))),
             'product_ids' => array_values(array_unique(array_map('intval', (array) ($ai['product_ids'] ?? [])))),
         ];
+    }
+
+    /**
+     * «تيكنو»'s opening: 1–4 slides (a product's real price when one is picked, never a typed one) and up to two
+     * side tiles. Pictures are optional so the starter design saves before the merchant has any.
+     *
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>
+     */
+    private function techHeroRules(string $s, array $props): array
+    {
+        $text = self::text(...);
+        $rules = [
+            "{$s}.props.slides" => ['required', 'array', 'min:1', 'max:4'],
+            "{$s}.props.tiles" => ['present', 'array', 'max:2'],
+        ];
+        foreach (array_values((array) ($props['slides'] ?? [])) as $j => $slide) {
+            $k = "{$s}.props.slides.{$j}";
+            $slide = is_array($slide) ? $slide : [];
+            $rules += [
+                "{$k}.kicker" => $text(40),
+                "{$k}.title" => $text(90, true),
+                "{$k}.highlight" => $text(30),
+                "{$k}.subtitle" => $text(200),
+                "{$k}.media_id" => self::media(false),
+                "{$k}.chips" => ['present', 'array', 'max:4'],
+                "{$k}.chips.*" => $text(20, true),
+                "{$k}.product_id" => ['nullable', 'integer', TenantExists::table('products')->ignoreTrashed()],
+                "{$k}.button_label" => $text(30, true),
+                ...self::linkRules("{$k}.link", (array) ($slide['link'] ?? [])),
+                "{$k}.second_label" => $text(30),
+                ...self::linkRules("{$k}.second_link", (array) ($slide['second_link'] ?? [])),
+            ];
+        }
+        foreach (array_values((array) ($props['tiles'] ?? [])) as $j => $tile) {
+            $k = "{$s}.props.tiles.{$j}";
+            $rules += [
+                "{$k}.media_id" => self::media(false),
+                "{$k}.kicker" => $text(30),
+                "{$k}.title" => $text(50, true),
+                "{$k}.text" => $text(40),
+                "{$k}.color" => ['nullable', 'string', self::HEX],
+                ...self::linkRules("{$k}.link", is_array($tile) ? (array) ($tile['link'] ?? []) : []),
+            ];
+        }
+
+        return $rules;
     }
 
     /** Rules of a list of {icon, title, text} items. @return array<string, mixed> */

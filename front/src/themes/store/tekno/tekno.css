@@ -1,0 +1,190 @@
+/*
+ * «تيكنو»: the electronics store theme (docs/plans/tekno: sizes, colors and radii from mockup/*.html). Draws on the
+ * shared base (.as-root variables and as-* utilities) so the inner pages take its colors and font; everything here
+ * is its own look, prefixed tk- (no other theme uses it). A navy frame (--tk-dark), the merchant's blue (primary)
+ * and cyan (secondary), lime for installments and savings (--tk-deal). Reacts to the store's own width (container
+ * queries), so the Builder previews phone and desktop exactly.
+ */
+.tk-root {
+  --tk-ink: color-mix(in srgb, var(--tk-dark) 70%, #000);
+  --tk-nav: color-mix(in srgb, var(--tk-dark) 88%, #2a4a7a);
+  --tk-deep: color-mix(in srgb, var(--as-primary) 40%, var(--tk-dark));
+  --tk-white: #fff;
+  --tk-plate: #f8fafc;
+  --tk-chip: #f1f5f9;
+  --tk-sky: color-mix(in srgb, var(--as-primary) 12%, #fff);
+  --tk-aqua: color-mix(in srgb, var(--as-secondary) 14%, #fff);
+  --tk-aqua-ink: color-mix(in srgb, var(--as-secondary) 45%, #0b3b4a);
+  --tk-green: #15803d;
+  --tk-amber: #b45309;
+  --tk-red: #ef4444;
+  --tk-star: #f59e0b;
+  --tk-radius: 1rem;
+  overflow-x: clip;
+}
+
+/* In the components layer: a Tailwind utility on the same element (hidden, @3xl:grid…) wins over these. */
+@layer components {
+.tk-display { font-family: var(--tk-display), var(--as-font), system-ui, sans-serif; font-weight: 700; letter-spacing: 0; }
+.tk-wrap { width: 100%; max-width: 80rem; margin-inline: auto; padding-inline: 0.75rem; }
+@container (min-width: 48rem) { .tk-wrap { padding-inline: 2rem; } }
+.tk-section { padding-block: 1.75rem; }
+@container (min-width: 48rem) { .tk-section { padding-block: 2.875rem; } }
+
+.tk-title { font-size: calc(var(--as-fs) * 1.35rem); line-height: 1.3; }
+@container (min-width: 48rem) { .tk-title { font-size: calc(var(--as-fs) * 1.875rem); } }
+.tk-kicker { color: var(--as-primary); font-weight: 800; font-size: calc(var(--as-fs) * 0.8125rem); letter-spacing: 0.04em; }
+.tk-more { color: var(--as-primary); font-weight: 800; font-size: calc(var(--as-fs) * 0.875rem); white-space: nowrap; }
+.tk-card { background: var(--tk-white); border: 1px solid var(--as-line); border-radius: var(--tk-radius); }
+.tk-price { font-family: var(--tk-display), var(--as-font), system-ui, sans-serif; font-weight: 700; }
+
+.tk-dark { background: var(--tk-dark); color: var(--tk-on-dark); --as-muted: color-mix(in srgb, var(--tk-on-dark) 72%, var(--tk-dark)); --as-line: color-mix(in srgb, var(--tk-on-dark) 14%, var(--tk-dark)); }
+
+/* buttons: the merchant's shape */
+  .tk-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.875rem; padding-inline: 1.375rem;
+    border-radius: var(--tk-btn-radius); font-weight: 800; white-space: nowrap; transition: filter 0.15s, transform 0.15s;
+  }
+  .tk-btn:active { transform: scale(0.98); }
+  .tk-btn:hover { filter: brightness(0.95); }
+  .tk-btn-main { background: var(--as-primary); color: var(--as-on-primary); box-shadow: 0 12px 24px -12px var(--as-primary); }
+  .tk-btn-cyan { background: var(--as-secondary); color: var(--as-on-secondary); }
+  .tk-btn-line { background: var(--tk-white); color: var(--as-text); border: 1.5px solid var(--as-line); }
+  .tk-btn-ghost { background: transparent; color: inherit; border: 1.5px solid color-mix(in srgb, currentColor 40%, transparent); }
+.tk-root .as-btn { border-radius: var(--tk-btn-radius); }
+
+/* ---------- strip, header, nav ---------- */
+.tk-strip { background: var(--tk-ink); color: #cbd5e1; font-weight: 700; }
+.tk-head { background: var(--tk-dark); color: var(--tk-on-dark); }
+.tk-logo { font-family: var(--tk-display), var(--as-font), system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.tk-logo b { color: var(--as-secondary); }
+.tk-search { display: flex; height: 3rem; border-radius: 0.75rem; overflow: hidden; background: #fff; color: #0b1220; }
+.tk-search select { background: #e2e8f0; color: #0b1220; font-weight: 800; padding-inline: 1rem 0.75rem; border: 0; outline: none; max-width: 11rem; }
+.tk-search input { flex: 1; min-width: 0; padding-inline: 1rem; background: transparent; outline: none; }
+.tk-search input::placeholder { color: #94a3b8; }
+.tk-search button { background: var(--as-secondary); color: var(--as-on-secondary); width: 3.625rem; font-weight: 900; flex-shrink: 0; }
+.tk-tool { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.125rem; color: #cbd5e1; font-weight: 700; transition: color 0.15s; }
+.tk-tool:hover { color: #fff; }
+.tk-badge { position: absolute; top: -0.4rem; inset-inline-end: -0.4rem; min-width: 1.15rem; border-radius: 999px; padding-inline: 0.3rem; background: var(--as-secondary); color: var(--as-on-secondary); font-size: 0.6875rem; font-weight: 900; line-height: 1.15rem; text-align: center; }
+.tk-nav { background: var(--tk-nav); color: #e2e8f0; }
+.tk-nav a { white-space: nowrap; transition: color 0.15s; }
+.tk-nav a:hover { color: #fff; }
+.tk-all { background: var(--as-primary); color: var(--as-on-primary); height: 3.125rem; padding-inline: 1.125rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; flex-shrink: 0; }
+.tk-hot { color: var(--tk-deal); }
+
+/* the mega menu */
+.tk-mega { position: absolute; top: 100%; inset-inline-start: 0; z-index: 45; width: min(45rem, 100%); background: #fff; color: #0b1220; border-radius: 0 0 1rem 1rem; overflow: hidden; box-shadow: 0 30px 60px -20px rgb(15 26 46 / 0.45); display: grid; grid-template-columns: 12.5rem 1fr; }
+.tk-mega[data-promo] { grid-template-columns: 12.5rem 1fr 11.25rem; }
+.tk-mega-side { background: #f1f5f9; padding-block: 0.75rem; }
+.tk-mega-side a { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5625rem 1.125rem; font-weight: 700; border-inline-start: 3px solid transparent; }
+.tk-mega-side a[data-on] { background: #fff; color: var(--as-primary); border-inline-start-color: var(--as-primary); }
+.tk-mega-col { padding: 1rem 1.125rem; color: #334155; line-height: 2; }
+.tk-mega-col h3 { color: #0b1220; font-weight: 800; margin-bottom: 0.125rem; }
+.tk-mega-col a:hover { color: var(--as-primary); }
+.tk-mega-promo { background: linear-gradient(160deg, var(--tk-deep), var(--tk-dark)); color: #fff; padding: 1rem; display: flex; flex-direction: column; gap: 0.375rem; }
+
+/* phone drawer */
+.tk-drawer { visibility: hidden; transition: visibility 0s linear 0.32s; }
+.tk-drawer[data-open] { visibility: visible; transition: none; }
+.tk-drawer-shade { opacity: 0; transition: opacity 0.3s ease; }
+.tk-drawer[data-open] .tk-drawer-shade { opacity: 1; }
+.tk-drawer-panel { transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.tk-drawer[data-open] .tk-drawer-panel { transform: none; }
+
+/* phone bottom nav: sticks to the bottom of the screen (the last thing of the page, so it never covers the footer) */
+.tk-bottom { position: sticky; bottom: 0; z-index: 38; background: #fff; border-top: 1px solid var(--as-line); color: var(--as-muted); padding-bottom: env(safe-area-inset-bottom); }
+.tk-bottom a[aria-current="page"] { color: var(--as-primary); }
+
+/* ---------- hero ---------- */
+/* a phone shows the slide as its own blue card on the page (the mockup's phone); computers the navy band with glass slides */
+@container (min-width: 48rem) {
+  .tk-hero {
+    background:
+      radial-gradient(56rem 26rem at 80% 30%, color-mix(in srgb, var(--as-primary) 85%, #1e3a8a) 0%, transparent 60%),
+      radial-gradient(44rem 22rem at 10% 90%, color-mix(in srgb, var(--as-secondary) 40%, #0e3a4a) 0%, transparent 60%),
+      var(--tk-dark);
+  }
+}
+.tk-slide { position: relative; border-radius: 1.125rem; overflow: hidden; color: #fff; background: linear-gradient(120deg, color-mix(in srgb, var(--as-primary) 85%, #1e3a8a), var(--tk-dark)); }
+@container (min-width: 48rem) { .tk-slide { border-radius: 1.375rem; background: linear-gradient(120deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.02)); border: 1px solid rgb(255 255 255 / 0.12); } }
+.tk-slide h1 em { font-style: normal; color: var(--as-secondary); }
+.tk-slide-photo { border-radius: 1.125rem; box-shadow: 0 40px 60px -30px #000; }
+@container (min-width: 48rem) { .tk-slide-photo { transform: rotate(-3deg); } }
+.tk-specs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.tk-specs li { border: 1px solid rgb(255 255 255 / 0.25); border-radius: 0.625rem; padding: 0.375rem 0.625rem; font-weight: 700; background: rgb(255 255 255 / 0.06); }
+.tk-inst { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.625rem; padding: 0.375rem 0.75rem; font-weight: 800; background: color-mix(in srgb, var(--tk-deal) 15%, transparent); color: var(--tk-deal); }
+.tk-dots { display: flex; gap: 0.375rem; }
+.tk-dots button { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.35); transition: width 0.25s, background 0.25s; }
+.tk-dots button[aria-current="true"] { width: 1.5rem; background: var(--as-secondary); }
+.tk-tile { position: relative; overflow: hidden; border-radius: 1.125rem; display: flex; align-items: flex-end; padding: 1rem; color: #fff; isolation: isolate; }
+.tk-tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: -1; transition: transform 0.6s; }
+.tk-tile:hover img { transform: scale(1.04); }
+
+/* ---------- trust strip, categories ---------- */
+.tk-trust { background: #fff; border-bottom: 1px solid var(--as-line); }
+.tk-trust-icon { display: flex; width: 2.625rem; height: 2.625rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.75rem; background: var(--tk-sky); color: var(--as-primary); }
+.tk-cat { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; font-weight: 800; transition: transform 0.2s, box-shadow 0.2s; }
+@container (min-width: 48rem) { .tk-cat { background: #fff; border: 1px solid var(--as-line); border-radius: 1.125rem; padding: 0.875rem 0.5rem; } .tk-cat:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -20px rgb(15 26 46 / 0.4); } }
+.tk-cat-photo { width: 3.625rem; height: 3.625rem; border-radius: 999px; overflow: hidden; background: var(--tk-plate); border: 3px solid #fff; box-shadow: 0 6px 16px -10px rgb(15 26 46 / 0.4); }
+@container (min-width: 48rem) { .tk-cat-photo { width: 4.625rem; height: 4.625rem; border: 0; box-shadow: none; } }
+.tk-row-scroll { display: flex; gap: 0.625rem; overflow-x: auto; scrollbar-width: none; }
+.tk-row-scroll::-webkit-scrollbar { display: none; }
+
+/* ---------- deal of the day ---------- */
+.tk-deal { background: linear-gradient(110deg, var(--tk-dark), var(--tk-deep)); color: #fff; border-radius: 1.125rem; overflow: hidden; }
+@container (min-width: 48rem) { .tk-deal { border-radius: 1.5rem; } }
+.tk-timer { display: flex; gap: 0.5rem; }
+.tk-timer span { display: flex; flex-direction: column; align-items: center; width: 4.5rem; padding-block: 0.5rem; border-radius: 0.75rem; background: rgb(255 255 255 / 0.1); border: 1px solid rgb(255 255 255 / 0.18); }
+.tk-timer b { font-family: var(--tk-display), var(--as-font), system-ui, sans-serif; font-size: 1.75rem; line-height: 1.2; color: var(--as-secondary); font-variant-numeric: tabular-nums; }
+.tk-timer small { font-size: 0.6875rem; color: #cbd5e1; }
+.tk-bar { height: 0.625rem; border-radius: 999px; background: rgb(255 255 255 / 0.15); overflow: hidden; }
+.tk-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--as-secondary), var(--tk-deal)); }
+
+/* ---------- product tabs and cards ---------- */
+.tk-tabs { display: flex; gap: 0.375rem; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; background: #fff; border: 1px solid var(--as-line); border-radius: 0.75rem; padding: 0.25rem; }
+.tk-tabs::-webkit-scrollbar { display: none; }
+.tk-tab { padding: 0.4375rem 0.875rem; border-radius: 0.5625rem; font-weight: 800; color: var(--as-muted); white-space: nowrap; transition: background 0.15s, color 0.15s; }
+.tk-tab[aria-selected="true"] { background: var(--as-text); color: var(--as-bg); }
+.tk-prod { position: relative; display: flex; flex-direction: column; height: 100%; overflow: hidden; background: #fff; border: 1px solid var(--as-line); transition: box-shadow 0.2s, transform 0.2s; }
+.tk-prod:hover { box-shadow: 0 18px 36px -24px rgb(15 26 46 / 0.45); }
+.tk-prod-photo { position: relative; aspect-ratio: 1 / 0.74; background: var(--tk-plate); overflow: hidden; }
+.tk-prod-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.tk-prod:hover .tk-prod-photo img { transform: scale(1.04); }
+.tk-off { position: absolute; top: 0.625rem; inset-inline-start: 0.625rem; background: var(--tk-red); color: #fff; font-weight: 900; border-radius: 0.5rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; }
+.tk-cmp { position: absolute; top: 0.625rem; inset-inline-end: 0.625rem; display: flex; align-items: center; gap: 0.3125rem; background: #fff; color: #0b1220; border-radius: 0.5rem; padding: 0.1875rem 0.5rem; font-size: 0.71875rem; font-weight: 800; box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.25); }
+.tk-cmp i { width: 0.8125rem; height: 0.8125rem; border: 2px solid var(--as-primary); border-radius: 0.25rem; display: flex; align-items: center; justify-content: center; color: #fff; }
+.tk-cmp[aria-pressed="true"] i { background: var(--as-primary); }
+.tk-cond { position: absolute; bottom: 0.625rem; inset-inline-start: 0.625rem; background: #0b1220; color: #fff; font-size: 0.6875rem; font-weight: 800; border-radius: 0.375rem; padding: 0.125rem 0.4375rem; }
+.tk-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.tk-chips li { font-size: 0.6875rem; font-weight: 800; background: var(--tk-chip); color: #334155; border-radius: 0.375rem; padding: 0.125rem 0.375rem; }
+.tk-stars { color: var(--tk-star); font-weight: 800; }
+.tk-add { display: flex; width: 100%; align-items: center; justify-content: center; gap: 0.375rem; height: 2.375rem; border-radius: 0.625rem; background: var(--as-primary); color: var(--as-on-primary); font-weight: 800; }
+.tk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; }
+@container (min-width: 48rem) { .tk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.875rem; } }
+@container (min-width: 64rem) { .tk-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.tk-slider { display: grid; grid-auto-flow: column; grid-auto-columns: 46%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 0.625rem; }
+.tk-slider::-webkit-scrollbar { display: none; }
+.tk-slider > * { scroll-snap-align: start; }
+@container (min-width: 64rem) { .tk-slider { grid-auto-columns: calc((100% - 3.5rem) / 5); gap: 0.875rem; } }
+
+/* ---------- brands, services, reviews ---------- */
+.tk-brand { display: flex; height: 4.375rem; align-items: center; justify-content: center; padding: 0.75rem; border-radius: 0.875rem; background: #fff; border: 1px solid var(--as-line); color: #475569; font-family: var(--tk-display), var(--as-font), system-ui, sans-serif; font-weight: 700; font-size: 1.125rem; letter-spacing: 0.04em; transition: color 0.15s, border-color 0.15s; }
+.tk-brand:hover { color: var(--as-primary); border-color: var(--as-primary); }
+.tk-service-icon { display: flex; width: 2.75rem; height: 2.75rem; align-items: center; justify-content: center; border-radius: 0.75rem; background: var(--tk-aqua); color: var(--tk-aqua-ink); }
+.tk-bought { display: inline-block; font-size: 0.75rem; font-weight: 800; background: var(--tk-chip); border-radius: 0.375rem; padding: 0.125rem 0.5rem; }
+
+/* ---------- footer ---------- */
+.tk-foot { background: var(--tk-ink); color: #cbd5e1; --as-line: #1e293b; }
+.tk-foot h3 { color: #fff; font-weight: 800; margin-bottom: 0.5rem; }
+.tk-foot a:hover { color: #fff; }
+.tk-pay li { background: #1e293b; border-radius: 0.375rem; padding: 0.25rem 0.5625rem; font-size: 0.75rem; font-weight: 800; }
+
+/* faq */
+.tk-qa-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+.tk-qa-body > div { overflow: hidden; }
+.tk-qa[data-open] .tk-qa-body { grid-template-rows: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-qa-body, .tk-drawer-panel, .tk-drawer-shade, .tk-tile img, .tk-prod-photo img, .tk-dots button { transition: none; }
+}

@@ -134,6 +134,9 @@ final class StoreCatalog
             $query->whereHas('categories', fn (Builder $q) => $q->whereIn('categories.id', $ids));
         } elseif ($source === 'offers') {
             $this->onOffer($query);
+        } elseif ($source === 'best_sellers') {
+            // Units sold, like the lists' «الأكثر مبيعًا» sort; never sold ones follow, newest first.
+            $query->withSum('orderItems as sold', 'quantity')->orderByDesc('sold');
         }
 
         return $query->orderByDesc('id')->limit(max(1, min(32, $limit)))->get()->map(fn (Product $p) => $this->card($p))->all();
@@ -313,7 +316,7 @@ final class StoreCatalog
             'rating' => (int) ($p->getAttribute('rating_count') ?? 0) > 0
                 ? ['average' => round((float) $p->getAttribute('rating_average'), 1), 'count' => (int) $p->getAttribute('rating_count')]
                 : null,
-            // Values of the spec rows flagged «يظهر في كارت المنتج» (≤ 4, in order).
+            // The spec rows flagged «يظهر في كارت المنتج» (≤ 4, in order): {label, value} (a theme may single out one label, e.g. «الحالة»).
             'spec_chips' => $this->specs->chips($p),
         ];
     }

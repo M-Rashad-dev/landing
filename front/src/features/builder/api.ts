@@ -8,9 +8,10 @@ import type { Design, Section, SectionType } from "@/themes/store/asas/types";
 import { QUIZ_AI_DEFAULTS, type RawaqSection, type RawaqSectionType, type SkinQuizProps } from "@/themes/store/rawaq/types";
 import type { ShabeStoreSection, ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSection, SufiSectionType } from "@/themes/store/sufi/types";
+import type { TeknoSection, TeknoSectionType, TechIcon } from "@/themes/store/tekno/types";
 
 /** A section of any store theme. */
-export type AnySection = Section | SufiSection | ShabeStoreSection | RawaqSection;
+export type AnySection = Section | SufiSection | ShabeStoreSection | RawaqSection | TeknoSection;
 
 export type DesignPayload = {
   /** The theme, with what the server accepts for it (the Builder offers exactly these). */
@@ -183,6 +184,35 @@ export function newRawaqSection(type: RawaqSectionType): AnySection {
       return make("articles", { kicker: null, title: ds.articles.title, items: rq.articles.starter.map((title) => ({ media_id: null, tag: null, title, body: null, link: none })) });
     case "testimonials":
       return make("testimonials", { title: d.testimonialsTitle, source: "auto", items: [] });
+    default:
+      return newSufiSection(type as SufiSectionType);
+  }
+}
+
+const tk = ar.design.tekno.starter;
+
+/** A new «تيكنو» section, pre-filled with the approved mockup's copy (product fields wait for the merchant's pick). */
+export function newTeknoSection(type: TeknoSectionType): AnySection {
+  const id = newId();
+  const make = <T extends TeknoSectionType>(t: T, props: Extract<TeknoSection, { type: T }>["props"]) => ({ id, type: t, visible: true, props }) as TeknoSection;
+  const all = { type: "all_products" as const, target_id: null, url: null };
+  switch (type) {
+    case "tech_hero":
+      return make("tech_hero", { slides: [{ kicker: tk.hero.kicker, title: tk.hero.title, highlight: tk.hero.highlight, subtitle: null, media_id: null, chips: [], product_id: null, button_label: tk.hero.button, link: all, second_label: null, second_link: none }], tiles: [] });
+    case "deal_of_day":
+      return make("deal_of_day", { kicker: tk.deal.kicker, product_id: null, title: null, chips: null, ends: "midnight", ends_at: null, stock_start: null, button_label: tk.deal.button, show_installment: true });
+    case "services":
+      return make("services", { title: tk.services.title, items: tk.services.items.map((x) => ({ ...x, icon: x.icon as TechIcon })) });
+    case "features":
+      return make("features", { title: null, items: tk.trust.map((x) => ({ ...x, icon: x.icon as TechIcon })) });
+    case "product_tabs":
+      return make("product_tabs", { title: d.productsTitle, description: null, limit: 10, tabs: [{ label: d.tabLatest, source: "latest", category_id: null, product_ids: [] }], kicker: null });
+    case "testimonials":
+      return make("testimonials", { title: tk.testimonialsTitle, source: "auto", items: [] });
+    case "categories":
+      return make("categories", { title: ds.categories.title, description: null, category_ids: [], shape: "circle", layout: "grid", columns_desktop: 8, columns_mobile: 4 });
+    case "cta":
+      return make("cta", { title: ds.cta.title, text: null, button_label: ar.teknoStore.whatsapp, action: "whatsapp", message: null, link: none });
     default:
       return newSufiSection(type as SufiSectionType);
   }

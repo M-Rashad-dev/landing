@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { RadioCards, SwitchRow } from "@/components/ui/choice";
@@ -204,14 +204,18 @@ export function ProductsForm({ props, onChange, errors }: { props: ProductsProps
 
 /* ---------- مميزات المتجر ---------- */
 
-export function FeaturesForm({ props, onChange, errors, max = 4 }: { props: FeaturesProps; onChange: (p: FeaturesProps) => void; errors: Errors; max?: number }) {
+/** An icon a feature may take (a theme can offer more than the store set: «تيكنو»'s maintenance, support…). */
+export type FeatureIcon = { key: string; Icon: LucideIcon };
+const STORE_ICONS: FeatureIcon[] = ICON_KEYS.map((key) => ({ key, Icon: FEATURE_ICONS[key] }));
+
+export function FeaturesForm({ props, onChange, errors, max = 4, icons = STORE_ICONS, hint = tf.itemsHint }: { props: FeaturesProps; onChange: (p: FeaturesProps) => void; errors: Errors; max?: number; icons?: FeatureIcon[]; hint?: string }) {
   const setItem = (i: number, patch: Partial<FeaturesProps["items"][number]>) => onChange({ ...props, items: props.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) });
   return (
     <div className="flex flex-col gap-4">
       <Field label={tf.title} htmlFor={"ft-title"} error={errors.title} optional>
         <Input id={"ft-title"} maxLength={80} value={props.title ?? ""} onChange={(e) => onChange({ ...props, title: nullable(e.target.value) })} />
       </Field>
-      <p className="text-xs text-ink-3">{tf.itemsHint}</p>
+      <p className="text-xs text-ink-3">{hint}</p>
       {props.items.map((item, i) => (
         <Card
           key={i}
@@ -223,8 +227,7 @@ export function FeaturesForm({ props, onChange, errors, max = 4 }: { props: Feat
         >
           <Field label={tf.icon}>
             <div className="grid grid-cols-6 gap-1.5" role="radiogroup" aria-label={tf.icon}>
-              {ICON_KEYS.map((key) => {
-                const Icon = FEATURE_ICONS[key];
+              {icons.map(({ key, Icon }) => {
                 return (
                   <button
                     key={key}
@@ -232,7 +235,7 @@ export function FeaturesForm({ props, onChange, errors, max = 4 }: { props: Feat
                     role="radio"
                     aria-checked={item.icon === key}
                     aria-label={key}
-                    onClick={() => setItem(i, { icon: key })}
+                    onClick={() => setItem(i, { icon: key as FeaturesProps["items"][number]["icon"] })}
                     className={cn("flex size-9 items-center justify-center rounded-md border", item.icon === key ? "border-brand bg-brand-soft text-brand-strong" : "border-border text-ink-2 hover:bg-surface-2")}
                   >
                     <Icon className="size-4" />
@@ -262,7 +265,8 @@ export function FeaturesForm({ props, onChange, errors, max = 4 }: { props: Feat
 
 /* ---------- آراء العملاء ---------- */
 
-export function TestimonialsForm({ props, onChange, errors }: { props: TestimonialsProps; onChange: (p: TestimonialsProps) => void; errors: Errors }) {
+/** `product`: a theme that shows what a written review was about («تيكنو»'s «اشترى: …») asks for it. */
+export function TestimonialsForm({ props, onChange, errors, product }: { props: TestimonialsProps; onChange: (p: TestimonialsProps) => void; errors: Errors; product?: { label: string; hint: string } }) {
   const setItem = (i: number, patch: Partial<TestimonialsProps["items"][number]>) => onChange({ ...props, items: props.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) });
   return (
     <div className="flex flex-col gap-4">
@@ -305,6 +309,11 @@ export function TestimonialsForm({ props, onChange, errors }: { props: Testimoni
               <Field label={tt.text} htmlFor={`rv-text-${i}`} error={errors[`items.${i}.text`]} required>
                 <Textarea id={`rv-text-${i}`} rows={3} maxLength={400} value={item.text} onChange={(e) => setItem(i, { text: e.target.value })} />
               </Field>
+              {product ? (
+                <Field label={product.label} hint={product.hint} htmlFor={`rv-product-${i}`} error={errors[`items.${i}.product`]} optional>
+                  <Input id={`rv-product-${i}`} maxLength={60} value={(item as { product?: string | null }).product ?? ""} onChange={(e) => setItem(i, { product: nullable(e.target.value) } as Partial<TestimonialsProps["items"][number]>)} />
+                </Field>
+              ) : null}
             </Card>
           ))}
           {errors.items ? <p className="text-xs text-danger">{errors.items}</p> : null}

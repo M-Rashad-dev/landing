@@ -35,8 +35,8 @@ export type ProductCard = {
   max_quantity?: number | null;
   /** Visible reviews (null: none yet). */
   rating?: { average: number; count: number } | null;
-  /** Values of the spec rows flagged «يظهر في كارت المنتج» (≤ 4; missing on older cached pages). */
-  spec_chips?: string[];
+  /** The spec rows flagged «يظهر في كارت المنتج» (≤ 4, with their labels; missing on older cached pages). */
+  spec_chips?: Array<{ label: string; value: string }>;
 };
 
 export type DesignData = {
@@ -45,7 +45,8 @@ export type DesignData = {
   links: Record<string, string | null>;
   media: Record<string, MediaUrls>;
   categories: Array<{ id: number; parent_id: number | null; name: string; slug: string }>;
-  pages: Array<{ title: string; slug: string }>;
+  /** Published store pages (`id`: a footer may list chosen ones; missing on older cached pages). */
+  pages: Array<{ id?: number; title: string; slug: string }>;
   /** The latest good reviews; `product` = what it was about («اشترى: …»; slug null when not on sale). */
   reviews: Array<{ name: string; rating: number; text: string; product?: { name: string; slug: string | null } | null }>;
   category_tiles?: Record<string, AiCategoryTile[]>;

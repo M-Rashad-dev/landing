@@ -648,12 +648,20 @@ function Brands({ id, props }: { id: string; props: BrandsProps }) {
       <div className="sf-wrap">
         <Heading title={props.title} />
         <div className="sf-reveal grid grid-cols-3 gap-3 rounded-[1.6rem] border bg-(--sf-surface) p-5 @3xl:grid-cols-4 @5xl:grid-cols-6 @5xl:p-8">
-          {props.items.map((b, i) => (
-            <StoreLink key={i} href={data.links[`${id}:${i}`]} className="flex h-20 items-center justify-center p-2 opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0" aria-label={b.name ?? undefined}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- store images come from the media server */}
-              <img src={image(b.media_id, "medium") ?? ""} alt={b.name ?? ""} loading="lazy" className="max-h-full max-w-full object-contain" />
-            </StoreLink>
-          ))}
+          {props.items.map((b, i) => {
+            const logo = image(b.media_id, "medium");
+            return (
+              <StoreLink key={i} href={data.links[`${id}:${i}`]} className="flex h-20 items-center justify-center p-2 opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0" aria-label={b.name ?? undefined}>
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- store images come from the media server
+                  <img src={logo} alt={b.name ?? ""} loading="lazy" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  // A brand without a logo is its name.
+                  <span className="as-lg font-extrabold tracking-wide">{b.name}</span>
+                )}
+              </StoreLink>
+            );
+          })}
         </div>
       </div>
     </section>

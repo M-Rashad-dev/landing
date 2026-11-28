@@ -13,7 +13,7 @@ export type MediaProps = { media: Record<string, MediaUrls>; onMedia: (item: Med
  * StoreThemeDesign::SETTINGS_GROUPS). Every theme has the first four; a theme that draws product
  * cards, product pages, category pages or the cart its own way adds the group for it.
  */
-export type GroupKey = "look" | "header" | "footer" | "general" | "product_card" | "product_page" | "listing" | "cart";
+export type GroupKey = "look" | "header" | "footer" | "general" | "product_card" | "product_page" | "listing" | "cart" | "mega_menu" | "installments";
 
 /** A settings group's form: it edits the theme settings and hands them back whole. */
 export type GroupFormProps = { settings: StoreSettings; onChange: (settings: StoreSettings) => void; errors: Errors } & MediaProps;

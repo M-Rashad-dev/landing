@@ -1,6 +1,6 @@
 import type * as React from "react";
 import type { StoreConfig } from "@/lib/store/types";
-import { asasAiTokens, rawaqStoreAiTokens, shabeStoreAiTokens, sufiStoreAiTokens } from "@/themes/shared/ai-section/tokens";
+import { asasAiTokens, rawaqStoreAiTokens, shabeStoreAiTokens, sufiStoreAiTokens, teknoStoreAiTokens } from "@/themes/shared/ai-section/tokens";
 import type { AiTokens } from "@/themes/shared/ai-section/types";
 import { AsasFrame, AsasStore, HomeSections, type Selection } from "./asas/asas-store";
 import { AccountView, MyOrderView, SignInView } from "./asas/pages/account";
@@ -33,6 +33,9 @@ import { ShabeFrame, ShabeHomeSections, ShabeStore } from "./shabe/shabe-store";
 import { SHABE_STORE_KEY, type ShabeStoreDesign, type ShabeStoreSection } from "./shabe/types";
 import { SufiFrame, SufiHomeSections, SufiStore } from "./sufi/sufi-store";
 import { SUFI_KEY, type Scheme, type SufiDesign, type SufiSection } from "./sufi/types";
+import { TeknoCard } from "./tekno/card";
+import { TeknoFrame, TeknoHomeSections, TeknoStore } from "./tekno/tekno-store";
+import { TEKNO_KEY, type TeknoDesign, type TeknoSection } from "./tekno/types";
 
 /** The whole home in one piece: the Builder (sections selectable), its preview and the theme showcase. */
 export type CanvasProps = {
@@ -72,6 +75,10 @@ function RawaqWishlist() {
 
 function ShabeWishlist() {
   return <WishlistView Card={FoodCard} />;
+}
+
+function TeknoWishlist() {
+  return <WishlistView Card={TeknoCard} />;
 }
 
 export type StoreTheme = {
@@ -119,6 +126,15 @@ function RawaqCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
   return <RawaqStore design={design as RawaqDesign} {...rest} />;
 }
 
+function TeknoHome({ config }: { config: StoreConfig }) {
+  return <TeknoHomeSections sections={config.design.sections as unknown as TeknoSection[]} />;
+}
+
+function TeknoCanvas({ design, scheme: _scheme, ...rest }: CanvasProps) {
+  void _scheme;
+  return <TeknoStore design={design as TeknoDesign} {...rest} />;
+}
+
 /**
  * Every store theme by key: what the live store, the Builder and the preview draw. A new store
  * theme is added here once (its frame, home, canvas and pages); nothing else picks by key.
@@ -130,6 +146,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
   // «رواق»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
   [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: { ...ASAS_PAGES, Product: RawaqProductView, Listing: RawaqListing, Cart: RawaqCartView, Checkout: RawaqCheckoutView, OrderDone: RawaqOrderDone, Wishlist: RawaqWishlist }, aiTokens: (s) => rawaqStoreAiTokens(s) },
+  // «تيكنو» (being built, docs/plans/tekno): its frame, home and card now; its shopping pages come in stage T2.
+  [TEKNO_KEY]: { Frame: TeknoFrame, Home: TeknoHome, Canvas: TeknoCanvas, pages: { ...ASAS_PAGES, Wishlist: TeknoWishlist }, aiTokens: (s) => teknoStoreAiTokens(s) },
   [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone, Wishlist: ShabeWishlist }, aiTokens: (s) => shabeStoreAiTokens(s) },
 };
 

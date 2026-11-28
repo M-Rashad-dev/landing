@@ -140,7 +140,7 @@ it('returns cards by id for the wishlist, in order, without hidden or other stor
     $other = asTenant(createOwner(), fn () => Product::factory()->create(['in_store' => true])->id);
 
     $cards = $this->getJson('/api/v1/public/store/cards?'.http_build_query(['host' => SF_HOST, 'ids' => "{$b},{$hidden},{$other},{$a}"]), internalHeaders())->assertOk()->json('data');
-    expect(array_column($cards, 'id'))->toBe([$b, $a])->and($cards[0]['spec_chips'])->toBe(['Core i5']);
+    expect(array_column($cards, 'id'))->toBe([$b, $a])->and($cards[0]['spec_chips'])->toBe([['label' => 'المعالج', 'value' => 'Core i5']]);
 
     $this->getJson('/api/v1/public/store/cards?'.http_build_query(['host' => SF_HOST, 'ids' => 'x']), internalHeaders())->assertStatus(422);
     $this->getJson('/api/v1/public/store/cards?ids=1')->assertStatus(401);

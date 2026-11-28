@@ -470,3 +470,19 @@ setting; empty/loading/error states; front + back tests. Send the owner the comp
   copilot) + an entry in the tenant isolation dataset; front `features/questions/questions.test.tsx` (6) + a
   questions case per theme's product page.
 - Decisions: DECISIONS.md «أسئلة العملاء». Nothing for the owner to do.
+
+### T1 — «تيكنو» frame, card, home sections part 1 (2026-11-28) — done, waiting for the owner's review
+- **Back**: `TeknoStoreDesign` (14 section types, groups look / header / footer / general / mega_menu / product_card /
+  installments, starter design in the mockup order), registered in `StoreThemes`, `ThemeSeeder` row hidden (990);
+  `StoreSections`: `tech_hero`, `deal_of_day`, `services`, `TECH_ICONS`, tab source `best_sellers`, limit 10, brands
+  by name; `StoreDesigner::data()` (slides' products and links, tiles, the deal product, mega menu links and promo
+  pictures, pages with ids); card `spec_chips` with labels; lang `themes/store/tekno.php`; AI designer colors.
+- **Front**: `themes/store/tekno/` (root, css, card, chrome: strip / header / search by category / tools with counts /
+  nav / mega menu / drawer / bottom bar / footer, sections, installments + deal helpers), registry entry (its card
+  on the wishlist), AI tokens; Builder `features/builder/tekno-forms.tsx` + `themes/tekno.tsx` (hero, deal, services,
+  trust, tabs kicker, reviews product; look / header / footer extras, mega menu, card, installments), gallery looks,
+  strings `messages/ar/themes/store/tekno.ts` and `design.tekno`. Brands without logos in «صوفي» / «رواق».
+- **Tests**: back `tests/Feature/Themes/Store/TeknoStoreDesignTest.php` (5) + the contract test; front
+  `themes/store/tekno/tekno-store.test.tsx` (10).
+- Decisions: DECISIONS.md «تيكنو frame…». Nothing for the owner to do. Review store: `tekno-test@example.com` /
+  `demo-pass-123` (throwaway tenant).

@@ -134,7 +134,7 @@ it('puts the card rows on the product cards', function () {
     psProduct(['name' => 'ماوس']);
 
     $cards = collect($this->getJson('/api/v1/public/store/products?host='.PS_HOST, internalHeaders())->assertOk()->json('data'))->keyBy('name');
-    expect($cards['لابتوب 14']['spec_chips'])->toBe(['Core i5-1335U', '16GB DDR5', 'سنتين'])
+    expect($cards['لابتوب 14']['spec_chips'])->toBe([['label' => 'المعالج', 'value' => 'Core i5-1335U'], ['label' => 'الرامات', 'value' => '16GB DDR5'], ['label' => 'المدة', 'value' => 'سنتين']])
         ->and($cards['ماوس']['spec_chips'])->toBe([]);
 });
 

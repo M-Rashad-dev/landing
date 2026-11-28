@@ -29,6 +29,8 @@ import {
   Trash2,
   TriangleAlert,
   Undo2,
+  PanelsTopLeft,
+  Percent,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -76,6 +78,8 @@ const GROUP_META: Record<GroupKey, { icon: LucideIcon; label: string; hint: stri
   product_page: { icon: FileText, label: th.tabs.product_page, hint: t.groups.product_page },
   listing: { icon: LayoutGrid, label: th.tabs.listing, hint: t.groups.listing },
   cart: { icon: ShoppingCart, label: th.tabs.cart, hint: t.groups.cart },
+  mega_menu: { icon: PanelsTopLeft, label: th.tabs.mega_menu, hint: t.groups.mega_menu },
+  installments: { icon: Percent, label: th.tabs.installments, hint: t.groups.installments },
 };
 /** Groups that are also parts of the canvas (clicking the preview selects them). */
 const ON_CANVAS: Edit[] = ["header", "footer"];

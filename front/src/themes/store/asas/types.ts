@@ -26,5 +26,6 @@ export type SectionType = Section["type"];
 export type Design = { settings: StoreSettings; sections: Section[] };
 
 export const ICON_KEYS: IconKey[] = ["truck", "cash", "return", "shield", "support", "gift", "star", "clock", "tag", "heart", "package", "phone"];
-export const PRODUCT_LIMITS = [4, 8, 12, 16, 24, 32] as const;
+/** 10 fills two rows of a 5-column grid («تيكنو»). */
+export const PRODUCT_LIMITS = [4, 8, 10, 12, 16, 24, 32] as const;
 export const COLUMNS = [2, 3, 4, 5] as const;

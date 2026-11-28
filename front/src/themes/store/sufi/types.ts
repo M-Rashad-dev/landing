@@ -34,13 +34,15 @@ export type SufiSettings = StoreSettings & {
 export type HeroProps = BannerProps & { height: "full" | "large" | "medium"; merge_header: boolean; shade: number; kicker: string | null };
 export type MarqueeProps = { items: string[]; speed: "slow" | "normal" | "fast" };
 export type CategoriesProps = { title: string | null; description: string | null; category_ids: number[]; shape: "circle" | "square" | "card"; layout: "grid" | "slider"; columns_desktop: number; columns_mobile: number };
-export type Tab = { label: string; source: "latest" | "offers" | "category" | "manual"; category_id: number | null; product_ids: number[] };
+/** `best_sellers`: the products sold most. */
+export type Tab = { label: string; source: "latest" | "best_sellers" | "offers" | "category" | "manual"; category_id: number | null; product_ids: number[] };
 export type TabsProps = { title: string | null; description: string | null; limit: number; tabs: Tab[] };
 export type BannersProps = { items: Array<{ media_id: number; kicker: string | null; title: string | null; button_label: string | null; link: Link }> };
 export type CountdownProps = { media_id: number | null; kicker: string | null; title: string; text: string | null; button_label: string | null; link: Link; ends_at: string; on_end: "hide" | "ended" };
 export type FeaturedProps = { product_id: number; kicker: string | null };
 export type VideoProps = { url: string; title: string | null; text: string | null; cover_media_id: number | null };
-export type BrandsProps = { title: string | null; items: Array<{ media_id: number; name: string | null; link: Link }> };
+/** A brand is its logo, or its name alone when it has no logo. */
+export type BrandsProps = { title: string | null; items: Array<{ media_id: number | null; name: string | null; link: Link }> };
 export type StoryProps = { kicker: string | null; title: string; text: string | null; media_id: number; media2_id: number | null; stats: Array<{ value: string; label: string }>; button_label: string | null; link: Link };
 export type GalleryProps = { title: string | null; description: string | null; items: Array<{ media_id: number; label: string | null; link: Link }> };
 export type FaqProps = { title: string | null; text: string | null; whatsapp_button: boolean; items: Array<{ question: string; answer: string }> };

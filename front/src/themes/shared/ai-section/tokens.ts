@@ -98,6 +98,19 @@ export function rawaqStoreAiTokens(settings: unknown): AiTokens {
   });
 }
 
+/** «تيكنو»: Readex Pro titles (unless switched off), 16px cards. */
+export function teknoStoreAiTokens(settings: unknown): AiTokens {
+  const s = (settings ?? {}) as RawThemeSettings;
+  const fontBody = resolveFontFamily(s.font);
+  const fontDisplay = s.display_font !== false ? `"Readex Pro", ${fontBody}` : fontBody;
+  return buildAiTokens({
+    colors: resolveColors(s.colors),
+    fontBody,
+    fontDisplay,
+    radius: "16px",
+  });
+}
+
 export function rawaqLandingAiTokens(settings: unknown): AiTokens {
   const s = (settings ?? {}) as RawThemeSettings;
   const fontBody = resolveFontFamily(s.font);

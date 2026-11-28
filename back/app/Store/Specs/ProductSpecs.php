@@ -140,15 +140,16 @@ final class ProductSpecs
     }
 
     /**
-     * The values a product card shows (rows flagged «يظهر في كارت المنتج»), at most 4, in row order.
+     * What a product card shows (rows flagged «يظهر في كارت المنتج»), at most 4, in row order, each with its label
+     * (a theme may draw one label apart, e.g. «تيكنو»'s «الحالة» badge on the picture).
      *
-     * @return list<string>
+     * @return list<array{label: string, value: string}>
      */
     public function chips(Product $product): array
     {
         $rows = $product->relationLoaded('cardSpecs') ? $product->cardSpecs : $product->cardSpecs()->limit(self::maxCardRows())->get();
 
-        return $rows->take(self::maxCardRows())->map(fn (ProductSpecRow $r) => (string) $r->value)->values()->all();
+        return $rows->take(self::maxCardRows())->map(fn (ProductSpecRow $r) => ['label' => (string) $r->label, 'value' => (string) $r->value])->values()->all();
     }
 
     /** Copies the tables of one product into another (duplicate product). */

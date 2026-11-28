@@ -1,6 +1,6 @@
 "use client";
 
-import { Atom, BookOpen, ClipboardList, Newspaper, SplitSquareHorizontal, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, Droplets, Flower2, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListChecks, ListOrdered, MapPin, MessageCircle, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Smartphone, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Atom, MonitorSmartphone, Wrench, Zap, BookOpen, ClipboardList, Newspaper, SplitSquareHorizontal, CalendarClock, ChefHat, CircleHelp, Clock, Columns3, Droplets, Flower2, GalleryHorizontalEnd, Gem, Grid3x3, Images, LayoutGrid, ListChecks, ListOrdered, MapPin, MessageCircle, Package, MessageSquareQuote, PanelsTopLeft, PlaySquare, Smartphone, Sparkles, Star, Text, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Dialog, DialogBody, DialogContent, DialogHeader } from "@/components/ui/overlay";
 import type { MyAiSection } from "@/features/ai-designer/api";
 import { MySectionsGalleryBlock } from "@/features/ai-designer/my-sections";
@@ -11,8 +11,9 @@ import type { SectionType } from "@/themes/store/asas/types";
 import type { RawaqSectionType } from "@/themes/store/rawaq/types";
 import type { ShabeStoreSectionType } from "@/themes/store/shabe/types";
 import type { SufiSectionType } from "@/themes/store/sufi/types";
+import type { TeknoSectionType } from "@/themes/store/tekno/types";
 
-export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionType | RawaqSectionType;
+export type AnySectionType = SectionType | SufiSectionType | ShabeStoreSectionType | RawaqSectionType | TeknoSectionType;
 
 const t = ar.design.builder;
 
@@ -53,6 +54,9 @@ export const SECTION_LOOK: Record<AnySectionType, { icon: LucideIcon; tint: stri
   before_after: { icon: SplitSquareHorizontal, tint: "bg-orange-100 text-orange-700" },
   skin_quiz: { icon: ClipboardList, tint: "bg-violet-100 text-violet-700" },
   articles: { icon: Newspaper, tint: "bg-sky-100 text-sky-700" },
+  tech_hero: { icon: MonitorSmartphone, tint: "bg-blue-100 text-blue-700" },
+  deal_of_day: { icon: Zap, tint: "bg-lime-100 text-lime-800" },
+  services: { icon: Wrench, tint: "bg-cyan-100 text-cyan-700" },
   ai: { icon: Sparkles, tint: "bg-gradient-to-br from-violet-100 to-pink-100 text-violet-700" },
 };
 

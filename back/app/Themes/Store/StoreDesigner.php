@@ -258,6 +258,37 @@ final class StoreDesigner
                 array_push($mediaIds, ...array_filter(array_column($props['cards'], 'media_id')));
                 $bundles[$id] = array_map(fn (array $card) => $this->bundle((int) $card['offer_id']), $props['cards']);
             }
+            // «تيكنو»'s opening: each slide's two buttons and its product (its real price), each tile's link.
+            if ($section['type'] === 'tech_hero') {
+                foreach ($props['slides'] as $i => $slide) {
+                    $mediaIds[] = $slide['media_id'];
+                    $links["{$id}:{$i}"] = $this->href($slide['link'], $bySlug->all());
+                    $links["{$id}:{$i}:second"] = $this->href($slide['second_link'], $bySlug->all());
+                    if ($slide['product_id'] !== null) {
+                        $products["{$id}:{$i}"] = $this->catalog->cards([(int) $slide['product_id']]);
+                    }
+                }
+                foreach ($props['tiles'] as $i => $tile) {
+                    $mediaIds[] = $tile['media_id'];
+                    $links["{$id}:tile:{$i}"] = $this->href($tile['link'], $bySlug->all());
+                }
+            }
+            // «عرض اليوم»: its product as a card (price, old price, stock, chips).
+            if ($section['type'] === 'deal_of_day') {
+                $products[$id] = $this->catalog->cards([(int) $props['product_id']]);
+            }
+        }
+        // «قايمة الأقسام الكبيرة» («تيكنو»): where each link and promo card leads, and the promo pictures.
+        foreach ((array) ($design['settings']['mega_menu']['items'] ?? []) as $i => $item) {
+            foreach ($item['columns'] as $c => $column) {
+                foreach ($column['links'] as $l => $link) {
+                    $links["mega:{$i}:{$c}:{$l}"] = $this->href($link['link'], $bySlug->all());
+                }
+            }
+            if ($item['promo'] !== null) {
+                $mediaIds[] = $item['promo']['media_id'];
+                $links["mega:{$i}:promo"] = $this->href($item['promo']['link'], $bySlug->all());
+            }
         }
         // A header button with a link of its own («شابع»'s «اطلب دلوقتي»).
         if (isset($design['settings']['header']['button_link'])) {
@@ -276,10 +307,12 @@ final class StoreDesigner
             'products' => (object) $products,
             'view_all' => (object) $viewAll,
             'links' => (object) $links,
-            'media' => (object) Media::query()->whereIn('id', array_unique(array_map('intval', $mediaIds)))->get()->mapWithKeys(fn (Media $m) => [$m->id => $m->urls()])->all(),
+            // Optional pictures left empty come as null.
+            'media' => (object) Media::query()->whereIn('id', array_unique(array_map('intval', array_filter($mediaIds))))->get()->mapWithKeys(fn (Media $m) => [$m->id => $m->urls()])->all(),
             // The header menu of «أساس»: the visible categories (custom menus come with paid themes).
             'categories' => array_values(array_map(fn (array $c) => ['id' => $c['id'], 'parent_id' => $c['parent_id'], 'name' => $c['name'], 'slug' => $c['slug']], array_filter($categories, fn (array $c) => $c['depth'] <= 1))),
-            'pages' => StorePage::query()->where('is_published', true)->orderBy('position')->orderBy('id')->get(['title', 'slug'])->map(fn (StorePage $p) => ['title' => $p->title, 'slug' => $p->slug])->all(),
+            // With their ids: a footer may list chosen pages («تيكنو»'s «المساعدة»).
+            'pages' => StorePage::query()->where('is_published', true)->orderBy('position')->orderBy('id')->get(['id', 'title', 'slug'])->map(fn (StorePage $p) => ['id' => $p->id, 'title' => $p->title, 'slug' => $p->slug])->all(),
             // «آراء العملاء» set to automatic: the latest good reviews customers wrote on products.
             'reviews' => $this->reviews->forHome(),
             // «صوفي»: the category tiles and the featured product of their sections.

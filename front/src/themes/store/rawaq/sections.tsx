@@ -619,7 +619,8 @@ function Brands({ id, props }: { id: string; props: BrandsProps }) {
           {props.items.map((item, i) => (
             <li key={i}>
               <StoreLink href={data.links[`${id}:${i}`] ?? null} className="rq-card flex h-20 items-center justify-center p-3 grayscale transition hover:grayscale-0">
-                <Photo urls={image(item.media_id)} size="thumb" alt={item.name ?? ""} className="max-h-full max-w-full object-contain" />
+                {/* A brand without a logo is its name. */}
+                {item.media_id ? <Photo urls={image(item.media_id)} size="thumb" alt={item.name ?? ""} className="max-h-full max-w-full object-contain" /> : <span className="rq-display as-lg tracking-wide">{item.name}</span>}
               </StoreLink>
             </li>
           ))}

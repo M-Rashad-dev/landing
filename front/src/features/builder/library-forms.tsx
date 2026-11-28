@@ -213,7 +213,7 @@ function TabsForm({ props, onChange, errors }: { props: TabsProps; onChange: (p:
         >
           <Text id={`tab-label-${i}`} label={s.tabs.label} value={tab.label} onChange={(v) => setTab(i, { label: v ?? "" })} error={errors[`tabs.${i}.label`]} max={30} required />
           <Field label={s.tabs.source}>
-            <Select value={tab.source} onValueChange={(v) => setTab(i, { source: v as TabsProps["tabs"][number]["source"], category_id: null, product_ids: [] })} options={(["latest", "offers", "category", "manual"] as const).map((k) => ({ value: k, label: s.tabs.sources[k] }))} searchable={false} />
+            <Select value={tab.source} onValueChange={(v) => setTab(i, { source: v as TabsProps["tabs"][number]["source"], category_id: null, product_ids: [] })} options={(["latest", "best_sellers", "offers", "category", "manual"] as const).map((k) => ({ value: k, label: s.tabs.sources[k] }))} searchable={false} />
           </Field>
           {tab.source === "category" ? (
             <Field label={s.tabs.category} error={errors[`tabs.${i}.category_id`]} required>
@@ -268,7 +268,7 @@ function BannersForm({ props, onChange, errors, media, onMedia }: { props: Banne
 }
 
 /** «2026-11-20T18:00» in the merchant's own time ↔ ISO in UTC. */
-function toLocalInput(iso: string): string {
+export function toLocalInput(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -329,13 +329,19 @@ function BrandsForm({ props, onChange, errors, media, onMedia }: { props: Brands
       <Heading title={props.title} onChange={(p) => onChange({ ...props, title: p.title ?? null })} errors={errors} />
       {props.items.map((item, i) => (
         <Card key={i} title={item.name || s.brands.item(i + 1)} removeLabel={s.remove} onUp={i > 0 ? () => onChange({ ...props, items: move(props.items, i, i - 1) }) : undefined} onDown={i < props.items.length - 1 ? () => onChange({ ...props, items: move(props.items, i, i + 1) }) : undefined} onRemove={() => onChange({ ...props, items: props.items.filter((_, j) => j !== i) })}>
-          <ImagePick id={item.media_id} onChange={(id) => id && setItem(i, { media_id: id })} media={media} onMedia={onMedia} error={errors[`items.${i}.media_id`]} />
-          <Text id={`br-name-${i}`} label={s.brands.name} value={item.name} onChange={(v) => setItem(i, { name: v })} error={errors[`items.${i}.name`]} max={40} />
+          <ImagePick id={item.media_id} onChange={(id) => setItem(i, { media_id: id })} media={media} onMedia={onMedia} error={errors[`items.${i}.media_id`]} optional />
+          <Text id={`br-name-${i}`} label={s.brands.name} hint={s.brands.nameHint} value={item.name} onChange={(v) => setItem(i, { name: v })} error={errors[`items.${i}.name`]} max={40} />
           <LinkField value={item.link} onChange={(link) => setItem(i, { link })} errors={errors} prefix={`items.${i}.link`} />
         </Card>
       ))}
       {errors.items ? <p className="text-xs text-danger">{errors.items}</p> : null}
       <AddImages label={s.brands.add} max={16 - props.items.length} onMedia={onMedia} onPick={(items) => onChange({ ...props, items: [...props.items, ...items.map((m) => ({ media_id: m.id, name: null, link: NONE }))].slice(0, 16) })} />
+      {props.items.length < 16 ? (
+        <Button variant="outline" onClick={() => onChange({ ...props, items: [...props.items, { media_id: null, name: "", link: NONE }] })}>
+          <Plus />
+          {s.brands.addName}
+        </Button>
+      ) : null}
     </div>
   );
 }
