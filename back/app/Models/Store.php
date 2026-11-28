@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $tenant_id
  * @property bool $is_enabled
+ * @property bool $questions_enabled «أسئلة العملاء» on the product pages
  * @property string $theme_key the active theme (its design is in store_designs)
  * @property array{header?: list<array<string, mixed>>, footer?: list<array<string, mixed>>}|null $menus
  * @property array<string, mixed>|null $seo
@@ -24,11 +25,14 @@ class Store extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['is_enabled', 'theme_key', 'menus', 'seo'];
+    protected $fillable = ['is_enabled', 'questions_enabled', 'theme_key', 'menus', 'seo'];
+
+    /** A new store takes questions (the column's default, also before it is read back). */
+    protected $attributes = ['questions_enabled' => true];
 
     protected function casts(): array
     {
-        return ['is_enabled' => 'boolean', 'menus' => 'array', 'seo' => 'array'];
+        return ['is_enabled' => 'boolean', 'questions_enabled' => 'boolean', 'menus' => 'array', 'seo' => 'array'];
     }
 
     protected static function booted(): void

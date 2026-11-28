@@ -14,6 +14,7 @@ import { useTheme } from "@/themes/store/shared/context";
 import { useProductBuy } from "@/themes/store/shared/use-product-buy";
 import { Breadcrumb, Container, QuantityStepper, Stars } from "../parts";
 import { ProductCard } from "../product-card";
+import { ProductQuestionsSection } from "./questions";
 import { ProductReviewsSection } from "./reviews";
 import { ProductSpecs } from "@/themes/store/shared/specs";
 
@@ -252,6 +253,8 @@ export function ProductView({ page }: { page: ProductPage }) {
           <ProductSpecs specs={product.specs} titleClass="font-bold" />
         </div>
       </div>
+
+      <ProductQuestionsSection slug={product.slug} questions={page.questions} />
 
       <ProductReviewsSection productId={product.id} slug={product.slug} summary={page.rating} />
 

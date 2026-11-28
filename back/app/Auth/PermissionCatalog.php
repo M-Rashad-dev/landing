@@ -35,6 +35,7 @@ final class PermissionCatalog
         'abandoned' => ['label' => 'الطلبات المتروكة', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'delete' => 'حذف', 'recovery' => 'تذكيرات السلات ورصيد الرسائل']],
         'customers' => ['label' => 'العملاء', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'تعديل', 'block' => 'الحظر']],
         'reviews' => ['label' => 'التقييمات', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'إخفاء وإظهار']],
+        'questions' => ['label' => 'أسئلة العملاء', 'group' => 'المبيعات', 'actions' => ['view' => 'عرض', 'update' => 'الرد والنشر والإخفاء', 'delete' => 'حذف']],
         'products' => ['label' => 'المنتجات', 'group' => 'المتجر', 'actions' => [
             'view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف', 'import' => 'استيراد', 'digital' => 'ملفات وأكواد المنتجات الرقمية', 'cost' => 'تكلفة المنتجات (عرض وتعديل)',
         ]],

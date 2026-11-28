@@ -14,6 +14,7 @@ const PAGES: Array<[string, string]> = [
   ["/dashboard/abandoned", "abandoned.view"],
   ["/dashboard/customers", "customers.view"],
   ["/dashboard/reviews", "reviews.view"],
+  ["/dashboard/questions", "questions.view"],
   ["/dashboard/catalog/products/import", "products.import"],
   ["/dashboard/catalog/products/new", "products.create"],
   ["/dashboard/catalog/products", "products.view"],

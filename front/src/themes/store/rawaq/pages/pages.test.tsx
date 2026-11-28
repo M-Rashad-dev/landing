@@ -89,6 +89,16 @@ describe("«رواق» product page", () => {
     expect(screen.getByRole("rowheader", { name: "المعالج" }).nextElementSibling).toHaveTextContent("Core i5");
   });
 
+  it("shows «أسئلة العملاء» with the published answers, and none when the store turned them off", () => {
+    draw(<RawaqProductView page={{ ...page, questions: { count: 1, items: [{ id: 1, name: "سارة م.", question: "الضمان كام سنة؟", answer: "سنتين.", answered_at: null }] } }} />, settings({}));
+    expect(screen.getByRole("heading", { name: new RegExp(ar.storefront.questions.title) })).toBeInTheDocument();
+    expect(screen.getByText("سنتين.")).toBeInTheDocument();
+    cleanup();
+
+    draw(<RawaqProductView page={{ ...page, questions: null }} />, settings({}));
+    expect(screen.queryByRole("heading", { name: new RegExp(ar.storefront.questions.title) })).toBeNull();
+  });
+
   it("leaves out each part the merchant turned off, and puts her buttons in the bar at the bottom", () => {
     draw(<RawaqProductView page={page} />, settings({ promises: [], related_enabled: false, whatsapp_ask: false, description: false, sticky_buttons: "both" }));
     expect(screen.queryByRole("heading", { name: t.product.related })).toBeNull();

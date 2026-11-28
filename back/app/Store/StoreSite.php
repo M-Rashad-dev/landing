@@ -14,6 +14,7 @@ use App\Services\PublicPageData;
 use App\Services\PublicSite;
 use App\Store\Accounts\ProductReviews;
 use App\Store\Payments\StorePayments;
+use App\Store\Questions\ProductQuestions;
 use App\Support\Pixels;
 use App\Themes\Store\StoreDesigner;
 use Illuminate\Support\Collection;
@@ -34,6 +35,7 @@ final class StoreSite
         private readonly SeoDefaults $seo,
         private readonly StoreDesigner $designer,
         private readonly ProductReviews $reviews,
+        private readonly ProductQuestions $questions,
     ) {}
 
     /** The live store of the tenant, or null (then "/" stays the landing home). */
@@ -157,6 +159,8 @@ final class StoreSite
                 ? $this->catalog->similar($product, ! self::showsOutOfStock($store))
                 : $this->catalog->related($product, ! self::showsOutOfStock($store)),
             'rating' => $this->reviews->summary($product->id),
+            // «أسئلة العملاء»: the published answers (null when the store turned questions off).
+            'questions' => $this->questions->forProduct($store, $product->id),
             'low_stock_threshold' => $product->low_stock_threshold,
         ];
     }

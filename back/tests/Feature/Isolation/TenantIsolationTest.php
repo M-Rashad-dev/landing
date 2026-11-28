@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductQuestion;
 use App\Models\User;
 
 /*
@@ -101,6 +102,14 @@ dataset('tenant resources', [
         '/api/v1/dashboard/blocked-customers',
         [
             ['DELETE', '/api/v1/dashboard/blocked-customers/{id}', []],
+        ],
+    ],
+    'product questions' => [
+        fn (User $owner) => asTenant($owner, fn () => ProductQuestion::query()->create(['product_id' => Product::factory()->create()->id, 'name' => 'x', 'question' => 'سؤال عن المنتج']))->id,
+        '/api/v1/dashboard/questions',
+        [
+            ['PATCH', '/api/v1/dashboard/questions/{id}', ['answer' => 'x']],
+            ['DELETE', '/api/v1/dashboard/questions/{id}', []],
         ],
     ],
     'domains' => [

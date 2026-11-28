@@ -414,6 +414,33 @@ export const storefront = {
     stars: (n: number) => `${n} نجوم`,
   },
 
+  // «أسئلة العملاء» on a product page (docs/plans/tekno/PLAN.md §3).
+  questions: {
+    title: "أسئلة العملاء",
+    count: (n: number) => (n === 1 ? "سؤال واحد" : n === 2 ? "سؤالين" : n <= 10 ? `${n} أسئلة` : `${n} سؤال`),
+    empty: "لسه محدش سأل عن المنتج ده. عندك سؤال؟ اسأل والمتجر هيرد عليك.",
+    ask: "اسأل سؤال",
+    askAnother: "اسأل سؤال تاني",
+    formTitle: "سؤالك عن المنتج",
+    name: "اسمك",
+    phone: "رقم موبايلك",
+    phoneHint: "لو حابب المتجر يكلّمك. مش بيظهر لحد.",
+    question: "سؤالك",
+    placeholder: "مثلًا: المقاس ده مناسب لطول 175؟",
+    send: "ابعت السؤال",
+    cancel: "إلغاء",
+    sent: "وصل سؤالك. هيظهر هنا أول ما المتجر يرد عليه.",
+    answer: "رد المتجر",
+    asked: (name: string) => `سأل ${name}`,
+    errors: {
+      name: "اكتب اسمك",
+      question: "اكتب سؤالك (5 حروف على الأقل)",
+      questionLong: "السؤال أطول من 500 حرف",
+      phone: "رقم الموبايل مش صحيح",
+      failed: "مقدرناش نبعت سؤالك. جرّب تاني.",
+    },
+  },
+
   checkoutAccount: {
     haveAccount: "عندك حساب؟",
     signIn: "ادخل وبياناتك تتملى لوحدها",

@@ -17,10 +17,12 @@ use App\Models\Store;
 use App\Models\StorePage;
 use App\Models\StoreStat;
 use App\Pricing\PriceCalculator;
+use App\Rules\EgyptPhone;
 use App\Services\FormToken;
 use App\Services\PhoneNormalizer;
 use App\Store\Accounts\CustomerAccounts;
 use App\Store\CreateStoreOrder;
+use App\Store\Questions\ProductQuestions;
 use App\Store\QuizResults;
 use App\Store\Specs\ProductCompare;
 use App\Store\Specs\SpecFilters;
@@ -116,6 +118,29 @@ final class StoreController extends Controller
     public function product(Request $request, string $slug): JsonResponse
     {
         return $this->inStore($request, fn (Store $store) => $this->ok($this->store->product($store, mb_strtolower($slug)) ?? throw new ApiException(404, 'not_found', __('landing.not_found'))));
+    }
+
+    /**
+     * «اسأل سؤال» on a product page: kept for the merchant to answer (shown once answered and published). Always 202
+     * for a valid form (bots learn nothing); 429 after 5 questions an hour.
+     */
+    public function question(Request $request, string $slug, ProductQuestions $questions): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+            'phone' => ['nullable', 'string', 'max:30', new EgyptPhone],
+            'question' => ['required', 'string', 'min:5', 'max:500'],
+            'form_token' => ['nullable', 'string', 'max:100'],
+            'website' => ['nullable', 'string', 'max:200'],
+            'ip' => ['nullable', 'ip'],
+        ]);
+
+        return $this->inStore($request, function (Store $store) use ($slug, $data, $questions) {
+            $product = $this->catalog->sellable()->where('slug', mb_strtolower($slug))->first() ?? throw new ApiException(404, 'not_found', __('landing.not_found'));
+            $questions->ask($store, $product, $data);
+
+            return $this->noStore(new JsonResponse(null, 202));
+        });
     }
 
     public function page(Request $request, string $slug): JsonResponse

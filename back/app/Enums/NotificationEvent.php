@@ -28,6 +28,8 @@ enum NotificationEvent: string
     case CustomerReply = 'customer_reply';
     /** Cart reminders stopped: the WhatsApp message balance ran out. */
     case RecoveryBalanceEmpty = 'recovery_balance_empty';
+    /** A visitor asked about a product («أسئلة العملاء»). */
+    case ProductQuestion = 'product_question';
 
     // The platform owner.
     case ReceiptSubmitted = 'receipt_submitted';
@@ -51,6 +53,7 @@ enum NotificationEvent: string
             self::AiLowBalance => 'ai_wallet.view',
             self::MailboxFailed => 'emails.view',
             self::RecoveryBalanceEmpty => 'abandoned.recovery',
+            self::ProductQuestion => 'questions.view',
             default => 'billing.view',
         };
     }

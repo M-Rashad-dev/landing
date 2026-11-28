@@ -28,7 +28,7 @@ const TONES: Record<StaffMember["state"], Tone> = { invited: "attention", active
 export const PRESETS: Record<keyof typeof t.presets, string[]> = {
   callCenter: ["home.view", "orders.view", "orders.confirm", "orders.status", "orders.update", "customers.view", "abandoned.view", "abandoned.update"],
   shipping: ["orders.view", "orders.status", "orders.ship", "shipping.view"],
-  products: ["products.view", "products.create", "products.update", "products.import", "products.digital", "categories.view", "categories.create", "categories.update", "reviews.view", "reviews.update"],
+  products: ["products.view", "products.create", "products.update", "products.import", "products.digital", "categories.view", "categories.create", "categories.update", "reviews.view", "reviews.update", "questions.view", "questions.update"],
   marketing: ["offers.view", "offers.create", "offers.update", "coupons.view", "coupons.create", "coupons.update", "upsells.view", "upsells.create", "upsells.update", "landings.view", "landings.create", "landings.update", "landings.publish", "analytics.view"],
 };
 

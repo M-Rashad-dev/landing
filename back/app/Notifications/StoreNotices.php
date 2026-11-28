@@ -12,12 +12,14 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\ProductImport;
+use App\Models\ProductQuestion;
 use App\Models\Shipment;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Support\CairoTime;
 use App\Support\Money;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Str;
 
 /** What a store owner is told, written once here (bell + email + the WhatsApp template values). */
 final class StoreNotices
@@ -284,6 +286,23 @@ final class StoreNotices
             ],
             __('notifications.payment_receipt.action'),
             dedupeKey: 'payment_receipt:'.$payment->id,
+        ));
+    }
+
+    /** A visitor asked about a product: the merchant answers it in «أسئلة العملاء» (once per question). */
+    public function productQuestion(ProductQuestion $question, string $product): void
+    {
+        $this->center->toStore($question->tenant_id, new Notice(
+            NotificationEvent::ProductQuestion,
+            __('notifications.product_question.title', ['product' => $product]),
+            __('notifications.product_question.body', ['name' => $question->name, 'question' => Str::limit($question->question, 160)]),
+            '/dashboard/questions?status=unanswered',
+            [
+                ['label' => __('notifications.product_question.product'), 'value' => $product],
+                ['label' => __('notifications.product_question.question'), 'value' => $question->question],
+            ],
+            __('notifications.product_question.action'),
+            dedupeKey: 'product_question:'.$question->id,
         ));
     }
 

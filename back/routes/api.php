@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ProductController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductFileController;
 use App\Http\Controllers\Api\V1\Dashboard\ProductImportController;
 use App\Http\Controllers\Api\V1\Dashboard\ProfitController;
+use App\Http\Controllers\Api\V1\Dashboard\QuestionController;
 use App\Http\Controllers\Api\V1\Dashboard\RefundController;
 use App\Http\Controllers\Api\V1\Dashboard\ReviewController;
 use App\Http\Controllers\Api\V1\Dashboard\SetupSkipController;
@@ -343,6 +344,11 @@ Route::prefix('dashboard')
 
         Route::get('reviews', [ReviewController::class, 'index']);
         Route::patch('reviews/{review}', [ReviewController::class, 'update']);
+        // «أسئلة العملاء» (docs/plans/tekno/PLAN.md §3).
+        Route::get('questions', [QuestionController::class, 'index']);
+        Route::put('questions/settings', [QuestionController::class, 'settings']);
+        Route::patch('questions/{question}', [QuestionController::class, 'update'])->whereNumber('question');
+        Route::delete('questions/{question}', [QuestionController::class, 'destroy'])->whereNumber('question');
         Route::get('customers', [CustomerController::class, 'index']);
         Route::get('customers/{customer}', [CustomerController::class, 'show']);
         Route::patch('customers/{customer}', [CustomerController::class, 'update']);
@@ -485,6 +491,8 @@ Route::prefix('public')
         Route::post('store/events', [PublicStoreController::class, 'event'])->middleware('throttle:public-events');
         Route::post('store/quiz', [PublicStoreController::class, 'quiz'])->middleware('throttle:public-quiz');
         Route::post('store/quiz/advice', [PublicStoreController::class, 'quizAdvice'])->middleware('throttle:public-quiz');
+        // «اسأل سؤال» on a product page (5 an hour per visitor are kept: ProductQuestions::ask).
+        Route::post('store/products/{slug}/questions', [PublicStoreController::class, 'question'])->middleware('throttle:public-questions');
 
         // Storefront customer accounts (phone + one-time code) and product reviews.
         Route::get('store/products/{slug}/reviews', [StoreAccountController::class, 'productReviews'])->middleware('throttle:public-read');

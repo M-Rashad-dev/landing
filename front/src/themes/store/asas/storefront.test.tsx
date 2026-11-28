@@ -214,6 +214,16 @@ describe("product page", () => {
     expect(screen.queryByRole("heading", { name: ar.specs.storefront.title })).toBeNull();
   });
 
+  it("shows «أسئلة العملاء» before the reviews, and none when the store turned them off", () => {
+    inTheme(<ProductView page={{ ...shirt, questions: { count: 1, items: [{ id: 1, name: "سارة م.", question: "الضمان كام سنة؟", answer: "سنتين.", answered_at: null }] } }} />);
+    const questions = screen.getByRole("heading", { name: new RegExp(ar.storefront.questions.title) });
+    expect(questions.compareDocumentPosition(screen.getByRole("heading", { name: ar.storefront.reviews.title })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    cleanup();
+
+    inTheme(<ProductView page={{ ...shirt, questions: null }} />);
+    expect(screen.queryByRole("heading", { name: new RegExp(ar.storefront.questions.title) })).toBeNull();
+  });
+
   it("goes straight to checkout with «اشتري دلوقتي»", () => {
     inTheme(<ProductView page={{ ...shirt, product: { ...shirt.product, stock_mode: "unlimited", variant_stock: null, options: [] } }} />);
     fireEvent.click(screen.getByRole("button", { name: ar.storefront.product.buyNow }));

@@ -107,6 +107,18 @@ describe("«شابع» product page", () => {
     expect(screen.getByRole("rowheader", { name: "المعالج" }).nextElementSibling).toHaveTextContent("Core i5");
   });
 
+  it("shows «أسئلة العملاء» with the published answers", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ShabeStoreRoot settings={settings({})} data={data} storeName="شابع" mode="live">
+          <ShabeProductView page={{ ...page, questions: { count: 1, items: [{ id: 1, name: "سارة م.", question: "الضمان كام سنة؟", answer: "سنتين.", answered_at: null }] } }} />
+        </ShabeStoreRoot>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("heading", { name: new RegExp(ar.storefront.questions.title) })).toBeInTheDocument();
+    expect(screen.getByText("الضمان كام سنة؟")).toBeInTheDocument();
+  });
+
   it("shows «اطلبه مع» and the WhatsApp question, each only when turned on", () => {
     draw({});
     expect(screen.getByRole("heading", { name: tp.related })).toBeInTheDocument();

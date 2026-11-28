@@ -1,4 +1,4 @@
-import { BadgeDollarSign, BarChart3, ListChecks, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, TrendingUp, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
+import { BadgeDollarSign, BarChart3, ListChecks, Blocks, Bot, CreditCard, FileText, FolderTree, Gift, Headset, History, Home, Layers, Megaphone, MessageCircle, MessageCircleQuestion, Package, Palette, ReceiptText, Settings, ShoppingBag, Sparkles, ShoppingCart, Star, Store, Tag, TicketPercent, TrendingUp, Truck, Undo2, Users, type LucideIcon } from "lucide-react";
 import { canOpen } from "@/lib/auth/permissions";
 import { ar } from "@/messages/ar";
 
@@ -27,6 +27,7 @@ export const DASHBOARD_NAV: NavGroup[] = [
       { href: "/dashboard/abandoned", label: t.items.abandoned, icon: ShoppingCart, status: "ready" },
       { href: "/dashboard/customers", label: t.items.customers, icon: Users, status: "ready" },
       { href: "/dashboard/reviews", label: t.items.reviews, icon: Star, status: "ready" },
+      { href: "/dashboard/questions", label: t.items.questions, icon: MessageCircleQuestion, status: "ready" },
     ],
   },
   {

@@ -15,6 +15,7 @@ import { StoreLink } from "@/themes/store/shared/context";
 import { useProductBuy } from "@/themes/store/shared/use-product-buy";
 import { useViewers } from "@/themes/store/shared/use-viewers";
 import { Stars } from "../../asas/parts";
+import { ProductQuestionsSection } from "../../asas/pages/questions";
 import { ProductReviewsSection } from "../../asas/pages/reviews";
 import { RawaqCard } from "../card";
 import { useRawaq, useRawaqPage } from "../root";
@@ -350,6 +351,8 @@ export function RawaqProductView({ page }: { page: ProductPage }) {
           <ProductSpecs specs={product.specs} titleClass="rq-display" />
         </div>
       </div>
+
+      <ProductQuestionsSection slug={product.slug} questions={page.questions} titleClass="rq-display" />
 
       {look.reviews ? <ProductReviewsSection productId={product.id} slug={product.slug} summary={page.rating} /> : null}
 

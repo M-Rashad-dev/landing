@@ -130,6 +130,8 @@ class AppServiceProvider extends ServiceProvider
         // «اختبار البشرة»: a visitor counts at most 10 finished quizzes a day (AI recommendations follow the same limit).
         RateLimiter::for('public-quiz', fn (Request $request) => Limit::perDay(10)->by('public-quiz:'.$visitor($request)));
         RateLimiter::for('public-leads', fn (Request $request) => Limit::perMinute(15)->by('public-leads:'.$visitor($request)));
+        // «اسأل سؤال»: a loose guard on attempts; 5 kept questions an hour per visitor are counted by ProductQuestions::ask.
+        RateLimiter::for('public-questions', fn (Request $request) => Limit::perMinute(10)->by('public-questions:'.$visitor($request)));
         // Page visit counters: a few per page view (view + form start), generous per visitor IP.
         RateLimiter::for('public-events', fn (Request $request) => Limit::perMinute(120)->by('public-events:'.$visitor($request)));
         // "Send test" makes a real outgoing request: 10 per minute per store.

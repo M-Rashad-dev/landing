@@ -15,6 +15,7 @@ export const nav = {
     abandoned: "الطلبات المتروكة",
     customers: "العملاء",
     reviews: "التقييمات",
+    questions: "أسئلة العملاء",
     products: "المنتجات",
     categories: "التصنيفات",
     specGroups: "مجموعات المواصفات",

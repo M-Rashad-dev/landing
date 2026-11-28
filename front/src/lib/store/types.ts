@@ -121,7 +121,13 @@ export type ProductPage = {
   related: ProductCard[];
   low_stock_threshold: number | null;
   rating: { average: number; count: number; stars: Record<string, number> };
+  /** «أسئلة العملاء»: the published answers; null when the store turned questions off (absent in samples). */
+  questions?: ProductQuestions | null;
 };
+
+/** A visitor's question with the store's answer, as the product page shows it (the asker's first name only). */
+export type ProductQuestion = { id: number; name: string; question: string; answer: string; answered_at: string | null };
+export type ProductQuestions = { count: number; items: ProductQuestion[] };
 
 /** A spec filter of a list: a label and its values with how many products have each. */
 export type SpecFacet = { label: string; values: Array<{ value: string; count: number }> };

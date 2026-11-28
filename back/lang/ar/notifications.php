@@ -96,6 +96,13 @@ return [
         'body' => 'تذكيرات واتساب للسلات المتروكة وقفت لحد ما تشحن رسائل (الإيميلات شغالة).',
         'action' => 'اشحن رسائل',
     ],
+    'product_question' => [
+        'title' => 'سؤال جديد على «:product»',
+        'body' => ':name بيسأل: :question',
+        'product' => 'المنتج',
+        'question' => 'السؤال',
+        'action' => 'رد على السؤال',
+    ],
     'customer_reply' => [
         'cancelled_title' => 'العميل لغى الطلب #:number على واتساب',
         'cancelled_body' => ':customer ضغط «الغي الطلب» في رسالة التأكيد، والطلب اتلغى.',

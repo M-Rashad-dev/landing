@@ -453,3 +453,20 @@ setting; empty/loading/error states; front + back tests. Send the owner the comp
   review product); front `themes/store/shared/shopping-lists.test.tsx` (8) + a spec-filter case in «رواق» / «شابع»
   listings.
 - Decisions: DECISIONS.md «Spec filters, «قارن», «المفضلة»». Nothing for the owner to do.
+
+### S3 — Product questions «أسئلة العملاء» (2026-11-28) — done, waiting for the owner's review
+- **Back**: migration `2026_12_20_100001_create_product_questions` (product_questions + `stores.questions_enabled`);
+  `ProductQuestion` model; `App\Store\Questions\ProductQuestions` (ask with token / honeypot / 5 an hour, public
+  answers, answer / publish, delete, list + counts, switch); `POST public/store/products/{slug}/questions`
+  (`throttle:public-questions`); product page payload `questions` (null when off); dashboard `QuestionController`
+  (`GET questions`, `PATCH|DELETE questions/{question}`, `PUT questions/settings`) + `ProductQuestionRequest`;
+  permission page `questions.*`; `NotificationEvent::ProductQuestion` + `StoreNotices::productQuestion`; copilot
+  `ProductQuestionsResource`.
+- **Front**: «أسئلة العملاء» dashboard page (`features/questions`, tabs with counts, answer dialog, hide / publish,
+  delete, the store switch), nav item under «المبيعات», bell icon; storefront block `asas/pages/questions.tsx` + hook
+  `shared/use-question-form.ts` in «أساس» / «صوفي» / «شابع» / «رواق»; relay `api/public/store/questions`.
+- **Tests**: back `tests/Feature/Questions/ProductQuestionsTest.php` (9: ask + notify + publish flow, validation,
+  bots, hourly limit, store switch, list order / counts / filters / delete, 401 + isolation, staff permissions,
+  copilot) + an entry in the tenant isolation dataset; front `features/questions/questions.test.tsx` (6) + a
+  questions case per theme's product page.
+- Decisions: DECISIONS.md «أسئلة العملاء». Nothing for the owner to do.

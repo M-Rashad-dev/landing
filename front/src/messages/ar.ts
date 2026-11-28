@@ -29,6 +29,7 @@ import { orders } from "./ar/orders";
 import { profit } from "./ar/profit";
 import { promotions } from "./ar/promotions";
 import { refunds } from "./ar/refunds";
+import { questions } from "./ar/questions";
 import { reviews } from "./ar/reviews";
 import { settings } from "./ar/settings";
 import { shabe } from "./ar/themes/landing/shabe";
@@ -44,4 +45,4 @@ import { shabeStore } from "./ar/themes/store/shabe";
 import { sufi } from "./ar/themes/store/sufi";
 import { errors, validation } from "./ar/validation";
 
-export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, specs, promotions, shipping, carriers, mail, staff, orders, refunds, home, settings, storefront, design, reviews, storePages, analytics, profit, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, rawaqLanding, shabeStore, rawaqStore, notifications, aiDesigner, copilot } as const;
+export const ar = { common, nav, domain, showcase, auth, validation, errors, media, catalog, specs, promotions, shipping, carriers, mail, staff, orders, refunds, home, settings, storefront, design, reviews, questions, storePages, analytics, profit, admin, landings, bidaya, growth, marketing, imports, support, sufi, shabe, sufiLanding, rawaqLanding, shabeStore, rawaqStore, notifications, aiDesigner, copilot } as const;
