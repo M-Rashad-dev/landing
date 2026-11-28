@@ -6,16 +6,19 @@ import { AsasFrame, AsasStore, HomeSections, type Selection } from "./asas/asas-
 import { AccountView, MyOrderView, SignInView } from "./asas/pages/account";
 import { CartView } from "./asas/pages/cart";
 import { CheckoutView } from "./asas/pages/checkout";
+import { CompareView } from "./asas/pages/compare";
 import { OrderDone, StaticPageView, StoreNotFound } from "./asas/pages/info";
 import { Listing } from "./asas/pages/listing";
 import { ProductView } from "./asas/pages/product";
 import { TrackView } from "./asas/pages/track";
+import { WishlistView } from "./asas/pages/wishlist";
 import { ASAS_KEY, type Design } from "./asas/types";
 import { RawaqCartView } from "./rawaq/pages/cart";
 import { RawaqCheckoutView } from "./rawaq/pages/checkout";
 import { RawaqOrderDone } from "./rawaq/pages/done";
 import { RawaqListing } from "./rawaq/pages/listing";
 import { RawaqProductView } from "./rawaq/pages/product";
+import { RawaqCard } from "./rawaq/card";
 import { RawaqFrame, RawaqHomeSections, RawaqStore } from "./rawaq/rawaq-store";
 import { RAWAQ_KEY, type RawaqDesign, type RawaqSection } from "./rawaq/types";
 import type { ThemeMode } from "./shared/context";
@@ -25,6 +28,7 @@ import { ShabeCheckoutView } from "./shabe/pages/checkout";
 import { ShabeOrderDone } from "./shabe/pages/done";
 import { ShabeListing } from "./shabe/pages/listing";
 import { ShabeProductView } from "./shabe/pages/product";
+import { FoodCard } from "./shabe/card";
 import { ShabeFrame, ShabeHomeSections, ShabeStore } from "./shabe/shabe-store";
 import { SHABE_STORE_KEY, type ShabeStoreDesign, type ShabeStoreSection } from "./shabe/types";
 import { SufiFrame, SufiHomeSections, SufiStore } from "./sufi/sufi-store";
@@ -57,7 +61,18 @@ const ASAS_PAGES = {
   SignIn: SignInView,
   Account: AccountView,
   MyOrder: MyOrderView,
+  /** «قارن» and «المفضلة» (lists in the visitor's browser); a theme may pass its own card to the wishlist. */
+  Compare: CompareView,
+  Wishlist: WishlistView as React.ComponentType,
 };
+
+function RawaqWishlist() {
+  return <WishlistView Card={RawaqCard} />;
+}
+
+function ShabeWishlist() {
+  return <WishlistView Card={FoodCard} />;
+}
 
 export type StoreTheme = {
   /** Header, the page and footer around every live page. */
@@ -114,8 +129,8 @@ const STORE_THEMES: Record<string, StoreTheme> = {
   [SUFI_KEY]: { Frame: SufiFrame, Home: SufiHome, Canvas: SufiCanvas, pages: ASAS_PAGES, aiTokens: sufiStoreAiTokens },
   // «شابع · متجر»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
   // «رواق»: its own frame, home and shopping pages; account, tracking and static pages are the shared ones in its colors.
-  [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: { ...ASAS_PAGES, Product: RawaqProductView, Listing: RawaqListing, Cart: RawaqCartView, Checkout: RawaqCheckoutView, OrderDone: RawaqOrderDone }, aiTokens: (s) => rawaqStoreAiTokens(s) },
-  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone }, aiTokens: (s) => shabeStoreAiTokens(s) },
+  [RAWAQ_KEY]: { Frame: RawaqFrame, Home: RawaqHome, Canvas: RawaqCanvas, pages: { ...ASAS_PAGES, Product: RawaqProductView, Listing: RawaqListing, Cart: RawaqCartView, Checkout: RawaqCheckoutView, OrderDone: RawaqOrderDone, Wishlist: RawaqWishlist }, aiTokens: (s) => rawaqStoreAiTokens(s) },
+  [SHABE_STORE_KEY]: { Frame: ShabeFrame, Home: ShabeHome, Canvas: ShabeCanvas, pages: { ...ASAS_PAGES, Product: ShabeProductView, Listing: ShabeListing, Cart: ShabeCartView, Checkout: ShabeCheckoutView, OrderDone: ShabeOrderDone, Wishlist: ShabeWishlist }, aiTokens: (s) => shabeStoreAiTokens(s) },
 };
 
 /** Every store theme this front end draws (the Builder's registry must list the same). */

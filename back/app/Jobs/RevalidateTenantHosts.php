@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\Tenant;
 use App\Services\FrontendRevalidator;
+use App\Store\Specs\SpecFilters;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -13,8 +14,8 @@ use Throwable;
 
 /**
  * Purges Next's cache for every active host of a tenant (plus optional extra
- * hosts, e.g. a subdomain that was just renamed). Without it, pages refresh
- * within 60 s anyway thanks to `revalidate: 60`.
+ * hosts, e.g. a subdomain that was just renamed), and the store's cached spec
+ * filters. Without it, pages refresh within 60 s anyway thanks to `revalidate: 60`.
  */
 final class RevalidateTenantHosts implements ShouldQueue
 {
@@ -36,6 +37,8 @@ final class RevalidateTenantHosts implements ShouldQueue
 
     public function handle(FrontendRevalidator $revalidator): void
     {
+        // The store's products or specs changed: its spec filters are counted again.
+        app(SpecFilters::class)->forget($this->tenantId);
         $tenant = Tenant::query()->find($this->tenantId);
         $hosts = array_merge($tenant?->activeHosts() ?? [], $this->extraHosts);
 

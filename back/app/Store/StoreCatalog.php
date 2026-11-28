@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Services\PublicPageData;
 use App\Store\Payments\StorePayments;
 use App\Store\Specs\ProductSpecs;
+use App\Store\Specs\SpecFilters;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,6 +34,7 @@ final class StoreCatalog
         private readonly PublicPageData $data,
         private readonly SeoDefaults $seo,
         private readonly ProductSpecs $specs,
+        private readonly SpecFilters $specFilters,
     ) {}
 
     /** @return Builder<Product> */
@@ -42,35 +44,21 @@ final class StoreCatalog
     }
 
     /**
-     * @param  array{category?: string|null, q?: string|null, sort?: string|null, min?: int|float|null, max?: int|float|null, in_stock?: bool|null, offers?: bool|null, page?: int|null}  $filters
+     * @param  array{category?: string|null, q?: string|null, sort?: string|null, min?: int|float|null, max?: int|float|null, in_stock?: bool|null, offers?: bool|null, page?: int|null, spec?: array<string, list<string>>}  $filters
      * @return LengthAwarePaginator<int, Product>
      */
     public function search(array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = $this->withRatings($this->sellable()->with(self::CARD_WITH));
+        $query = $this->withRatings($this->listed($filters)->with(self::CARD_WITH));
 
-        if (($filters['offers'] ?? false) === true) {
-            $this->onOffer($query);
-        }
-
-        if (! empty($filters['category'])) {
-            $category = $this->visibleCategories()->firstWhere('slug', $filters['category']);
-            $ids = $category === null ? [0] : $this->categories->withDescendants($category->id);
-            $query->whereHas('categories', fn (Builder $q) => $q->whereIn('categories.id', $ids));
-        }
-        if (! empty($filters['q'])) {
-            $like = '%'.addcslashes(mb_substr(trim((string) $filters['q']), 0, 60), '%_\\').'%';
-            // The description too: a customer looks for an ingredient or a feature the merchant wrote there.
-            $query->where(fn (Builder $q) => $q->where('name', 'like', $like)->orWhere('short_description', 'like', $like)->orWhere('description', 'like', $like));
-        }
         if (isset($filters['min']) && $filters['min'] !== null) {
             $query->where('price', '>=', Money::toDecimal(Money::toCents((string) $filters['min'])));
         }
         if (isset($filters['max']) && $filters['max'] !== null) {
             $query->where('price', '<=', Money::toDecimal(Money::toCents((string) $filters['max'])));
         }
-        if (($filters['in_stock'] ?? false) === true) {
-            $this->inStock($query);
+        if (! empty($filters['spec'])) {
+            $this->specFilters->apply($query, $filters['spec']);
         }
 
         match ($filters['sort'] ?? 'newest') {
@@ -82,6 +70,50 @@ final class StoreCatalog
         };
 
         return $query->paginate($perPage, ['*'], 'page', max(1, (int) ($filters['page'] ?? 1)));
+    }
+
+    /**
+     * The spec filters of a list (category / search / offers), before the price and spec choices.
+     *
+     * @param  array{category?: string|null, q?: string|null, in_stock?: bool|null, offers?: bool|null}  $filters
+     * @return list<array{label: string, values: list<array{value: string, count: int}>}>
+     */
+    public function facets(array $filters): array
+    {
+        $key = ['category' => $filters['category'] ?? null, 'q' => mb_strtolower(trim((string) ($filters['q'] ?? ''))), 'offers' => (bool) ($filters['offers'] ?? false), 'in_stock' => (bool) ($filters['in_stock'] ?? false)];
+
+        return $this->specFilters->facets($this->listed($filters), $key);
+    }
+
+    /**
+     * The products a list shows before price, spec and sort: its category (with the ones under it), search words,
+     * offers only, in stock only.
+     *
+     * @param  array{category?: string|null, q?: string|null, in_stock?: bool|null, offers?: bool|null}  $filters
+     * @return Builder<Product>
+     */
+    private function listed(array $filters): Builder
+    {
+        $query = $this->sellable();
+
+        if (($filters['offers'] ?? false) === true) {
+            $this->onOffer($query);
+        }
+        if (! empty($filters['category'])) {
+            $category = $this->visibleCategories()->firstWhere('slug', $filters['category']);
+            $ids = $category === null ? [0] : $this->categories->withDescendants($category->id);
+            $query->whereHas('categories', fn (Builder $q) => $q->whereIn('categories.id', $ids));
+        }
+        if (! empty($filters['q'])) {
+            $like = '%'.addcslashes(mb_substr(trim((string) $filters['q']), 0, 60), '%_\\').'%';
+            // The description too: a customer looks for an ingredient or a feature the merchant wrote there.
+            $query->where(fn (Builder $q) => $q->where('name', 'like', $like)->orWhere('short_description', 'like', $like)->orWhere('description', 'like', $like));
+        }
+        if (($filters['in_stock'] ?? false) === true) {
+            $this->inStock($query);
+        }
+
+        return $query;
     }
 
     /**

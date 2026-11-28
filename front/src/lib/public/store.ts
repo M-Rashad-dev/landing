@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { serverEnv } from "@/lib/env";
+import { specFromSearch } from "@/lib/store/spec-filter";
 import type { ProductList, ProductPage, StaticPage, StoreConfig } from "@/lib/store/types";
 import { pick } from "@/themes/shared/design";
 import { publicGet } from "./fetch";
@@ -85,7 +86,8 @@ export function storeMetadata(config: StoreConfig, page: { title?: string | null
 export const STORE_SORTS = ["newest", "price_asc", "price_desc", "best_sellers", "featured"] as const;
 export type StoreSort = (typeof STORE_SORTS)[number];
 
-export type ListQuery = { category?: string; offers?: "1"; q?: string; sort?: StoreSort; min?: string; max?: string; in_stock?: "1"; page?: string };
+/** `spec`: the chosen spec filters as canonical JSON (lib/store/spec-filter; the link holds `spec[label]=value`). */
+export type ListQuery = { category?: string; offers?: "1"; q?: string; sort?: StoreSort; min?: string; max?: string; in_stock?: "1"; spec?: string; page?: string };
 
 /** A clean, bounded list query from the URL (unknown keys dropped). */
 export function listQuery(search: Record<string, string | string[] | undefined>, fixed: Pick<ListQuery, "category" | "offers"> = {}): ListQuery {
@@ -103,6 +105,8 @@ export function listQuery(search: Record<string, string | string[] | undefined>,
     if (v && /^\d{1,7}(\.\d{1,2})?$/.test(v)) out[key] = v;
   }
   if (one("in_stock") === "1") out.in_stock = "1";
+  const spec = specFromSearch(search);
+  if (spec) out.spec = spec;
   const page = one("page");
   if (page && /^\d{1,4}$/.test(page) && Number(page) > 1) out.page = page;
   return out;

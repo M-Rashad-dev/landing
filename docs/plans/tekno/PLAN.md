@@ -437,3 +437,19 @@ setting; empty/loading/error states; front + back tests. Send the owner the comp
   touching values, delete keeps copies, one query for chips, import / export round trip, copilot fill + undo);
   front `features/catalog/specs/specs.test.tsx` + a specs case per theme's product page.
 - Decisions: DECISIONS.md «المواصفات». Nothing for the owner to do (no new keys, no WhatsApp templates).
+
+### S2 — Spec filters, comparison, wishlist, review product name (2026-11-28) — done, waiting for the owner's review
+- **Back**: `App\Store\Specs\SpecFilters` (parse, apply, facets cached + dropped by `RevalidateTenantHosts`),
+  `StoreCatalog::search` / `facets` on one `listed()` base, `public/store/products` takes `spec` and returns
+  `meta.facets`; `ProductCompare` + `GET public/store/compare`; `GET public/store/cards` (wishlist);
+  `ProductReviews::forHome` `product {name, slug}`; reserved slugs `compare`, `wishlist`.
+- **Front**: `lib/store/spec-filter.ts` (link ⇄ canonical JSON), `listQuery` / `useListing` (`specValue`,
+  `clearSpec`), shared `themes/store/shared/spec-filters.tsx` in the three listing panels; `lib/store/id-list.ts`
+  + `compare.ts` / `wishlist.ts` (browser lists, `useCompare`, `useWishlist`, fetch hooks); relays
+  `api/public/store/compare|cards`; pages `/compare`, `/wishlist` via the registry's `pages.Compare` /
+  `pages.Wishlist` (defaults in `asas/pages`, «رواق» / «شابع» pass their cards).
+- **Tests**: back `tests/Feature/Specs/SpecFiltersTest.php` (7: AND/OR, filterable only, case, broken link, counts
+  per category / search, hidden products, cache drop, compare merge + validation, cards order + isolation + 401,
+  review product); front `themes/store/shared/shopping-lists.test.tsx` (8) + a spec-filter case in «رواق» / «شابع»
+  listings.
+- Decisions: DECISIONS.md «Spec filters, «قارن», «المفضلة»». Nothing for the owner to do.

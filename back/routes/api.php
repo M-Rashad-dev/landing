@@ -472,6 +472,9 @@ Route::prefix('public')
             Route::get('store', [PublicStoreController::class, 'config']);
             Route::get('store/products', [PublicStoreController::class, 'products']);
             Route::get('store/products/{slug}', [PublicStoreController::class, 'product']);
+            // «قارن» and «المفضلة» (lists kept in the visitor's browser).
+            Route::get('store/compare', [PublicStoreController::class, 'compare']);
+            Route::get('store/cards', [PublicStoreController::class, 'cards']);
             Route::get('store/pages/{slug}', [PublicStoreController::class, 'page']);
         });
         Route::get('store/form-token', [PublicStoreController::class, 'formToken'])->middleware('throttle:public-form-token');

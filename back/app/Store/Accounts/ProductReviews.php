@@ -111,12 +111,24 @@ final class ProductReviews
             ->all();
     }
 
+    /**
+     * The latest good written reviews of the store (home sections), with the product each one is about.
+     *
+     * @return list<array{name: string, rating: int, text: string, product: array{name: string, slug: string|null}|null}>
+     */
     public function forHome(int $limit = 6): array
     {
         return ProductReview::query()->visible()->where('rating', '>=', 4)->whereNotNull('text')
             ->whereHas('product', fn (Builder $q) => $q->whereNull('deleted_at'))
+            ->with('product:id,name,slug,in_store,is_active')
             ->latest('id')->limit($limit)->get()
-            ->map(fn (ProductReview $r) => ['name' => ProductReview::displayName($r->author_name), 'rating' => $r->rating, 'text' => (string) $r->text])
+            ->map(fn (ProductReview $r) => [
+                'name' => ProductReview::displayName($r->author_name),
+                'rating' => $r->rating,
+                'text' => (string) $r->text,
+                // «اشترى: …» under a review; the link only while the product is on sale in the store.
+                'product' => $r->product === null ? null : ['name' => $r->product->name, 'slug' => $r->product->in_store && $r->product->is_active ? $r->product->slug : null],
+            ])
             ->all();
     }
 }

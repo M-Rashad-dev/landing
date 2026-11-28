@@ -123,7 +123,10 @@ export type ProductPage = {
   rating: { average: number; count: number; stars: Record<string, number> };
 };
 
-export type ProductList = { data: ProductCard[]; meta: { current_page: number; last_page: number; per_page: number; total: number } };
+/** A spec filter of a list: a label and its values with how many products have each. */
+export type SpecFacet = { label: string; values: Array<{ value: string; count: number }> };
+
+export type ProductList = { data: ProductCard[]; meta: { current_page: number; last_page: number; per_page: number; total: number; facets?: SpecFacet[] } };
 
 export type StaticPage = { title: string; slug: string; body: string | null; seo: Seo };
 

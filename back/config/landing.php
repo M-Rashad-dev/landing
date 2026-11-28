@@ -53,7 +53,7 @@ return [
         'api', '_next', 'admin', 'dashboard', 'login', 'register', 'preview', 'media',
         'sitemap', 'robots', 'favicon', 'thank-you', 'track',
         // Store routes (the store owns these paths on the tenant host).
-        'products', 'categories', 'cart', 'checkout', 'pages', 'search', 'offers', 'account',
+        'products', 'categories', 'cart', 'checkout', 'pages', 'search', 'offers', 'account', 'compare', 'wishlist',
     ],
 
     // Support chat between stores and the platform.

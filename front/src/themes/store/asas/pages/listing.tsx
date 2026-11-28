@@ -8,6 +8,7 @@ import { ar } from "@/messages/ar";
 import type { MediaUrls } from "@/themes/shared/design";
 import { StoreLink } from "@/themes/store/shared/context";
 import { LIST_SORTS, useListing, type ListFilters } from "@/themes/store/shared/use-listing";
+import { SpecFilters } from "@/themes/store/shared/spec-filters";
 import { Breadcrumb, Container, Empty, inputClass } from "../parts";
 import { ProductCard } from "../product-card";
 
@@ -35,7 +36,7 @@ export function Listing({
   kind?: "list" | "offers";
 }) {
   const browse = useListing(filters, basePath);
-  const [open, setOpen] = React.useState(Boolean(filters.min || filters.max || filters.in_stock));
+  const [open, setOpen] = React.useState(Boolean(filters.min || filters.max || filters.in_stock || filters.spec));
   const filtered = browse.filtered;
 
   const onPrice = (e: React.FormEvent<HTMLFormElement>) => {
@@ -116,6 +117,7 @@ export function Listing({
                 {t.clear}
               </button>
             ) : null}
+            <SpecFilters facets={list.meta.facets} chosen={browse.spec} onToggle={browse.specValue} onClear={browse.clearSpec} className="w-full border-t pt-3" />
           </div>
         ) : null}
         <p className="as-xs as-muted">{t.count(meta.total)}</p>

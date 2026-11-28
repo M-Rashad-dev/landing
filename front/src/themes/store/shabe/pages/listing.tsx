@@ -8,6 +8,7 @@ import { ar } from "@/messages/ar";
 import { pick, type MediaUrls } from "@/themes/shared/design";
 import { StoreLink } from "@/themes/store/shared/context";
 import { LIST_SORTS, useListing, type ListFilters } from "@/themes/store/shared/use-listing";
+import { SpecFilters } from "@/themes/store/shared/spec-filters";
 import { FoodCard } from "../card";
 import { useListingSettings } from "../root";
 
@@ -42,7 +43,8 @@ export function ShabeListing({
 }) {
   const look = useListingSettings();
   const browse = useListing(filters, basePath);
-  const [open, setOpen] = React.useState(look.filters === "open");
+  // Open at first when the merchant shows the filters, or when the visitor already chose some.
+  const [open, setOpen] = React.useState(look.filters === "open" || Boolean(filters.min || filters.max || filters.in_stock || filters.spec));
   const banner = look.banner ? pick(image, "large") : null;
   const { meta } = list;
   const cols = { "--cols": look.columns_mobile, "--cols-wide": look.columns_desktop } as React.CSSProperties;
@@ -174,7 +176,12 @@ export function ShabeListing({
             </button>
           ) : null}
         </div>
-        {look.filters !== "hidden" && open ? filterBox : null}
+        {look.filters !== "hidden" && open ? (
+          <>
+            {filterBox}
+            <SpecFilters facets={list.meta.facets} chosen={browse.spec} onToggle={browse.specValue} onClear={browse.clearSpec} className="ss-card p-4" />
+          </>
+        ) : null}
 
         {list.data.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">

@@ -22,6 +22,8 @@ use App\Services\PhoneNormalizer;
 use App\Store\Accounts\CustomerAccounts;
 use App\Store\CreateStoreOrder;
 use App\Store\QuizResults;
+use App\Store\Specs\ProductCompare;
+use App\Store\Specs\SpecFilters;
 use App\Store\StoreCatalog;
 use App\Store\StoreSite;
 use App\Support\TrafficSource;
@@ -38,6 +40,9 @@ use Illuminate\Validation\ValidationException;
 final class StoreController extends Controller
 {
     use RespondsWithJson, ServesLiveStore;
+
+    /** The most cards one request returns (the browser's wishlist keeps 100). */
+    public const MAX_CARDS = 100;
 
     public function __construct(
         private readonly StoreSite $store,
@@ -60,21 +65,52 @@ final class StoreController extends Controller
             'in_stock' => ['nullable', 'boolean'],
             'offers' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            // «فلاتر المواصفات»: {"label": ["value", …]} as JSON (read leniently: SpecFilters::parse).
+            // Long enough for 10 labels × 20 values (the front's own bound); what is read is clamped again.
+            'spec' => ['nullable', 'string', 'max:50000'],
         ]);
 
         return $this->inStore($request, function (Store $store) use ($data) {
-            $page = $this->catalog->search([
+            $filters = [
                 ...$data,
                 // A store that hides sold-out products never lists them.
                 'in_stock' => filter_var($data['in_stock'] ?? false, FILTER_VALIDATE_BOOLEAN) || ! StoreSite::showsOutOfStock($store),
                 'offers' => filter_var($data['offers'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            ], StoreSite::perPage($store));
+                'spec' => SpecFilters::parse($data['spec'] ?? null),
+            ];
+            $page = $this->catalog->search($filters, StoreSite::perPage($store));
 
             return $this->ok(
                 $page->getCollection()->map(fn ($p) => $this->catalog->card($p))->values()->all(),
-                ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+                [
+                    'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total(),
+                    // The list's spec filters with their counts (before the visitor's price and spec choices).
+                    'facets' => $this->catalog->facets($filters),
+                ],
             );
         });
+    }
+
+    /** «قارن»: the visitor's products (≤ 4, from their browser) with their spec rows side by side. */
+    public function compare(Request $request, ProductCompare $compare): JsonResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'string', 'regex:/^[1-9][0-9]{0,9}(,[1-9][0-9]{0,9}){0,'.(ProductCompare::MAX - 1).'}$/']]);
+
+        return $this->inStore($request, fn () => $this->ok($compare->compare(self::ids($data['ids']))));
+    }
+
+    /** Cards of products by id, in the given order (the browser's «المفضلة»); hidden or gone ones are left out. */
+    public function cards(Request $request): JsonResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'string', 'max:1200', 'regex:/^[1-9][0-9]{0,9}(,[1-9][0-9]{0,9})*$/']]);
+
+        return $this->inStore($request, fn () => $this->ok($this->catalog->cards(array_slice(self::ids($data['ids']), 0, self::MAX_CARDS))));
+    }
+
+    /** @return list<int> */
+    private static function ids(string $list): array
+    {
+        return array_values(array_unique(array_map('intval', explode(',', $list))));
     }
 
     public function product(Request $request, string $slug): JsonResponse

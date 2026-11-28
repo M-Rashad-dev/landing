@@ -1,13 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { decodeSpec, specParams, toggleSpecValue } from "@/lib/store/spec-filter";
 
-/** What the visitor chose (search, sort, filters); the page and the category stay in the path. */
-export type ListFilters = { q?: string; sort?: string; min?: string; max?: string; in_stock?: "1"; page?: string };
+/**
+ * What the visitor chose (search, sort, filters); the page and the category stay in the path. `spec` is the chosen
+ * spec filters (canonical JSON from lib/store/spec-filter), written in the link as `spec[label]=value`.
+ */
+export type ListFilters = { q?: string; sort?: string; min?: string; max?: string; in_stock?: "1"; spec?: string; page?: string };
 
 export const LIST_SORTS = ["newest", "featured", "best_sellers", "price_asc", "price_desc"] as const;
 
-const query = (filters: ListFilters) => new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as Array<[string, string]>).toString();
+const query = (filters: ListFilters) => {
+  const { spec, ...rest } = filters;
+  return new URLSearchParams([...(Object.entries(rest).filter(([, v]) => v) as Array<[string, string]>), ...specParams(spec)]).toString();
+};
 
 /**
  * A product list's search, sort, price and stock filters and pages, kept in the link (so they can
@@ -24,7 +31,9 @@ export function useListing(filters: ListFilters, basePath: string) {
   };
 
   return {
-    filtered: Boolean(filters.q || filters.min || filters.max || filters.in_stock),
+    filtered: Boolean(filters.q || filters.min || filters.max || filters.in_stock || filters.spec),
+    /** The chosen spec filters: label → values. */
+    spec: decodeSpec(filters.spec),
     /** The link of a page of the same list. */
     pageHref: (page: number) => {
       const qs = query({ ...filters, page: page > 1 ? String(page) : undefined });
@@ -38,6 +47,10 @@ export function useListing(filters: ListFilters, basePath: string) {
       go({ min: clean(min), max: clean(max) });
     },
     inStock: (on: boolean) => go({ in_stock: on ? "1" : undefined }),
+    /** One value of a spec filter on or off. */
+    specValue: (label: string, value: string, on: boolean) => go({ spec: toggleSpecValue(filters.spec, label, value, on) }),
+    /** Clears the spec filters only. */
+    clearSpec: () => go({ spec: undefined }),
     /** Back to the whole list (no search, no filters). */
     clear: () => router.push(basePath),
   };

@@ -46,7 +46,8 @@ export type DesignData = {
   media: Record<string, MediaUrls>;
   categories: Array<{ id: number; parent_id: number | null; name: string; slug: string }>;
   pages: Array<{ title: string; slug: string }>;
-  reviews: Array<{ name: string; rating: number; text: string }>;
+  /** The latest good reviews; `product` = what it was about («اشترى: …»; slug null when not on sale). */
+  reviews: Array<{ name: string; rating: number; text: string; product?: { name: string; slug: string | null } | null }>;
   category_tiles?: Record<string, AiCategoryTile[]>;
   ai_sections?: Record<string, AiDefinition>;
   ai_sections_current?: Record<string, number>;

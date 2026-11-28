@@ -104,6 +104,13 @@ describe("«شابع» category pages", () => {
     expect(grid?.style.getPropertyValue("--cols")).toBe("1");
   });
 
+  it("shows the spec filters in its filter panel, opened when the visitor already chose one", () => {
+    const facets = [{ label: "الحجم", values: [{ value: "50 مل", count: 3 }] }];
+    draw(<ShabeListing {...props} list={{ ...list, meta: { ...list.meta, facets } }} filters={{ spec: '{"الحجم":["50 مل"]}' }} />, settings({ filters: "button" }));
+    expect(screen.getByRole("group", { name: ar.storefront.list.specs })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /50 مل/ })).toBeChecked();
+  });
+
   it("keeps the filters behind a button, or hides them", () => {
     draw(<ShabeListing {...props} />, settings({ filters: "button" }));
     expect(screen.queryByText(ar.storefront.list.apply)).toBeNull();
